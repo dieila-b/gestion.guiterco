@@ -7,7 +7,9 @@ import CashRegisterOverview from '@/components/cash-register/CashRegisterOvervie
 import TransactionDialog from '@/components/cash-register/TransactionDialog';
 import TransactionsHistory from '@/components/cash-register/TransactionsHistory';
 import ReportsTab from '@/components/cash-register/ReportsTab';
+import AddCashRegisterDialog from '@/components/cash-register/AddCashRegisterDialog';
 import { CashRegister, Transaction } from '@/components/cash-register/types';
+import { fr } from 'date-fns/locale';
 
 // Mock data
 const mockCashRegisters: CashRegister[] = [
@@ -28,6 +30,7 @@ const CashRegisters: React.FC = () => {
   const [newTransactionOpen, setNewTransactionOpen] = useState(false);
   const [transactionType, setTransactionType] = useState('income');
   const [selectedRegister, setSelectedRegister] = useState<number | null>(1);
+  const [cashRegisters, setCashRegisters] = useState<CashRegister[]>(mockCashRegisters);
 
   const handleOpenRegister = () => {
     toast({
@@ -58,11 +61,25 @@ const CashRegisters: React.FC = () => {
     });
   };
 
+  const handleRegisterCreated = (data: { name: string; initialBalance: number }) => {
+    // In a real app, you would call an API to create the register
+    // For now, we'll just add it to our local state
+    const newRegister: CashRegister = {
+      id: cashRegisters.length + 1,
+      name: data.name,
+      balance: data.initialBalance,
+      status: 'open',
+      lastUpdated: new Date(),
+    };
+    
+    setCashRegisters([...cashRegisters, newRegister]);
+  };
+
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(amount);
   };
 
-  const activeRegister = mockCashRegisters.find(register => register.id === selectedRegister);
+  const activeRegister = cashRegisters.find(register => register.id === selectedRegister);
 
   return (
     <AppLayout title="Gestion des caisses">
@@ -74,6 +91,7 @@ const CashRegisters: React.FC = () => {
             <TabsTrigger value="reports">Rapports</TabsTrigger>
           </TabsList>
           <div className="space-x-2">
+            <AddCashRegisterDialog onRegisterCreated={handleRegisterCreated} />
             <TransactionDialog
               open={newTransactionOpen}
               onOpenChange={setNewTransactionOpen}
