@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -13,7 +12,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { useToast } from '@/hooks/use-toast';
 import { CalendarIcon } from 'lucide-react';
 import { format } from 'date-fns';
-import fr from 'date-fns/locale/fr';
+import { fr } from 'date-fns/locale/fr';
 
 // Mock data
 const mockCashRegisters = [
