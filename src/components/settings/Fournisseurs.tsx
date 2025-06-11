@@ -2,53 +2,59 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Plus, Edit, Trash2, ShoppingCart } from 'lucide-react';
-import { useToast } from "@/hooks/use-toast";
+import { Badge } from "@/components/ui/badge";
+import { Plus, Edit, Trash2, ShoppingCart, Globe, Phone, Mail } from 'lucide-react';
+import { useFournisseurs } from "@/hooks/useFournisseurs";
+import FournisseurForm from './FournisseurForm';
+import { Fournisseur } from '@/types/fournisseurs';
 
 const Fournisseurs = () => {
-  const [fournisseurs, setFournisseurs] = useState([
-    { id: 1, nom: 'Fournisseur A', email: 'contact@fournisseura.com', telephone: '01 23 45 67 89', adresse: '123 Rue du Commerce' },
-    { id: 2, nom: 'Fournisseur B', email: 'info@fournisseurb.com', telephone: '01 98 76 54 32', adresse: '456 Avenue des Affaires' }
-  ]);
+  const { fournisseurs, createFournisseur, updateFournisseur } = useFournisseurs();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [editingFournisseur, setEditingFournisseur] = useState(null);
-  const [formData, setFormData] = useState({ nom: '', email: '', telephone: '', adresse: '' });
-  const { toast } = useToast();
+  const [editingFournisseur, setEditingFournisseur] = useState<Fournisseur | null>(null);
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
+  const handleSubmit = (data: Partial<Fournisseur>) => {
     if (editingFournisseur) {
-      setFournisseurs(fournisseurs.map(f => 
-        f.id === editingFournisseur.id ? { ...f, ...formData } : f
-      ));
-      toast({ title: "Fournisseur mis à jour avec succès" });
+      updateFournisseur.mutate({ id: editingFournisseur.id, ...data });
     } else {
-      setFournisseurs([...fournisseurs, { id: Date.now(), ...formData }]);
-      toast({ title: "Fournisseur ajouté avec succès" });
+      createFournisseur.mutate(data);
     }
     setIsDialogOpen(false);
-    setFormData({ nom: '', email: '', telephone: '', adresse: '' });
     setEditingFournisseur(null);
   };
 
-  const handleEdit = (fournisseur) => {
+  const handleEdit = (fournisseur: Fournisseur) => {
     setEditingFournisseur(fournisseur);
-    setFormData({ 
-      nom: fournisseur.nom, 
-      email: fournisseur.email, 
-      telephone: fournisseur.telephone, 
-      adresse: fournisseur.adresse 
-    });
     setIsDialogOpen(true);
   };
 
-  const handleDelete = (id) => {
-    setFournisseurs(fournisseurs.filter(f => f.id !== id));
-    toast({ title: "Fournisseur supprimé avec succès" });
+  const handleCancel = () => {
+    setIsDialogOpen(false);
+    setEditingFournisseur(null);
+  };
+
+  const getStatutBadge = (statut: string) => {
+    const variants: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
+      'approuve': 'default',
+      'en_attente': 'secondary',
+      'refuse': 'destructive',
+      'suspendu': 'outline',
+      'inactif': 'outline'
+    };
+    return variants[statut] || 'outline';
+  };
+
+  const getStatutLabel = (statut: string) => {
+    const labels: Record<string, string> = {
+      'approuve': 'Approuvé',
+      'en_attente': 'En attente',
+      'refuse': 'Refusé',
+      'suspendu': 'Suspendu',
+      'inactif': 'Inactif'
+    };
+    return labels[statut] || statut;
   };
 
   return (
@@ -61,71 +67,31 @@ const Fournisseurs = () => {
               <div>
                 <CardTitle>Fournisseurs</CardTitle>
                 <CardDescription>
-                  Gérez vos fournisseurs et leurs catalogues
+                  Gérez vos fournisseurs et leurs informations complètes
                 </CardDescription>
               </div>
             </div>
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
               <DialogTrigger asChild>
-                <Button onClick={() => { setEditingFournisseur(null); setFormData({ nom: '', email: '', telephone: '', adresse: '' }); }}>
+                <Button onClick={() => setEditingFournisseur(null)}>
                   <Plus className="h-4 w-4 mr-2" />
                   Ajouter un fournisseur
                 </Button>
               </DialogTrigger>
-              <DialogContent>
+              <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                   <DialogTitle>
                     {editingFournisseur ? 'Modifier le fournisseur' : 'Ajouter un fournisseur'}
                   </DialogTitle>
                   <DialogDescription>
-                    Saisissez les informations du fournisseur
+                    Saisissez les informations complètes du fournisseur
                   </DialogDescription>
                 </DialogHeader>
-                <form onSubmit={handleSubmit} className="space-y-4">
-                  <div>
-                    <Label htmlFor="nom">Nom du fournisseur</Label>
-                    <Input
-                      id="nom"
-                      value={formData.nom}
-                      onChange={(e) => setFormData({ ...formData, nom: e.target.value })}
-                      required
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="email">Email</Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      value={formData.email}
-                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                      required
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="telephone">Téléphone</Label>
-                    <Input
-                      id="telephone"
-                      value={formData.telephone}
-                      onChange={(e) => setFormData({ ...formData, telephone: e.target.value })}
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="adresse">Adresse</Label>
-                    <Input
-                      id="adresse"
-                      value={formData.adresse}
-                      onChange={(e) => setFormData({ ...formData, adresse: e.target.value })}
-                    />
-                  </div>
-                  <div className="flex justify-end space-x-2">
-                    <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
-                      Annuler
-                    </Button>
-                    <Button type="submit">
-                      {editingFournisseur ? 'Modifier' : 'Ajouter'}
-                    </Button>
-                  </div>
-                </form>
+                <FournisseurForm
+                  fournisseur={editingFournisseur || undefined}
+                  onSubmit={handleSubmit}
+                  onCancel={handleCancel}
+                />
               </DialogContent>
             </Dialog>
           </div>
@@ -134,32 +100,111 @@ const Fournisseurs = () => {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Nom</TableHead>
-                <TableHead>Email</TableHead>
-                <TableHead>Téléphone</TableHead>
-                <TableHead>Adresse</TableHead>
+                <TableHead>Entreprise</TableHead>
+                <TableHead>Contact</TableHead>
+                <TableHead>Coordonnées</TableHead>
+                <TableHead>Localisation</TableHead>
+                <TableHead>Statut</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {fournisseurs.map((fournisseur) => (
+              {fournisseurs?.map((fournisseur) => (
                 <TableRow key={fournisseur.id}>
-                  <TableCell className="font-medium">{fournisseur.nom}</TableCell>
-                  <TableCell>{fournisseur.email}</TableCell>
-                  <TableCell>{fournisseur.telephone}</TableCell>
-                  <TableCell>{fournisseur.adresse}</TableCell>
+                  <TableCell>
+                    <div>
+                      <div className="font-medium">
+                        {fournisseur.nom_entreprise || fournisseur.nom || 'N/A'}
+                      </div>
+                      {fournisseur.site_web && (
+                        <div className="flex items-center text-sm text-muted-foreground mt-1">
+                          <Globe className="h-3 w-3 mr-1" />
+                          <a 
+                            href={fournisseur.site_web} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="hover:underline"
+                          >
+                            Site web
+                          </a>
+                        </div>
+                      )}
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <div>
+                      {fournisseur.contact_principal && (
+                        <div className="font-medium">{fournisseur.contact_principal}</div>
+                      )}
+                      {fournisseur.email && (
+                        <div className="flex items-center text-sm text-muted-foreground">
+                          <Mail className="h-3 w-3 mr-1" />
+                          {fournisseur.email}
+                        </div>
+                      )}
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="space-y-1">
+                      {fournisseur.telephone_mobile && (
+                        <div className="flex items-center text-sm">
+                          <Phone className="h-3 w-3 mr-1" />
+                          <span className="text-xs bg-blue-100 text-blue-800 px-1 rounded mr-1">Mob</span>
+                          {fournisseur.telephone_mobile}
+                        </div>
+                      )}
+                      {fournisseur.telephone_fixe && (
+                        <div className="flex items-center text-sm">
+                          <Phone className="h-3 w-3 mr-1" />
+                          <span className="text-xs bg-green-100 text-green-800 px-1 rounded mr-1">Fix</span>
+                          {fournisseur.telephone_fixe}
+                        </div>
+                      )}
+                      {/* Fallback pour ancien champ telephone */}
+                      {!fournisseur.telephone_mobile && !fournisseur.telephone_fixe && fournisseur.telephone && (
+                        <div className="flex items-center text-sm">
+                          <Phone className="h-3 w-3 mr-1" />
+                          {fournisseur.telephone}
+                        </div>
+                      )}
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="text-sm">
+                      {fournisseur.pays?.nom && (
+                        <div>{fournisseur.pays.nom}</div>
+                      )}
+                      {(fournisseur.ville?.nom || fournisseur.ville_personnalisee) && (
+                        <div className="text-muted-foreground">
+                          {fournisseur.ville?.nom || fournisseur.ville_personnalisee}
+                        </div>
+                      )}
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant={getStatutBadge(fournisseur.statut || 'en_attente')}>
+                      {getStatutLabel(fournisseur.statut || 'en_attente')}
+                    </Badge>
+                  </TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end space-x-2">
                       <Button variant="outline" size="sm" onClick={() => handleEdit(fournisseur)}>
                         <Edit className="h-4 w-4" />
                       </Button>
-                      <Button variant="outline" size="sm" onClick={() => handleDelete(fournisseur.id)}>
+                      <Button variant="outline" size="sm">
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
                   </TableCell>
                 </TableRow>
               ))}
+              {(!fournisseurs || fournisseurs.length === 0) && (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                    Aucun fournisseur trouvé. Cliquez sur "Ajouter un fournisseur" pour commencer.
+                  </TableCell>
+                </TableRow>
+              )}
             </TableBody>
           </Table>
         </CardContent>

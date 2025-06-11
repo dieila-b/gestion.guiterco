@@ -779,32 +779,80 @@ export type Database = {
       fournisseurs: {
         Row: {
           adresse: string | null
+          adresse_complete: string | null
+          boite_postale: string | null
+          contact_principal: string | null
           created_at: string
           email: string | null
           id: string
-          nom: string
+          nom: string | null
+          nom_entreprise: string | null
+          pays_id: string | null
+          site_web: string | null
+          statut: string | null
           telephone: string | null
+          telephone_fixe: string | null
+          telephone_mobile: string | null
           updated_at: string
+          ville_id: string | null
+          ville_personnalisee: string | null
         }
         Insert: {
           adresse?: string | null
+          adresse_complete?: string | null
+          boite_postale?: string | null
+          contact_principal?: string | null
           created_at?: string
           email?: string | null
           id?: string
-          nom: string
+          nom?: string | null
+          nom_entreprise?: string | null
+          pays_id?: string | null
+          site_web?: string | null
+          statut?: string | null
           telephone?: string | null
+          telephone_fixe?: string | null
+          telephone_mobile?: string | null
           updated_at?: string
+          ville_id?: string | null
+          ville_personnalisee?: string | null
         }
         Update: {
           adresse?: string | null
+          adresse_complete?: string | null
+          boite_postale?: string | null
+          contact_principal?: string | null
           created_at?: string
           email?: string | null
           id?: string
-          nom?: string
+          nom?: string | null
+          nom_entreprise?: string | null
+          pays_id?: string | null
+          site_web?: string | null
+          statut?: string | null
           telephone?: string | null
+          telephone_fixe?: string | null
+          telephone_mobile?: string | null
           updated_at?: string
+          ville_id?: string | null
+          ville_personnalisee?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "fournisseurs_pays_id_fkey"
+            columns: ["pays_id"]
+            isOneToOne: false
+            referencedRelation: "pays"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fournisseurs_ville_id_fkey"
+            columns: ["ville_id"]
+            isOneToOne: false
+            referencedRelation: "villes"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       lignes_commande: {
         Row: {
@@ -940,6 +988,27 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      pays: {
+        Row: {
+          code_iso: string
+          created_at: string
+          id: string
+          nom: string
+        }
+        Insert: {
+          code_iso: string
+          created_at?: string
+          id?: string
+          nom: string
+        }
+        Update: {
+          code_iso?: string
+          created_at?: string
+          id?: string
+          nom?: string
+        }
+        Relationships: []
       }
       points_de_vente: {
         Row: {
@@ -1475,6 +1544,38 @@ export type Database = {
             columns: ["client_id"]
             isOneToOne: false
             referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      villes: {
+        Row: {
+          code_postal: string | null
+          created_at: string
+          id: string
+          nom: string
+          pays_id: string | null
+        }
+        Insert: {
+          code_postal?: string | null
+          created_at?: string
+          id?: string
+          nom: string
+          pays_id?: string | null
+        }
+        Update: {
+          code_postal?: string | null
+          created_at?: string
+          id?: string
+          nom?: string
+          pays_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "villes_pays_id_fkey"
+            columns: ["pays_id"]
+            isOneToOne: false
+            referencedRelation: "pays"
             referencedColumns: ["id"]
           },
         ]

@@ -12,8 +12,20 @@ export const useFournisseurs = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('fournisseurs')
-        .select('*')
-        .order('nom', { ascending: true });
+        .select(`
+          *,
+          pays:pays_id (
+            id,
+            nom,
+            code_iso
+          ),
+          ville:ville_id (
+            id,
+            nom,
+            code_postal
+          )
+        `)
+        .order('nom_entreprise', { ascending: true });
       
       if (error) throw error;
       return data as Fournisseur[];
@@ -25,7 +37,19 @@ export const useFournisseurs = () => {
       const { data, error } = await supabase
         .from('fournisseurs')
         .insert(newFournisseur)
-        .select()
+        .select(`
+          *,
+          pays:pays_id (
+            id,
+            nom,
+            code_iso
+          ),
+          ville:ville_id (
+            id,
+            nom,
+            code_postal
+          )
+        `)
         .single();
       
       if (error) throw error;
@@ -47,10 +71,51 @@ export const useFournisseurs = () => {
     }
   });
 
+  const updateFournisseur = useMutation({
+    mutationFn: async ({ id, ...updateData }: Partial<Fournisseur> & { id: string }) => {
+      const { data, error } = await supabase
+        .from('fournisseurs')
+        .update(updateData)
+        .eq('id', id)
+        .select(`
+          *,
+          pays:pays_id (
+            id,
+            nom,
+            code_iso
+          ),
+          ville:ville_id (
+            id,
+            nom,
+            code_postal
+          )
+        `)
+        .single();
+      
+      if (error) throw error;
+      return data as Fournisseur;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['fournisseurs'] });
+      toast({
+        title: "Fournisseur mis à jour avec succès",
+        variant: "default",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Erreur lors de la mise à jour du fournisseur",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  });
+
   return {
     fournisseurs,
     isLoading,
     error,
-    createFournisseur
+    createFournisseur,
+    updateFournisseur
   };
 };
