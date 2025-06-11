@@ -22,7 +22,6 @@ const CreateProductDialog = () => {
 
   const [formData, setFormData] = useState({
     nom: '',
-    reference: '', // Sera généré automatiquement
     description: '',
     prix_achat: '',
     prix_vente: '',
@@ -37,11 +36,12 @@ const CreateProductDialog = () => {
     setLoading(true);
 
     try {
+      // Insérer avec une référence temporaire que le trigger remplacera
       const { error } = await supabase
         .from('catalogue')
         .insert({
           nom: formData.nom,
-          // Ne pas inclure reference - elle sera générée automatiquement par le trigger
+          reference: 'TEMP', // Référence temporaire - sera remplacée par le trigger
           description: formData.description || null,
           prix_achat: formData.prix_achat ? parseFloat(formData.prix_achat) : null,
           prix_vente: formData.prix_vente ? parseFloat(formData.prix_vente) : null,
@@ -60,7 +60,6 @@ const CreateProductDialog = () => {
 
       setFormData({
         nom: '',
-        reference: '',
         description: '',
         prix_achat: '',
         prix_vente: '',
