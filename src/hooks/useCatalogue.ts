@@ -12,21 +12,48 @@ export interface Article {
   categorie?: string;
   unite_mesure?: string;
   description?: string;
-  image_url?: string; // Nouveau champ pour l'image
+  image_url?: string;
+  statut?: string;
+  seuil_alerte?: number;
+  categorie_id?: string;
+  unite_id?: string;
 }
 
-// Version legacy maintenue pour compatibilité
 export const useCatalogue = () => {
   const { data: articles, isLoading, error } = useQuery({
     queryKey: ['catalogue'],
     queryFn: async () => {
+      console.log('Fetching catalogue data...');
+      
       const { data, error } = await supabase
         .from('catalogue')
-        .select('id, nom, reference, prix_achat, prix_vente, prix_unitaire, categorie, unite_mesure, description, image_url')
+        .select(`
+          id,
+          nom,
+          reference,
+          description,
+          prix_achat,
+          prix_vente,
+          prix_unitaire,
+          categorie,
+          unite_mesure,
+          categorie_id,
+          unite_id,
+          seuil_alerte,
+          image_url,
+          statut,
+          created_at,
+          updated_at
+        `)
         .eq('statut', 'actif')
         .order('nom', { ascending: true });
       
-      if (error) throw error;
+      if (error) {
+        console.error('Erreur lors du chargement du catalogue:', error);
+        throw error;
+      }
+      
+      console.log('Catalogue data loaded:', data);
       return data as Article[];
     },
     staleTime: 10 * 60 * 1000, // 10 minutes

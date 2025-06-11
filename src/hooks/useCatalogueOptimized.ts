@@ -10,7 +10,10 @@ export interface ArticleOptimized {
   prix_achat?: number;
   prix_vente?: number;
   categorie?: string;
-  image_url?: string; // Nouveau champ pour l'image
+  image_url?: string;
+  statut?: string;
+  categorie_id?: string;
+  unite_id?: string;
 }
 
 // Hook optimisé avec pagination et filtrage côté serveur
@@ -26,9 +29,22 @@ export const useCatalogueOptimized = (
   const { data, isLoading, error } = useQuery({
     queryKey: ['catalogue_optimized', page, limit, searchTerm, category],
     queryFn: async () => {
+      console.log('Fetching optimized catalogue data...');
+      
       let query = supabase
         .from('catalogue')
-        .select('id, nom, reference, prix_achat, prix_vente, categorie, image_url', { count: 'exact' })
+        .select(`
+          id,
+          nom,
+          reference,
+          prix_achat,
+          prix_vente,
+          categorie,
+          image_url,
+          statut,
+          categorie_id,
+          unite_id
+        `, { count: 'exact' })
         .eq('statut', 'actif')
         .range(from, to);
 
@@ -38,14 +54,19 @@ export const useCatalogueOptimized = (
       }
       
       if (category && category !== 'all') {
-        query = query.eq('categorie', category);
+        query = query.eq('categorie_id', category);
       }
 
       query = query.order('nom', { ascending: true });
       
       const { data, error, count } = await query;
       
-      if (error) throw error;
+      if (error) {
+        console.error('Erreur lors du chargement du catalogue optimisé:', error);
+        throw error;
+      }
+      
+      console.log('Optimized catalogue data loaded:', data);
       return { 
         articles: data as ArticleOptimized[], 
         totalCount: count || 0,
@@ -82,14 +103,29 @@ export const useCatalogueSearch = (searchTerm: string, enabled = false) => {
     queryFn: async () => {
       if (!searchTerm || searchTerm.length < 2) return [];
       
+      console.log('Searching catalogue with term:', searchTerm);
+      
       const { data, error } = await supabase
         .from('catalogue')
-        .select('id, nom, reference, prix_achat, prix_vente, image_url')
+        .select(`
+          id,
+          nom,
+          reference,
+          prix_achat,
+          prix_vente,
+          image_url,
+          statut
+        `)
         .eq('statut', 'actif')
         .or(`nom.ilike.%${searchTerm}%,reference.ilike.%${searchTerm}%`)
         .limit(10);
       
-      if (error) throw error;
+      if (error) {
+        console.error('Erreur lors de la recherche dans le catalogue:', error);
+        throw error;
+      }
+      
+      console.log('Search results:', data);
       return data as ArticleOptimized[];
     },
     enabled: enabled && searchTerm.length >= 2,

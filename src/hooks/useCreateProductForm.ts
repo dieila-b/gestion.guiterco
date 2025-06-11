@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useQueryClient } from '@tanstack/react-query';
 
 interface FormData {
   nom: string;
@@ -29,6 +30,7 @@ export const useCreateProductForm = () => {
   const [formData, setFormData] = useState<FormData>(initialFormData);
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -37,7 +39,7 @@ export const useCreateProductForm = () => {
     try {
       console.log('Tentative de création du produit avec les données:', formData);
       
-      // Validation côté client renforcée
+      // Validation côté client
       if (!formData.nom || formData.nom.trim() === '') {
         throw new Error('Le nom du produit est obligatoire');
       }
@@ -85,24 +87,11 @@ export const useCreateProductForm = () => {
 
       console.log('Données préparées pour insertion:', insertData);
 
-      // Explicitement spécifier les colonnes pour éviter toute ambiguïté
+      // Insérer le produit avec une requête claire et sans ambiguïté
       const { data, error } = await supabase
         .from('catalogue')
         .insert(insertData)
-        .select(`
-          id,
-          nom,
-          reference,
-          description,
-          prix_achat,
-          prix_vente,
-          categorie_id,
-          unite_id,
-          seuil_alerte,
-          image_url,
-          statut,
-          created_at
-        `);
+        .select();
 
       if (error) {
         console.error('Erreur Supabase détaillée:', error);
@@ -116,6 +105,10 @@ export const useCreateProductForm = () => {
         description: `Le produit "${formData.nom}" a été ajouté au catalogue avec succès.`
       });
 
+      // Invalider les caches pour rafraîchir les données
+      queryClient.invalidateQueries({ queryKey: ['catalogue'] });
+      queryClient.invalidateQueries({ queryKey: ['catalogue_optimized'] });
+
       setFormData(initialFormData);
       return true;
     } catch (error: any) {
@@ -123,10 +116,8 @@ export const useCreateProductForm = () => {
       
       let errorMessage = "Impossible de créer le produit.";
       
-      // Gestion d'erreurs plus détaillée
-      if (error.code === '42702') {
-        errorMessage = "Erreur de configuration de la base de données. Veuillez contacter le support.";
-      } else if (error.code === '23505') {
+      // Gestion d'erreurs spécifique
+      if (error.code === '23505') {
         if (error.message?.includes('reference')) {
           errorMessage = "Cette référence existe déjà. Veuillez réessayer.";
         } else {
@@ -135,7 +126,7 @@ export const useCreateProductForm = () => {
       } else if (error.code === '23502') {
         errorMessage = "Certains champs obligatoires sont manquants.";
       } else if (error.code === '23503') {
-        errorMessage = "Catégorie ou unité invalide.";
+        errorMessage = "Catégorie ou unité invalide sélectionnée.";
       } else if (error.message) {
         errorMessage = error.message;
       }
