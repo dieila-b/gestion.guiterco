@@ -14,7 +14,7 @@ const VenteComptoirOptimized = () => {
   const { data: commandes, isLoading } = useCommandesClients();
   const [selectedPDV, setSelectedPDV] = useState('');
   const [searchProduct, setSearchProduct] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('all');
 
   const getStatusBadgeColor = (statut: string) => {
     switch (statut) {
@@ -76,7 +76,7 @@ const VenteComptoirOptimized = () => {
               <SelectValue placeholder="Toutes catégories" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Toutes catégories</SelectItem>
+              <SelectItem value="all">Toutes catégories</SelectItem>
               <SelectItem value="electronique">Électronique</SelectItem>
               <SelectItem value="vetements">Vêtements</SelectItem>
               <SelectItem value="alimentaire">Alimentaire</SelectItem>
