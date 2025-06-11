@@ -12,6 +12,7 @@ import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import DailyReport from './reports/DailyReport';
 import DateRangeReports from './reports/DateRangeReports';
 import ClientsReports from './reports/ClientsReports';
 import UnpaidInvoicesReports from './reports/UnpaidInvoicesReports';
@@ -78,12 +79,17 @@ const ReportsTab: React.FC = () => {
           <CardDescription>Générez des rapports détaillés selon vos critères</CardDescription>
         </CardHeader>
         <CardContent>
-          <Tabs defaultValue="date-range" className="w-full">
-            <TabsList className="grid w-full grid-cols-3">
+          <Tabs defaultValue="daily-report" className="w-full">
+            <TabsList className="grid w-full grid-cols-4">
+              <TabsTrigger value="daily-report">Rapport Quotidien</TabsTrigger>
               <TabsTrigger value="date-range">Date à Date</TabsTrigger>
               <TabsTrigger value="clients">Clients</TabsTrigger>
               <TabsTrigger value="unpaid">Factures Impayées</TabsTrigger>
             </TabsList>
+
+            <TabsContent value="daily-report" className="mt-6">
+              <DailyReport />
+            </TabsContent>
 
             <TabsContent value="date-range" className="mt-6">
               <DateRangeReports />
