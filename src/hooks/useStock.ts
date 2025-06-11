@@ -48,7 +48,7 @@ export const useEntrepots = () => {
       queryClient.invalidateQueries({ queryKey: ['entrepots'] });
       toast({
         title: "Entrepôt créé avec succès",
-        variant: "success",
+        variant: "default",
       });
     },
     onError: (error) => {
@@ -76,7 +76,7 @@ export const useEntrepots = () => {
       queryClient.invalidateQueries({ queryKey: ['entrepots'] });
       toast({
         title: "Entrepôt mis à jour avec succès",
-        variant: "success",
+        variant: "default",
       });
     },
     onError: (error) => {
@@ -102,7 +102,7 @@ export const useEntrepots = () => {
       queryClient.invalidateQueries({ queryKey: ['entrepots'] });
       toast({
         title: "Entrepôt supprimé avec succès",
-        variant: "success",
+        variant: "default",
       });
     },
     onError: (error) => {
@@ -158,7 +158,7 @@ export const usePointsDeVente = () => {
       queryClient.invalidateQueries({ queryKey: ['points-de-vente'] });
       toast({
         title: "Point de vente créé avec succès",
-        variant: "success",
+        variant: "default",
       });
     },
     onError: (error) => {
@@ -186,7 +186,7 @@ export const usePointsDeVente = () => {
       queryClient.invalidateQueries({ queryKey: ['points-de-vente'] });
       toast({
         title: "Point de vente mis à jour avec succès",
-        variant: "success",
+        variant: "default",
       });
     },
     onError: (error) => {
@@ -212,7 +212,7 @@ export const usePointsDeVente = () => {
       queryClient.invalidateQueries({ queryKey: ['points-de-vente'] });
       toast({
         title: "Point de vente supprimé avec succès",
-        variant: "success",
+        variant: "default",
       });
     },
     onError: (error) => {
@@ -268,7 +268,7 @@ export const useCatalogue = () => {
       queryClient.invalidateQueries({ queryKey: ['catalogue'] });
       toast({
         title: "Article créé avec succès",
-        variant: "success",
+        variant: "default",
       });
     },
     onError: (error) => {
@@ -296,7 +296,7 @@ export const useCatalogue = () => {
       queryClient.invalidateQueries({ queryKey: ['catalogue'] });
       toast({
         title: "Article mis à jour avec succès",
-        variant: "success",
+        variant: "default",
       });
     },
     onError: (error) => {
@@ -322,7 +322,7 @@ export const useCatalogue = () => {
       queryClient.invalidateQueries({ queryKey: ['catalogue'] });
       toast({
         title: "Article supprimé avec succès",
-        variant: "success",
+        variant: "default",
       });
     },
     onError: (error) => {
@@ -443,7 +443,7 @@ export const useEntreesStock = () => {
       queryClient.invalidateQueries({ queryKey: ['stock-principal'] });
       toast({
         title: "Entrée de stock créée avec succès",
-        variant: "success",
+        variant: "default",
       });
     },
     onError: (error) => {
@@ -502,7 +502,7 @@ export const useSortiesStock = () => {
       queryClient.invalidateQueries({ queryKey: ['stock-principal'] });
       toast({
         title: "Sortie de stock créée avec succès",
-        variant: "success",
+        variant: "default",
       });
     },
     onError: (error) => {
@@ -543,7 +543,7 @@ export const useTransferts = () => {
       if (error) {
         throw error;
       }
-      return data as Transfert[];
+      return data;
     }
   });
 
@@ -562,7 +562,7 @@ export const useTransferts = () => {
       queryClient.invalidateQueries({ queryKey: ['transferts'] });
       toast({
         title: "Transfert créé avec succès",
-        variant: "success",
+        variant: "default",
       });
     },
     onError: (error) => {
@@ -590,7 +590,7 @@ export const useTransferts = () => {
       queryClient.invalidateQueries({ queryKey: ['transferts'] });
       toast({
         title: "Transfert mis à jour avec succès",
-        variant: "success",
+        variant: "default",
       });
     },
     onError: (error) => {
