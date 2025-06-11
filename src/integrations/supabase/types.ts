@@ -9,6 +9,51 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      articles_bon_commande: {
+        Row: {
+          article_id: string | null
+          bon_commande_id: string | null
+          created_at: string
+          id: string
+          montant_ligne: number
+          prix_unitaire: number
+          quantite: number
+        }
+        Insert: {
+          article_id?: string | null
+          bon_commande_id?: string | null
+          created_at?: string
+          id?: string
+          montant_ligne?: number
+          prix_unitaire?: number
+          quantite?: number
+        }
+        Update: {
+          article_id?: string | null
+          bon_commande_id?: string | null
+          created_at?: string
+          id?: string
+          montant_ligne?: number
+          prix_unitaire?: number
+          quantite?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "articles_bon_commande_article_id_fkey"
+            columns: ["article_id"]
+            isOneToOne: false
+            referencedRelation: "catalogue"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "articles_bon_commande_bon_commande_id_fkey"
+            columns: ["bon_commande_id"]
+            isOneToOne: false
+            referencedRelation: "bons_de_commande"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       articles_retour_client: {
         Row: {
           article_id: string | null
@@ -64,12 +109,18 @@ export type Database = {
           date_commande: string
           date_livraison_prevue: string | null
           fournisseur: string
+          fournisseur_id: string | null
+          frais_livraison: number | null
+          frais_logistique: number | null
           id: string
           montant_ht: number
+          montant_paye: number | null
           montant_total: number
           numero_bon: string
           observations: string | null
+          remise: number | null
           statut: string
+          statut_paiement: string | null
           tva: number | null
           updated_at: string
         }
@@ -79,12 +130,18 @@ export type Database = {
           date_commande?: string
           date_livraison_prevue?: string | null
           fournisseur: string
+          fournisseur_id?: string | null
+          frais_livraison?: number | null
+          frais_logistique?: number | null
           id?: string
           montant_ht?: number
+          montant_paye?: number | null
           montant_total?: number
           numero_bon: string
           observations?: string | null
+          remise?: number | null
           statut?: string
+          statut_paiement?: string | null
           tva?: number | null
           updated_at?: string
         }
@@ -94,16 +151,30 @@ export type Database = {
           date_commande?: string
           date_livraison_prevue?: string | null
           fournisseur?: string
+          fournisseur_id?: string | null
+          frais_livraison?: number | null
+          frais_logistique?: number | null
           id?: string
           montant_ht?: number
+          montant_paye?: number | null
           montant_total?: number
           numero_bon?: string
           observations?: string | null
+          remise?: number | null
           statut?: string
+          statut_paiement?: string | null
           tva?: number | null
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "bons_de_commande_fournisseur_id_fkey"
+            columns: ["fournisseur_id"]
+            isOneToOne: false
+            referencedRelation: "fournisseurs"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       bons_de_livraison: {
         Row: {
@@ -677,6 +748,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      fournisseurs: {
+        Row: {
+          adresse: string | null
+          created_at: string
+          email: string | null
+          id: string
+          nom: string
+          telephone: string | null
+          updated_at: string
+        }
+        Insert: {
+          adresse?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          nom: string
+          telephone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          adresse?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          nom?: string
+          telephone?: string | null
+          updated_at?: string
+        }
+        Relationships: []
       }
       lignes_commande: {
         Row: {

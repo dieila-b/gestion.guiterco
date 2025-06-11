@@ -3,12 +3,18 @@ export interface BonCommande {
   id: string;
   numero_bon: string;
   fournisseur: string;
+  fournisseur_id?: string;
   date_commande: string;
   date_livraison_prevue?: string;
   statut: string;
+  statut_paiement?: string;
   montant_total: number;
   tva?: number;
   montant_ht: number;
+  remise?: number;
+  frais_livraison?: number;
+  frais_logistique?: number;
+  montant_paye?: number;
   observations?: string;
   created_at: string;
   updated_at: string;

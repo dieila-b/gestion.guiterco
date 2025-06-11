@@ -2,11 +2,12 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Plus, Edit, Trash } from 'lucide-react';
+import { Edit, Trash } from 'lucide-react';
 import { useBonsCommande } from '@/hooks/usePurchases';
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
+import { CreateBonCommandeDialog } from './CreateBonCommandeDialog';
 
 const BonsCommande = () => {
   const { bonsCommande, isLoading } = useBonsCommande();
@@ -21,6 +22,15 @@ const BonsCommande = () => {
     }
   };
 
+  const getPaymentStatusBadgeColor = (statut: string) => {
+    switch (statut) {
+      case 'en_attente': return 'default';
+      case 'partiel': return 'secondary';
+      case 'paye': return 'outline';
+      default: return 'default';
+    }
+  };
+
   if (isLoading) {
     return <div className="flex justify-center py-8">Chargement...</div>;
   }
@@ -29,10 +39,7 @@ const BonsCommande = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold">Bons de commande</h2>
-        <Button>
-          <Plus className="mr-2 h-4 w-4" />
-          Nouveau bon de commande
-        </Button>
+        <CreateBonCommandeDialog />
       </div>
 
       <div className="grid gap-4">
@@ -46,6 +53,11 @@ const BonsCommande = () => {
                 <Badge variant={getStatusBadgeColor(bon.statut)}>
                   {bon.statut}
                 </Badge>
+                {bon.statut_paiement && (
+                  <Badge variant={getPaymentStatusBadgeColor(bon.statut_paiement)}>
+                    {bon.statut_paiement}
+                  </Badge>
+                )}
                 <Button variant="ghost" size="sm">
                   <Edit className="h-4 w-4" />
                 </Button>
