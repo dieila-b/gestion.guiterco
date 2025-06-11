@@ -5,6 +5,7 @@ import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { ArrowRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import PerformanceIndicators from '@/components/dashboard/PerformanceIndicators';
 
 const statCards = [
   { title: "Ventes du jour", value: "0.00€", description: "0 transactions" },
@@ -30,6 +31,9 @@ const Index = () => {
   return (
     <AppLayout title="Dashboard">
       <div className="grid gap-6">
+        {/* Indicateurs de Performance */}
+        <PerformanceIndicators />
+
         {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {statCards.map((card, i) => (
