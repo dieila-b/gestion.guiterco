@@ -10,16 +10,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { CalendarIcon } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale/fr';
-
-type Transaction = {
-  id: number;
-  type: string;
-  description: string;
-  amount: number;
-  date: Date;
-  category: string;
-  paymentMethod: string;
-};
+import { Transaction } from './types';
 
 interface TransactionsHistoryProps {
   transactions: Transaction[];
@@ -95,7 +86,7 @@ const TransactionsHistory: React.FC<TransactionsHistoryProps> = ({
                     </span>
                   </div>
                   <div>
-                    {format(transaction.date, 'dd/MM/yyyy HH:mm')}
+                    {format(new Date(transaction.created_at), 'dd/MM/yyyy HH:mm')}
                   </div>
                   <div className={`text-right font-medium ${transaction.type === 'income' ? 'text-green-600' : 'text-red-600'}`}>
                     {transaction.type === 'income' ? '+' : '-'}{formatCurrency(transaction.amount)}

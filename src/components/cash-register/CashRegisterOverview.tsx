@@ -4,25 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from '@/components/ui/button';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale/fr';
-import { useToast } from '@/hooks/use-toast';
-
-type CashRegister = {
-  id: number;
-  name: string;
-  balance: number;
-  status: string;
-  lastUpdated: Date;
-};
-
-type Transaction = {
-  id: number;
-  type: string;
-  description: string;
-  amount: number;
-  date: Date;
-  category: string;
-  paymentMethod: string;
-};
+import { CashRegister, Transaction } from './types';
 
 interface CashRegisterOverviewProps {
   activeRegister: CashRegister | undefined;
@@ -52,7 +34,7 @@ const CashRegisterOverview: React.FC<CashRegisterOverviewProps> = ({
           <CardContent>
             <p className="text-3xl font-bold">{formatCurrency(activeRegister?.balance || 0)}</p>
             <p className="text-sm text-muted-foreground mt-1">
-              Dernière mise à jour: {activeRegister?.lastUpdated ? format(activeRegister.lastUpdated, 'dd/MM/yyyy HH:mm') : 'N/A'}
+              Dernière mise à jour: {activeRegister?.updated_at ? format(new Date(activeRegister.updated_at), 'dd/MM/yyyy HH:mm') : 'N/A'}
             </p>
           </CardContent>
         </Card>
@@ -99,14 +81,14 @@ const CashRegisterOverview: React.FC<CashRegisterOverviewProps> = ({
                 <div key={transaction.id} className="flex items-center justify-between p-2 border-b">
                   <div>
                     <p className="font-medium">{transaction.description}</p>
-                    <p className="text-sm text-muted-foreground">{format(transaction.date, 'dd/MM/yyyy HH:mm')}</p>
+                    <p className="text-sm text-muted-foreground">{format(new Date(transaction.created_at), 'dd/MM/yyyy HH:mm')}</p>
                   </div>
                   <div className="text-right">
                     <p className={`font-medium ${transaction.type === 'income' ? 'text-green-600' : 'text-red-600'}`}>
                       {transaction.type === 'income' ? '+' : '-'}{formatCurrency(transaction.amount)}
                     </p>
                     <span className="text-xs text-muted-foreground">
-                      {transaction.paymentMethod === 'cash' ? 'Espèces' : 'Carte'}
+                      {transaction.payment_method === 'cash' ? 'Espèces' : 'Carte'}
                     </span>
                   </div>
                 </div>
