@@ -76,6 +76,11 @@ const FournisseurForm: React.FC<FournisseurFormProps> = ({ fournisseur, onSubmit
     setUseCustomVille(false);
   };
 
+  const handleCustomVilleChange = (checked: boolean | "indeterminate") => {
+    const isChecked = checked === true;
+    setUseCustomVille(isChecked);
+  };
+
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -161,7 +166,7 @@ const FournisseurForm: React.FC<FournisseurFormProps> = ({ fournisseur, onSubmit
               <Checkbox 
                 id="ville_personnalisee" 
                 checked={useCustomVille}
-                onCheckedChange={setUseCustomVille}
+                onCheckedChange={handleCustomVilleChange}
               />
               <Label htmlFor="ville_personnalisee" className="text-sm">
                 Saisie personnalisée
