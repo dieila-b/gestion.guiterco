@@ -2,12 +2,13 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Search, Edit, Trash2 } from 'lucide-react';
+import { Search } from 'lucide-react';
 import { useCategories } from '@/hooks/useCategories';
 import CreateCategoryDialog from './forms/CreateCategoryDialog';
+import EditCategoryDialog from './forms/EditCategoryDialog';
+import DeleteCategoryDialog from './forms/DeleteCategoryDialog';
 
 const CategoriesTab = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -72,12 +73,8 @@ const CategoriesTab = () => {
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">
-                      <Button variant="outline" size="sm">
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button variant="outline" size="sm">
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      <EditCategoryDialog categorie={categorie} />
+                      <DeleteCategoryDialog categorie={categorie} />
                     </div>
                   </TableCell>
                 </TableRow>
