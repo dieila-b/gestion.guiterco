@@ -8,29 +8,27 @@ import TransactionDialog from '@/components/cash-register/TransactionDialog';
 import TransactionsHistory from '@/components/cash-register/TransactionsHistory';
 import ReportsTab from '@/components/cash-register/ReportsTab';
 import AddCashRegisterDialog from '@/components/cash-register/AddCashRegisterDialog';
-import { CashRegister, Transaction } from '@/components/cash-register/types';
-import { fr } from 'date-fns/locale';
-
-// Mock data
-const mockCashRegisters: CashRegister[] = [
-  { id: 1, name: 'Caisse principale', balance: 1250.0, status: 'open', lastUpdated: new Date() },
-  { id: 2, name: 'Caisse secondaire', balance: 435.75, status: 'closed', lastUpdated: new Date(Date.now() - 86400000) },
-];
-
-const mockTransactions: Transaction[] = [
-  { id: 1, type: 'income', description: 'Vente #F2023-089', amount: 125.50, date: new Date(), category: 'sales', paymentMethod: 'cash' },
-  { id: 2, type: 'expense', description: 'Fournitures bureau', amount: 45.00, date: new Date(), category: 'supplies', paymentMethod: 'cash' },
-  { id: 3, type: 'income', description: 'Vente #F2023-090', amount: 78.25, date: new Date(), category: 'sales', paymentMethod: 'card' },
-  { id: 4, type: 'expense', description: 'Repas client', amount: 35.50, date: new Date(Date.now() - 86400000), category: 'entertainment', paymentMethod: 'cash' },
-];
+import { useCashRegisters } from '@/hooks/useCashRegisters';
+import { useTransactions, useTodayTransactions } from '@/hooks/useTransactions';
 
 const CashRegisters: React.FC = () => {
   const { toast } = useToast();
   const [date, setDate] = useState<Date | undefined>(new Date());
   const [newTransactionOpen, setNewTransactionOpen] = useState(false);
   const [transactionType, setTransactionType] = useState('income');
-  const [selectedRegister, setSelectedRegister] = useState<number | null>(1);
-  const [cashRegisters, setCashRegisters] = useState<CashRegister[]>(mockCashRegisters);
+  const [selectedRegister, setSelectedRegister] = useState<string | null>(null);
+
+  // Fetch data from Supabase
+  const { data: cashRegisters, isLoading: registersLoading } = useCashRegisters();
+  const { data: transactions, isLoading: transactionsLoading } = useTransactions();
+  const { data: todayTransactions } = useTodayTransactions();
+
+  // Set default selected register when data loads
+  React.useEffect(() => {
+    if (cashRegisters && cashRegisters.length > 0 && !selectedRegister) {
+      setSelectedRegister(cashRegisters[0].id);
+    }
+  }, [cashRegisters, selectedRegister]);
 
   const handleOpenRegister = () => {
     toast({
@@ -61,25 +59,28 @@ const CashRegisters: React.FC = () => {
     });
   };
 
-  const handleRegisterCreated = (data: { name: string; initialBalance: number }) => {
-    // In a real app, you would call an API to create the register
-    // For now, we'll just add it to our local state
-    const newRegister: CashRegister = {
-      id: cashRegisters.length + 1,
-      name: data.name,
-      balance: data.initialBalance,
-      status: 'open',
-      lastUpdated: new Date(),
-    };
-    
-    setCashRegisters([...cashRegisters, newRegister]);
+  const handleRegisterCreated = () => {
+    toast({
+      title: "Caisse créée",
+      description: "La nouvelle caisse a été créée avec succès",
+    });
   };
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(amount);
   };
 
-  const activeRegister = cashRegisters.find(register => register.id === selectedRegister);
+  const activeRegister = cashRegisters?.find(register => register.id === selectedRegister);
+
+  if (registersLoading) {
+    return (
+      <AppLayout title="Gestion des caisses">
+        <div className="flex items-center justify-center h-64">
+          <p>Chargement des caisses...</p>
+        </div>
+      </AppLayout>
+    );
+  }
 
   return (
     <AppLayout title="Gestion des caisses">
@@ -107,7 +108,7 @@ const CashRegisters: React.FC = () => {
         <TabsContent value="overview" className="space-y-4">
           <CashRegisterOverview 
             activeRegister={activeRegister}
-            mockTransactions={mockTransactions}
+            mockTransactions={transactions || []}
             handleOpenRegister={handleOpenRegister}
             handleCloseRegister={handleCloseRegister}
             handlePrint={handlePrint}
@@ -117,7 +118,7 @@ const CashRegisters: React.FC = () => {
 
         <TabsContent value="transactions" className="space-y-4">
           <TransactionsHistory 
-            transactions={mockTransactions}
+            transactions={transactions || []}
             date={date}
             setDate={setDate}
             formatCurrency={formatCurrency}

@@ -9,7 +9,74 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      cash_registers: {
+        Row: {
+          balance: number
+          created_at: string
+          id: string
+          name: string
+          status: Database["public"]["Enums"]["register_status"]
+          updated_at: string
+        }
+        Insert: {
+          balance?: number
+          created_at?: string
+          id?: string
+          name: string
+          status?: Database["public"]["Enums"]["register_status"]
+          updated_at?: string
+        }
+        Update: {
+          balance?: number
+          created_at?: string
+          id?: string
+          name?: string
+          status?: Database["public"]["Enums"]["register_status"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      transactions: {
+        Row: {
+          amount: number
+          cash_register_id: string
+          category: Database["public"]["Enums"]["transaction_category"]
+          created_at: string
+          description: string
+          id: string
+          payment_method: Database["public"]["Enums"]["payment_method"]
+          type: Database["public"]["Enums"]["transaction_type"]
+        }
+        Insert: {
+          amount: number
+          cash_register_id: string
+          category: Database["public"]["Enums"]["transaction_category"]
+          created_at?: string
+          description: string
+          id?: string
+          payment_method: Database["public"]["Enums"]["payment_method"]
+          type: Database["public"]["Enums"]["transaction_type"]
+        }
+        Update: {
+          amount?: number
+          cash_register_id?: string
+          category?: Database["public"]["Enums"]["transaction_category"]
+          created_at?: string
+          description?: string
+          id?: string
+          payment_method?: Database["public"]["Enums"]["payment_method"]
+          type?: Database["public"]["Enums"]["transaction_type"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transactions_cash_register_id_fkey"
+            columns: ["cash_register_id"]
+            isOneToOne: false
+            referencedRelation: "cash_registers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -18,7 +85,15 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      payment_method: "cash" | "card" | "transfer" | "check"
+      register_status: "open" | "closed"
+      transaction_category:
+        | "sales"
+        | "supplies"
+        | "entertainment"
+        | "utilities"
+        | "other"
+      transaction_type: "income" | "expense"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -133,6 +208,17 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      payment_method: ["cash", "card", "transfer", "check"],
+      register_status: ["open", "closed"],
+      transaction_category: [
+        "sales",
+        "supplies",
+        "entertainment",
+        "utilities",
+        "other",
+      ],
+      transaction_type: ["income", "expense"],
+    },
   },
 } as const

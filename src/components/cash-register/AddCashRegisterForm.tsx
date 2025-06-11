@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
+import { useCreateCashRegister } from '@/hooks/useCashRegisters';
 
 // Define the schema for form validation
 const formSchema = z.object({
@@ -26,6 +27,7 @@ interface AddCashRegisterFormProps {
 
 const AddCashRegisterForm: React.FC<AddCashRegisterFormProps> = ({ onSuccess }) => {
   const { toast } = useToast();
+  const createCashRegister = useCreateCashRegister();
   
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -35,22 +37,37 @@ const AddCashRegisterForm: React.FC<AddCashRegisterFormProps> = ({ onSuccess }) 
     },
   });
 
-  const onSubmit = (data: FormValues) => {
-    const newRegister = {
-      name: data.name,
-      initialBalance: Number(data.initialBalance),
-    };
-    
-    toast({
-      title: "Caisse créée",
-      description: `La caisse '${data.name}' a été créée avec un solde initial de ${data.initialBalance}€`,
-    });
-    
-    if (onSuccess) {
-      onSuccess(newRegister);
+  const onSubmit = async (data: FormValues) => {
+    try {
+      const newRegister = {
+        name: data.name,
+        balance: Number(data.initialBalance),
+        status: 'closed' as const,
+      };
+      
+      await createCashRegister.mutateAsync(newRegister);
+      
+      toast({
+        title: "Caisse créée",
+        description: `La caisse '${data.name}' a été créée avec un solde initial de ${data.initialBalance}€`,
+      });
+      
+      if (onSuccess) {
+        onSuccess({
+          name: data.name,
+          initialBalance: Number(data.initialBalance)
+        });
+      }
+      
+      form.reset();
+    } catch (error) {
+      console.error('Error creating cash register:', error);
+      toast({
+        title: "Erreur",
+        description: "Impossible de créer la caisse. Veuillez réessayer.",
+        variant: "destructive",
+      });
     }
-    
-    form.reset();
   };
 
   return (
@@ -84,7 +101,13 @@ const AddCashRegisterForm: React.FC<AddCashRegisterFormProps> = ({ onSuccess }) 
           )}
         />
         
-        <Button type="submit" className="w-full">Créer la caisse</Button>
+        <Button 
+          type="submit" 
+          className="w-full" 
+          disabled={createCashRegister.isPending}
+        >
+          {createCashRegister.isPending ? "Création..." : "Créer la caisse"}
+        </Button>
       </form>
     </Form>
   );
