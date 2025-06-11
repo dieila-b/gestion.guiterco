@@ -5,8 +5,9 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Search, Plus, Edit, Trash2 } from 'lucide-react';
+import { Search, Edit, Trash2 } from 'lucide-react';
 import { useCategories } from '@/hooks/useCategories';
+import CreateCategoryDialog from './forms/CreateCategoryDialog';
 
 const CategoriesTab = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -22,10 +23,7 @@ const CategoriesTab = () => {
       <CardHeader>
         <div className="flex justify-between items-center">
           <CardTitle>Catégories</CardTitle>
-          <Button>
-            <Plus className="h-4 w-4 mr-2" />
-            Nouvelle Catégorie
-          </Button>
+          <CreateCategoryDialog />
         </div>
         <div className="relative">
           <Search className="h-4 w-4 absolute left-3 top-3 text-gray-400" />

@@ -5,8 +5,9 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Search, Plus, Edit, Trash2 } from 'lucide-react';
+import { Search, Edit, Trash2 } from 'lucide-react';
 import { useUnites } from '@/hooks/useUnites';
+import CreateUnitDialog from './forms/CreateUnitDialog';
 
 const UnitesTab = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -23,10 +24,7 @@ const UnitesTab = () => {
       <CardHeader>
         <div className="flex justify-between items-center">
           <CardTitle>Unités de Mesure</CardTitle>
-          <Button>
-            <Plus className="h-4 w-4 mr-2" />
-            Nouvelle Unité
-          </Button>
+          <CreateUnitDialog />
         </div>
         <div className="relative">
           <Search className="h-4 w-4 absolute left-3 top-3 text-gray-400" />

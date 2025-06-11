@@ -5,9 +5,10 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Search, Plus, Edit, Trash2 } from 'lucide-react';
+import { Search, Edit, Trash2 } from 'lucide-react';
 import { useCatalogueOptimized } from '@/hooks/useCatalogueOptimized';
 import { useDebounce } from '@/hooks/useDebounce';
+import CreateProductDialog from './forms/CreateProductDialog';
 
 const ProduitsTab = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -20,10 +21,7 @@ const ProduitsTab = () => {
       <CardHeader>
         <div className="flex justify-between items-center">
           <CardTitle>Produits du Catalogue</CardTitle>
-          <Button>
-            <Plus className="h-4 w-4 mr-2" />
-            Nouveau Produit
-          </Button>
+          <CreateProductDialog />
         </div>
         <div className="relative">
           <Search className="h-4 w-4 absolute left-3 top-3 text-gray-400" />
