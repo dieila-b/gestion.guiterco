@@ -278,6 +278,7 @@ export type Database = {
           created_at: string
           description: string | null
           id: string
+          image_url: string | null
           nom: string
           prix_achat: number | null
           prix_unitaire: number | null
@@ -295,6 +296,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           id?: string
+          image_url?: string | null
           nom: string
           prix_achat?: number | null
           prix_unitaire?: number | null
@@ -312,6 +314,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           id?: string
+          image_url?: string | null
           nom?: string
           prix_achat?: number | null
           prix_unitaire?: number | null
@@ -1675,7 +1678,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      generate_product_reference: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
     }
     Enums: {
       payment_method: "cash" | "card" | "transfer" | "check"

@@ -12,6 +12,7 @@ export interface Article {
   categorie?: string;
   unite_mesure?: string;
   description?: string;
+  image_url?: string; // Nouveau champ pour l'image
 }
 
 // Version legacy maintenue pour compatibilité
@@ -21,7 +22,7 @@ export const useCatalogue = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('catalogue')
-        .select('id, nom, reference, prix_achat, prix_vente, prix_unitaire, categorie, unite_mesure, description')
+        .select('id, nom, reference, prix_achat, prix_vente, prix_unitaire, categorie, unite_mesure, description, image_url')
         .eq('statut', 'actif')
         .order('nom', { ascending: true });
       

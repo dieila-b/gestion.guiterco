@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Search, Filter, User, ShoppingCart } from 'lucide-react';
+import { Plus, Search, Filter, User, ShoppingCart, Image } from 'lucide-react';
 import { useCommandesClientsRecent } from '@/hooks/useSalesOptimized';
 import { useCatalogueOptimized } from '@/hooks/useCatalogueOptimized';
 import { format } from 'date-fns';
@@ -63,6 +63,10 @@ const VenteComptoirOptimized = () => {
   const handleSearchChange = useCallback((value: string) => {
     setSearchProduct(value);
     setCurrentPage(1);
+  }, []);
+
+  const formatCurrency = useCallback((amount: number) => {
+    return `${amount.toLocaleString()} GNF`;
   }, []);
 
   if (loadingCommandes && loadingArticles) {
@@ -164,7 +168,7 @@ const VenteComptoirOptimized = () => {
             </CardContent>
           </Card>
 
-          {/* Produits avec virtualisation */}
+          {/* Produits avec images et devise GNF */}
           <Card>
             <CardHeader className="pb-3">
               <CardTitle>Produits</CardTitle>
@@ -189,11 +193,21 @@ const VenteComptoirOptimized = () => {
                         key={article.id} 
                         className="border rounded-lg p-3 hover:shadow-md transition-shadow cursor-pointer"
                       >
-                        <div className="aspect-square bg-gray-100 rounded mb-2"></div>
-                        <div className="text-sm font-medium">{article.nom}</div>
+                        <div className="aspect-square bg-gray-100 rounded mb-2 flex items-center justify-center overflow-hidden">
+                          {article.image_url ? (
+                            <img 
+                              src={article.image_url} 
+                              alt={article.nom}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <Image className="h-12 w-12 text-gray-400" />
+                          )}
+                        </div>
+                        <div className="text-sm font-medium truncate">{article.nom}</div>
                         <div className="text-sm text-gray-500">{article.reference}</div>
                         <div className="font-bold text-blue-600">
-                          {article.prix_vente?.toFixed(2) || '0.00'} €
+                          {article.prix_vente ? formatCurrency(article.prix_vente) : '0 GNF'}
                         </div>
                       </div>
                     ))}
@@ -234,7 +248,7 @@ const VenteComptoirOptimized = () => {
             </CardContent>
           </Card>
 
-          {/* Résumé */}
+          {/* Résumé avec devise GNF */}
           <Card>
             <CardHeader className="pb-3">
               <CardTitle>Résumé</CardTitle>
@@ -242,16 +256,16 @@ const VenteComptoirOptimized = () => {
             <CardContent className="space-y-2">
               <div className="flex justify-between text-sm">
                 <span>Sous-total:</span>
-                <span>0.00 €</span>
+                <span>0 GNF</span>
               </div>
               <div className="flex justify-between text-sm">
                 <span>TVA (20%):</span>
-                <span>0.00 €</span>
+                <span>0 GNF</span>
               </div>
               <div className="border-t pt-2">
                 <div className="flex justify-between font-bold">
                   <span>Total TTC:</span>
-                  <span>0.00 €</span>
+                  <span>0 GNF</span>
                 </div>
               </div>
             </CardContent>
@@ -259,7 +273,7 @@ const VenteComptoirOptimized = () => {
         </div>
       </div>
 
-      {/* Historique optimisé */}
+      {/* Historique optimisé avec devise GNF */}
       <Card>
         <CardHeader>
           <CardTitle>Ventes récentes</CardTitle>
@@ -280,7 +294,7 @@ const VenteComptoirOptimized = () => {
                   </Badge>
                 </div>
                 <div className="text-right">
-                  <div className="font-medium">{commande.montant_ttc.toFixed(2)} €</div>
+                  <div className="font-medium">{formatCurrency(commande.montant_ttc)}</div>
                   <div className="text-sm text-gray-500">
                     {format(new Date(commande.date_commande), 'dd/MM HH:mm', { locale: fr })}
                   </div>

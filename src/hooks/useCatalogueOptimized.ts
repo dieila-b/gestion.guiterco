@@ -10,6 +10,7 @@ export interface ArticleOptimized {
   prix_achat?: number;
   prix_vente?: number;
   categorie?: string;
+  image_url?: string; // Nouveau champ pour l'image
 }
 
 // Hook optimisé avec pagination et filtrage côté serveur
@@ -27,7 +28,7 @@ export const useCatalogueOptimized = (
     queryFn: async () => {
       let query = supabase
         .from('catalogue')
-        .select('id, nom, reference, prix_achat, prix_vente, categorie', { count: 'exact' })
+        .select('id, nom, reference, prix_achat, prix_vente, categorie, image_url', { count: 'exact' })
         .eq('statut', 'actif')
         .range(from, to);
 
@@ -83,7 +84,7 @@ export const useCatalogueSearch = (searchTerm: string, enabled = false) => {
       
       const { data, error } = await supabase
         .from('catalogue')
-        .select('id, nom, reference, prix_achat, prix_vente')
+        .select('id, nom, reference, prix_achat, prix_vente, image_url')
         .eq('statut', 'actif')
         .or(`nom.ilike.%${searchTerm}%,reference.ilike.%${searchTerm}%`)
         .limit(10);

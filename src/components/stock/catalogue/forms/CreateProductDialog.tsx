@@ -11,6 +11,7 @@ import { useCategories } from '@/hooks/useCategories';
 import { useUnites } from '@/hooks/useUnites';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { ImageUpload } from '@/components/ui/image-upload';
 
 const CreateProductDialog = () => {
   const [open, setOpen] = useState(false);
@@ -21,13 +22,14 @@ const CreateProductDialog = () => {
 
   const [formData, setFormData] = useState({
     nom: '',
-    reference: '',
+    reference: '', // Sera généré automatiquement
     description: '',
     prix_achat: '',
     prix_vente: '',
     categorie_id: '',
     unite_id: '',
-    seuil_alerte: '10'
+    seuil_alerte: '10',
+    image_url: ''
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -39,13 +41,14 @@ const CreateProductDialog = () => {
         .from('catalogue')
         .insert({
           nom: formData.nom,
-          reference: formData.reference,
+          // Ne pas inclure reference - elle sera générée automatiquement par le trigger
           description: formData.description || null,
           prix_achat: formData.prix_achat ? parseFloat(formData.prix_achat) : null,
           prix_vente: formData.prix_vente ? parseFloat(formData.prix_vente) : null,
           categorie_id: formData.categorie_id || null,
           unite_id: formData.unite_id || null,
-          seuil_alerte: parseInt(formData.seuil_alerte)
+          seuil_alerte: parseInt(formData.seuil_alerte),
+          image_url: formData.image_url || null
         });
 
       if (error) throw error;
@@ -63,7 +66,8 @@ const CreateProductDialog = () => {
         prix_vente: '',
         categorie_id: '',
         unite_id: '',
-        seuil_alerte: '10'
+        seuil_alerte: '10',
+        image_url: ''
       });
       setOpen(false);
     } catch (error) {
@@ -86,7 +90,7 @@ const CreateProductDialog = () => {
           Nouveau Produit
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Ajouter un nouveau produit</DialogTitle>
         </DialogHeader>
@@ -102,14 +106,21 @@ const CreateProductDialog = () => {
           </div>
 
           <div>
-            <Label htmlFor="reference">Référence *</Label>
+            <Label className="text-sm text-gray-500">Référence</Label>
             <Input
-              id="reference"
-              value={formData.reference}
-              onChange={(e) => setFormData({ ...formData, reference: e.target.value })}
-              required
+              value="Générée automatiquement"
+              disabled
+              className="bg-gray-100"
             />
+            <p className="text-xs text-gray-500 mt-1">
+              La référence sera générée automatiquement (ex: REF000001)
+            </p>
           </div>
+
+          <ImageUpload
+            onImageUploaded={(url) => setFormData({ ...formData, image_url: url })}
+            currentImageUrl={formData.image_url}
+          />
 
           <div>
             <Label htmlFor="description">Description</Label>
@@ -122,7 +133,7 @@ const CreateProductDialog = () => {
           </div>
 
           <div>
-            <Label htmlFor="prix_achat">Prix unitaire d'achat (€)</Label>
+            <Label htmlFor="prix_achat">Prix unitaire d'achat (GNF)</Label>
             <Input
               id="prix_achat"
               type="number"
@@ -133,7 +144,7 @@ const CreateProductDialog = () => {
           </div>
 
           <div>
-            <Label htmlFor="prix_vente">Prix unitaire de vente (€)</Label>
+            <Label htmlFor="prix_vente">Prix unitaire de vente (GNF)</Label>
             <Input
               id="prix_vente"
               type="number"
