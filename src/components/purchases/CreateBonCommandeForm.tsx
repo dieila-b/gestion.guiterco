@@ -113,9 +113,21 @@ export const CreateBonCommandeForm = ({ onSuccess }: CreateBonCommandeFormProps)
       return;
     }
 
+    // Trouver le nom du fournisseur à partir de l'ID
+    const fournisseur = fournisseurs?.find(f => f.id === data.fournisseur_id);
+    if (!fournisseur) {
+      toast({
+        title: "Erreur",
+        description: "Fournisseur non trouvé",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
       await createBonCommande.mutateAsync({
         ...data,
+        fournisseur: fournisseur.nom, // Ajouter le nom du fournisseur
         montant_ht: montantHT,
         tva: tva,
         montant_total: montantTTC,
