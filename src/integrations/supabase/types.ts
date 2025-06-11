@@ -9,6 +9,110 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      bons_de_commande: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          date_commande: string
+          date_livraison_prevue: string | null
+          fournisseur: string
+          id: string
+          montant_ht: number
+          montant_total: number
+          numero_bon: string
+          observations: string | null
+          statut: string
+          tva: number | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          date_commande?: string
+          date_livraison_prevue?: string | null
+          fournisseur: string
+          id?: string
+          montant_ht?: number
+          montant_total?: number
+          numero_bon: string
+          observations?: string | null
+          statut?: string
+          tva?: number | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          date_commande?: string
+          date_livraison_prevue?: string | null
+          fournisseur?: string
+          id?: string
+          montant_ht?: number
+          montant_total?: number
+          numero_bon?: string
+          observations?: string | null
+          statut?: string
+          tva?: number | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      bons_de_livraison: {
+        Row: {
+          bon_commande_id: string | null
+          created_at: string
+          created_by: string | null
+          date_livraison: string
+          date_reception: string | null
+          fournisseur: string
+          id: string
+          numero_bon: string
+          numero_suivi: string | null
+          observations: string | null
+          statut: string
+          transporteur: string | null
+          updated_at: string
+        }
+        Insert: {
+          bon_commande_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          date_livraison?: string
+          date_reception?: string | null
+          fournisseur: string
+          id?: string
+          numero_bon: string
+          numero_suivi?: string | null
+          observations?: string | null
+          statut?: string
+          transporteur?: string | null
+          updated_at?: string
+        }
+        Update: {
+          bon_commande_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          date_livraison?: string
+          date_reception?: string | null
+          fournisseur?: string
+          id?: string
+          numero_bon?: string
+          numero_suivi?: string | null
+          observations?: string | null
+          statut?: string
+          transporteur?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bons_de_livraison_bon_commande_id_fkey"
+            columns: ["bon_commande_id"]
+            isOneToOne: false
+            referencedRelation: "bons_de_commande"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cash_registers: {
         Row: {
           balance: number
@@ -168,6 +272,81 @@ export type Database = {
         }
         Relationships: []
       }
+      factures_achat: {
+        Row: {
+          bon_commande_id: string | null
+          bon_livraison_id: string | null
+          created_at: string
+          created_by: string | null
+          date_echeance: string | null
+          date_facture: string
+          date_paiement: string | null
+          fournisseur: string
+          id: string
+          mode_paiement: string | null
+          montant_ht: number
+          montant_ttc: number
+          numero_facture: string
+          observations: string | null
+          statut_paiement: string
+          tva: number
+          updated_at: string
+        }
+        Insert: {
+          bon_commande_id?: string | null
+          bon_livraison_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          date_echeance?: string | null
+          date_facture?: string
+          date_paiement?: string | null
+          fournisseur: string
+          id?: string
+          mode_paiement?: string | null
+          montant_ht?: number
+          montant_ttc?: number
+          numero_facture: string
+          observations?: string | null
+          statut_paiement?: string
+          tva?: number
+          updated_at?: string
+        }
+        Update: {
+          bon_commande_id?: string | null
+          bon_livraison_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          date_echeance?: string | null
+          date_facture?: string
+          date_paiement?: string | null
+          fournisseur?: string
+          id?: string
+          mode_paiement?: string | null
+          montant_ht?: number
+          montant_ttc?: number
+          numero_facture?: string
+          observations?: string | null
+          statut_paiement?: string
+          tva?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "factures_achat_bon_commande_id_fkey"
+            columns: ["bon_commande_id"]
+            isOneToOne: false
+            referencedRelation: "bons_de_commande"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "factures_achat_bon_livraison_id_fkey"
+            columns: ["bon_livraison_id"]
+            isOneToOne: false
+            referencedRelation: "bons_de_livraison"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       points_de_vente: {
         Row: {
           adresse: string | null
@@ -200,6 +379,65 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      retours_fournisseurs: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          date_remboursement: string | null
+          date_retour: string
+          facture_achat_id: string | null
+          fournisseur: string
+          id: string
+          mode_remboursement: string | null
+          montant_retour: number
+          motif_retour: string
+          numero_retour: string
+          observations: string | null
+          statut: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          date_remboursement?: string | null
+          date_retour?: string
+          facture_achat_id?: string | null
+          fournisseur: string
+          id?: string
+          mode_remboursement?: string | null
+          montant_retour?: number
+          motif_retour: string
+          numero_retour: string
+          observations?: string | null
+          statut?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          date_remboursement?: string | null
+          date_retour?: string
+          facture_achat_id?: string | null
+          fournisseur?: string
+          id?: string
+          mode_remboursement?: string | null
+          montant_retour?: number
+          motif_retour?: string
+          numero_retour?: string
+          observations?: string | null
+          statut?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "retours_fournisseurs_facture_achat_id_fkey"
+            columns: ["facture_achat_id"]
+            isOneToOne: false
+            referencedRelation: "factures_achat"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       sorties_stock: {
         Row: {
