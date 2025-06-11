@@ -45,7 +45,8 @@ const ProduitsTab = () => {
                 <TableHead>Référence</TableHead>
                 <TableHead>Nom</TableHead>
                 <TableHead>Catégorie</TableHead>
-                <TableHead>Prix Unitaire</TableHead>
+                <TableHead>Prix Unitaire d'Achat</TableHead>
+                <TableHead>Prix Unitaire de Vente</TableHead>
                 <TableHead>Unité</TableHead>
                 <TableHead>Statut</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
@@ -62,7 +63,10 @@ const ProduitsTab = () => {
                     )}
                   </TableCell>
                   <TableCell>
-                    {article.prix_unitaire ? `${article.prix_unitaire} €` : '-'}
+                    {article.prix_achat ? `${article.prix_achat} €` : '-'}
+                  </TableCell>
+                  <TableCell>
+                    {article.prix_vente ? `${article.prix_vente} €` : '-'}
                   </TableCell>
                   <TableCell>-</TableCell>
                   <TableCell>

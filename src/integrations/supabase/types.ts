@@ -279,7 +279,9 @@ export type Database = {
           description: string | null
           id: string
           nom: string
+          prix_achat: number | null
           prix_unitaire: number | null
+          prix_vente: number | null
           reference: string
           seuil_alerte: number | null
           statut: string | null
@@ -294,7 +296,9 @@ export type Database = {
           description?: string | null
           id?: string
           nom: string
+          prix_achat?: number | null
           prix_unitaire?: number | null
+          prix_vente?: number | null
           reference: string
           seuil_alerte?: number | null
           statut?: string | null
@@ -309,7 +313,9 @@ export type Database = {
           description?: string | null
           id?: string
           nom?: string
+          prix_achat?: number | null
           prix_unitaire?: number | null
+          prix_vente?: number | null
           reference?: string
           seuil_alerte?: number | null
           statut?: string | null

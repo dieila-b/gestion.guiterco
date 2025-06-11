@@ -6,7 +6,9 @@ export interface Article {
   id: string;
   nom: string;
   reference: string;
-  prix_unitaire?: number;
+  prix_achat?: number;
+  prix_vente?: number;
+  prix_unitaire?: number; // Maintenu pour compatibilité
   categorie?: string;
   unite_mesure?: string;
   description?: string;
@@ -19,7 +21,7 @@ export const useCatalogue = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('catalogue')
-        .select('id, nom, reference, prix_unitaire, categorie, unite_mesure, description')
+        .select('id, nom, reference, prix_achat, prix_vente, prix_unitaire, categorie, unite_mesure, description')
         .eq('statut', 'actif')
         .order('nom', { ascending: true });
       

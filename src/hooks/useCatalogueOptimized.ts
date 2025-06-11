@@ -7,7 +7,8 @@ export interface ArticleOptimized {
   id: string;
   nom: string;
   reference: string;
-  prix_unitaire?: number;
+  prix_achat?: number;
+  prix_vente?: number;
   categorie?: string;
 }
 
@@ -26,7 +27,7 @@ export const useCatalogueOptimized = (
     queryFn: async () => {
       let query = supabase
         .from('catalogue')
-        .select('id, nom, reference, prix_unitaire, categorie', { count: 'exact' })
+        .select('id, nom, reference, prix_achat, prix_vente, categorie', { count: 'exact' })
         .eq('statut', 'actif')
         .range(from, to);
 
@@ -82,7 +83,7 @@ export const useCatalogueSearch = (searchTerm: string, enabled = false) => {
       
       const { data, error } = await supabase
         .from('catalogue')
-        .select('id, nom, reference, prix_unitaire')
+        .select('id, nom, reference, prix_achat, prix_vente')
         .eq('statut', 'actif')
         .or(`nom.ilike.%${searchTerm}%,reference.ilike.%${searchTerm}%`)
         .limit(10);

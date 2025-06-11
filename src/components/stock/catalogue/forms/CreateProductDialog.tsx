@@ -23,7 +23,8 @@ const CreateProductDialog = () => {
     nom: '',
     reference: '',
     description: '',
-    prix_unitaire: '',
+    prix_achat: '',
+    prix_vente: '',
     categorie_id: '',
     unite_id: '',
     seuil_alerte: '10'
@@ -40,7 +41,8 @@ const CreateProductDialog = () => {
           nom: formData.nom,
           reference: formData.reference,
           description: formData.description || null,
-          prix_unitaire: formData.prix_unitaire ? parseFloat(formData.prix_unitaire) : null,
+          prix_achat: formData.prix_achat ? parseFloat(formData.prix_achat) : null,
+          prix_vente: formData.prix_vente ? parseFloat(formData.prix_vente) : null,
           categorie_id: formData.categorie_id || null,
           unite_id: formData.unite_id || null,
           seuil_alerte: parseInt(formData.seuil_alerte)
@@ -57,7 +59,8 @@ const CreateProductDialog = () => {
         nom: '',
         reference: '',
         description: '',
-        prix_unitaire: '',
+        prix_achat: '',
+        prix_vente: '',
         categorie_id: '',
         unite_id: '',
         seuil_alerte: '10'
@@ -119,13 +122,24 @@ const CreateProductDialog = () => {
           </div>
 
           <div>
-            <Label htmlFor="prix_unitaire">Prix unitaire (€)</Label>
+            <Label htmlFor="prix_achat">Prix unitaire d'achat (€)</Label>
             <Input
-              id="prix_unitaire"
+              id="prix_achat"
               type="number"
               step="0.01"
-              value={formData.prix_unitaire}
-              onChange={(e) => setFormData({ ...formData, prix_unitaire: e.target.value })}
+              value={formData.prix_achat}
+              onChange={(e) => setFormData({ ...formData, prix_achat: e.target.value })}
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="prix_vente">Prix unitaire de vente (€)</Label>
+            <Input
+              id="prix_vente"
+              type="number"
+              step="0.01"
+              value={formData.prix_vente}
+              onChange={(e) => setFormData({ ...formData, prix_vente: e.target.value })}
             />
           </div>
 
