@@ -8,8 +8,8 @@ export const useDashboardStats = () => {
     queryFn: async () => {
       console.log('Fetching dashboard statistics...');
       
-      // 1. Articles en Catalogue
-      const { data: catalogueCount, error: catalogueError } = await supabase
+      // 1. Articles en Catalogue - utiliser count pour obtenir un nombre
+      const { count: catalogueCount, error: catalogueError } = await supabase
         .from('catalogue')
         .select('*', { count: 'exact', head: true })
         .eq('statut', 'actif');
@@ -45,7 +45,7 @@ export const useDashboardStats = () => {
         throw stockPDVError;
       }
 
-      // Calculs des indicateurs
+      // Calculs des indicateurs - s'assurer que tout est bien des nombres
       const totalCatalogue = catalogueCount || 0;
       
       // Stock global (stock principal + stock PDV)
