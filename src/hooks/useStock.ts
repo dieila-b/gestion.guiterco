@@ -534,9 +534,9 @@ export const useTransferts = () => {
         .select(`
           *,
           article:article_id(*),
-          entrepot_source:entrepot_source_id(*),
-          entrepot_destination:entrepot_destination_id(*),
-          pdv_destination:pdv_destination_id(*)
+          entrepot_source:entrepots!entrepot_source_id(*),
+          entrepot_destination:entrepots!entrepot_destination_id(*),
+          pdv_destination:points_de_vente!pdv_destination_id(*)
         `)
         .order('created_at', { ascending: false });
       
