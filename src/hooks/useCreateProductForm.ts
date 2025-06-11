@@ -37,20 +37,36 @@ export const useCreateProductForm = () => {
     try {
       console.log('Tentative de création du produit avec les données:', formData);
       
-      // Préparer les données à insérer
+      // Validation côté client renforcée
+      if (!formData.nom || formData.nom.trim() === '') {
+        throw new Error('Le nom du produit est obligatoire');
+      }
+
+      // Préparer les données à insérer (sans reference, elle sera générée automatiquement)
       const insertData: any = {
         nom: formData.nom.trim(),
-        description: formData.description.trim() || null,
-        seuil_alerte: parseInt(formData.seuil_alerte) || 10
+        seuil_alerte: parseInt(formData.seuil_alerte) || 10,
+        statut: 'actif'
       };
 
-      // Ajouter les prix seulement s'ils sont renseignés
+      // Ajouter la description seulement si elle est renseignée
+      if (formData.description && formData.description.trim() !== '') {
+        insertData.description = formData.description.trim();
+      }
+
+      // Ajouter les prix seulement s'ils sont renseignés et valides
       if (formData.prix_achat && formData.prix_achat.trim() !== '') {
-        insertData.prix_achat = parseFloat(formData.prix_achat);
+        const prixAchat = parseFloat(formData.prix_achat);
+        if (!isNaN(prixAchat) && prixAchat >= 0) {
+          insertData.prix_achat = prixAchat;
+        }
       }
       
       if (formData.prix_vente && formData.prix_vente.trim() !== '') {
-        insertData.prix_vente = parseFloat(formData.prix_vente);
+        const prixVente = parseFloat(formData.prix_vente);
+        if (!isNaN(prixVente) && prixVente >= 0) {
+          insertData.prix_vente = prixVente;
+        }
       }
 
       // Ajouter les relations seulement si elles sont sélectionnées
@@ -94,12 +110,19 @@ export const useCreateProductForm = () => {
       
       let errorMessage = "Impossible de créer le produit.";
       
+      // Gestion d'erreurs plus détaillée
       if (error.code === '23505') {
-        errorMessage = "Cette référence existe déjà. Veuillez réessayer.";
+        if (error.message?.includes('reference')) {
+          errorMessage = "Cette référence existe déjà. Veuillez réessayer.";
+        } else {
+          errorMessage = "Un produit avec ces informations existe déjà.";
+        }
       } else if (error.code === '23502') {
         errorMessage = "Certains champs obligatoires sont manquants.";
       } else if (error.code === '23503') {
         errorMessage = "Catégorie ou unité invalide.";
+      } else if (error.message) {
+        errorMessage = error.message;
       }
       
       toast({
