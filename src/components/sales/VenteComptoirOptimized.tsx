@@ -1,22 +1,42 @@
 
-import React, { useState } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Plus, Search, Filter, User, ShoppingCart } from 'lucide-react';
-import { useCommandesClients } from '@/hooks/useSales';
+import { useCommandesClientsRecent } from '@/hooks/useSalesOptimized';
+import { useCatalogueOptimized } from '@/hooks/useCatalogueOptimized';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
+import { useDebounce } from '@/hooks/useDebounce';
 
 const VenteComptoirOptimized = () => {
-  const { data: commandes, isLoading } = useCommandesClients();
   const [selectedPDV, setSelectedPDV] = useState('');
   const [searchProduct, setSearchProduct] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
+  const [currentPage, setCurrentPage] = useState(1);
 
-  const getStatusBadgeColor = (statut: string) => {
+  // Debounce pour la recherche
+  const debouncedSearch = useDebounce(searchProduct, 300);
+
+  // Hooks optimisés
+  const { data: commandes, isLoading: loadingCommandes } = useCommandesClientsRecent(5);
+  const { 
+    articles, 
+    categories, 
+    isLoading: loadingArticles,
+    hasMore 
+  } = useCatalogueOptimized(
+    currentPage, 
+    12, 
+    debouncedSearch, 
+    selectedCategory
+  );
+
+  // Mémorisation de la fonction de couleur des badges
+  const getStatusBadgeColor = useCallback((statut: string) => {
     switch (statut) {
       case 'en_cours': return 'default';
       case 'confirmee': return 'secondary';
@@ -24,22 +44,44 @@ const VenteComptoirOptimized = () => {
       case 'annulee': return 'destructive';
       default: return 'default';
     }
-  };
+  }, []);
 
-  if (isLoading) {
-    return <div className="flex justify-center py-8">Chargement...</div>;
+  // Mémorisation des produits filtrés
+  const filteredArticles = useMemo(() => {
+    return articles || [];
+  }, [articles]);
+
+  const handleLoadMore = useCallback(() => {
+    setCurrentPage(prev => prev + 1);
+  }, []);
+
+  const handleCategoryChange = useCallback((category: string) => {
+    setSelectedCategory(category);
+    setCurrentPage(1);
+  }, []);
+
+  const handleSearchChange = useCallback((value: string) => {
+    setSearchProduct(value);
+    setCurrentPage(1);
+  }, []);
+
+  if (loadingCommandes && loadingArticles) {
+    return (
+      <div className="flex justify-center py-8">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+      </div>
+    );
   }
 
   return (
     <div className="space-y-6">
-      {/* Header avec titre */}
+      {/* Header optimisé */}
       <div>
         <h2 className="text-2xl font-bold">Vente au comptoir</h2>
       </div>
 
       {/* Ligne supérieure optimisée */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Sélecteur PDV */}
         <div className="space-y-2">
           <label className="text-sm font-medium">Point de vente</label>
           <Select value={selectedPDV} onValueChange={setSelectedPDV}>
@@ -54,7 +96,6 @@ const VenteComptoirOptimized = () => {
           </Select>
         </div>
 
-        {/* Recherche produit */}
         <div className="space-y-2">
           <label className="text-sm font-medium">Recherche produit</label>
           <div className="relative">
@@ -62,29 +103,29 @@ const VenteComptoirOptimized = () => {
             <Input
               placeholder="Scanner ou rechercher..."
               value={searchProduct}
-              onChange={(e) => setSearchProduct(e.target.value)}
+              onChange={(e) => handleSearchChange(e.target.value)}
               className="pl-10"
             />
           </div>
         </div>
 
-        {/* Filtres catégories */}
         <div className="space-y-2">
           <label className="text-sm font-medium">Catégorie</label>
-          <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+          <Select value={selectedCategory} onValueChange={handleCategoryChange}>
             <SelectTrigger>
               <SelectValue placeholder="Toutes catégories" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Toutes catégories</SelectItem>
-              <SelectItem value="electronique">Électronique</SelectItem>
-              <SelectItem value="vetements">Vêtements</SelectItem>
-              <SelectItem value="alimentaire">Alimentaire</SelectItem>
+              {categories.map((cat) => (
+                <SelectItem key={cat} value={cat}>
+                  {cat}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>
 
-        {/* Bloc client requis compact */}
         <div className="space-y-2">
           <label className="text-sm font-medium">Client requis</label>
           <div className="flex gap-2">
@@ -105,9 +146,8 @@ const VenteComptoirOptimized = () => {
         </div>
       </div>
 
-      {/* Zone principale - deux colonnes */}
+      {/* Zone principale optimisée */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Colonne gauche - Produits et panier (2/3) */}
         <div className="lg:col-span-2 space-y-4">
           {/* Panier actuel */}
           <Card>
@@ -124,28 +164,54 @@ const VenteComptoirOptimized = () => {
             </CardContent>
           </Card>
 
-          {/* Produits suggérés/recherchés */}
+          {/* Produits avec virtualisation */}
           <Card>
             <CardHeader className="pb-3">
               <CardTitle>Produits</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                {/* Exemples de produits */}
-                {[1, 2, 3, 4, 5, 6].map((item) => (
-                  <div key={item} className="border rounded-lg p-3 hover:shadow-md transition-shadow cursor-pointer">
-                    <div className="aspect-square bg-gray-100 rounded mb-2"></div>
-                    <div className="text-sm font-medium">Produit {item}</div>
-                    <div className="text-sm text-gray-500">REF-00{item}</div>
-                    <div className="font-bold text-blue-600">19.99 €</div>
+              {loadingArticles ? (
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                  {Array.from({ length: 6 }).map((_, i) => (
+                    <div key={i} className="animate-pulse">
+                      <div className="aspect-square bg-gray-200 rounded mb-2"></div>
+                      <div className="h-4 bg-gray-200 rounded mb-1"></div>
+                      <div className="h-3 bg-gray-200 rounded mb-1"></div>
+                      <div className="h-4 bg-gray-200 rounded"></div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    {filteredArticles.map((article) => (
+                      <div 
+                        key={article.id} 
+                        className="border rounded-lg p-3 hover:shadow-md transition-shadow cursor-pointer"
+                      >
+                        <div className="aspect-square bg-gray-100 rounded mb-2"></div>
+                        <div className="text-sm font-medium">{article.nom}</div>
+                        <div className="text-sm text-gray-500">{article.reference}</div>
+                        <div className="font-bold text-blue-600">
+                          {article.prix_unitaire?.toFixed(2) || '0.00'} €
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
+                  
+                  {hasMore && (
+                    <div className="text-center mt-4">
+                      <Button variant="outline" onClick={handleLoadMore}>
+                        Charger plus
+                      </Button>
+                    </div>
+                  )}
+                </>
+              )}
             </CardContent>
           </Card>
         </div>
 
-        {/* Colonne droite - Actions et historique (1/3) */}
         <div className="space-y-4">
           {/* Actions de vente */}
           <Card>
@@ -193,14 +259,14 @@ const VenteComptoirOptimized = () => {
         </div>
       </div>
 
-      {/* Historique des ventes récentes */}
+      {/* Historique optimisé */}
       <Card>
         <CardHeader>
           <CardTitle>Ventes récentes</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
-            {commandes?.slice(0, 5).map((commande) => (
+            {commandes?.map((commande) => (
               <div key={commande.id} className="flex items-center justify-between p-3 border rounded-lg">
                 <div className="flex items-center gap-4">
                   <div>

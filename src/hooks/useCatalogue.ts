@@ -12,6 +12,7 @@ export interface Article {
   description?: string;
 }
 
+// Version legacy maintenue pour compatibilité
 export const useCatalogue = () => {
   const { data: articles, isLoading, error } = useQuery({
     queryKey: ['catalogue'],
@@ -24,7 +25,9 @@ export const useCatalogue = () => {
       
       if (error) throw error;
       return data as Article[];
-    }
+    },
+    staleTime: 10 * 60 * 1000, // 10 minutes
+    refetchOnWindowFocus: false
   });
 
   return {
@@ -33,3 +36,6 @@ export const useCatalogue = () => {
     error
   };
 };
+
+// Re-export optimized version
+export * from './useCatalogueOptimized';
