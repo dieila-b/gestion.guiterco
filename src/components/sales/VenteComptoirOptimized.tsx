@@ -193,7 +193,7 @@ const VenteComptoirOptimized = () => {
                         <div className="text-sm font-medium">{article.nom}</div>
                         <div className="text-sm text-gray-500">{article.reference}</div>
                         <div className="font-bold text-blue-600">
-                          {article.prix_unitaire?.toFixed(2) || '0.00'} €
+                          {article.prix_vente?.toFixed(2) || '0.00'} €
                         </div>
                       </div>
                     ))}
