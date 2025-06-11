@@ -126,8 +126,17 @@ export const CreateBonCommandeForm = ({ onSuccess }: CreateBonCommandeFormProps)
 
     try {
       await createBonCommande.mutateAsync({
-        ...data,
-        fournisseur: fournisseur.nom, // Ajouter le nom du fournisseur
+        numero_bon: data.numero_bon,
+        fournisseur: fournisseur.nom,
+        fournisseur_id: data.fournisseur_id,
+        date_commande: data.date_commande,
+        date_livraison_prevue: data.date_livraison_prevue,
+        statut: data.statut,
+        statut_paiement: data.statut_paiement,
+        remise: data.remise,
+        frais_livraison: data.frais_livraison,
+        frais_logistique: data.frais_logistique,
+        observations: data.observations,
         montant_ht: montantHT,
         tva: tva,
         montant_total: montantTTC,
