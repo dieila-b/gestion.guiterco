@@ -35,35 +35,76 @@ export const useCreateProductForm = () => {
     setLoading(true);
 
     try {
-      // Insérer avec une référence temporaire que le trigger remplacera
-      const { error } = await supabase
-        .from('catalogue')
-        .insert({
-          nom: formData.nom,
-          reference: 'TEMP', // Référence temporaire - sera remplacée par le trigger
-          description: formData.description || null,
-          prix_achat: formData.prix_achat ? parseFloat(formData.prix_achat) : null,
-          prix_vente: formData.prix_vente ? parseFloat(formData.prix_vente) : null,
-          categorie_id: formData.categorie_id || null,
-          unite_id: formData.unite_id || null,
-          seuil_alerte: parseInt(formData.seuil_alerte),
-          image_url: formData.image_url || null
-        });
+      console.log('Tentative de création du produit avec les données:', formData);
+      
+      // Préparer les données à insérer
+      const insertData: any = {
+        nom: formData.nom.trim(),
+        description: formData.description.trim() || null,
+        seuil_alerte: parseInt(formData.seuil_alerte) || 10
+      };
 
-      if (error) throw error;
+      // Ajouter les prix seulement s'ils sont renseignés
+      if (formData.prix_achat && formData.prix_achat.trim() !== '') {
+        insertData.prix_achat = parseFloat(formData.prix_achat);
+      }
+      
+      if (formData.prix_vente && formData.prix_vente.trim() !== '') {
+        insertData.prix_vente = parseFloat(formData.prix_vente);
+      }
+
+      // Ajouter les relations seulement si elles sont sélectionnées
+      if (formData.categorie_id && formData.categorie_id.trim() !== '') {
+        insertData.categorie_id = formData.categorie_id;
+      }
+      
+      if (formData.unite_id && formData.unite_id.trim() !== '') {
+        insertData.unite_id = formData.unite_id;
+      }
+
+      // Ajouter l'image seulement si elle est fournie
+      if (formData.image_url && formData.image_url.trim() !== '') {
+        insertData.image_url = formData.image_url;
+      }
+
+      console.log('Données préparées pour insertion:', insertData);
+
+      // Insérer le produit (la référence sera générée automatiquement par le trigger)
+      const { data, error } = await supabase
+        .from('catalogue')
+        .insert(insertData)
+        .select('*');
+
+      if (error) {
+        console.error('Erreur Supabase détaillée:', error);
+        throw error;
+      }
+
+      console.log('Produit créé avec succès:', data);
 
       toast({
         title: "Produit créé",
-        description: "Le produit a été ajouté au catalogue avec succès."
+        description: `Le produit "${formData.nom}" a été ajouté au catalogue avec succès.`
       });
 
       setFormData(initialFormData);
       return true;
-    } catch (error) {
+    } catch (error: any) {
       console.error('Erreur lors de la création du produit:', error);
+      
+      let errorMessage = "Impossible de créer le produit.";
+      
+      if (error.code === '23505') {
+        errorMessage = "Cette référence existe déjà. Veuillez réessayer.";
+      } else if (error.code === '23502') {
+        errorMessage = "Certains champs obligatoires sont manquants.";
+      } else if (error.code === '23503') {
+        errorMessage = "Catégorie ou unité invalide.";
+      }
+      
       toast({
         title: "Erreur",
-        description: "Impossible de créer le produit.",
+        description: errorMessage,
         variant: "destructive"
       });
       return false;
