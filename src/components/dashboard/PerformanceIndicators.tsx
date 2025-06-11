@@ -38,7 +38,7 @@ const PerformanceIndicators = () => {
       color: "from-blue-500 to-blue-600",
       textColor: "text-blue-600",
       bgColor: "bg-blue-50",
-      format: formatNumber
+      format: (value: number) => formatNumber(value)
     },
     {
       title: "Stock Global",
@@ -47,7 +47,7 @@ const PerformanceIndicators = () => {
       color: "from-purple-500 to-purple-600",
       textColor: "text-purple-600",
       bgColor: "bg-purple-50",
-      format: formatNumber
+      format: (value: number) => formatNumber(value)
     },
     {
       title: "Valeur Stock (Achat)",
@@ -56,7 +56,7 @@ const PerformanceIndicators = () => {
       color: "from-orange-500 to-orange-600",
       textColor: "text-orange-600",
       bgColor: "bg-orange-50",
-      format: formatCurrency
+      format: (value: number) => formatCurrency(value)
     },
     {
       title: "Valeur Stock (Vente)",
@@ -65,7 +65,7 @@ const PerformanceIndicators = () => {
       color: "from-green-500 to-green-600",
       textColor: "text-green-600",
       bgColor: "bg-green-50",
-      format: formatCurrency
+      format: (value: number) => formatCurrency(value)
     },
     {
       title: "Marge Globale Stock",
@@ -75,7 +75,7 @@ const PerformanceIndicators = () => {
       color: "from-indigo-500 to-indigo-600",
       textColor: "text-indigo-600",
       bgColor: "bg-indigo-50",
-      format: formatCurrency
+      format: (value: number) => formatCurrency(value)
     }
   ];
 
