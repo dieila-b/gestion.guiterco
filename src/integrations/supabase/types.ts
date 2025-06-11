@@ -9,6 +9,54 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      articles_retour_client: {
+        Row: {
+          article_id: string | null
+          created_at: string
+          etat_article: string | null
+          id: string
+          montant_ligne: number
+          prix_unitaire: number
+          quantite: number
+          retour_id: string | null
+        }
+        Insert: {
+          article_id?: string | null
+          created_at?: string
+          etat_article?: string | null
+          id?: string
+          montant_ligne: number
+          prix_unitaire: number
+          quantite: number
+          retour_id?: string | null
+        }
+        Update: {
+          article_id?: string | null
+          created_at?: string
+          etat_article?: string | null
+          id?: string
+          montant_ligne?: number
+          prix_unitaire?: number
+          quantite?: number
+          retour_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "articles_retour_client_article_id_fkey"
+            columns: ["article_id"]
+            isOneToOne: false
+            referencedRelation: "catalogue"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "articles_retour_client_retour_id_fkey"
+            columns: ["retour_id"]
+            isOneToOne: false
+            referencedRelation: "retours_clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bons_de_commande: {
         Row: {
           created_at: string
@@ -182,6 +230,157 @@ export type Database = {
         }
         Relationships: []
       }
+      clients: {
+        Row: {
+          adresse: string | null
+          code_postal: string | null
+          created_at: string
+          email: string | null
+          id: string
+          nom: string
+          pays: string | null
+          prenom: string | null
+          telephone: string | null
+          type_client: string | null
+          updated_at: string
+          ville: string | null
+        }
+        Insert: {
+          adresse?: string | null
+          code_postal?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          nom: string
+          pays?: string | null
+          prenom?: string | null
+          telephone?: string | null
+          type_client?: string | null
+          updated_at?: string
+          ville?: string | null
+        }
+        Update: {
+          adresse?: string | null
+          code_postal?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          nom?: string
+          pays?: string | null
+          prenom?: string | null
+          telephone?: string | null
+          type_client?: string | null
+          updated_at?: string
+          ville?: string | null
+        }
+        Relationships: []
+      }
+      commandes_clients: {
+        Row: {
+          client_id: string | null
+          created_at: string
+          date_commande: string
+          id: string
+          mode_paiement: string | null
+          montant_ht: number
+          montant_ttc: number
+          numero_commande: string
+          observations: string | null
+          statut: string
+          tva: number
+          updated_at: string
+        }
+        Insert: {
+          client_id?: string | null
+          created_at?: string
+          date_commande?: string
+          id?: string
+          mode_paiement?: string | null
+          montant_ht?: number
+          montant_ttc?: number
+          numero_commande: string
+          observations?: string | null
+          statut?: string
+          tva?: number
+          updated_at?: string
+        }
+        Update: {
+          client_id?: string | null
+          created_at?: string
+          date_commande?: string
+          id?: string
+          mode_paiement?: string | null
+          montant_ht?: number
+          montant_ttc?: number
+          numero_commande?: string
+          observations?: string | null
+          statut?: string
+          tva?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "commandes_clients_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      devis_vente: {
+        Row: {
+          client_id: string
+          created_at: string
+          date_devis: string
+          date_validite: string | null
+          id: string
+          montant_ht: number
+          montant_ttc: number
+          numero_devis: string
+          observations: string | null
+          statut: string
+          tva: number
+          updated_at: string
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          date_devis?: string
+          date_validite?: string | null
+          id?: string
+          montant_ht?: number
+          montant_ttc?: number
+          numero_devis: string
+          observations?: string | null
+          statut?: string
+          tva?: number
+          updated_at?: string
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          date_devis?: string
+          date_validite?: string | null
+          id?: string
+          montant_ht?: number
+          montant_ttc?: number
+          numero_devis?: string
+          observations?: string | null
+          statut?: string
+          tva?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "devis_vente_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       entrees_stock: {
         Row: {
           article_id: string | null
@@ -347,6 +546,273 @@ export type Database = {
           },
         ]
       }
+      factures_precommandes: {
+        Row: {
+          client_id: string
+          created_at: string
+          date_facture: string
+          id: string
+          montant_ht: number
+          montant_ttc: number
+          numero_facture: string
+          observations: string | null
+          precommande_id: string
+          statut_paiement: string
+          tva: number
+          type_facture: string
+          updated_at: string
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          date_facture?: string
+          id?: string
+          montant_ht?: number
+          montant_ttc?: number
+          numero_facture: string
+          observations?: string | null
+          precommande_id: string
+          statut_paiement?: string
+          tva?: number
+          type_facture?: string
+          updated_at?: string
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          date_facture?: string
+          id?: string
+          montant_ht?: number
+          montant_ttc?: number
+          numero_facture?: string
+          observations?: string | null
+          precommande_id?: string
+          statut_paiement?: string
+          tva?: number
+          type_facture?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "factures_precommandes_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "factures_precommandes_precommande_id_fkey"
+            columns: ["precommande_id"]
+            isOneToOne: false
+            referencedRelation: "precommandes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      factures_vente: {
+        Row: {
+          client_id: string
+          commande_id: string | null
+          created_at: string
+          date_echeance: string | null
+          date_facture: string
+          date_paiement: string | null
+          id: string
+          mode_paiement: string | null
+          montant_ht: number
+          montant_ttc: number
+          numero_facture: string
+          observations: string | null
+          statut_paiement: string
+          tva: number
+          updated_at: string
+        }
+        Insert: {
+          client_id: string
+          commande_id?: string | null
+          created_at?: string
+          date_echeance?: string | null
+          date_facture?: string
+          date_paiement?: string | null
+          id?: string
+          mode_paiement?: string | null
+          montant_ht?: number
+          montant_ttc?: number
+          numero_facture: string
+          observations?: string | null
+          statut_paiement?: string
+          tva?: number
+          updated_at?: string
+        }
+        Update: {
+          client_id?: string
+          commande_id?: string | null
+          created_at?: string
+          date_echeance?: string | null
+          date_facture?: string
+          date_paiement?: string | null
+          id?: string
+          mode_paiement?: string | null
+          montant_ht?: number
+          montant_ttc?: number
+          numero_facture?: string
+          observations?: string | null
+          statut_paiement?: string
+          tva?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "factures_vente_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "factures_vente_commande_id_fkey"
+            columns: ["commande_id"]
+            isOneToOne: false
+            referencedRelation: "commandes_clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lignes_commande: {
+        Row: {
+          article_id: string | null
+          commande_id: string | null
+          created_at: string
+          id: string
+          montant_ligne: number
+          prix_unitaire: number
+          quantite: number
+        }
+        Insert: {
+          article_id?: string | null
+          commande_id?: string | null
+          created_at?: string
+          id?: string
+          montant_ligne: number
+          prix_unitaire: number
+          quantite: number
+        }
+        Update: {
+          article_id?: string | null
+          commande_id?: string | null
+          created_at?: string
+          id?: string
+          montant_ligne?: number
+          prix_unitaire?: number
+          quantite?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lignes_commande_article_id_fkey"
+            columns: ["article_id"]
+            isOneToOne: false
+            referencedRelation: "catalogue"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lignes_commande_commande_id_fkey"
+            columns: ["commande_id"]
+            isOneToOne: false
+            referencedRelation: "commandes_clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lignes_devis: {
+        Row: {
+          article_id: string | null
+          created_at: string
+          devis_id: string | null
+          id: string
+          montant_ligne: number
+          prix_unitaire: number
+          quantite: number
+        }
+        Insert: {
+          article_id?: string | null
+          created_at?: string
+          devis_id?: string | null
+          id?: string
+          montant_ligne: number
+          prix_unitaire: number
+          quantite: number
+        }
+        Update: {
+          article_id?: string | null
+          created_at?: string
+          devis_id?: string | null
+          id?: string
+          montant_ligne?: number
+          prix_unitaire?: number
+          quantite?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lignes_devis_article_id_fkey"
+            columns: ["article_id"]
+            isOneToOne: false
+            referencedRelation: "catalogue"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lignes_devis_devis_id_fkey"
+            columns: ["devis_id"]
+            isOneToOne: false
+            referencedRelation: "devis_vente"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lignes_precommande: {
+        Row: {
+          article_id: string | null
+          created_at: string
+          id: string
+          montant_ligne: number
+          precommande_id: string | null
+          prix_unitaire: number
+          quantite: number
+        }
+        Insert: {
+          article_id?: string | null
+          created_at?: string
+          id?: string
+          montant_ligne: number
+          precommande_id?: string | null
+          prix_unitaire: number
+          quantite: number
+        }
+        Update: {
+          article_id?: string | null
+          created_at?: string
+          id?: string
+          montant_ligne?: number
+          precommande_id?: string | null
+          prix_unitaire?: number
+          quantite?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lignes_precommande_article_id_fkey"
+            columns: ["article_id"]
+            isOneToOne: false
+            referencedRelation: "catalogue"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lignes_precommande_precommande_id_fkey"
+            columns: ["precommande_id"]
+            isOneToOne: false
+            referencedRelation: "precommandes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       points_de_vente: {
         Row: {
           adresse: string | null
@@ -379,6 +845,125 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      precommandes: {
+        Row: {
+          acompte_verse: number | null
+          client_id: string
+          created_at: string
+          date_livraison_prevue: string | null
+          date_precommande: string
+          id: string
+          montant_ht: number
+          montant_ttc: number
+          numero_precommande: string
+          observations: string | null
+          statut: string
+          tva: number
+          updated_at: string
+        }
+        Insert: {
+          acompte_verse?: number | null
+          client_id: string
+          created_at?: string
+          date_livraison_prevue?: string | null
+          date_precommande?: string
+          id?: string
+          montant_ht?: number
+          montant_ttc?: number
+          numero_precommande: string
+          observations?: string | null
+          statut?: string
+          tva?: number
+          updated_at?: string
+        }
+        Update: {
+          acompte_verse?: number | null
+          client_id?: string
+          created_at?: string
+          date_livraison_prevue?: string | null
+          date_precommande?: string
+          id?: string
+          montant_ht?: number
+          montant_ttc?: number
+          numero_precommande?: string
+          observations?: string | null
+          statut?: string
+          tva?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "precommandes_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      retours_clients: {
+        Row: {
+          client_id: string
+          created_at: string
+          date_remboursement: string | null
+          date_retour: string
+          facture_id: string | null
+          id: string
+          mode_remboursement: string | null
+          montant_retour: number
+          motif_retour: string
+          numero_retour: string
+          observations: string | null
+          statut: string
+          updated_at: string
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          date_remboursement?: string | null
+          date_retour?: string
+          facture_id?: string | null
+          id?: string
+          mode_remboursement?: string | null
+          montant_retour?: number
+          motif_retour: string
+          numero_retour: string
+          observations?: string | null
+          statut?: string
+          updated_at?: string
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          date_remboursement?: string | null
+          date_retour?: string
+          facture_id?: string | null
+          id?: string
+          mode_remboursement?: string | null
+          montant_retour?: number
+          motif_retour?: string
+          numero_retour?: string
+          observations?: string | null
+          statut?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "retours_clients_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "retours_clients_facture_id_fkey"
+            columns: ["facture_id"]
+            isOneToOne: false
+            referencedRelation: "factures_vente"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       retours_fournisseurs: {
         Row: {
@@ -709,6 +1294,56 @@ export type Database = {
             columns: ["pdv_destination_id"]
             isOneToOne: false
             referencedRelation: "points_de_vente"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      versements_clients: {
+        Row: {
+          client_id: string
+          created_at: string
+          date_versement: string
+          facture_id: string | null
+          id: string
+          mode_paiement: string
+          montant: number
+          numero_versement: string
+          observations: string | null
+          reference_paiement: string | null
+          updated_at: string
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          date_versement?: string
+          facture_id?: string | null
+          id?: string
+          mode_paiement: string
+          montant: number
+          numero_versement: string
+          observations?: string | null
+          reference_paiement?: string | null
+          updated_at?: string
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          date_versement?: string
+          facture_id?: string | null
+          id?: string
+          mode_paiement?: string
+          montant?: number
+          numero_versement?: string
+          observations?: string | null
+          reference_paiement?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "versements_clients_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
             referencedColumns: ["id"]
           },
         ]
