@@ -274,6 +274,7 @@ export type Database = {
       catalogue: {
         Row: {
           categorie: string | null
+          categorie_id: string | null
           created_at: string
           description: string | null
           id: string
@@ -282,11 +283,13 @@ export type Database = {
           reference: string
           seuil_alerte: number | null
           statut: string | null
+          unite_id: string | null
           unite_mesure: string | null
           updated_at: string
         }
         Insert: {
           categorie?: string | null
+          categorie_id?: string | null
           created_at?: string
           description?: string | null
           id?: string
@@ -295,11 +298,13 @@ export type Database = {
           reference: string
           seuil_alerte?: number | null
           statut?: string | null
+          unite_id?: string | null
           unite_mesure?: string | null
           updated_at?: string
         }
         Update: {
           categorie?: string | null
+          categorie_id?: string | null
           created_at?: string
           description?: string | null
           id?: string
@@ -308,7 +313,53 @@ export type Database = {
           reference?: string
           seuil_alerte?: number | null
           statut?: string | null
+          unite_id?: string | null
           unite_mesure?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "catalogue_categorie_id_fkey"
+            columns: ["categorie_id"]
+            isOneToOne: false
+            referencedRelation: "categories_catalogue"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "catalogue_unite_id_fkey"
+            columns: ["unite_id"]
+            isOneToOne: false
+            referencedRelation: "unites"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      categories_catalogue: {
+        Row: {
+          couleur: string | null
+          created_at: string
+          description: string | null
+          id: string
+          nom: string
+          statut: string | null
+          updated_at: string
+        }
+        Insert: {
+          couleur?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          nom: string
+          statut?: string | null
+          updated_at?: string
+        }
+        Update: {
+          couleur?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          nom?: string
+          statut?: string | null
           updated_at?: string
         }
         Relationships: []
@@ -1500,6 +1551,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      unites: {
+        Row: {
+          created_at: string
+          id: string
+          nom: string
+          statut: string | null
+          symbole: string
+          type_unite: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          nom: string
+          statut?: string | null
+          symbole: string
+          type_unite?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          nom?: string
+          statut?: string | null
+          symbole?: string
+          type_unite?: string | null
+          updated_at?: string
+        }
+        Relationships: []
       }
       versements_clients: {
         Row: {
