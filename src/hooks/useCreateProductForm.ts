@@ -42,7 +42,7 @@ export const useCreateProductForm = () => {
         throw new Error('Le nom du produit est obligatoire');
       }
 
-      // Préparer les données à insérer (sans reference, elle sera générée automatiquement)
+      // Préparer les données à insérer (la référence sera générée automatiquement par le trigger)
       const insertData: any = {
         nom: formData.nom.trim(),
         seuil_alerte: parseInt(formData.seuil_alerte) || 10,
@@ -85,11 +85,24 @@ export const useCreateProductForm = () => {
 
       console.log('Données préparées pour insertion:', insertData);
 
-      // Insérer le produit (la référence sera générée automatiquement par le trigger)
+      // Explicitement spécifier les colonnes pour éviter toute ambiguïté
       const { data, error } = await supabase
         .from('catalogue')
         .insert(insertData)
-        .select('*');
+        .select(`
+          id,
+          nom,
+          reference,
+          description,
+          prix_achat,
+          prix_vente,
+          categorie_id,
+          unite_id,
+          seuil_alerte,
+          image_url,
+          statut,
+          created_at
+        `);
 
       if (error) {
         console.error('Erreur Supabase détaillée:', error);
@@ -111,7 +124,9 @@ export const useCreateProductForm = () => {
       let errorMessage = "Impossible de créer le produit.";
       
       // Gestion d'erreurs plus détaillée
-      if (error.code === '23505') {
+      if (error.code === '42702') {
+        errorMessage = "Erreur de configuration de la base de données. Veuillez contacter le support.";
+      } else if (error.code === '23505') {
         if (error.message?.includes('reference')) {
           errorMessage = "Cette référence existe déjà. Veuillez réessayer.";
         } else {
