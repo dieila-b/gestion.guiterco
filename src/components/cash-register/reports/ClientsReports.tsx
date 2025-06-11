@@ -10,7 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 
 const ClientsReports: React.FC = () => {
-  const [selectedClient, setSelectedClient] = useState<string>('');
+  const [selectedClient, setSelectedClient] = useState<string>('all');
   const [showResults, setShowResults] = useState(false);
 
   const { data: clients } = useClients();
@@ -35,7 +35,7 @@ const ClientsReports: React.FC = () => {
     };
   }).sort((a, b) => b.totalCA - a.totalCA) || [];
 
-  const selectedClientData = selectedClient ? 
+  const selectedClientData = selectedClient !== 'all' ? 
     clientStats.find(stat => stat.client.id === selectedClient) : null;
 
   const handleGenerateReport = () => {
@@ -60,7 +60,7 @@ const ClientsReports: React.FC = () => {
               <SelectValue placeholder="Tous les clients" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Tous les clients</SelectItem>
+              <SelectItem value="all">Tous les clients</SelectItem>
               {clients?.map((client) => (
                 <SelectItem key={client.id} value={client.id}>
                   {client.nom} {client.prenom || ''}
