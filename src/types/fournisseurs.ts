@@ -3,6 +3,7 @@ export interface Pays {
   id: string;
   nom: string;
   code_iso: string;
+  indicatif_tel: string;
   created_at: string;
 }
 

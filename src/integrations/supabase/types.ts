@@ -994,18 +994,21 @@ export type Database = {
           code_iso: string
           created_at: string
           id: string
+          indicatif_tel: string | null
           nom: string
         }
         Insert: {
           code_iso: string
           created_at?: string
           id?: string
+          indicatif_tel?: string | null
           nom: string
         }
         Update: {
           code_iso?: string
           created_at?: string
           id?: string
+          indicatif_tel?: string | null
           nom?: string
         }
         Relationships: []

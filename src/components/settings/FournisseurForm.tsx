@@ -19,6 +19,7 @@ interface FournisseurFormProps {
 const FournisseurForm: React.FC<FournisseurFormProps> = ({ fournisseur, onSubmit, onCancel }) => {
   const { pays } = usePays();
   const [selectedPaysId, setSelectedPaysId] = useState<string>('');
+  const [selectedPays, setSelectedPays] = useState<any>(null);
   const { villes } = useVilles(selectedPaysId);
   const [useCustomVille, setUseCustomVille] = useState(false);
 
@@ -55,10 +56,14 @@ const FournisseurForm: React.FC<FournisseurFormProps> = ({ fournisseur, onSubmit
       });
       if (fournisseur.pays_id) {
         setSelectedPaysId(fournisseur.pays_id);
+        const paysFound = pays?.find(p => p.id === fournisseur.pays_id);
+        if (paysFound) {
+          setSelectedPays(paysFound);
+        }
       }
       setUseCustomVille(!!fournisseur.ville_personnalisee);
     }
-  }, [fournisseur]);
+  }, [fournisseur, pays]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -71,14 +76,37 @@ const FournisseurForm: React.FC<FournisseurFormProps> = ({ fournisseur, onSubmit
   };
 
   const handlePaysChange = (paysId: string) => {
+    const paysFound = pays?.find(p => p.id === paysId);
     setSelectedPaysId(paysId);
-    setFormData({ ...formData, pays_id: paysId, ville_id: '', ville_personnalisee: '' });
+    setSelectedPays(paysFound);
+    
+    // Mettre à jour l'indicatif téléphonique si les champs téléphone sont vides
+    const indicatif = paysFound?.indicatif_tel || '';
+    setFormData(prev => ({
+      ...prev,
+      pays_id: paysId,
+      ville_id: '',
+      ville_personnalisee: '',
+      telephone_mobile: prev.telephone_mobile || indicatif,
+      telephone_fixe: prev.telephone_fixe || indicatif
+    }));
     setUseCustomVille(false);
   };
 
   const handleCustomVilleChange = (checked: boolean | "indeterminate") => {
     const isChecked = checked === true;
     setUseCustomVille(isChecked);
+  };
+
+  const handleTelephoneChange = (field: 'telephone_mobile' | 'telephone_fixe', value: string) => {
+    const indicatif = selectedPays?.indicatif_tel || '';
+    
+    // Si l'utilisateur efface tout et qu'un pays est sélectionné, remettre l'indicatif
+    if (value === '' && indicatif) {
+      setFormData(prev => ({ ...prev, [field]: indicatif }));
+    } else {
+      setFormData(prev => ({ ...prev, [field]: value }));
+    }
   };
 
   return (
@@ -119,28 +147,6 @@ const FournisseurForm: React.FC<FournisseurFormProps> = ({ fournisseur, onSubmit
           />
         </div>
 
-        {/* Téléphone mobile */}
-        <div>
-          <Label htmlFor="telephone_mobile">Téléphone mobile</Label>
-          <Input
-            id="telephone_mobile"
-            value={formData.telephone_mobile}
-            onChange={(e) => setFormData({ ...formData, telephone_mobile: e.target.value })}
-            className="mt-1"
-          />
-        </div>
-
-        {/* Téléphone fixe */}
-        <div>
-          <Label htmlFor="telephone_fixe">Téléphone fixe</Label>
-          <Input
-            id="telephone_fixe"
-            value={formData.telephone_fixe}
-            onChange={(e) => setFormData({ ...formData, telephone_fixe: e.target.value })}
-            className="mt-1"
-          />
-        </div>
-
         {/* Pays */}
         <div>
           <Label htmlFor="pays">Pays</Label>
@@ -151,7 +157,7 @@ const FournisseurForm: React.FC<FournisseurFormProps> = ({ fournisseur, onSubmit
             <SelectContent>
               {pays?.map((p) => (
                 <SelectItem key={p.id} value={p.id}>
-                  {p.nom}
+                  {p.nom} ({p.indicatif_tel})
                 </SelectItem>
               ))}
             </SelectContent>
@@ -198,6 +204,30 @@ const FournisseurForm: React.FC<FournisseurFormProps> = ({ fournisseur, onSubmit
               </Select>
             )}
           </div>
+        </div>
+
+        {/* Téléphone mobile */}
+        <div>
+          <Label htmlFor="telephone_mobile">Téléphone mobile</Label>
+          <Input
+            id="telephone_mobile"
+            value={formData.telephone_mobile}
+            onChange={(e) => handleTelephoneChange('telephone_mobile', e.target.value)}
+            placeholder={selectedPays ? `${selectedPays.indicatif_tel}123456789` : "Téléphone mobile"}
+            className="mt-1"
+          />
+        </div>
+
+        {/* Téléphone fixe */}
+        <div>
+          <Label htmlFor="telephone_fixe">Téléphone fixe</Label>
+          <Input
+            id="telephone_fixe"
+            value={formData.telephone_fixe}
+            onChange={(e) => handleTelephoneChange('telephone_fixe', e.target.value)}
+            placeholder={selectedPays ? `${selectedPays.indicatif_tel}123456789` : "Téléphone fixe"}
+            className="mt-1"
+          />
         </div>
 
         {/* Adresse complète */}
