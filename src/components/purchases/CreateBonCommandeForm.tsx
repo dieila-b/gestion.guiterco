@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -14,6 +14,7 @@ import { useCatalogue } from '@/hooks/useCatalogue';
 import { useBonsCommande } from '@/hooks/usePurchases';
 import { ArticleSelector } from './ArticleSelector';
 import { toast } from '@/hooks/use-toast';
+import { RefreshCw } from 'lucide-react';
 
 const bonCommandeSchema = z.object({
   numero_bon: z.string().min(1, 'Le numéro est requis'),
@@ -45,12 +46,13 @@ interface ArticleLigne {
 }
 
 export const CreateBonCommandeForm = ({ onSuccess }: CreateBonCommandeFormProps) => {
-  const { fournisseurs, isLoading: loadingFournisseurs } = useFournisseurs();
+  const { fournisseurs, isLoading: loadingFournisseurs, refetch: refetchFournisseurs } = useFournisseurs();
   const { articles, isLoading: loadingArticles } = useCatalogue();
   const { createBonCommande } = useBonsCommande();
   
   const [articlesLignes, setArticlesLignes] = useState<ArticleLigne[]>([]);
   const [montantPaye, setMontantPaye] = useState(0);
+  const [refreshingFournisseurs, setRefreshingFournisseurs] = useState(false);
 
   const form = useForm<BonCommandeForm>({
     resolver: zodResolver(bonCommandeSchema),
@@ -66,6 +68,33 @@ export const CreateBonCommandeForm = ({ onSuccess }: CreateBonCommandeFormProps)
       taux_tva: 20,
     },
   });
+
+  // Rafraîchir automatiquement la liste des fournisseurs au montage du composant
+  useEffect(() => {
+    console.log('Component mounted, refreshing fournisseurs...');
+    refetchFournisseurs();
+  }, [refetchFournisseurs]);
+
+  const handleRefreshFournisseurs = async () => {
+    setRefreshingFournisseurs(true);
+    try {
+      await refetchFournisseurs();
+      toast({
+        title: "Liste actualisée",
+        description: "La liste des fournisseurs a été mise à jour.",
+        variant: "default",
+      });
+    } catch (error) {
+      console.error('Error refreshing fournisseurs:', error);
+    } finally {
+      setRefreshingFournisseurs(false);
+    }
+  };
+
+  // Obtenir le nom d'affichage du fournisseur
+  const getFournisseurDisplayName = (fournisseur: any) => {
+    return fournisseur.nom_entreprise || fournisseur.nom || 'Fournisseur sans nom';
+  };
 
   const ajouterArticle = (article: { id: string; nom: string; prix_unitaire?: number }) => {
     const nouvelleArticle: ArticleLigne = {
@@ -118,7 +147,7 @@ export const CreateBonCommandeForm = ({ onSuccess }: CreateBonCommandeFormProps)
       return;
     }
 
-    // Trouver le nom du fournisseur à partir de l'ID
+    // Trouver le fournisseur à partir de l'ID
     const fournisseur = fournisseurs?.find(f => f.id === data.fournisseur_id);
     if (!fournisseur) {
       toast({
@@ -129,10 +158,12 @@ export const CreateBonCommandeForm = ({ onSuccess }: CreateBonCommandeFormProps)
       return;
     }
 
+    const fournisseurName = getFournisseurDisplayName(fournisseur);
+
     try {
       await createBonCommande.mutateAsync({
         numero_bon: data.numero_bon,
-        fournisseur: fournisseur.nom,
+        fournisseur: fournisseurName,
         fournisseur_id: data.fournisseur_id,
         date_commande: data.date_commande,
         date_livraison_prevue: data.date_livraison_prevue,
@@ -174,19 +205,56 @@ export const CreateBonCommandeForm = ({ onSuccess }: CreateBonCommandeFormProps)
             </div>
 
             <div>
-              <Label htmlFor="fournisseur_id">Fournisseur</Label>
-              <Select onValueChange={(value) => form.setValue('fournisseur_id', value)}>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="fournisseur_id">Fournisseur</Label>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleRefreshFournisseurs}
+                  disabled={refreshingFournisseurs}
+                  className="h-6 w-6 p-0"
+                >
+                  <RefreshCw className={`h-3 w-3 ${refreshingFournisseurs ? 'animate-spin' : ''}`} />
+                </Button>
+              </div>
+              <Select 
+                onValueChange={(value) => form.setValue('fournisseur_id', value)}
+                disabled={loadingFournisseurs}
+              >
                 <SelectTrigger>
-                  <SelectValue placeholder="Sélectionnez un fournisseur" />
+                  <SelectValue 
+                    placeholder={
+                      loadingFournisseurs 
+                        ? "Chargement des fournisseurs..." 
+                        : "Sélectionnez un fournisseur"
+                    } 
+                  />
                 </SelectTrigger>
                 <SelectContent>
-                  {fournisseurs?.map((fournisseur) => (
-                    <SelectItem key={fournisseur.id} value={fournisseur.id}>
-                      {fournisseur.nom}
+                  {fournisseurs?.length === 0 ? (
+                    <SelectItem value="" disabled>
+                      Aucun fournisseur disponible
                     </SelectItem>
-                  ))}
+                  ) : (
+                    fournisseurs?.map((fournisseur) => (
+                      <SelectItem key={fournisseur.id} value={fournisseur.id}>
+                        {getFournisseurDisplayName(fournisseur)}
+                        {fournisseur.pays?.nom && (
+                          <span className="text-xs text-muted-foreground ml-2">
+                            ({fournisseur.pays.nom})
+                          </span>
+                        )}
+                      </SelectItem>
+                    ))
+                  )}
                 </SelectContent>
               </Select>
+              {fournisseurs?.length === 0 && !loadingFournisseurs && (
+                <p className="text-xs text-muted-foreground mt-1">
+                  Aucun fournisseur trouvé. Créez-en un depuis les paramètres.
+                </p>
+              )}
             </div>
 
             <div>
