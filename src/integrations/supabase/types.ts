@@ -121,6 +121,8 @@ export type Database = {
           remise: number | null
           statut: string
           statut_paiement: string | null
+          taux_tva: number | null
+          transit_douane: number | null
           tva: number | null
           updated_at: string
         }
@@ -142,6 +144,8 @@ export type Database = {
           remise?: number | null
           statut?: string
           statut_paiement?: string | null
+          taux_tva?: number | null
+          transit_douane?: number | null
           tva?: number | null
           updated_at?: string
         }
@@ -163,6 +167,8 @@ export type Database = {
           remise?: number | null
           statut?: string
           statut_paiement?: string | null
+          taux_tva?: number | null
+          transit_douane?: number | null
           tva?: number | null
           updated_at?: string
         }
@@ -189,6 +195,8 @@ export type Database = {
           numero_suivi: string | null
           observations: string | null
           statut: string
+          taux_tva: number | null
+          transit_douane: number | null
           transporteur: string | null
           updated_at: string
         }
@@ -204,6 +212,8 @@ export type Database = {
           numero_suivi?: string | null
           observations?: string | null
           statut?: string
+          taux_tva?: number | null
+          transit_douane?: number | null
           transporteur?: string | null
           updated_at?: string
         }
@@ -219,6 +229,8 @@ export type Database = {
           numero_suivi?: string | null
           observations?: string | null
           statut?: string
+          taux_tva?: number | null
+          transit_douane?: number | null
           transporteur?: string | null
           updated_at?: string
         }
@@ -358,6 +370,7 @@ export type Database = {
           numero_commande: string
           observations: string | null
           statut: string
+          taux_tva: number | null
           tva: number
           updated_at: string
         }
@@ -372,6 +385,7 @@ export type Database = {
           numero_commande: string
           observations?: string | null
           statut?: string
+          taux_tva?: number | null
           tva?: number
           updated_at?: string
         }
@@ -386,6 +400,7 @@ export type Database = {
           numero_commande?: string
           observations?: string | null
           statut?: string
+          taux_tva?: number | null
           tva?: number
           updated_at?: string
         }
@@ -411,6 +426,7 @@ export type Database = {
           numero_devis: string
           observations: string | null
           statut: string
+          taux_tva: number | null
           tva: number
           updated_at: string
         }
@@ -425,6 +441,7 @@ export type Database = {
           numero_devis: string
           observations?: string | null
           statut?: string
+          taux_tva?: number | null
           tva?: number
           updated_at?: string
         }
@@ -439,6 +456,7 @@ export type Database = {
           numero_devis?: string
           observations?: string | null
           statut?: string
+          taux_tva?: number | null
           tva?: number
           updated_at?: string
         }
@@ -559,6 +577,8 @@ export type Database = {
           numero_facture: string
           observations: string | null
           statut_paiement: string
+          taux_tva: number | null
+          transit_douane: number | null
           tva: number
           updated_at: string
         }
@@ -578,6 +598,8 @@ export type Database = {
           numero_facture: string
           observations?: string | null
           statut_paiement?: string
+          taux_tva?: number | null
+          transit_douane?: number | null
           tva?: number
           updated_at?: string
         }
@@ -597,6 +619,8 @@ export type Database = {
           numero_facture?: string
           observations?: string | null
           statut_paiement?: string
+          taux_tva?: number | null
+          transit_douane?: number | null
           tva?: number
           updated_at?: string
         }
@@ -695,6 +719,7 @@ export type Database = {
           numero_facture: string
           observations: string | null
           statut_paiement: string
+          taux_tva: number | null
           tva: number
           updated_at: string
         }
@@ -712,6 +737,7 @@ export type Database = {
           numero_facture: string
           observations?: string | null
           statut_paiement?: string
+          taux_tva?: number | null
           tva?: number
           updated_at?: string
         }
@@ -729,6 +755,7 @@ export type Database = {
           numero_facture?: string
           observations?: string | null
           statut_paiement?: string
+          taux_tva?: number | null
           tva?: number
           updated_at?: string
         }
@@ -960,6 +987,7 @@ export type Database = {
           numero_precommande: string
           observations: string | null
           statut: string
+          taux_tva: number | null
           tva: number
           updated_at: string
         }
@@ -975,6 +1003,7 @@ export type Database = {
           numero_precommande: string
           observations?: string | null
           statut?: string
+          taux_tva?: number | null
           tva?: number
           updated_at?: string
         }
@@ -990,6 +1019,7 @@ export type Database = {
           numero_precommande?: string
           observations?: string | null
           statut?: string
+          taux_tva?: number | null
           tva?: number
           updated_at?: string
         }

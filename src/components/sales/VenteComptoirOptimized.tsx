@@ -10,7 +10,7 @@ import { useCommandesClients } from '@/hooks/useSales';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 
-const VenteComptoir = () => {
+const VenteComptoirOptimized = () => {
   const { data: commandes, isLoading } = useCommandesClients();
   const [selectedPDV, setSelectedPDV] = useState('');
   const [searchProduct, setSearchProduct] = useState('');
@@ -37,8 +37,8 @@ const VenteComptoir = () => {
         <h2 className="text-2xl font-bold">Vente au comptoir</h2>
       </div>
 
-      {/* Ligne supérieure optimisée - responsive */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* Ligne supérieure optimisée */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Sélecteur PDV */}
         <div className="space-y-2">
           <label className="text-sm font-medium">Point de vente</label>
@@ -98,17 +98,17 @@ const VenteComptoir = () => {
                 <SelectItem value="client3">Pierre Bernard</SelectItem>
               </SelectContent>
             </Select>
-            <Button size="sm" variant="outline" title="Nouveau client">
+            <Button size="sm" variant="outline">
               <Plus className="h-4 w-4" />
             </Button>
           </div>
         </div>
       </div>
 
-      {/* Zone principale - responsive */}
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-        {/* Colonne gauche - Produits et panier */}
-        <div className="xl:col-span-2 space-y-4">
+      {/* Zone principale - deux colonnes */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Colonne gauche - Produits et panier (2/3) */}
+        <div className="lg:col-span-2 space-y-4">
           {/* Panier actuel */}
           <Card>
             <CardHeader className="pb-3">
@@ -130,7 +130,7 @@ const VenteComptoir = () => {
               <CardTitle>Produits</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-3 gap-4">
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                 {/* Exemples de produits */}
                 {[1, 2, 3, 4, 5, 6].map((item) => (
                   <div key={item} className="border rounded-lg p-3 hover:shadow-md transition-shadow cursor-pointer">
@@ -145,7 +145,7 @@ const VenteComptoir = () => {
           </Card>
         </div>
 
-        {/* Colonne droite - Actions et résumé */}
+        {/* Colonne droite - Actions et historique (1/3) */}
         <div className="space-y-4">
           {/* Actions de vente */}
           <Card>
@@ -201,7 +201,7 @@ const VenteComptoir = () => {
         <CardContent>
           <div className="space-y-3">
             {commandes?.slice(0, 5).map((commande) => (
-              <div key={commande.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-3 border rounded-lg gap-3">
+              <div key={commande.id} className="flex items-center justify-between p-3 border rounded-lg">
                 <div className="flex items-center gap-4">
                   <div>
                     <div className="font-medium">{commande.numero_commande}</div>
@@ -228,4 +228,4 @@ const VenteComptoir = () => {
   );
 };
 
-export default VenteComptoir;
+export default VenteComptoirOptimized;

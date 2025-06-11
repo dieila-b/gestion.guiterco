@@ -1,4 +1,3 @@
-
 export interface BonCommande {
   id: string;
   numero_bon: string;
@@ -14,6 +13,8 @@ export interface BonCommande {
   remise?: number;
   frais_livraison?: number;
   frais_logistique?: number;
+  transit_douane?: number;
+  taux_tva?: number;
   montant_paye?: number;
   observations?: string;
   created_at: string;
@@ -31,6 +32,8 @@ export interface BonLivraison {
   statut: string;
   transporteur?: string;
   numero_suivi?: string;
+  transit_douane?: number;
+  taux_tva?: number;
   observations?: string;
   created_at: string;
   updated_at: string;
@@ -49,6 +52,8 @@ export interface FactureAchat {
   montant_ht: number;
   tva: number;
   montant_ttc: number;
+  transit_douane?: number;
+  taux_tva?: number;
   statut_paiement: string;
   mode_paiement?: string;
   date_paiement?: string;

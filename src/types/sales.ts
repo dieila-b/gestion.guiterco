@@ -1,4 +1,3 @@
-
 export interface Client {
   id: string;
   nom: string;
@@ -23,6 +22,7 @@ export interface CommandeClient {
   montant_ht: number;
   tva: number;
   montant_ttc: number;
+  taux_tva?: number;
   mode_paiement?: string;
   observations?: string;
   created_at: string;
@@ -50,6 +50,7 @@ export interface FactureVente {
   montant_ht: number;
   tva: number;
   montant_ttc: number;
+  taux_tva?: number;
   statut_paiement: string;
   mode_paiement?: string;
   date_paiement?: string;
@@ -70,6 +71,7 @@ export interface Precommande {
   montant_ht: number;
   tva: number;
   montant_ttc: number;
+  taux_tva?: number;
   acompte_verse?: number;
   observations?: string;
   created_at: string;
@@ -130,6 +132,7 @@ export interface DevisVente {
   montant_ht: number;
   tva: number;
   montant_ttc: number;
+  taux_tva?: number;
   observations?: string;
   created_at: string;
   updated_at: string;

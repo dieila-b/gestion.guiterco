@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -26,6 +25,8 @@ const bonCommandeSchema = z.object({
   remise: z.number().min(0).default(0),
   frais_livraison: z.number().min(0).default(0),
   frais_logistique: z.number().min(0).default(0),
+  transit_douane: z.number().min(0).default(0),
+  taux_tva: z.number().min(0).max(100).default(20),
   observations: z.string().optional(),
 });
 
@@ -61,6 +62,8 @@ export const CreateBonCommandeForm = ({ onSuccess }: CreateBonCommandeFormProps)
       remise: 0,
       frais_livraison: 0,
       frais_logistique: 0,
+      transit_douane: 0,
+      taux_tva: 20,
     },
   });
 
@@ -93,13 +96,15 @@ export const CreateBonCommandeForm = ({ onSuccess }: CreateBonCommandeFormProps)
     setArticlesLignes(articlesLignes.filter((_, i) => i !== index));
   };
 
-  // Calculs
+  // Calculs mis à jour avec le taux de TVA dynamique
   const sousTotal = articlesLignes.reduce((sum, article) => sum + article.montant_ligne, 0);
   const remise = form.watch('remise') || 0;
   const fraisLivraison = form.watch('frais_livraison') || 0;
   const fraisLogistique = form.watch('frais_logistique') || 0;
-  const montantHT = sousTotal - remise + fraisLivraison + fraisLogistique;
-  const tva = montantHT * 0.2; // 20% TVA
+  const transitDouane = form.watch('transit_douane') || 0;
+  const tauxTva = form.watch('taux_tva') || 20;
+  const montantHT = sousTotal - remise + fraisLivraison + fraisLogistique + transitDouane;
+  const tva = montantHT * (tauxTva / 100);
   const montantTTC = montantHT + tva;
   const resteAPayer = montantTTC - montantPaye;
 
@@ -136,6 +141,8 @@ export const CreateBonCommandeForm = ({ onSuccess }: CreateBonCommandeFormProps)
         remise: data.remise,
         frais_livraison: data.frais_livraison,
         frais_logistique: data.frais_logistique,
+        transit_douane: data.transit_douane,
+        taux_tva: data.taux_tva,
         observations: data.observations,
         montant_ht: montantHT,
         tva: tva,
@@ -310,7 +317,7 @@ export const CreateBonCommandeForm = ({ onSuccess }: CreateBonCommandeFormProps)
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <Card>
           <CardHeader>
-            <CardTitle>Frais et remises</CardTitle>
+            <CardTitle>Frais et paramètres</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
@@ -345,6 +352,30 @@ export const CreateBonCommandeForm = ({ onSuccess }: CreateBonCommandeFormProps)
                 placeholder="0.00"
               />
             </div>
+
+            <div>
+              <Label htmlFor="transit_douane">Transit & Douane (€)</Label>
+              <Input
+                id="transit_douane"
+                type="number"
+                step="0.01"
+                {...form.register('transit_douane', { valueAsNumber: true })}
+                placeholder="0.00"
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="taux_tva">Taux de TVA (%)</Label>
+              <Input
+                id="taux_tva"
+                type="number"
+                step="0.01"
+                min="0"
+                max="100"
+                {...form.register('taux_tva', { valueAsNumber: true })}
+                placeholder="20.00"
+              />
+            </div>
           </CardContent>
         </Card>
 
@@ -369,13 +400,17 @@ export const CreateBonCommandeForm = ({ onSuccess }: CreateBonCommandeFormProps)
               <span>Logistique:</span>
               <span>{fraisLogistique.toFixed(2)} €</span>
             </div>
+            <div className="flex justify-between">
+              <span>Transit & Douane:</span>
+              <span>{transitDouane.toFixed(2)} €</span>
+            </div>
             <Separator />
             <div className="flex justify-between">
               <span>Montant HT:</span>
               <span>{montantHT.toFixed(2)} €</span>
             </div>
             <div className="flex justify-between">
-              <span>TVA (20%):</span>
+              <span>TVA ({tauxTva}%):</span>
               <span>{tva.toFixed(2)} €</span>
             </div>
             <div className="flex justify-between font-bold">
