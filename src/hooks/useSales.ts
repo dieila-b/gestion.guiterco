@@ -164,12 +164,37 @@ export const useRetoursClients = () => {
   });
 };
 
+// Types pour les mutations
+type CreateCommandeInput = {
+  numero_commande: string;
+  client_id?: string;
+  montant_ht?: number;
+  tva?: number;
+  montant_ttc?: number;
+  statut?: string;
+  mode_paiement?: string;
+  observations?: string;
+};
+
+type CreateFactureInput = {
+  numero_facture: string;
+  client_id: string;
+  commande_id?: string;
+  montant_ht?: number;
+  tva?: number;
+  montant_ttc?: number;
+  statut_paiement?: string;
+  mode_paiement?: string;
+  date_echeance?: string;
+  observations?: string;
+};
+
 // Mutations pour créer/modifier des données
 export const useCreateCommande = () => {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: async (commande: Partial<CommandeClient>) => {
+    mutationFn: async (commande: CreateCommandeInput) => {
       const { data, error } = await supabase
         .from('commandes_clients')
         .insert(commande)
@@ -189,7 +214,7 @@ export const useCreateFacture = () => {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: async (facture: Partial<FactureVente>) => {
+    mutationFn: async (facture: CreateFactureInput) => {
       const { data, error } = await supabase
         .from('factures_vente')
         .insert(facture)
