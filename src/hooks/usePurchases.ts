@@ -41,10 +41,10 @@ export const useBonsCommande = () => {
       // Extraire les articles de l'objet bonCommande
       const { articles, ...bonCommandeData } = bonCommande;
       
-      // Le numéro sera généré automatiquement par le trigger
+      // Le numéro sera généré automatiquement par le trigger, donc on ne l'inclut pas
       const { data: newBonCommande, error: bonCommandeError } = await supabase
         .from('bons_de_commande')
-        .insert(bonCommandeData)
+        .insert([bonCommandeData])
         .select()
         .single();
 
@@ -180,7 +180,7 @@ export const useBonsLivraison = () => {
         .from('bons_de_livraison')
         .select(`
           *,
-          bon_commande:bon_commande_id!fk_bons_livraison_bon_commande_id(
+          bon_commande:bons_de_commande!fk_bons_livraison_bon_commande_id(
             id,
             numero_bon,
             fournisseur,
@@ -214,7 +214,7 @@ export const useBonsLivraison = () => {
       }
       
       console.log('Fetched bons de livraison with relations:', data);
-      return data as BonLivraison[];
+      return data as unknown as BonLivraison[];
     }
   });
 
