@@ -40,8 +40,17 @@ const BonsCommande = () => {
 
       console.log('Articles du bon de commande:', articlesCommande);
 
-      // 3. Générer le bon de livraison avec un numéro basé sur le bon de commande
-      const numeroBonLivraison = `BL-${bon.numero_bon.replace('BC-', '')}`; // Garde la même base numérique
+      // 3. Générer le numéro de bon de livraison en utilisant la fonction SQL
+      const { data: numeroBLResult, error: numeroBLError } = await supabase
+        .rpc('generate_bon_livraison_number', { bon_commande_numero: bon.numero_bon });
+
+      if (numeroBLError) {
+        console.error('Error generating BL number:', numeroBLError);
+        throw numeroBLError;
+      }
+
+      const numeroBonLivraison = numeroBLResult;
+      console.log('Generated BL number:', numeroBonLivraison);
       
       const bonLivraisonData = {
         numero_bon: numeroBonLivraison,

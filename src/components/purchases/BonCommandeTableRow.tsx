@@ -35,24 +35,10 @@ export const BonCommandeTableRow = ({ bon, articlesCount, onApprove, onDelete }:
     }
   };
 
-  const formatNumeroCommande = (numero: string, date: string) => {
-    if (numero.match(/^BC-\d{4}-\d{2}-\d{2}-\d{3}$/)) {
-      return numero;
-    }
-    
-    const dateObj = new Date(date);
-    const year = dateObj.getFullYear();
-    const month = String(dateObj.getMonth() + 1).padStart(2, '0');
-    const day = String(dateObj.getDate()).padStart(2, '0');
-    const timeComponent = Date.now().toString().slice(-3);
-    
-    return `BC-${year}-${month}-${day}-${timeComponent}`;
-  };
-
   return (
     <TableRow className="border-gray-700 hover:bg-gray-700/50">
       <TableCell className="text-white font-medium">
-        {formatNumeroCommande(bon.numero_bon, bon.date_commande)}
+        {bon.numero_bon}
       </TableCell>
       <TableCell className="text-gray-300">
         {format(new Date(bon.date_commande), 'dd/MM/yyyy', { locale: fr })}

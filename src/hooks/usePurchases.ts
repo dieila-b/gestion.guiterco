@@ -1,4 +1,3 @@
-
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
@@ -36,13 +35,13 @@ export const useBonsCommande = () => {
   });
 
   const createBonCommande = useMutation({
-    mutationFn: async (bonCommande: Omit<BonCommande, 'id' | 'created_at' | 'updated_at'> & { articles?: any[] }) => {
+    mutationFn: async (bonCommande: Omit<BonCommande, 'id' | 'created_at' | 'updated_at' | 'numero_bon'> & { articles?: any[] }) => {
       console.log('Creating bon de commande:', bonCommande);
       
       // Extraire les articles de l'objet bonCommande
       const { articles, ...bonCommandeData } = bonCommande;
       
-      // Créer le bon de commande
+      // Le numéro sera généré automatiquement par le trigger
       const { data: newBonCommande, error: bonCommandeError } = await supabase
         .from('bons_de_commande')
         .insert([bonCommandeData])
@@ -54,7 +53,7 @@ export const useBonsCommande = () => {
         throw bonCommandeError;
       }
 
-      console.log('Bon de commande created:', newBonCommande);
+      console.log('Bon de commande created with auto-generated number:', newBonCommande);
 
       // Si des articles sont fournis, les insérer dans articles_bon_commande
       if (articles && articles.length > 0) {
@@ -74,7 +73,6 @@ export const useBonsCommande = () => {
 
         if (articlesError) {
           console.error('Error inserting articles:', articlesError);
-          // Ne pas faire échouer toute la transaction, mais log l'erreur
           toast({
             title: "Attention",
             description: "Le bon de commande a été créé mais il y a eu un problème avec les articles.",

@@ -52,6 +52,20 @@ export type Database = {
             referencedRelation: "bons_de_commande"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "fk_articles_bon_commande_article_id"
+            columns: ["article_id"]
+            isOneToOne: false
+            referencedRelation: "catalogue"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_articles_bon_commande_bon_id"
+            columns: ["bon_commande_id"]
+            isOneToOne: false
+            referencedRelation: "bons_de_commande"
+            referencedColumns: ["id"]
+          },
         ]
       }
       articles_bon_livraison: {
@@ -95,6 +109,20 @@ export type Database = {
           },
           {
             foreignKeyName: "articles_bon_livraison_bon_livraison_id_fkey"
+            columns: ["bon_livraison_id"]
+            isOneToOne: false
+            referencedRelation: "bons_de_livraison"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_articles_bon_livraison_article_id"
+            columns: ["article_id"]
+            isOneToOne: false
+            referencedRelation: "catalogue"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_articles_bon_livraison_bon_id"
             columns: ["bon_livraison_id"]
             isOneToOne: false
             referencedRelation: "bons_de_livraison"
@@ -308,6 +336,13 @@ export type Database = {
             columns: ["point_vente_destination_id"]
             isOneToOne: false
             referencedRelation: "points_de_vente"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_bons_livraison_bon_commande_id"
+            columns: ["bon_commande_id"]
+            isOneToOne: false
+            referencedRelation: "bons_de_commande"
             referencedColumns: ["id"]
           },
         ]
@@ -1746,6 +1781,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      generate_bon_commande_number: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
+      generate_bon_livraison_number: {
+        Args: { bon_commande_numero: string }
+        Returns: string
+      }
       generate_product_reference: {
         Args: Record<PropertyKey, never>
         Returns: string
