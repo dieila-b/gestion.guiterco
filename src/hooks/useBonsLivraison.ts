@@ -1,4 +1,3 @@
-
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
@@ -38,8 +37,8 @@ export const useBonsLivraison = () => {
             updated_at,
             created_by
           ),
-          entrepot_destination:entrepot_destination_id(*),
-          point_vente_destination:point_vente_destination_id(*)
+          entrepot_destination:entrepots!bons_de_livraison_entrepot_destination_id_fkey(*),
+          point_vente_destination:points_de_vente!bons_de_livraison_point_vente_destination_id_fkey(*)
         `)
         .order('created_at', { ascending: false });
       
