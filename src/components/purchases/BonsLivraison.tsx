@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Edit, Check, Trash, Printer, Search } from 'lucide-react';
+import { Edit, Check, Trash, Printer, Search, Link } from 'lucide-react';
 import { useBonsLivraison } from '@/hooks/useBonsLivraison';
 import { useFacturesAchat } from '@/hooks/useFacturesAchat';
 import { useAllBonLivraisonArticles } from '@/hooks/useBonLivraisonArticles';
@@ -43,8 +43,6 @@ const BonsLivraison = () => {
   };
 
   const calculateTotal = (bon: any) => {
-    // Pour l'instant, on calcule basé sur le bon de commande lié
-    // TODO: calculer basé sur les articles du bon de livraison quand ils seront disponibles
     return bon.bon_commande?.montant_total || 0;
   };
 
@@ -63,7 +61,9 @@ const BonsLivraison = () => {
 
   const handleApprovalConfirm = async (approvalData: any) => {
     try {
-      // Mettre à jour le statut du bon de livraison
+      console.log('Processing approval for bon de livraison:', selectedBon.id);
+      
+      // Mettre à jour le statut du bon de livraison avec traçabilité complète
       const { error: updateError } = await supabase
         .from('bons_de_livraison')
         .update({ 
@@ -75,7 +75,7 @@ const BonsLivraison = () => {
 
       if (updateError) throw updateError;
 
-      // Mettre à jour les quantités reçues des articles
+      // Mettre à jour les quantités reçues des articles avec vérification
       for (const article of approvalData.articles) {
         const { error: articleError } = await supabase
           .from('articles_bon_livraison')
@@ -83,19 +83,21 @@ const BonsLivraison = () => {
           .eq('id', article.id);
 
         if (articleError) throw articleError;
+        
+        console.log(`Article ${article.id} updated with received quantity: ${article.quantite_recue}`);
       }
 
-      // Mettre à jour le stock
+      // Mettre à jour le stock avec traçabilité par type de destination
       for (const article of approvalData.articles) {
         const articleData = await supabase
           .from('articles_bon_livraison')
-          .select('article_id')
+          .select('article_id, bon_livraison_id')
           .eq('id', article.id)
           .single();
 
         if (articleData.data) {
           if (approvalData.destinationType === 'entrepot') {
-            // Mettre à jour le stock principal
+            // Mettre à jour le stock principal avec traçabilité
             const { error: stockError } = await supabase
               .rpc('update_stock_principal', {
                 p_article_id: articleData.data.article_id,
@@ -103,9 +105,13 @@ const BonsLivraison = () => {
                 p_quantite: article.quantite_recue
               });
             
-            if (stockError) console.error('Erreur mise à jour stock:', stockError);
+            if (stockError) {
+              console.error('Erreur mise à jour stock principal:', stockError);
+            } else {
+              console.log(`Stock principal updated for article ${articleData.data.article_id} in entrepot ${approvalData.destinationId}`);
+            }
           } else {
-            // Mettre à jour le stock PDV
+            // Mettre à jour le stock PDV avec traçabilité
             const { error: stockError } = await supabase
               .rpc('update_stock_pdv', {
                 p_article_id: articleData.data.article_id,
@@ -113,13 +119,17 @@ const BonsLivraison = () => {
                 p_quantite: article.quantite_recue
               });
             
-            if (stockError) console.error('Erreur mise à jour stock PDV:', stockError);
+            if (stockError) {
+              console.error('Erreur mise à jour stock PDV:', stockError);
+            } else {
+              console.log(`Stock PDV updated for article ${articleData.data.article_id} in point de vente ${approvalData.destinationId}`);
+            }
           }
         }
       }
 
-      // Générer automatiquement une facture d'achat
-      const numeroFacture = `FA-${format(new Date(), 'yyyy-MM-dd')}-${Date.now().toString().slice(-3)}`;
+      // Générer automatiquement une facture d'achat avec numérotation cohérente
+      const numeroFacture = `FA-${format(new Date(), 'yyyy-MM-dd')}-${Date.now().toString().slice(-6)}`;
       
       await createFactureAchat.mutateAsync({
         numero_facture: numeroFacture,
@@ -127,30 +137,34 @@ const BonsLivraison = () => {
         bon_livraison_id: selectedBon.id,
         fournisseur: selectedBon.fournisseur,
         date_facture: new Date().toISOString(),
-        montant_ht: calculateTotal(selectedBon) * 0.8, // Estimation
-        tva: calculateTotal(selectedBon) * 0.2,
+        montant_ht: calculateTotal(selectedBon) / (1 + (selectedBon.taux_tva || 20) / 100),
+        tva: calculateTotal(selectedBon) * (selectedBon.taux_tva || 20) / 100,
         montant_ttc: calculateTotal(selectedBon),
+        transit_douane: selectedBon.transit_douane || 0,
+        taux_tva: selectedBon.taux_tva || 20,
         statut_paiement: 'en_attente'
       });
 
       toast({
-        title: "Bon de livraison approuvé",
-        description: "Le stock a été mis à jour et une facture d'achat a été générée.",
+        title: "✅ Bon de livraison réceptionné",
+        description: `Stock mis à jour et facture ${numeroFacture} générée avec traçabilité complète.`,
         variant: "default",
       });
+
+      console.log('Réception terminée avec succès - Chaîne complète: Commande → Livraison → Stock → Facture');
 
     } catch (error) {
       console.error('Error approving bon de livraison:', error);
       toast({
-        title: "Erreur",
-        description: "Erreur lors de l'approbation du bon de livraison.",
+        title: "❌ Erreur de réception",
+        description: "Erreur lors de la réception du bon de livraison.",
         variant: "destructive",
       });
     }
   };
 
   const handleDelete = async (id: string) => {
-    if (window.confirm('Êtes-vous sûr de vouloir supprimer ce bon de livraison ?')) {
+    if (window.confirm('Êtes-vous sûr de vouloir supprimer ce bon de livraison ? Cette action affectera la traçabilité.')) {
       try {
         const { error } = await supabase
           .from('bons_de_livraison')
@@ -161,6 +175,7 @@ const BonsLivraison = () => {
         
         toast({
           title: "Bon de livraison supprimé",
+          description: "Attention: la traçabilité pourrait être affectée.",
           variant: "default",
         });
       } catch (error) {
@@ -184,7 +199,6 @@ const BonsLivraison = () => {
 
   const renderActionButtons = (bon: any) => {
     if (bon.statut === 'en_transit' || bon.statut === 'livre') {
-      // Statut non approuvé - Afficher tous les boutons
       return (
         <div className="flex items-center justify-center space-x-1">
           <Button
@@ -201,7 +215,7 @@ const BonsLivraison = () => {
             size="sm"
             className="h-8 w-8 p-0 text-green-400 hover:bg-green-500/20 hover:text-green-300"
             onClick={() => handleApprove(bon)}
-            title="Approuver"
+            title="Réceptionner"
           >
             <Check className="h-4 w-4" />
           </Button>
@@ -226,7 +240,6 @@ const BonsLivraison = () => {
         </div>
       );
     } else {
-      // Statut approuvé - Afficher uniquement le bouton imprimer
       return (
         <div className="flex items-center justify-center space-x-1">
           <Button
@@ -257,7 +270,7 @@ const BonsLivraison = () => {
       <div className="flex justify-between items-center">
         <div>
           <h2 className="text-2xl font-bold text-white">Bons de livraison</h2>
-          <p className="text-gray-400">Gérez vos bons de livraison fournisseurs</p>
+          <p className="text-gray-400">Gérez vos bons de livraison fournisseurs avec numérotation synchronisée BL-AA-MM-JJ-XXX</p>
         </div>
       </div>
 
@@ -301,7 +314,12 @@ const BonsLivraison = () => {
                       {bon.numero_bon}
                     </TableCell>
                     <TableCell className="text-gray-300">
-                      {bon.bon_commande?.numero_bon || 'N/A'}
+                      <div className="flex items-center space-x-2">
+                        <span>{bon.bon_commande?.numero_bon || 'N/A'}</span>
+                        {bon.bon_commande?.numero_bon && (
+                          <Link className="h-3 w-3 text-blue-400" title="Lié au bon de commande" />
+                        )}
+                      </div>
                     </TableCell>
                     <TableCell className="text-gray-300">
                       {format(new Date(bon.date_livraison), 'dd/MM/yyyy', { locale: fr })}

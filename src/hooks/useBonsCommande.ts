@@ -41,8 +41,7 @@ export const useBonsCommande = () => {
       // Extraire les articles de l'objet bonCommande
       const { articles, ...bonCommandeData } = bonCommande;
       
-      // Le numéro sera généré automatiquement par le trigger, donc on ne l'inclut pas
-      // Cast to any to bypass TypeScript strict checking for auto-generated fields
+      // Le numéro sera généré automatiquement par le trigger de base de données
       const { data: newBonCommande, error: bonCommandeError } = await supabase
         .from('bons_de_commande')
         .insert([bonCommandeData as any])
@@ -91,7 +90,7 @@ export const useBonsCommande = () => {
       queryClient.invalidateQueries({ queryKey: ['all-bon-commande-articles-counts'] });
       toast({
         title: "Succès",
-        description: "Bon de commande créé avec succès",
+        description: "Bon de commande créé avec succès avec numéro auto-généré",
         variant: "default",
       });
     },
@@ -129,7 +128,7 @@ export const useBonsCommande = () => {
 
   const deleteBonCommande = useMutation({
     mutationFn: async (id: string) => {
-      // D'abord supprimer les articles liés
+      // D'abord supprimer les articles liés (cascade devrait fonctionner mais on s'assure)
       const { error: articlesError } = await supabase
         .from('articles_bon_commande')
         .delete()

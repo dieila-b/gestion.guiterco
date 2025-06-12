@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -21,16 +22,23 @@ const BonsCommande = () => {
     try {
       console.log('Approving bon de commande:', id, bon);
       
-      // 1. Mettre à jour le statut du bon de commande
+      // 1. Mettre à jour le statut du bon de commande à 'valide'
       await updateBonCommande.mutateAsync({
         id,
         statut: 'valide'
       });
 
-      // 2. Récupérer les articles du bon de commande
+      // 2. Récupérer les articles du bon de commande avec leurs détails
       const { data: articlesCommande, error: articlesError } = await supabase
         .from('articles_bon_commande')
-        .select('*')
+        .select(`
+          *,
+          article:catalogue(
+            id,
+            nom,
+            reference
+          )
+        `)
         .eq('bon_commande_id', id);
 
       if (articlesError) {
@@ -38,11 +46,13 @@ const BonsCommande = () => {
         throw articlesError;
       }
 
-      console.log('Articles du bon de commande:', articlesCommande);
+      console.log('Articles du bon de commande récupérés:', articlesCommande);
 
-      // 3. Générer le numéro de bon de livraison en utilisant la fonction SQL
+      // 3. Générer le numéro de bon de livraison synchronisé avec le bon de commande
       const { data: numeroBLResult, error: numeroBLError } = await supabase
-        .rpc('generate_bon_livraison_number', { bon_commande_numero: bon.numero_bon });
+        .rpc('generate_bon_livraison_number', { 
+          bon_commande_numero: bon.numero_bon 
+        });
 
       if (numeroBLError) {
         console.error('Error generating BL number:', numeroBLError);
@@ -50,23 +60,26 @@ const BonsCommande = () => {
       }
 
       const numeroBonLivraison = numeroBLResult;
-      console.log('Generated BL number:', numeroBonLivraison);
+      console.log('Generated synchronized BL number:', numeroBonLivraison);
       
+      // 4. Créer le bon de livraison avec toutes les informations nécessaires
       const bonLivraisonData = {
         numero_bon: numeroBonLivraison,
         bon_commande_id: id,
         fournisseur: bon.fournisseur,
         date_livraison: new Date().toISOString(),
-        statut: 'en_transit'
+        statut: 'en_transit',
+        taux_tva: bon.taux_tva || 20,
+        transit_douane: bon.transit_douane || 0
       };
 
-      console.log('Creating bon de livraison:', bonLivraisonData);
+      console.log('Creating bon de livraison with synchronized data:', bonLivraisonData);
 
       const newBonLivraison = await createBonLivraison.mutateAsync(bonLivraisonData);
       
-      console.log('Bon de livraison créé:', newBonLivraison);
+      console.log('Bon de livraison créé avec succès:', newBonLivraison);
 
-      // 4. Copier les articles du bon de commande vers le bon de livraison
+      // 5. Transférer tous les articles du bon de commande vers le bon de livraison
       if (articlesCommande && articlesCommande.length > 0) {
         const articlesLivraison = articlesCommande.map(article => ({
           bon_livraison_id: newBonLivraison.id,
@@ -77,7 +90,7 @@ const BonsCommande = () => {
           montant_ligne: article.montant_ligne
         }));
 
-        console.log('Inserting articles into bon de livraison:', articlesLivraison);
+        console.log('Transferring articles to bon de livraison:', articlesLivraison);
 
         const { error: insertArticlesError } = await supabase
           .from('articles_bon_livraison')
@@ -88,30 +101,43 @@ const BonsCommande = () => {
           throw insertArticlesError;
         }
 
-        console.log('Articles copiés avec succès vers le bon de livraison');
+        console.log('Articles transférés avec succès vers le bon de livraison');
       }
       
       toast({
-        title: "Bon de commande approuvé",
-        description: `Un bon de livraison ${numeroBonLivraison} a été généré avec ${articlesCommande?.length || 0} articles.`,
+        title: "✅ Bon de commande approuvé",
+        description: `Bon de livraison ${numeroBonLivraison} généré automatiquement avec ${articlesCommande?.length || 0} articles synchronisés.`,
         variant: "default",
       });
+
+      console.log('Approbation terminée avec succès - Traçabilité complète assurée');
+      
     } catch (error) {
       console.error('Error approving bon de commande:', error);
       toast({
-        title: "Erreur",
-        description: "Erreur lors de l'approbation du bon de commande.",
+        title: "❌ Erreur d'approbation",
+        description: "Erreur lors de l'approbation du bon de commande. Veuillez réessayer.",
         variant: "destructive",
       });
     }
   };
 
   const handleDelete = async (id: string) => {
-    if (window.confirm('Êtes-vous sûr de vouloir supprimer ce bon de commande ?')) {
+    if (window.confirm('Êtes-vous sûr de vouloir supprimer ce bon de commande ? Cette action supprimera également tous les éléments liés.')) {
       try {
         await deleteBonCommande.mutateAsync(id);
+        toast({
+          title: "Bon de commande supprimé",
+          description: "Le bon de commande et tous ses éléments liés ont été supprimés.",
+          variant: "default",
+        });
       } catch (error) {
         console.error('Error deleting bon de commande:', error);
+        toast({
+          title: "Erreur de suppression",
+          description: "Erreur lors de la suppression du bon de commande.",
+          variant: "destructive",
+        });
       }
     }
   };
@@ -130,7 +156,7 @@ const BonsCommande = () => {
       <div className="flex justify-between items-center">
         <div>
           <h2 className="text-2xl font-bold text-white">Bons de commande</h2>
-          <p className="text-gray-400">Gérez vos bons de commande fournisseurs</p>
+          <p className="text-gray-400">Gérez vos bons de commande fournisseurs avec numérotation automatique BC-AA-MM-JJ-XXX</p>
         </div>
         <CreateBonCommandeDialog />
       </div>
@@ -143,7 +169,7 @@ const BonsCommande = () => {
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                 <Input
-                  placeholder="Rechercher..."
+                  placeholder="Rechercher par numéro ou fournisseur..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-10 bg-gray-700 border-gray-600 text-white"
