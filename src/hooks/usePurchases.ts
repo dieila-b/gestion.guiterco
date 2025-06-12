@@ -13,13 +13,23 @@ export const useBonsCommande = () => {
       console.log('Fetching bons de commande...');
       const { data, error } = await supabase
         .from('bons_de_commande')
-        .select('*')
+        .select(`
+          *,
+          fournisseur_data:fournisseur_id (
+            id,
+            nom_entreprise,
+            nom,
+            email
+          )
+        `)
         .order('created_at', { ascending: false });
 
       if (error) {
         console.error('Error fetching bons de commande:', error);
         throw error;
       }
+      
+      console.log('Fetched bons de commande with relations:', data);
       return data as BonCommande[];
     },
   });
@@ -78,6 +88,7 @@ export const useBonsCommande = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['bons-commande'] });
+      queryClient.invalidateQueries({ queryKey: ['all-bon-commande-articles-counts'] });
       toast({
         title: "Succès",
         description: "Bon de commande créé avec succès",
@@ -117,6 +128,17 @@ export const useBonsCommande = () => {
 
   const deleteBonCommande = useMutation({
     mutationFn: async (id: string) => {
+      // D'abord supprimer les articles liés
+      const { error: articlesError } = await supabase
+        .from('articles_bon_commande')
+        .delete()
+        .eq('bon_commande_id', id);
+      
+      if (articlesError) {
+        console.error('Error deleting articles:', articlesError);
+      }
+      
+      // Ensuite supprimer le bon de commande
       const { error } = await supabase
         .from('bons_de_commande')
         .delete()
@@ -127,6 +149,7 @@ export const useBonsCommande = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['bons-commande'] });
+      queryClient.invalidateQueries({ queryKey: ['all-bon-commande-articles-counts'] });
       toast({
         title: "Bon de commande supprimé avec succès",
         variant: "default",
