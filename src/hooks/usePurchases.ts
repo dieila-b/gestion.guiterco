@@ -1,48 +1,94 @@
-
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
-import { BonCommande, BonLivraison, FactureAchat, RetourFournisseur } from '@/types/purchases';
+import type { BonCommande, BonLivraison, FactureAchat, RetourFournisseur } from '@/types/purchases';
 
 // Gestion des bons de commande
 export const useBonsCommande = () => {
   const queryClient = useQueryClient();
-  
-  const { data: bonsCommande, isLoading, error } = useQuery({
+
+  const { data: bonsCommande, isLoading, error, refetch } = useQuery({
     queryKey: ['bons-commande'],
     queryFn: async () => {
+      console.log('Fetching bons de commande...');
       const { data, error } = await supabase
         .from('bons_de_commande')
         .select('*')
         .order('created_at', { ascending: false });
-      
-      if (error) throw error;
+
+      if (error) {
+        console.error('Error fetching bons de commande:', error);
+        throw error;
+      }
       return data as BonCommande[];
-    }
+    },
   });
 
   const createBonCommande = useMutation({
-    mutationFn: async (newBon: Omit<BonCommande, 'id' | 'created_at' | 'updated_at'>) => {
-      const { data, error } = await supabase
+    mutationFn: async (bonCommande: Omit<BonCommande, 'id' | 'created_at' | 'updated_at'> & { articles?: any[] }) => {
+      console.log('Creating bon de commande:', bonCommande);
+      
+      // Extraire les articles de l'objet bonCommande
+      const { articles, ...bonCommandeData } = bonCommande;
+      
+      // Créer le bon de commande
+      const { data: newBonCommande, error: bonCommandeError } = await supabase
         .from('bons_de_commande')
-        .insert(newBon)
+        .insert([bonCommandeData])
         .select()
         .single();
-      
-      if (error) throw error;
-      return data as BonCommande;
+
+      if (bonCommandeError) {
+        console.error('Error creating bon de commande:', bonCommandeError);
+        throw bonCommandeError;
+      }
+
+      console.log('Bon de commande created:', newBonCommande);
+
+      // Si des articles sont fournis, les insérer dans articles_bon_commande
+      if (articles && articles.length > 0) {
+        console.log('Inserting articles:', articles);
+        
+        const articlesData = articles.map(article => ({
+          bon_commande_id: newBonCommande.id,
+          article_id: article.article_id,
+          quantite: article.quantite,
+          prix_unitaire: Number(article.prix_unitaire),
+          montant_ligne: Number(article.montant_ligne)
+        }));
+
+        const { error: articlesError } = await supabase
+          .from('articles_bon_commande')
+          .insert(articlesData);
+
+        if (articlesError) {
+          console.error('Error inserting articles:', articlesError);
+          // Ne pas faire échouer toute la transaction, mais log l'erreur
+          toast({
+            title: "Attention",
+            description: "Le bon de commande a été créé mais il y a eu un problème avec les articles.",
+            variant: "destructive",
+          });
+        } else {
+          console.log('Articles inserted successfully');
+        }
+      }
+
+      return newBonCommande;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['bons-commande'] });
       toast({
-        title: "Bon de commande créé avec succès",
+        title: "Succès",
+        description: "Bon de commande créé avec succès",
         variant: "default",
       });
     },
-    onError: (error) => {
+    onError: (error: any) => {
+      console.error('Error in createBonCommande mutation:', error);
       toast({
-        title: "Erreur lors de la création du bon de commande",
-        description: error.message,
+        title: "Erreur",
+        description: error.message || "Erreur lors de la création du bon de commande",
         variant: "destructive",
       });
     }
@@ -92,6 +138,7 @@ export const useBonsCommande = () => {
     bonsCommande,
     isLoading,
     error,
+    refetch,
     createBonCommande,
     updateBonCommande,
     deleteBonCommande

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -129,6 +128,8 @@ export const useBonCommandeForm = (onSuccess: () => void) => {
     const fournisseurName = fournisseur.nom_entreprise || fournisseur.nom || 'Fournisseur sans nom';
 
     try {
+      console.log('Submitting bon de commande with articles:', articlesLignes);
+      
       await createBonCommande.mutateAsync({
         numero_bon: data.numero_bon,
         fournisseur: fournisseurName,
@@ -137,16 +138,17 @@ export const useBonCommandeForm = (onSuccess: () => void) => {
         date_livraison_prevue: data.date_livraison_prevue,
         statut: data.statut,
         statut_paiement: data.statut_paiement,
-        remise: Math.round(data.remise),
-        frais_livraison: Math.round(data.frais_livraison),
-        frais_logistique: Math.round(data.frais_logistique),
-        transit_douane: Math.round(data.transit_douane),
-        taux_tva: data.taux_tva,
+        remise: Number(data.remise),
+        frais_livraison: Number(data.frais_livraison),
+        frais_logistique: Number(data.frais_logistique),
+        transit_douane: Number(data.transit_douane),
+        taux_tva: Number(data.taux_tva),
         observations: data.observations,
-        montant_ht: montantHT,
-        tva: tva,
-        montant_total: montantTTC,
-        montant_paye: Math.round(montantPaye),
+        montant_ht: Number(montantHT),
+        tva: Number(tva),
+        montant_total: Number(montantTTC),
+        montant_paye: Number(montantPaye),
+        articles: articlesLignes, // Passer les articles à la mutation
       });
       onSuccess();
     } catch (error) {
