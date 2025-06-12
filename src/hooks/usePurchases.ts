@@ -35,7 +35,7 @@ export const useBonsCommande = () => {
   });
 
   const createBonCommande = useMutation({
-    mutationFn: async (bonCommande: Omit<BonCommande, 'id' | 'created_at' | 'updated_at' | 'numero_bon'> & { articles?: any[] }) => {
+    mutationFn: async (bonCommande: Omit<BonCommande, 'id' | 'created_at' | 'updated_at'> & { articles?: any[] }) => {
       console.log('Creating bon de commande:', bonCommande);
       
       // Extraire les articles de l'objet bonCommande
@@ -44,7 +44,7 @@ export const useBonsCommande = () => {
       // Le numéro sera généré automatiquement par le trigger
       const { data: newBonCommande, error: bonCommandeError } = await supabase
         .from('bons_de_commande')
-        .insert([bonCommandeData])
+        .insert(bonCommandeData)
         .select()
         .single();
 

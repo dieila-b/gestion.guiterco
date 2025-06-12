@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -37,7 +38,6 @@ export const useBonCommandeForm = (onSuccess: () => void) => {
   const form = useForm<BonCommandeForm>({
     resolver: zodResolver(bonCommandeSchema),
     defaultValues: {
-      numero_bon: `BC-${Date.now()}`,
       date_commande: new Date().toISOString().split('T')[0],
       statut: 'en_cours',
       statut_paiement: 'en_attente',
@@ -131,7 +131,6 @@ export const useBonCommandeForm = (onSuccess: () => void) => {
       console.log('Submitting bon de commande with articles:', articlesLignes);
       
       await createBonCommande.mutateAsync({
-        numero_bon: data.numero_bon,
         fournisseur: fournisseurName,
         fournisseur_id: data.fournisseur_id,
         date_commande: data.date_commande,

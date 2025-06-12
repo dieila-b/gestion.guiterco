@@ -116,8 +116,8 @@ export const ApprovalDialog = ({ open, onOpenChange, bonLivraison, onApprove }: 
                   <CardContent className="p-4">
                     <div className="grid grid-cols-1 md:grid-cols-5 gap-4 items-center">
                       <div className="col-span-2">
-                        <p className="text-white font-medium">{article.article?.nom}</p>
-                        <p className="text-gray-400 text-sm">Réf: {article.article?.reference}</p>
+                        <p className="text-white font-medium">{article.catalogue?.nom || 'Article inconnu'}</p>
+                        <p className="text-gray-400 text-sm">Réf: {article.catalogue?.reference || 'N/A'}</p>
                       </div>
                       <div className="text-center">
                         <p className="text-gray-300 text-sm">Commandé</p>
