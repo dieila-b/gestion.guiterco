@@ -1,3 +1,4 @@
+
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
@@ -119,6 +120,7 @@ export const useBonsCommande = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['bons-commande'] });
+      queryClient.invalidateQueries({ queryKey: ['bons-livraison'] });
       toast({
         title: "Bon de commande mis à jour avec succès",
         variant: "default",
@@ -175,34 +177,52 @@ export const useBonsLivraison = () => {
   const { data: bonsLivraison, isLoading, error } = useQuery({
     queryKey: ['bons-livraison'],
     queryFn: async () => {
+      console.log('Fetching bons de livraison...');
       const { data, error } = await supabase
         .from('bons_de_livraison')
         .select(`
           *,
-          bon_commande:bon_commande_id(*),
+          bon_commande:bon_commande_id(
+            id,
+            numero_bon,
+            fournisseur,
+            montant_total
+          ),
           entrepot_destination:entrepot_destination_id(*),
           point_vente_destination:point_vente_destination_id(*)
         `)
         .order('created_at', { ascending: false });
       
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching bons de livraison:', error);
+        throw error;
+      }
+      
+      console.log('Fetched bons de livraison with relations:', data);
       return data as BonLivraison[];
     }
   });
 
   const createBonLivraison = useMutation({
     mutationFn: async (newBon: Omit<BonLivraison, 'id' | 'created_at' | 'updated_at'>) => {
+      console.log('Creating bon de livraison:', newBon);
       const { data, error } = await supabase
         .from('bons_de_livraison')
         .insert(newBon)
         .select()
         .single();
       
-      if (error) throw error;
+      if (error) {
+        console.error('Error creating bon de livraison:', error);
+        throw error;
+      }
+      
+      console.log('Bon de livraison created:', data);
       return data as BonLivraison;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['bons-livraison'] });
+      queryClient.invalidateQueries({ queryKey: ['all-bon-livraison-articles-counts'] });
       toast({
         title: "Bon de livraison créé avec succès",
         variant: "default",
@@ -224,6 +244,7 @@ export const useBonsLivraison = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['bons-livraison'] });
+      queryClient.invalidateQueries({ queryKey: ['all-bon-livraison-articles-counts'] });
       toast({
         title: "Bon de livraison mis à jour avec succès",
         variant: "default",

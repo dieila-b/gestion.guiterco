@@ -9,6 +9,7 @@ import { format } from 'date-fns';
 import { CreateBonCommandeDialog } from './CreateBonCommandeDialog';
 import { BonCommandeTable } from './BonCommandeTable';
 import { toast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 const BonsCommande = () => {
   const { bonsCommande, isLoading, updateBonCommande, deleteBonCommande } = useBonsCommande();
@@ -18,24 +19,72 @@ const BonsCommande = () => {
 
   const handleApprove = async (id: string, bon: any) => {
     try {
+      console.log('Approving bon de commande:', id, bon);
+      
+      // 1. Mettre à jour le statut du bon de commande
       await updateBonCommande.mutateAsync({
         id,
         statut: 'valide'
       });
 
-      const numeroBonLivraison = `BL-${format(new Date(), 'yyyy-MM-dd')}-${Date.now().toString().slice(-3)}`;
+      // 2. Récupérer les articles du bon de commande
+      const { data: articlesCommande, error: articlesError } = await supabase
+        .from('articles_bon_commande')
+        .select('*')
+        .eq('bon_commande_id', id);
+
+      if (articlesError) {
+        console.error('Error fetching articles bon commande:', articlesError);
+        throw articlesError;
+      }
+
+      console.log('Articles du bon de commande:', articlesCommande);
+
+      // 3. Générer le bon de livraison avec un numéro basé sur le bon de commande
+      const numeroBonLivraison = `BL-${bon.numero_bon.replace('BC-', '')}`; // Garde la même base numérique
       
-      await createBonLivraison.mutateAsync({
+      const bonLivraisonData = {
         numero_bon: numeroBonLivraison,
         bon_commande_id: id,
         fournisseur: bon.fournisseur,
         date_livraison: new Date().toISOString(),
         statut: 'en_transit'
-      });
+      };
+
+      console.log('Creating bon de livraison:', bonLivraisonData);
+
+      const newBonLivraison = await createBonLivraison.mutateAsync(bonLivraisonData);
+      
+      console.log('Bon de livraison créé:', newBonLivraison);
+
+      // 4. Copier les articles du bon de commande vers le bon de livraison
+      if (articlesCommande && articlesCommande.length > 0) {
+        const articlesLivraison = articlesCommande.map(article => ({
+          bon_livraison_id: newBonLivraison.id,
+          article_id: article.article_id,
+          quantite_commandee: article.quantite,
+          quantite_recue: 0, // Initialement 0, sera mise à jour lors de la réception
+          prix_unitaire: article.prix_unitaire,
+          montant_ligne: article.montant_ligne
+        }));
+
+        console.log('Inserting articles into bon de livraison:', articlesLivraison);
+
+        const { error: insertArticlesError } = await supabase
+          .from('articles_bon_livraison')
+          .insert(articlesLivraison);
+
+        if (insertArticlesError) {
+          console.error('Error inserting articles bon livraison:', insertArticlesError);
+          throw insertArticlesError;
+        }
+
+        console.log('Articles copiés avec succès vers le bon de livraison');
+      }
       
       toast({
         title: "Bon de commande approuvé",
-        description: "Un bon de livraison a été généré automatiquement.",
+        description: `Un bon de livraison ${numeroBonLivraison} a été généré avec ${articlesCommande?.length || 0} articles.`,
         variant: "default",
       });
     } catch (error) {
