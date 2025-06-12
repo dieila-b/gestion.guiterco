@@ -54,134 +54,220 @@ const BonsLivraison = () => {
   };
 
   const handleApprove = (bon: any) => {
+    console.log('🎯 Ouverture de la dialog d\'approbation pour le BL:', bon.numero_bon);
     setSelectedBon(bon);
     setApprovalDialogOpen(true);
   };
 
   const handleApprovalConfirm = async (approvalData: any) => {
     try {
-      console.log('Processing approval for bon de livraison:', selectedBon.id);
+      console.log('🔄 Début de la réception du bon de livraison:', selectedBon.numero_bon);
+      console.log('📊 Données d\'approbation:', approvalData);
       
-      // Mettre à jour le statut du bon de livraison avec traçabilité complète
+      // 1. Mettre à jour le statut du bon de livraison avec traçabilité complète
+      console.log('📝 Mise à jour du statut et destination...');
+      const updateData = { 
+        statut: 'receptionne',
+        date_reception: new Date().toISOString(),
+        [`${approvalData.destinationType}_destination_id`]: approvalData.destinationId
+      };
+
       const { error: updateError } = await supabase
         .from('bons_de_livraison')
-        .update({ 
-          statut: 'receptionne',
-          date_reception: new Date().toISOString(),
-          [`${approvalData.destinationType}_destination_id`]: approvalData.destinationId
-        })
+        .update(updateData)
         .eq('id', selectedBon.id);
 
-      if (updateError) throw updateError;
+      if (updateError) {
+        console.error('❌ Erreur mise à jour BL:', updateError);
+        throw new Error(`Erreur de mise à jour: ${updateError.message}`);
+      }
 
-      // Mettre à jour les quantités reçues des articles avec vérification
+      console.log('✅ Statut BL mis à jour avec succès');
+
+      // 2. Mettre à jour les quantités reçues avec vérification d'intégrité
+      console.log('📦 Mise à jour des quantités reçues...');
+      let totalArticlesTraites = 0;
+      
       for (const article of approvalData.articles) {
+        console.log(`📊 Traitement article ${article.id}: ${article.quantite_recue} unités`);
+        
         const { error: articleError } = await supabase
           .from('articles_bon_livraison')
           .update({ quantite_recue: article.quantite_recue })
           .eq('id', article.id);
 
-        if (articleError) throw articleError;
+        if (articleError) {
+          console.error(`❌ Erreur article ${article.id}:`, articleError);
+          throw new Error(`Erreur de mise à jour de l'article: ${articleError.message}`);
+        }
         
-        console.log(`Article ${article.id} updated with received quantity: ${article.quantite_recue}`);
+        totalArticlesTraites++;
+        console.log(`✅ Article ${article.id} traité avec succès`);
       }
 
-      // Mettre à jour le stock avec traçabilité par type de destination
+      console.log(`✅ ${totalArticlesTraites} articles traités avec succès`);
+
+      // 3. Mettre à jour le stock avec traçabilité par type de destination
+      console.log('🏪 Mise à jour du stock selon le type de destination...');
+      let stockUpdates = 0;
+      
       for (const article of approvalData.articles) {
-        const articleData = await supabase
+        // Récupérer les informations de l'article
+        const { data: articleData, error: articleDataError } = await supabase
           .from('articles_bon_livraison')
           .select('article_id, bon_livraison_id')
           .eq('id', article.id)
           .single();
 
-        if (articleData.data) {
-          if (approvalData.destinationType === 'entrepot') {
-            // Mettre à jour le stock principal avec traçabilité
-            const { error: stockError } = await supabase
-              .rpc('update_stock_principal', {
-                p_article_id: articleData.data.article_id,
-                p_entrepot_id: approvalData.destinationId,
-                p_quantite: article.quantite_recue
-              });
-            
-            if (stockError) {
-              console.error('Erreur mise à jour stock principal:', stockError);
-            } else {
-              console.log(`Stock principal updated for article ${articleData.data.article_id} in entrepot ${approvalData.destinationId}`);
-            }
+        if (articleDataError || !articleData) {
+          console.error(`❌ Erreur récupération données article ${article.id}:`, articleDataError);
+          continue;
+        }
+
+        console.log(`🔄 Mise à jour stock pour article ${articleData.article_id} - Quantité: ${article.quantite_recue}`);
+
+        if (approvalData.destinationType === 'entrepot') {
+          // Mettre à jour le stock principal avec traçabilité
+          const { error: stockError } = await supabase
+            .rpc('update_stock_principal', {
+              p_article_id: articleData.article_id,
+              p_entrepot_id: approvalData.destinationId,
+              p_quantite: article.quantite_recue
+            });
+          
+          if (stockError) {
+            console.error(`❌ Erreur stock principal article ${articleData.article_id}:`, stockError);
           } else {
-            // Mettre à jour le stock PDV avec traçabilité
-            const { error: stockError } = await supabase
-              .rpc('update_stock_pdv', {
-                p_article_id: articleData.data.article_id,
-                p_point_vente_id: approvalData.destinationId,
-                p_quantite: article.quantite_recue
-              });
-            
-            if (stockError) {
-              console.error('Erreur mise à jour stock PDV:', stockError);
-            } else {
-              console.log(`Stock PDV updated for article ${articleData.data.article_id} in point de vente ${approvalData.destinationId}`);
-            }
+            stockUpdates++;
+            console.log(`✅ Stock principal mis à jour: Article ${articleData.article_id} → Entrepôt ${approvalData.destinationId}`);
+          }
+        } else {
+          // Mettre à jour le stock PDV avec traçabilité
+          const { error: stockError } = await supabase
+            .rpc('update_stock_pdv', {
+              p_article_id: articleData.article_id,
+              p_point_vente_id: approvalData.destinationId,
+              p_quantite: article.quantite_recue
+            });
+          
+          if (stockError) {
+            console.error(`❌ Erreur stock PDV article ${articleData.article_id}:`, stockError);
+          } else {
+            stockUpdates++;
+            console.log(`✅ Stock PDV mis à jour: Article ${articleData.article_id} → Point de vente ${approvalData.destinationId}`);
           }
         }
       }
 
-      // Générer automatiquement une facture d'achat avec numérotation cohérente
-      const numeroFacture = `FA-${format(new Date(), 'yyyy-MM-dd')}-${Date.now().toString().slice(-6)}`;
+      console.log(`✅ ${stockUpdates} mises à jour de stock effectuées`);
+
+      // 4. Générer automatiquement une facture d'achat avec numérotation cohérente
+      console.log('💰 Génération automatique de la facture d\'achat...');
+      const dateFacture = new Date();
+      const numeroFacture = `FA-${format(dateFacture, 'yy-MM-dd')}-${Date.now().toString().slice(-6)}`;
       
-      await createFactureAchat.mutateAsync({
+      const factureData = {
         numero_facture: numeroFacture,
         bon_commande_id: selectedBon.bon_commande_id,
         bon_livraison_id: selectedBon.id,
         fournisseur: selectedBon.fournisseur,
-        date_facture: new Date().toISOString(),
+        date_facture: dateFacture.toISOString(),
         montant_ht: calculateTotal(selectedBon) / (1 + (selectedBon.taux_tva || 20) / 100),
-        tva: calculateTotal(selectedBon) * (selectedBon.taux_tva || 20) / 100,
+        tva: calculateTotal(selectedBon) * (selectedBon.taux_tva || 20) / 100 / (1 + (selectedBon.taux_tva || 20) / 100),
         montant_ttc: calculateTotal(selectedBon),
         transit_douane: selectedBon.transit_douane || 0,
         taux_tva: selectedBon.taux_tva || 20,
         statut_paiement: 'en_attente'
-      });
+      };
+
+      console.log('📋 Données facture:', factureData);
+
+      await createFactureAchat.mutateAsync(factureData);
+
+      console.log(`✅ Facture ${numeroFacture} générée avec succès`);
+
+      // 5. Vérification finale de l'intégrité de la chaîne complète
+      console.log('🔍 Vérification finale de l\'intégrité de la chaîne...');
+      const { data: verificationChaine, error: verificationError } = await supabase
+        .from('bons_de_livraison')
+        .select(`
+          id,
+          numero_bon,
+          statut,
+          bon_commande:bons_de_commande!fk_bons_livraison_bon_commande_id(
+            numero_bon,
+            statut
+          )
+        `)
+        .eq('id', selectedBon.id)
+        .single();
+
+      if (verificationError || !verificationChaine) {
+        console.warn('⚠️ Avertissement lors de la vérification d\'intégrité:', verificationError);
+      } else {
+        console.log('✅ Vérification d\'intégrité réussie - Chaîne complète:', verificationChaine);
+      }
 
       toast({
-        title: "✅ Bon de livraison réceptionné",
-        description: `Stock mis à jour et facture ${numeroFacture} générée avec traçabilité complète.`,
+        title: "✅ Bon de livraison réceptionné avec succès",
+        description: `Stock mis à jour (${stockUpdates} articles) et facture ${numeroFacture} générée. Traçabilité complète: BC → BL → Stock → Facture.`,
         variant: "default",
       });
 
-      console.log('Réception terminée avec succès - Chaîne complète: Commande → Livraison → Stock → Facture');
+      console.log('🎯 Réception terminée - Chaîne complète: Commande → Livraison → Stock → Facture opérationnelle');
 
     } catch (error) {
-      console.error('Error approving bon de livraison:', error);
+      console.error('❌ Erreur critique lors de la réception:', error);
       toast({
         title: "❌ Erreur de réception",
-        description: "Erreur lors de la réception du bon de livraison.",
+        description: error instanceof Error ? error.message : "Erreur lors de la réception du bon de livraison.",
         variant: "destructive",
       });
     }
   };
 
   const handleDelete = async (id: string) => {
-    if (window.confirm('Êtes-vous sûr de vouloir supprimer ce bon de livraison ? Cette action affectera la traçabilité.')) {
+    if (window.confirm('Êtes-vous sûr de vouloir supprimer ce bon de livraison ? Cette action peut affecter la traçabilité de la chaîne d\'approvisionnement.')) {
       try {
+        console.log('🗑️ Suppression BL avec vérification de l\'impact sur la traçabilité:', id);
+        
+        // Vérifier l'impact sur la traçabilité
+        const { data: facturesLiees } = await supabase
+          .from('factures_achat')
+          .select('numero_facture')
+          .eq('bon_livraison_id', id);
+
+        if (facturesLiees && facturesLiees.length > 0) {
+          const numerosFactures = facturesLiees.map(f => f.numero_facture).join(', ');
+          console.log('⚠️ Factures liées trouvées:', numerosFactures);
+          
+          if (!window.confirm(`Attention: Cette suppression affectera la traçabilité des factures suivantes: ${numerosFactures}. Continuer ?`)) {
+            return;
+          }
+        }
+        
         const { error } = await supabase
           .from('bons_de_livraison')
           .delete()
           .eq('id', id);
         
-        if (error) throw error;
+        if (error) {
+          console.error('❌ Erreur suppression BL:', error);
+          throw error;
+        }
         
         toast({
-          title: "Bon de livraison supprimé",
-          description: "Attention: la traçabilité pourrait être affectée.",
+          title: "✅ Bon de livraison supprimé",
+          description: "Attention: la traçabilité de la chaîne d'approvisionnement pourrait être affectée.",
           variant: "default",
         });
+        
+        console.log('✅ Suppression terminée avec avertissement traçabilité');
       } catch (error) {
-        console.error('Error deleting bon de livraison:', error);
+        console.error('❌ Erreur lors de la suppression BL:', error);
         toast({
-          title: "Erreur",
-          description: "Erreur lors de la suppression.",
+          title: "❌ Erreur de suppression",
+          description: "Erreur lors de la suppression du bon de livraison.",
           variant: "destructive",
         });
       }
@@ -196,6 +282,7 @@ const BonsLivraison = () => {
     });
   };
 
+  // ... keep existing code (renderActionButtons function)
   const renderActionButtons = (bon: any) => {
     if (bon.statut === 'en_transit' || bon.statut === 'livre') {
       return (
@@ -269,7 +356,7 @@ const BonsLivraison = () => {
       <div className="flex justify-between items-center">
         <div>
           <h2 className="text-2xl font-bold text-white">Bons de livraison</h2>
-          <p className="text-gray-400">Gérez vos bons de livraison fournisseurs avec numérotation synchronisée BL-AA-MM-JJ-XXX</p>
+          <p className="text-gray-400">Gérez vos bons de livraison fournisseurs avec numérotation synchronisée BL-AA-MM-JJ-XXX et traçabilité complète</p>
         </div>
       </div>
 
