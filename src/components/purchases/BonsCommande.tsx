@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Edit, Check, Trash, Printer, Plus, Search } from 'lucide-react';
-import { useBonsCommande } from '@/hooks/usePurchases';
+import { useBonsCommande, useBonsLivraison } from '@/hooks/usePurchases';
 import { useAllBonCommandeArticles } from '@/hooks/useBonCommandeArticles';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
@@ -16,6 +16,7 @@ import { toast } from '@/hooks/use-toast';
 
 const BonsCommande = () => {
   const { bonsCommande, isLoading, updateBonCommande, deleteBonCommande } = useBonsCommande();
+  const { createBonLivraison } = useBonsLivraison();
   const { articlesCounts, isLoading: loadingArticles } = useAllBonCommandeArticles();
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -40,34 +41,54 @@ const BonsCommande = () => {
   };
 
   const formatNumeroCommande = (numero: string, date: string) => {
-    if (numero.startsWith('BC-')) {
+    // Si le numéro suit déjà le bon format, le retourner tel quel
+    if (numero.match(/^BC-\d{4}-\d{2}-\d{2}-\d{3}$/)) {
       return numero;
     }
     
+    // Sinon, générer un nouveau numéro au bon format
     const dateObj = new Date(date);
     const year = dateObj.getFullYear();
     const month = String(dateObj.getMonth() + 1).padStart(2, '0');
     const day = String(dateObj.getDate()).padStart(2, '0');
-    const time = Date.now().toString().slice(-3);
     
-    return `BC-${year}-${month}-${day}-${time}`;
+    // Générer un numéro séquentiel sur 3 chiffres
+    const timeComponent = Date.now().toString().slice(-3);
+    
+    return `BC-${year}-${month}-${day}-${timeComponent}`;
   };
 
-  const handleApprove = async (id: string) => {
+  const handleApprove = async (id: string, bon: any) => {
     try {
+      // Mettre à jour le statut du bon de commande
       await updateBonCommande.mutateAsync({
         id,
         statut: 'valide'
       });
+
+      // Générer automatiquement un bon de livraison
+      const numeroBonLivraison = `BL-${format(new Date(), 'yyyy-MM-dd')}-${Date.now().toString().slice(-3)}`;
       
-      // TODO: Générer automatiquement un bon de livraison
+      await createBonLivraison.mutateAsync({
+        numero_bon: numeroBonLivraison,
+        bon_commande_id: id,
+        fournisseur: bon.fournisseur,
+        date_livraison: new Date().toISOString(),
+        statut: 'en_transit'
+      });
+      
       toast({
         title: "Bon de commande approuvé",
-        description: "Un bon de livraison sera généré automatiquement.",
+        description: "Un bon de livraison a été généré automatiquement.",
         variant: "default",
       });
     } catch (error) {
       console.error('Error approving bon de commande:', error);
+      toast({
+        title: "Erreur",
+        description: "Erreur lors de l'approbation du bon de commande.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -81,6 +102,15 @@ const BonsCommande = () => {
     }
   };
 
+  const handleEdit = (id: string) => {
+    // TODO: Implémenter la fonctionnalité d'édition
+    toast({
+      title: "Édition",
+      description: "Fonctionnalité d'édition en cours de développement.",
+      variant: "default",
+    });
+  };
+
   const handlePrint = (id: string) => {
     // TODO: Implémenter la fonctionnalité d'impression
     toast({
@@ -88,6 +118,84 @@ const BonsCommande = () => {
       description: "Fonctionnalité d'impression en cours de développement.",
       variant: "default",
     });
+  };
+
+  const renderActionButtons = (bon: any) => {
+    const articlesCount = articlesCounts[bon.id] || 0;
+    
+    if (bon.statut === 'en_cours') {
+      // Statut "En attente" - Afficher tous les boutons
+      return (
+        <div className="flex items-center justify-center space-x-1">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-8 w-8 p-0 text-orange-400 hover:bg-orange-500/20 hover:text-orange-300"
+            onClick={() => handleEdit(bon.id)}
+            title="Éditer"
+          >
+            <Edit className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-8 w-8 p-0 text-green-400 hover:bg-green-500/20 hover:text-green-300"
+            onClick={() => handleApprove(bon.id, bon)}
+            title="Approuver"
+          >
+            <Check className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-8 w-8 p-0 text-red-400 hover:bg-red-500/20 hover:text-red-300"
+            onClick={() => handleDelete(bon.id)}
+            title="Supprimer"
+          >
+            <Trash className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-8 w-8 p-0 text-gray-400 hover:bg-gray-500/20 hover:text-gray-300"
+            onClick={() => handlePrint(bon.id)}
+            title="Imprimer"
+          >
+            <Printer className="h-4 w-4" />
+          </Button>
+        </div>
+      );
+    } else if (bon.statut === 'valide') {
+      // Statut "Approuvé" - Afficher uniquement le bouton imprimer
+      return (
+        <div className="flex items-center justify-center space-x-1">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-8 w-8 p-0 text-gray-400 hover:bg-gray-500/20 hover:text-gray-300"
+            onClick={() => handlePrint(bon.id)}
+            title="Imprimer"
+          >
+            <Printer className="h-4 w-4" />
+          </Button>
+        </div>
+      );
+    } else {
+      // Autres statuts - Afficher uniquement le bouton imprimer
+      return (
+        <div className="flex items-center justify-center space-x-1">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-8 w-8 p-0 text-gray-400 hover:bg-gray-500/20 hover:text-gray-300"
+            onClick={() => handlePrint(bon.id)}
+            title="Imprimer"
+          >
+            <Printer className="h-4 w-4" />
+          </Button>
+        </div>
+      );
+    }
   };
 
   const filteredBons = bonsCommande?.filter(bon =>
@@ -167,45 +275,7 @@ const BonsCommande = () => {
                       {formatCurrency(bon.montant_total)}
                     </TableCell>
                     <TableCell>
-                      <div className="flex items-center justify-center space-x-1">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-8 w-8 p-0 text-orange-400 hover:bg-orange-500/20 hover:text-orange-300"
-                          title="Éditer"
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        {bon.statut === 'en_cours' && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-8 w-8 p-0 text-green-400 hover:bg-green-500/20 hover:text-green-300"
-                            onClick={() => handleApprove(bon.id)}
-                            title="Approuver"
-                          >
-                            <Check className="h-4 w-4" />
-                        </Button>
-                        )}
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-8 w-8 p-0 text-red-400 hover:bg-red-500/20 hover:text-red-300"
-                          onClick={() => handleDelete(bon.id)}
-                          title="Supprimer"
-                        >
-                          <Trash className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-8 w-8 p-0 text-gray-400 hover:bg-gray-500/20 hover:text-gray-300"
-                          onClick={() => handlePrint(bon.id)}
-                          title="Imprimer"
-                        >
-                          <Printer className="h-4 w-4" />
-                        </Button>
-                      </div>
+                      {renderActionButtons(bon)}
                     </TableCell>
                   </TableRow>
                 );
