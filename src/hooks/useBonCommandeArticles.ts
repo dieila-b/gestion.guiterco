@@ -10,7 +10,7 @@ export const useBonCommandeArticles = (bonCommandeId: string) => {
         .from('articles_bon_commande')
         .select(`
           *,
-          article:article_id(
+          catalogue!articles_bon_commande_article_id_fkey(
             id,
             nom,
             reference,

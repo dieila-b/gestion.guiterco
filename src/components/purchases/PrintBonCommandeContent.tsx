@@ -96,9 +96,9 @@ export const PrintBonCommandeContent = ({ bon }: PrintBonCommandeContentProps) =
               <tr key={index} className="hover:bg-gray-50">
                 <td className="border border-gray-300 p-3 print:p-1">
                   <div>
-                    <p className="font-medium">{article.article?.nom || 'Article inconnu'}</p>
-                    {article.article?.reference && (
-                      <p className="text-sm print:text-xs text-gray-600">Réf: {article.article.reference}</p>
+                    <p className="font-medium">{article.catalogue?.nom || 'Article inconnu'}</p>
+                    {article.catalogue?.reference && (
+                      <p className="text-sm print:text-xs text-gray-600">Réf: {article.catalogue.reference}</p>
                     )}
                   </div>
                 </td>

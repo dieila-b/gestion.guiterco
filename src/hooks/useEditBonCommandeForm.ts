@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -59,7 +58,7 @@ export const useEditBonCommandeForm = (bon: any, onSuccess: () => void) => {
     if (existingArticles && existingArticles.length > 0) {
       const articlesFormatted: ArticleLigne[] = existingArticles.map(item => ({
         article_id: item.article_id,
-        nom: item.article?.nom || 'Article inconnu',
+        nom: item.catalogue?.nom || 'Article inconnu',
         quantite: item.quantite,
         prix_unitaire: Number(item.prix_unitaire),
         montant_ligne: Number(item.montant_ligne)
