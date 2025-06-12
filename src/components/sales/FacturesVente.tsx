@@ -7,6 +7,7 @@ import { useFacturesVente } from '@/hooks/useSales';
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
+import { formatCurrency } from '@/lib/currency';
 
 const FacturesVente = () => {
   const { data: factures, isLoading } = useFacturesVente();
@@ -76,7 +77,7 @@ const FacturesVente = () => {
                 </div>
                 <div>
                   <p className="text-muted-foreground">Montant TTC</p>
-                  <p className="font-medium">{facture.montant_ttc.toFixed(2)} €</p>
+                  <p className="font-medium">{formatCurrency(facture.montant_ttc)}</p>
                 </div>
                 <div>
                   <p className="text-muted-foreground">Échéance</p>

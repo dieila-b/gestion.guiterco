@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { useToast } from '@/hooks/use-toast';
+import { formatCurrency } from '@/lib/currency';
 
 const DevisVente = () => {
   const { data: devis, isLoading } = useDevisVente();
@@ -113,7 +114,7 @@ const DevisVente = () => {
                 </div>
                 <div>
                   <p className="text-muted-foreground">Montant TTC</p>
-                  <p className="font-medium">{devisItem.montant_ttc.toFixed(2)} €</p>
+                  <p className="font-medium">{formatCurrency(devisItem.montant_ttc)}</p>
                 </div>
               </div>
             </CardContent>

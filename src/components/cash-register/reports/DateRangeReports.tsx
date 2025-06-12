@@ -12,6 +12,7 @@ import { cn } from '@/lib/utils';
 import { useFacturesVente } from '@/hooks/useSales';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
+import { formatCurrency } from '@/lib/currency';
 
 const DateRangeReports: React.FC = () => {
   const [startDate, setStartDate] = useState<Date>();
@@ -129,7 +130,7 @@ const DateRangeReports: React.FC = () => {
                 <CardTitle className="text-lg">Chiffre d'affaires HT</CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-2xl font-bold">{totalHT.toFixed(2)} €</p>
+                <p className="text-2xl font-bold">{formatCurrency(totalHT)}</p>
               </CardContent>
             </Card>
             <Card>
@@ -137,7 +138,7 @@ const DateRangeReports: React.FC = () => {
                 <CardTitle className="text-lg">TVA</CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-2xl font-bold">{totalTVA.toFixed(2)} €</p>
+                <p className="text-2xl font-bold">{formatCurrency(totalTVA)}</p>
               </CardContent>
             </Card>
             <Card>
@@ -145,7 +146,7 @@ const DateRangeReports: React.FC = () => {
                 <CardTitle className="text-lg">Total TTC</CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-2xl font-bold">{totalCA.toFixed(2)} €</p>
+                <p className="text-2xl font-bold">{formatCurrency(totalCA)}</p>
               </CardContent>
             </Card>
           </div>
@@ -175,9 +176,9 @@ const DateRangeReports: React.FC = () => {
                       <TableCell>
                         {facture.client ? `${facture.client.nom} ${facture.client.prenom || ''}`.trim() : 'Client non spécifié'}
                       </TableCell>
-                      <TableCell>{facture.montant_ht.toFixed(2)} €</TableCell>
-                      <TableCell>{facture.tva.toFixed(2)} €</TableCell>
-                      <TableCell>{facture.montant_ttc.toFixed(2)} €</TableCell>
+                      <TableCell>{formatCurrency(facture.montant_ht)}</TableCell>
+                      <TableCell>{formatCurrency(facture.tva)}</TableCell>
+                      <TableCell>{formatCurrency(facture.montant_ttc)}</TableCell>
                       <TableCell>
                         <Badge variant={facture.statut_paiement === 'payee' ? 'outline' : 'secondary'}>
                           {facture.statut_paiement}

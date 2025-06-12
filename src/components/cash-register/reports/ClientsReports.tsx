@@ -8,6 +8,7 @@ import { Download, FileText, Filter, Users } from 'lucide-react';
 import { useClients, useFacturesVente } from '@/hooks/useSales';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
+import { formatCurrency } from '@/lib/currency';
 
 const ClientsReports: React.FC = () => {
   const [selectedClient, setSelectedClient] = useState<string>('all');
@@ -109,7 +110,7 @@ const ClientsReports: React.FC = () => {
                       <p className="text-sm text-muted-foreground">Factures totales</p>
                     </div>
                     <div className="text-center">
-                      <p className="text-2xl font-bold">{selectedClientData.totalCA.toFixed(2)} €</p>
+                      <p className="text-2xl font-bold">{formatCurrency(selectedClientData.totalCA)}</p>
                       <p className="text-sm text-muted-foreground">Chiffre d'affaires</p>
                     </div>
                     <div className="text-center">
@@ -136,7 +137,7 @@ const ClientsReports: React.FC = () => {
                         <TableRow key={facture.id}>
                           <TableCell className="font-medium">{facture.numero_facture}</TableCell>
                           <TableCell>{new Date(facture.date_facture).toLocaleDateString('fr-FR')}</TableCell>
-                          <TableCell>{facture.montant_ttc.toFixed(2)} €</TableCell>
+                          <TableCell>{formatCurrency(facture.montant_ttc)}</TableCell>
                           <TableCell>
                             <Badge variant={facture.statut_paiement === 'payee' ? 'outline' : 'secondary'}>
                               {facture.statut_paiement}
@@ -175,7 +176,7 @@ const ClientsReports: React.FC = () => {
                         </TableCell>
                         <TableCell>{stat.client.email || stat.client.telephone || '-'}</TableCell>
                         <TableCell>{stat.totalFactures}</TableCell>
-                        <TableCell>{stat.totalCA.toFixed(2)} €</TableCell>
+                        <TableCell>{formatCurrency(stat.totalCA)}</TableCell>
                         <TableCell>
                           <Badge variant="outline">{stat.facturesPayees}</Badge>
                         </TableCell>

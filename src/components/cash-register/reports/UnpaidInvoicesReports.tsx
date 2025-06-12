@@ -10,6 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { format, differenceInDays } from 'date-fns';
 import { fr } from 'date-fns/locale';
+import { formatCurrency } from '@/lib/currency';
 
 const UnpaidInvoicesReports: React.FC = () => {
   const [filterType, setFilterType] = useState<string>('all');
@@ -116,7 +117,7 @@ const UnpaidInvoicesReports: React.FC = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-2xl font-bold text-orange-600">{totalUnpaid.toFixed(2)} €</p>
+                <p className="text-2xl font-bold text-orange-600">{formatCurrency(totalUnpaid)}</p>
                 <p className="text-sm text-muted-foreground">{filteredFactures.length} factures</p>
               </CardContent>
             </Card>
@@ -129,7 +130,7 @@ const UnpaidInvoicesReports: React.FC = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-2xl font-bold text-red-600">{totalOverdue.toFixed(2)} €</p>
+                <p className="text-2xl font-bold text-red-600">{formatCurrency(totalOverdue)}</p>
                 <p className="text-sm text-muted-foreground">{overdueFactures.length} factures</p>
               </CardContent>
             </Card>
@@ -182,7 +183,7 @@ const UnpaidInvoicesReports: React.FC = () => {
                             : 'Non définie'
                           }
                         </TableCell>
-                        <TableCell className="font-medium">{facture.montant_ttc.toFixed(2)} €</TableCell>
+                        <TableCell className="font-medium">{formatCurrency(facture.montant_ttc)}</TableCell>
                         <TableCell>
                           <Badge variant={
                             facture.statut_paiement === 'en_retard' ? 'destructive' :

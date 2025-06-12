@@ -7,6 +7,7 @@ import { useRetoursClients } from '@/hooks/useSales';
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
+import { formatCurrency } from '@/lib/currency';
 
 const RetoursClients = () => {
   const { data: retours, isLoading } = useRetoursClients();
@@ -80,7 +81,7 @@ const RetoursClients = () => {
                 </div>
                 <div>
                   <p className="text-muted-foreground">Montant retour</p>
-                  <p className="font-medium">{retour.montant_retour.toFixed(2)} €</p>
+                  <p className="font-medium">{formatCurrency(retour.montant_retour)}</p>
                 </div>
               </div>
               {retour.facture && (

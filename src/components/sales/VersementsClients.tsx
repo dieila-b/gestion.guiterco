@@ -7,6 +7,7 @@ import { useVersementsClients } from '@/hooks/useSales';
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
+import { formatCurrency } from '@/lib/currency';
 
 const VersementsClients = () => {
   const { data: versements, isLoading } = useVersementsClients();
@@ -75,7 +76,7 @@ const VersementsClients = () => {
                   </div>
                   <div>
                     <p className="text-muted-foreground">Montant</p>
-                    <p className="font-medium text-green-600">{versement.montant.toFixed(2)} €</p>
+                    <p className="font-medium text-green-600">{formatCurrency(versement.montant)}</p>
                   </div>
                   <div>
                     <p className="text-muted-foreground">Référence</p>

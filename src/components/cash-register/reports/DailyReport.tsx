@@ -12,14 +12,11 @@ import { fr } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { useDailySalesReport } from '@/hooks/useDailySalesReport';
 import { Badge } from '@/components/ui/badge';
+import { formatCurrency } from '@/lib/currency';
 
 const DailyReport: React.FC = () => {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const { data: salesData, isLoading, error } = useDailySalesReport(selectedDate);
-
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(amount);
-  };
 
   const getEtatBadge = (etat: string) => {
     switch (etat) {

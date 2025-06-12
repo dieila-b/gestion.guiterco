@@ -7,6 +7,7 @@ import { useRetoursFournisseurs } from '@/hooks/usePurchases';
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
+import { formatCurrency } from '@/lib/currency';
 
 const RetoursFournisseurs = () => {
   const { retoursFournisseurs, isLoading } = useRetoursFournisseurs();
@@ -66,7 +67,7 @@ const RetoursFournisseurs = () => {
                 </div>
                 <div>
                   <p className="text-muted-foreground">Montant</p>
-                  <p className="font-medium">{retour.montant_retour.toFixed(2)} €</p>
+                  <p className="font-medium">{formatCurrency(retour.montant_retour)}</p>
                 </div>
               </div>
               <div className="mt-4">

@@ -7,6 +7,7 @@ import { usePrecommandes } from '@/hooks/useSales';
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
+import { formatCurrency } from '@/lib/currency';
 
 const Precommandes = () => {
   const { data: precommandes, isLoading } = usePrecommandes();
@@ -83,13 +84,13 @@ const Precommandes = () => {
                 </div>
                 <div>
                   <p className="text-muted-foreground">Montant TTC</p>
-                  <p className="font-medium">{precommande.montant_ttc.toFixed(2)} €</p>
+                  <p className="font-medium">{formatCurrency(precommande.montant_ttc)}</p>
                 </div>
               </div>
               {precommande.acompte_verse && precommande.acompte_verse > 0 && (
                 <div className="mt-4">
                   <p className="text-muted-foreground text-sm">Acompte versé</p>
-                  <p className="text-sm font-medium">{precommande.acompte_verse.toFixed(2)} €</p>
+                  <p className="text-sm font-medium">{formatCurrency(precommande.acompte_verse)}</p>
                 </div>
               )}
             </CardContent>

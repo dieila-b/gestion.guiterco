@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { CreateBonCommandeDialog } from './CreateBonCommandeDialog';
+import { formatCurrency } from '@/lib/currency';
 
 const BonsCommande = () => {
   const { bonsCommande, isLoading } = useBonsCommande();
@@ -80,7 +81,7 @@ const BonsCommande = () => {
                 </div>
                 <div>
                   <p className="text-muted-foreground">Montant total</p>
-                  <p className="font-medium">{bon.montant_total.toFixed(2)} €</p>
+                  <p className="font-medium">{formatCurrency(bon.montant_total)}</p>
                 </div>
               </div>
               {bon.observations && (

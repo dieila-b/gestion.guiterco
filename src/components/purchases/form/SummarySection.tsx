@@ -2,6 +2,7 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
+import { formatCurrency } from '@/lib/currency';
 
 interface SummarySectionProps {
   sousTotal: number;
@@ -38,45 +39,45 @@ export const SummarySection = ({
       <CardContent className="space-y-2">
         <div className="flex justify-between">
           <span>Sous-total:</span>
-          <span>{sousTotal.toFixed(2)} €</span>
+          <span>{formatCurrency(sousTotal)}</span>
         </div>
         <div className="flex justify-between">
           <span>Remise:</span>
-          <span>-{remise.toFixed(2)} €</span>
+          <span>-{formatCurrency(remise)}</span>
         </div>
         <div className="flex justify-between">
           <span>Livraison:</span>
-          <span>{fraisLivraison.toFixed(2)} €</span>
+          <span>{formatCurrency(fraisLivraison)}</span>
         </div>
         <div className="flex justify-between">
           <span>Logistique:</span>
-          <span>{fraisLogistique.toFixed(2)} €</span>
+          <span>{formatCurrency(fraisLogistique)}</span>
         </div>
         <div className="flex justify-between">
           <span>Transit & Douane:</span>
-          <span>{transitDouane.toFixed(2)} €</span>
+          <span>{formatCurrency(transitDouane)}</span>
         </div>
         <Separator />
         <div className="flex justify-between">
           <span>Montant HT:</span>
-          <span>{montantHT.toFixed(2)} €</span>
+          <span>{formatCurrency(montantHT)}</span>
         </div>
         <div className="flex justify-between">
           <span>TVA ({tauxTva}%):</span>
-          <span>{tva.toFixed(2)} €</span>
+          <span>{formatCurrency(tva)}</span>
         </div>
         <div className="flex justify-between font-bold">
           <span>Total TTC:</span>
-          <span>{montantTTC.toFixed(2)} €</span>
+          <span>{formatCurrency(montantTTC)}</span>
         </div>
         <Separator />
         <div className="flex justify-between">
           <span>Montant payé:</span>
-          <span>{montantPaye.toFixed(2)} €</span>
+          <span>{formatCurrency(montantPaye)}</span>
         </div>
         <div className="flex justify-between font-bold text-red-600">
           <span>Reste à payer:</span>
-          <span>{resteAPayer.toFixed(2)} €</span>
+          <span>{formatCurrency(resteAPayer)}</span>
         </div>
       </CardContent>
     </Card>
