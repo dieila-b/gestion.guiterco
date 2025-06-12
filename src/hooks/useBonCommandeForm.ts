@@ -2,36 +2,29 @@
 import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import * as z from 'zod';
 import { useFournisseurs } from '@/hooks/useFournisseurs';
 import { useCatalogue } from '@/hooks/useCatalogue';
 import { useBonsCommande } from '@/hooks/usePurchases';
 import { toast } from '@/hooks/use-toast';
-
-const bonCommandeSchema = z.object({
-  numero_bon: z.string().min(1, 'Le numéro est requis'),
-  fournisseur_id: z.string().min(1, 'Le fournisseur est requis'),
-  date_commande: z.string().min(1, 'La date est requise'),
-  date_livraison_prevue: z.string().optional(),
-  statut: z.string().default('en_cours'),
-  statut_paiement: z.string().default('en_attente'),
-  remise: z.number().min(0).default(0),
-  frais_livraison: z.number().min(0).default(0),
-  frais_logistique: z.number().min(0).default(0),
-  transit_douane: z.number().min(0).default(0),
-  taux_tva: z.number().min(0).max(100).default(20),
-  observations: z.string().optional(),
-});
-
-type BonCommandeForm = z.infer<typeof bonCommandeSchema>;
-
-interface ArticleLigne {
-  article_id: string;
-  nom: string;
-  quantite: number;
-  prix_unitaire: number;
-  montant_ligne: number;
-}
+import { 
+  bonCommandeSchema, 
+  type BonCommandeForm, 
+  type ArticleLigne 
+} from './useBonCommandeForm/types';
+import {
+  calculateSousTotal,
+  calculateMontantHT,
+  calculateTVA,
+  calculateMontantTTC,
+  calculateResteAPayer
+} from './useBonCommandeForm/calculations';
+import {
+  createArticleLigne,
+  updateQuantite,
+  updatePrix,
+  removeArticle
+} from './useBonCommandeForm/articleOperations';
+import { calculatePaymentStatus } from './useBonCommandeForm/paymentStatus';
 
 export const useBonCommandeForm = (onSuccess: () => void) => {
   const { fournisseurs, isLoading: loadingFournisseurs, refetch: refetchFournisseurs } = useFournisseurs();
@@ -79,57 +72,38 @@ export const useBonCommandeForm = (onSuccess: () => void) => {
   };
 
   const ajouterArticle = (article: { id: string; nom: string; prix_achat?: number }) => {
-    const prixUnitaire = article.prix_achat || 0;
-    const nouvelleArticle: ArticleLigne = {
-      article_id: article.id,
-      nom: article.nom,
-      quantite: 1,
-      prix_unitaire: Math.round(prixUnitaire), // Arrondir à l'entier
-      montant_ligne: Math.round(prixUnitaire), // Arrondir à l'entier
-    };
+    const nouvelleArticle = createArticleLigne(article);
     setArticlesLignes([...articlesLignes, nouvelleArticle]);
   };
 
   const modifierQuantite = (index: number, quantite: number) => {
-    const nouveauxArticles = [...articlesLignes];
-    nouveauxArticles[index].quantite = quantite;
-    nouveauxArticles[index].montant_ligne = Math.round(quantite * nouveauxArticles[index].prix_unitaire);
-    setArticlesLignes(nouveauxArticles);
+    setArticlesLignes(updateQuantite(articlesLignes, index, quantite));
   };
 
   const modifierPrix = (index: number, prix: number) => {
-    const nouveauxArticles = [...articlesLignes];
-    const prixArrondi = Math.round(prix);
-    nouveauxArticles[index].prix_unitaire = prixArrondi;
-    nouveauxArticles[index].montant_ligne = Math.round(prixArrondi * nouveauxArticles[index].quantite);
-    setArticlesLignes(nouveauxArticles);
+    setArticlesLignes(updatePrix(articlesLignes, index, prix));
   };
 
   const supprimerArticle = (index: number) => {
-    setArticlesLignes(articlesLignes.filter((_, i) => i !== index));
+    setArticlesLignes(removeArticle(articlesLignes, index));
   };
 
   // Calculs avec arrondissements
-  const sousTotal = Math.round(articlesLignes.reduce((sum, article) => sum + article.montant_ligne, 0));
+  const sousTotal = calculateSousTotal(articlesLignes);
   const remise = Math.round(form.watch('remise') || 0);
   const fraisLivraison = Math.round(form.watch('frais_livraison') || 0);
   const fraisLogistique = Math.round(form.watch('frais_logistique') || 0);
   const transitDouane = Math.round(form.watch('transit_douane') || 0);
   const tauxTva = form.watch('taux_tva') || 20;
-  const montantHT = Math.round(sousTotal - remise + fraisLivraison + fraisLogistique + transitDouane);
-  const tva = Math.round(montantHT * (tauxTva / 100));
-  const montantTTC = Math.round(montantHT + tva);
-  const resteAPayer = Math.round(montantTTC - montantPaye);
+  const montantHT = calculateMontantHT(sousTotal, remise, fraisLivraison, fraisLogistique, transitDouane);
+  const tva = calculateTVA(montantHT, tauxTva);
+  const montantTTC = calculateMontantTTC(montantHT, tva);
+  const resteAPayer = calculateResteAPayer(montantTTC, montantPaye);
 
   // Logique automatique pour le statut de paiement
   useEffect(() => {
-    if (montantPaye === 0) {
-      form.setValue('statut_paiement', 'en_attente');
-    } else if (montantPaye < montantTTC) {
-      form.setValue('statut_paiement', 'partiel');
-    } else if (montantPaye >= montantTTC) {
-      form.setValue('statut_paiement', 'paye');
-    }
+    const newStatus = calculatePaymentStatus(montantPaye, montantTTC);
+    form.setValue('statut_paiement', newStatus);
   }, [montantPaye, montantTTC, form]);
 
   const onSubmit = async (data: BonCommandeForm) => {
