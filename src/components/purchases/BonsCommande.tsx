@@ -15,7 +15,7 @@ import { supabase } from '@/integrations/supabase/client';
 const BonsCommande = () => {
   const { bonsCommande, isLoading, updateBonCommande, deleteBonCommande } = useBonsCommande();
   const { createBonLivraison } = useBonsLivraison();
-  const { articlesCounts, isLoading: loadingArticles } = useAllBonCommandeArticles();
+  const { data: articlesCounts, isLoading: loadingArticles } = useAllBonCommandeArticles();
   const [searchTerm, setSearchTerm] = useState('');
 
   const handleApprove = async (id: string, bon: any) => {
@@ -181,7 +181,7 @@ const BonsCommande = () => {
         <CardContent>
           <BonCommandeTable
             bons={filteredBons}
-            articlesCounts={articlesCounts}
+            articlesCounts={articlesCounts || {}}
             onApprove={handleApprove}
             onDelete={handleDelete}
           />

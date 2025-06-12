@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -19,7 +18,7 @@ import { supabase } from '@/integrations/supabase/client';
 const BonsLivraison = () => {
   const { bonsLivraison, isLoading } = useBonsLivraison();
   const { createFactureAchat } = useFacturesAchat();
-  const { articlesCounts } = useAllBonLivraisonArticles();
+  const { data: articlesCounts } = useAllBonLivraisonArticles();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedBon, setSelectedBon] = useState<any>(null);
   const [approvalDialogOpen, setApprovalDialogOpen] = useState(false);
@@ -307,7 +306,7 @@ const BonsLivraison = () => {
             </TableHeader>
             <TableBody>
               {filteredBons.map((bon) => {
-                const articlesCount = articlesCounts[bon.id] || 0;
+                const articlesCount = articlesCounts?.[bon.id] || 0;
                 return (
                   <TableRow key={bon.id} className="border-gray-700 hover:bg-gray-700/50">
                     <TableCell className="text-white font-medium">
@@ -317,7 +316,7 @@ const BonsLivraison = () => {
                       <div className="flex items-center space-x-2">
                         <span>{bon.bon_commande?.numero_bon || 'N/A'}</span>
                         {bon.bon_commande?.numero_bon && (
-                          <Link className="h-3 w-3 text-blue-400" title="Lié au bon de commande" />
+                          <Link className="h-3 w-3 text-blue-400" />
                         )}
                       </div>
                     </TableCell>
