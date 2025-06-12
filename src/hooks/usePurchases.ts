@@ -35,7 +35,7 @@ export const useBonsCommande = () => {
   });
 
   const createBonCommande = useMutation({
-    mutationFn: async (bonCommande: Omit<BonCommande, 'id' | 'created_at' | 'updated_at'> & { articles?: any[] }) => {
+    mutationFn: async (bonCommande: Omit<BonCommande, 'id' | 'created_at' | 'updated_at' | 'numero_bon'> & { articles?: any[] }) => {
       console.log('Creating bon de commande:', bonCommande);
       
       // Extraire les articles de l'objet bonCommande
@@ -180,7 +180,7 @@ export const useBonsLivraison = () => {
         .from('bons_de_livraison')
         .select(`
           *,
-          bon_commande:bon_commande_id(
+          bon_commande:bon_commande_id!fk_bons_livraison_bon_commande_id(
             id,
             numero_bon,
             fournisseur,
