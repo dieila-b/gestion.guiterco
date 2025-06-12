@@ -121,6 +121,17 @@ export const useBonCommandeForm = (onSuccess: () => void) => {
   const montantTTC = Math.round(montantHT + tva);
   const resteAPayer = Math.round(montantTTC - montantPaye);
 
+  // Logique automatique pour le statut de paiement
+  useEffect(() => {
+    if (montantPaye === 0) {
+      form.setValue('statut_paiement', 'en_attente');
+    } else if (montantPaye < montantTTC) {
+      form.setValue('statut_paiement', 'partiel');
+    } else if (montantPaye >= montantTTC) {
+      form.setValue('statut_paiement', 'paye');
+    }
+  }, [montantPaye, montantTTC, form]);
+
   const onSubmit = async (data: BonCommandeForm) => {
     if (articlesLignes.length === 0) {
       toast({

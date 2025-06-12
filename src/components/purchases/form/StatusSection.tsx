@@ -21,7 +21,7 @@ export const StatusSection = ({ form, montantPaye, setMontantPaye }: StatusSecti
       <CardContent className="space-y-4">
         <div>
           <Label htmlFor="statut_paiement">Statut de paiement</Label>
-          <Select onValueChange={(value) => form.setValue('statut_paiement', value)} defaultValue="en_attente">
+          <Select onValueChange={(value) => form.setValue('statut_paiement', value)} value={form.watch('statut_paiement')}>
             <SelectTrigger>
               <SelectValue />
             </SelectTrigger>
@@ -49,14 +49,14 @@ export const StatusSection = ({ form, montantPaye, setMontantPaye }: StatusSecti
         </div>
 
         <div>
-          <Label htmlFor="montant_paye">Montant payé (€)</Label>
+          <Label htmlFor="montant_paye">Montant payé (GNF)</Label>
           <Input
             id="montant_paye"
             type="number"
-            step="0.01"
+            step="1"
             value={montantPaye}
             onChange={(e) => setMontantPaye(parseFloat(e.target.value) || 0)}
-            placeholder="0.00"
+            placeholder="0"
           />
         </div>
       </CardContent>
