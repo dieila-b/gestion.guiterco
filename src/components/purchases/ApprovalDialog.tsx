@@ -29,8 +29,8 @@ export const ApprovalDialog = ({ open, onOpenChange, bonLivraison, onApprove }: 
   const [destinationId, setDestinationId] = useState('');
   const [articlesQuantites, setArticlesQuantites] = useState<Record<string, number>>({});
   
-  const { data: entrepots } = useEntrepots();
-  const { data: pointsDeVente } = usePointsDeVente();
+  const { entrepots } = useEntrepots();
+  const { pointsDeVente } = usePointsDeVente();
   const { data: articles } = useBonLivraisonArticles(bonLivraison?.id);
 
   const handleQuantiteChange = (articleId: string, quantite: number) => {
