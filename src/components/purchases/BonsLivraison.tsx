@@ -4,14 +4,17 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
-import { Search, Plus, RefreshCw, CheckCircle, Eye, Edit, Trash2, FileText } from 'lucide-react';
+import { Search, Plus, RefreshCw, CheckCircle, Edit } from 'lucide-react';
 import { useBonsLivraison } from '@/hooks/useBonsLivraison';
 import { useAllBonLivraisonArticles } from '@/hooks/useBonLivraisonArticles';
 import { formatCurrency } from '@/lib/currency';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
+import { ApprovalDialog } from './ApprovalDialog';
+import { PrintBonLivraisonDialog } from './PrintBonLivraisonDialog';
+import { DeleteBonLivraisonDialog } from './DeleteBonLivraisonDialog';
 
 const BonsLivraison = () => {
   const { bonsLivraison, isLoading } = useBonsLivraison();
@@ -19,6 +22,7 @@ const BonsLivraison = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedBon, setSelectedBon] = useState<any>(null);
   const [showDetails, setShowDetails] = useState(false);
+  const [showApprovalDialog, setShowApprovalDialog] = useState(false);
 
   const filteredBons = bonsLivraison?.filter(bon => 
     bon.numero_bon.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -63,6 +67,15 @@ const BonsLivraison = () => {
   const handleViewDetails = (bon: any) => {
     setSelectedBon(bon);
     setShowDetails(true);
+  };
+
+  const handleApprove = (bon: any) => {
+    setSelectedBon(bon);
+    setShowApprovalDialog(true);
+  };
+
+  const isApproved = (statut: string) => {
+    return statut === 'receptionne' || statut === 'livre';
   };
 
   return (
@@ -155,39 +168,32 @@ const BonsLivraison = () => {
                           </TableCell>
                           <TableCell className="text-center">
                             <div className="flex justify-center space-x-1">
-                              <Button
-                                variant="outline"
-                                size="icon"
-                                className="h-8 w-8 bg-orange-500 hover:bg-orange-600 text-white border-orange-500"
-                                onClick={() => handleViewDetails(bon)}
-                                title="Modifier"
-                              >
-                                <Edit className="h-3 w-3" />
-                              </Button>
-                              <Button
-                                variant="outline"
-                                size="icon"
-                                className="h-8 w-8 bg-green-500 hover:bg-green-600 text-white border-green-500"
-                                title="Valider"
-                              >
-                                <CheckCircle className="h-3 w-3" />
-                              </Button>
-                              <Button
-                                variant="outline"
-                                size="icon"
-                                className="h-8 w-8 bg-red-500 hover:bg-red-600 text-white border-red-500"
-                                title="Supprimer"
-                              >
-                                <Trash2 className="h-3 w-3" />
-                              </Button>
-                              <Button
-                                variant="outline"
-                                size="icon"
-                                className="h-8 w-8 bg-gray-500 hover:bg-gray-600 text-white border-gray-500"
-                                title="Imprimer"
-                              >
-                                <FileText className="h-3 w-3" />
-                              </Button>
+                              {/* Afficher tous les boutons sauf Approuver si le bon est déjà approuvé */}
+                              {!isApproved(bon.statut) && (
+                                <>
+                                  <Button
+                                    variant="outline"
+                                    size="icon"
+                                    className="h-8 w-8 bg-orange-500 hover:bg-orange-600 text-white border-orange-500"
+                                    onClick={() => handleViewDetails(bon)}
+                                    title="Modifier"
+                                  >
+                                    <Edit className="h-3 w-3" />
+                                  </Button>
+                                  <Button
+                                    variant="outline"
+                                    size="icon"
+                                    className="h-8 w-8 bg-green-500 hover:bg-green-600 text-white border-green-500"
+                                    onClick={() => handleApprove(bon)}
+                                    title="Approuver"
+                                  >
+                                    <CheckCircle className="h-3 w-3" />
+                                  </Button>
+                                  <DeleteBonLivraisonDialog bon={bon} />
+                                </>
+                              )}
+                              {/* Le bouton Imprimer est toujours visible */}
+                              <PrintBonLivraisonDialog bon={bon} />
                             </div>
                           </TableCell>
                         </TableRow>
@@ -240,6 +246,17 @@ const BonsLivraison = () => {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Dialog d'approbation */}
+      <ApprovalDialog
+        open={showApprovalDialog}
+        onOpenChange={setShowApprovalDialog}
+        bonLivraison={selectedBon}
+        onApprove={() => {
+          setShowApprovalDialog(false);
+          // Optionnel: rafraîchir la liste
+        }}
+      />
     </div>
   );
 };

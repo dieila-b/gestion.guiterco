@@ -334,6 +334,20 @@ export type Database = {
             referencedRelation: "bons_de_commande"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "fk_bons_livraison_entrepot_destination"
+            columns: ["entrepot_destination_id"]
+            isOneToOne: false
+            referencedRelation: "entrepots"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_bons_livraison_point_vente_destination"
+            columns: ["point_vente_destination_id"]
+            isOneToOne: false
+            referencedRelation: "points_de_vente"
+            referencedColumns: ["id"]
+          },
         ]
       }
       cash_registers: {
