@@ -10,7 +10,7 @@ export const useBonCommandeArticles = (bonCommandeId: string) => {
         .from('articles_bon_commande')
         .select(`
           *,
-          article:catalogue(
+          article:article_id(
             id,
             nom,
             reference,
