@@ -12,20 +12,20 @@ export const useBonCommandeApproval = () => {
     try {
       console.log('🔄 Début de l\'approbation du bon de commande:', id, bon);
       
-      // 1. Mettre à jour le statut du bon de commande à 'valide' avec vérification d'intégrité
+      // 1. Mettre à jour le statut du bon de commande à 'valide'
       console.log('📝 Mise à jour du statut du bon de commande...');
       await updateBonCommande.mutateAsync({
         id,
         statut: 'valide'
       });
 
-      // 2. Récupérer les articles du bon de commande avec validation des données
+      // 2. Récupérer les articles du bon de commande avec la relation correcte
       console.log('📦 Récupération des articles du bon de commande...');
       const { data: articlesCommande, error: articlesError } = await supabase
         .from('articles_bon_commande')
         .select(`
           *,
-          article:catalogue(
+          catalogue!articles_bon_commande_article_id_fkey(
             id,
             nom,
             reference,
@@ -45,8 +45,8 @@ export const useBonCommandeApproval = () => {
 
       console.log('✅ Articles récupérés avec succès:', articlesCommande.length, 'articles');
 
-      // 3. Générer le numéro de bon de livraison synchronisé avec validation
-      console.log('🔢 Génération du numéro de bon de livraison synchronisé...');
+      // 3. Générer le numéro de bon de livraison
+      console.log('🔢 Génération du numéro de bon de livraison...');
       const { data: numeroBLResult, error: numeroBLError } = await supabase
         .rpc('generate_bon_livraison_number', { 
           bon_commande_numero: bon.numero_bon 
@@ -58,9 +58,9 @@ export const useBonCommandeApproval = () => {
       }
 
       const numeroBonLivraison = numeroBLResult;
-      console.log('🎯 Numéro BL généré avec synchronisation:', numeroBonLivraison);
+      console.log('🎯 Numéro BL généré:', numeroBonLivraison);
       
-      // 4. Créer le bon de livraison avec toutes les données de traçabilité
+      // 4. Créer le bon de livraison
       const bonLivraisonData = {
         numero_bon: numeroBonLivraison,
         bon_commande_id: id,
@@ -71,13 +71,11 @@ export const useBonCommandeApproval = () => {
         transit_douane: bon.transit_douane || 0
       };
 
-      console.log('📋 Création du bon de livraison avec données complètes:', bonLivraisonData);
-
+      console.log('📋 Création du bon de livraison:', bonLivraisonData);
       const newBonLivraison = await createBonLivraison.mutateAsync(bonLivraisonData);
-      
-      console.log('✅ Bon de livraison créé avec succès:', newBonLivraison);
+      console.log('✅ Bon de livraison créé:', newBonLivraison);
 
-      // 5. Transférer tous les articles avec vérification d'intégrité
+      // 5. Transférer les articles
       if (articlesCommande && articlesCommande.length > 0) {
         console.log('🔄 Transfert des articles vers le bon de livraison...');
         
@@ -85,7 +83,7 @@ export const useBonCommandeApproval = () => {
           bon_livraison_id: newBonLivraison.id,
           article_id: article.article_id,
           quantite_commandee: article.quantite,
-          quantite_recue: 0, // Initialement 0, sera mise à jour lors de la réception
+          quantite_recue: 0,
           prix_unitaire: article.prix_unitaire,
           montant_ligne: article.montant_ligne
         }));
@@ -104,37 +102,19 @@ export const useBonCommandeApproval = () => {
         console.log('✅ Transfert des articles terminé avec succès');
       }
 
-      // 6. Vérification finale de l'intégrité des données
-      console.log('🔍 Vérification de l\'intégrité de la liaison...');
-      const { data: verification, error: verificationError } = await supabase
-        .from('bons_de_livraison')
-        .select(`
-          *,
-          bon_commande:bons_de_commande!fk_bons_livraison_bon_commande_id(numero_bon)
-        `)
-        .eq('id', newBonLivraison.id)
-        .single();
-
-      if (verificationError || !verification) {
-        console.error('❌ Erreur de vérification de l\'intégrité:', verificationError);
-        throw new Error('Erreur de vérification de l\'intégrité des données');
-      }
-
-      console.log('✅ Vérification d\'intégrité réussie:', verification);
-      
       toast({
         title: "✅ Bon de commande approuvé avec succès",
-        description: `Bon de livraison ${numeroBonLivraison} généré automatiquement. Traçabilité complète assurée avec ${articlesCommande?.length || 0} articles synchronisés.`,
+        description: `Bon de livraison ${numeroBonLivraison} généré automatiquement avec ${articlesCommande?.length || 0} articles.`,
         variant: "default",
       });
 
-      console.log('🎯 Approbation terminée - Chaîne de traçabilité: BC → BL → Articles complète');
+      console.log('🎯 Approbation terminée avec succès');
       
     } catch (error) {
-      console.error('❌ Erreur critique lors de l\'approbation:', error);
+      console.error('❌ Erreur lors de l\'approbation:', error);
       toast({
         title: "❌ Erreur d'approbation",
-        description: error instanceof Error ? error.message : "Erreur lors de l'approbation du bon de commande. Veuillez réessayer.",
+        description: error instanceof Error ? error.message : "Erreur lors de l'approbation du bon de commande.",
         variant: "destructive",
       });
     }

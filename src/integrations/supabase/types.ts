@@ -53,13 +53,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "fk_articles_bon_commande_article_id"
-            columns: ["article_id"]
-            isOneToOne: false
-            referencedRelation: "catalogue"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "fk_articles_bon_commande_bon_id"
             columns: ["bon_commande_id"]
             isOneToOne: false
@@ -115,13 +108,6 @@ export type Database = {
             columns: ["bon_livraison_id"]
             isOneToOne: false
             referencedRelation: "bons_de_livraison"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "fk_articles_bon_livraison_article_id"
-            columns: ["article_id"]
-            isOneToOne: false
-            referencedRelation: "catalogue"
             referencedColumns: ["id"]
           },
           {
