@@ -43,8 +43,16 @@ export const CreateBonCommandeForm = ({ onSuccess }: CreateBonCommandeFormProps)
     onSubmit
   } = useBonCommandeForm(onSuccess);
 
+  const handleFormSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    console.log('🎯 Gestion de la soumission du formulaire');
+    
+    // Utiliser handleSubmit du hook form pour valider et soumettre
+    form.handleSubmit(onSubmit)(e);
+  };
+
   return (
-    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+    <form onSubmit={handleFormSubmit} className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <BasicInfoSection
           form={form}

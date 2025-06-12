@@ -106,6 +106,10 @@ export const useBonCommandeForm = (onSuccess: () => void) => {
   }, [montantPaye, montantTTC, form]);
 
   const onSubmit = async (data: BonCommandeForm) => {
+    console.log('🎯 Début de la soumission du formulaire');
+    console.log('📋 Données du formulaire:', data);
+    console.log('📦 Articles sélectionnés:', articlesLignes);
+
     if (articlesLignes.length === 0) {
       toast({
         title: "Erreur",
@@ -156,6 +160,11 @@ export const useBonCommandeForm = (onSuccess: () => void) => {
       onSuccess();
     } catch (error) {
       console.error('❌ Erreur lors de la création du bon de commande:', error);
+      toast({
+        title: "Erreur",
+        description: error instanceof Error ? error.message : "Erreur lors de la création du bon de commande",
+        variant: "destructive",
+      });
     }
   };
 

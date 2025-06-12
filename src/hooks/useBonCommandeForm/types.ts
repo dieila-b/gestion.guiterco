@@ -2,7 +2,6 @@
 import * as z from 'zod';
 
 export const bonCommandeSchema = z.object({
-  numero_bon: z.string().min(1, 'Le numéro est requis'),
   fournisseur_id: z.string().min(1, 'Le fournisseur est requis'),
   date_commande: z.string().min(1, 'La date est requise'),
   date_livraison_prevue: z.string().optional(),
