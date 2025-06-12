@@ -1,3 +1,4 @@
+
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
@@ -42,9 +43,10 @@ export const useBonsCommande = () => {
       const { articles, ...bonCommandeData } = bonCommande;
       
       // Le numéro sera généré automatiquement par le trigger, donc on ne l'inclut pas
+      // Cast to any to bypass TypeScript strict checking for auto-generated fields
       const { data: newBonCommande, error: bonCommandeError } = await supabase
         .from('bons_de_commande')
-        .insert([bonCommandeData])
+        .insert([bonCommandeData as any])
         .select()
         .single();
 
