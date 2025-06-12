@@ -1750,6 +1750,22 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: string
       }
+      update_stock_pdv: {
+        Args: {
+          p_article_id: string
+          p_point_vente_id: string
+          p_quantite: number
+        }
+        Returns: undefined
+      }
+      update_stock_principal: {
+        Args: {
+          p_article_id: string
+          p_entrepot_id: string
+          p_quantite: number
+        }
+        Returns: undefined
+      }
     }
     Enums: {
       payment_method: "cash" | "card" | "transfer" | "check"
