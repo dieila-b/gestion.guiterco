@@ -8,15 +8,20 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { useEntrepots, usePointsDeVente } from '@/hooks/useStock';
 import { useBonLivraisonArticles } from '@/hooks/useBonLivraisonArticles';
-import { useBonLivraisonApproval } from '@/hooks/useBonLivraisonApproval';
 import { formatCurrency } from '@/lib/currency';
-import { Loader2 } from 'lucide-react';
 
 interface ApprovalDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   bonLivraison: any;
-  onApprove?: () => void;
+  onApprove: (approvalData: {
+    destinationType: 'entrepot' | 'point_vente';
+    destinationId: string;
+    articles: Array<{
+      id: string;
+      quantite_recue: number;
+    }>;
+  }) => void;
 }
 
 export const ApprovalDialog = ({ open, onOpenChange, bonLivraison, onApprove }: ApprovalDialogProps) => {
@@ -27,7 +32,6 @@ export const ApprovalDialog = ({ open, onOpenChange, bonLivraison, onApprove }: 
   const { entrepots } = useEntrepots();
   const { pointsDeVente } = usePointsDeVente();
   const { data: articles } = useBonLivraisonArticles(bonLivraison?.id);
-  const { approveBonLivraison, isApproving } = useBonLivraisonApproval();
 
   const handleQuantiteChange = (articleId: string, quantite: number) => {
     setArticlesQuantites(prev => ({
@@ -36,42 +40,21 @@ export const ApprovalDialog = ({ open, onOpenChange, bonLivraison, onApprove }: 
     }));
   };
 
-  const handleApprove = async () => {
-    if (!bonLivraison?.id || !destinationId || !articles?.length) {
-      return;
-    }
-
+  const handleApprove = () => {
     const approvalData = {
       destinationType,
       destinationId,
-      articles: articles.map(article => ({
+      articles: articles?.map(article => ({
         id: article.id,
         quantite_recue: articlesQuantites[article.id] || article.quantite_commandee
-      }))
+      })) || []
     };
     
-    try {
-      await approveBonLivraison.mutateAsync({
-        bonLivraisonId: bonLivraison.id,
-        approvalData
-      });
-      
-      // Réinitialiser le formulaire
-      setDestinationId('');
-      setArticlesQuantites({});
-      onOpenChange(false);
-      
-      // Appeler le callback si fourni
-      if (onApprove) {
-        onApprove();
-      }
-    } catch (error) {
-      // L'erreur est déjà gérée par le hook
-      console.error('Erreur lors de l\'approbation:', error);
-    }
+    onApprove(approvalData);
+    onOpenChange(false);
   };
 
-  const isFormValid = destinationId && articles?.length > 0 && !isApproving;
+  const isFormValid = destinationId && articles?.length > 0;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -87,11 +70,7 @@ export const ApprovalDialog = ({ open, onOpenChange, bonLivraison, onApprove }: 
           <div className="space-y-4">
             <div>
               <Label className="text-gray-300">Type de destination</Label>
-              <Select 
-                value={destinationType} 
-                onValueChange={(value: 'entrepot' | 'point_vente') => setDestinationType(value)}
-                disabled={isApproving}
-              >
+              <Select value={destinationType} onValueChange={(value: 'entrepot' | 'point_vente') => setDestinationType(value)}>
                 <SelectTrigger className="bg-gray-700 border-gray-600 text-white">
                   <SelectValue />
                 </SelectTrigger>
@@ -106,11 +85,7 @@ export const ApprovalDialog = ({ open, onOpenChange, bonLivraison, onApprove }: 
               <Label className="text-gray-300">
                 {destinationType === 'entrepot' ? 'Entrepôt' : 'Point de vente'} de destination
               </Label>
-              <Select 
-                value={destinationId} 
-                onValueChange={setDestinationId}
-                disabled={isApproving}
-              >
+              <Select value={destinationId} onValueChange={setDestinationId}>
                 <SelectTrigger className="bg-gray-700 border-gray-600 text-white">
                   <SelectValue placeholder="Sélectionner..." />
                 </SelectTrigger>
@@ -157,7 +132,6 @@ export const ApprovalDialog = ({ open, onOpenChange, bonLivraison, onApprove }: 
                           defaultValue={article.quantite_commandee}
                           onChange={(e) => handleQuantiteChange(article.id, parseInt(e.target.value) || 0)}
                           className="bg-gray-600 border-gray-500 text-white"
-                          disabled={isApproving}
                         />
                       </div>
                       <div className="text-right">
@@ -178,7 +152,6 @@ export const ApprovalDialog = ({ open, onOpenChange, bonLivraison, onApprove }: 
               variant="outline"
               onClick={() => onOpenChange(false)}
               className="border-gray-600 text-gray-300 hover:bg-gray-700"
-              disabled={isApproving}
             >
               Annuler
             </Button>
@@ -187,14 +160,7 @@ export const ApprovalDialog = ({ open, onOpenChange, bonLivraison, onApprove }: 
               disabled={!isFormValid}
               className="bg-green-600 hover:bg-green-700 text-white"
             >
-              {isApproving ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Approbation en cours...
-                </>
-              ) : (
-                'Approuver et mettre à jour le stock'
-              )}
+              Approuver et mettre à jour le stock
             </Button>
           </div>
         </div>

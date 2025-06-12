@@ -78,7 +78,6 @@ export type Database = {
           prix_unitaire: number
           quantite_commandee: number
           quantite_recue: number | null
-          updated_at: string
         }
         Insert: {
           article_id?: string | null
@@ -89,7 +88,6 @@ export type Database = {
           prix_unitaire?: number
           quantite_commandee?: number
           quantite_recue?: number | null
-          updated_at?: string
         }
         Update: {
           article_id?: string | null
@@ -100,7 +98,6 @@ export type Database = {
           prix_unitaire?: number
           quantite_commandee?: number
           quantite_recue?: number | null
-          updated_at?: string
         }
         Relationships: [
           {
