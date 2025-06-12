@@ -78,13 +78,14 @@ export const useBonCommandeForm = (onSuccess: () => void) => {
     }
   };
 
-  const ajouterArticle = (article: { id: string; nom: string; prix_unitaire?: number }) => {
+  const ajouterArticle = (article: { id: string; nom: string; prix_achat?: number }) => {
+    const prixUnitaire = article.prix_achat || 0;
     const nouvelleArticle: ArticleLigne = {
       article_id: article.id,
       nom: article.nom,
       quantite: 1,
-      prix_unitaire: article.prix_unitaire || 0,
-      montant_ligne: article.prix_unitaire || 0,
+      prix_unitaire: Math.round(prixUnitaire), // Arrondir à l'entier
+      montant_ligne: Math.round(prixUnitaire), // Arrondir à l'entier
     };
     setArticlesLignes([...articlesLignes, nouvelleArticle]);
   };
@@ -92,14 +93,15 @@ export const useBonCommandeForm = (onSuccess: () => void) => {
   const modifierQuantite = (index: number, quantite: number) => {
     const nouveauxArticles = [...articlesLignes];
     nouveauxArticles[index].quantite = quantite;
-    nouveauxArticles[index].montant_ligne = quantite * nouveauxArticles[index].prix_unitaire;
+    nouveauxArticles[index].montant_ligne = Math.round(quantite * nouveauxArticles[index].prix_unitaire);
     setArticlesLignes(nouveauxArticles);
   };
 
   const modifierPrix = (index: number, prix: number) => {
     const nouveauxArticles = [...articlesLignes];
-    nouveauxArticles[index].prix_unitaire = prix;
-    nouveauxArticles[index].montant_ligne = prix * nouveauxArticles[index].quantite;
+    const prixArrondi = Math.round(prix);
+    nouveauxArticles[index].prix_unitaire = prixArrondi;
+    nouveauxArticles[index].montant_ligne = Math.round(prixArrondi * nouveauxArticles[index].quantite);
     setArticlesLignes(nouveauxArticles);
   };
 
@@ -107,17 +109,17 @@ export const useBonCommandeForm = (onSuccess: () => void) => {
     setArticlesLignes(articlesLignes.filter((_, i) => i !== index));
   };
 
-  // Calculs
-  const sousTotal = articlesLignes.reduce((sum, article) => sum + article.montant_ligne, 0);
-  const remise = form.watch('remise') || 0;
-  const fraisLivraison = form.watch('frais_livraison') || 0;
-  const fraisLogistique = form.watch('frais_logistique') || 0;
-  const transitDouane = form.watch('transit_douane') || 0;
+  // Calculs avec arrondissements
+  const sousTotal = Math.round(articlesLignes.reduce((sum, article) => sum + article.montant_ligne, 0));
+  const remise = Math.round(form.watch('remise') || 0);
+  const fraisLivraison = Math.round(form.watch('frais_livraison') || 0);
+  const fraisLogistique = Math.round(form.watch('frais_logistique') || 0);
+  const transitDouane = Math.round(form.watch('transit_douane') || 0);
   const tauxTva = form.watch('taux_tva') || 20;
-  const montantHT = sousTotal - remise + fraisLivraison + fraisLogistique + transitDouane;
-  const tva = montantHT * (tauxTva / 100);
-  const montantTTC = montantHT + tva;
-  const resteAPayer = montantTTC - montantPaye;
+  const montantHT = Math.round(sousTotal - remise + fraisLivraison + fraisLogistique + transitDouane);
+  const tva = Math.round(montantHT * (tauxTva / 100));
+  const montantTTC = Math.round(montantHT + tva);
+  const resteAPayer = Math.round(montantTTC - montantPaye);
 
   const onSubmit = async (data: BonCommandeForm) => {
     if (articlesLignes.length === 0) {
@@ -150,16 +152,16 @@ export const useBonCommandeForm = (onSuccess: () => void) => {
         date_livraison_prevue: data.date_livraison_prevue,
         statut: data.statut,
         statut_paiement: data.statut_paiement,
-        remise: data.remise,
-        frais_livraison: data.frais_livraison,
-        frais_logistique: data.frais_logistique,
-        transit_douane: data.transit_douane,
+        remise: Math.round(data.remise),
+        frais_livraison: Math.round(data.frais_livraison),
+        frais_logistique: Math.round(data.frais_logistique),
+        transit_douane: Math.round(data.transit_douane),
         taux_tva: data.taux_tva,
         observations: data.observations,
         montant_ht: montantHT,
         tva: tva,
         montant_total: montantTTC,
-        montant_paye: montantPaye,
+        montant_paye: Math.round(montantPaye),
       });
       onSuccess();
     } catch (error) {

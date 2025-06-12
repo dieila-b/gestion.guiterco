@@ -17,46 +17,46 @@ export const FeesSection = ({ form }: FeesSectionProps) => {
       </CardHeader>
       <CardContent className="space-y-4">
         <div>
-          <Label htmlFor="remise">Remise (€)</Label>
+          <Label htmlFor="remise">Remise (GNF)</Label>
           <Input
             id="remise"
             type="number"
-            step="0.01"
+            step="1"
             {...form.register('remise', { valueAsNumber: true })}
-            placeholder="0.00"
+            placeholder="0"
           />
         </div>
 
         <div>
-          <Label htmlFor="frais_livraison">Frais de livraison (€)</Label>
+          <Label htmlFor="frais_livraison">Frais de livraison (GNF)</Label>
           <Input
             id="frais_livraison"
             type="number"
-            step="0.01"
+            step="1"
             {...form.register('frais_livraison', { valueAsNumber: true })}
-            placeholder="0.00"
+            placeholder="0"
           />
         </div>
 
         <div>
-          <Label htmlFor="frais_logistique">Frais de logistique (€)</Label>
+          <Label htmlFor="frais_logistique">Frais de logistique (GNF)</Label>
           <Input
             id="frais_logistique"
             type="number"
-            step="0.01"
+            step="1"
             {...form.register('frais_logistique', { valueAsNumber: true })}
-            placeholder="0.00"
+            placeholder="0"
           />
         </div>
 
         <div>
-          <Label htmlFor="transit_douane">Transit & Douane (€)</Label>
+          <Label htmlFor="transit_douane">Transit & Douane (GNF)</Label>
           <Input
             id="transit_douane"
             type="number"
-            step="0.01"
+            step="1"
             {...form.register('transit_douane', { valueAsNumber: true })}
-            placeholder="0.00"
+            placeholder="0"
           />
         </div>
 

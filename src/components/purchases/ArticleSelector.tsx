@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Plus, Search } from 'lucide-react';
 import { Article } from '@/hooks/useCatalogue';
+import { formatCurrency } from '@/lib/currency';
 
 interface ArticleSelectorProps {
   articles: Article[];
@@ -58,7 +59,7 @@ export const ArticleSelector = ({ articles, onAjouterArticle, isLoading }: Artic
                 <div className="flex justify-between items-center w-full">
                   <span>{article.nom}</span>
                   <span className="text-sm text-gray-500 ml-2">
-                    {article.prix_unitaire ? `${article.prix_unitaire.toFixed(2)} €` : 'Prix non défini'}
+                    {article.prix_achat ? formatCurrency(article.prix_achat) : 'Prix non défini'}
                   </span>
                 </div>
               </SelectItem>

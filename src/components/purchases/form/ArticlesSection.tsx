@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { ArticleSelector } from '../ArticleSelector';
+import { formatCurrency } from '@/lib/currency';
 
 interface ArticleLigne {
   article_id: string;
@@ -17,7 +18,7 @@ interface ArticlesSectionProps {
   articles: any[] | undefined;
   loadingArticles: boolean;
   articlesLignes: ArticleLigne[];
-  onAjouterArticle: (article: { id: string; nom: string; prix_unitaire?: number }) => void;
+  onAjouterArticle: (article: { id: string; nom: string; prix_achat?: number }) => void;
   onModifierQuantite: (index: number, quantite: number) => void;
   onModifierPrix: (index: number, prix: number) => void;
   onSupprimerArticle: (index: number) => void;
@@ -49,8 +50,8 @@ export const ArticlesSection = ({
             <div className="grid grid-cols-6 gap-2 font-medium text-sm">
               <div>Produit</div>
               <div>Quantité</div>
-              <div>Prix unitaire (€)</div>
-              <div>Montant (€)</div>
+              <div>Prix unitaire (GNF)</div>
+              <div>Montant (GNF)</div>
               <div></div>
             </div>
             {articlesLignes.map((article, index) => (
@@ -65,12 +66,12 @@ export const ArticlesSection = ({
                 />
                 <Input
                   type="number"
-                  step="0.01"
+                  step="1"
                   value={article.prix_unitaire}
                   onChange={(e) => onModifierPrix(index, parseFloat(e.target.value) || 0)}
                   className="h-8"
                 />
-                <div className="text-sm font-medium">{article.montant_ligne.toFixed(2)}</div>
+                <div className="text-sm font-medium">{formatCurrency(article.montant_ligne)}</div>
                 <Button
                   type="button"
                   variant="destructive"
