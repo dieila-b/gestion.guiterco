@@ -179,7 +179,9 @@ export const useBonsLivraison = () => {
         .from('bons_de_livraison')
         .select(`
           *,
-          bon_commande:bon_commande_id(*)
+          bon_commande:bon_commande_id(*),
+          entrepot_destination:entrepot_destination_id(*),
+          point_vente_destination:point_vente_destination_id(*)
         `)
         .order('created_at', { ascending: false });
       
@@ -208,11 +210,33 @@ export const useBonsLivraison = () => {
     }
   });
 
+  const updateBonLivraison = useMutation({
+    mutationFn: async ({ id, ...bon }: Partial<BonLivraison> & { id: string }) => {
+      const { data, error } = await supabase
+        .from('bons_de_livraison')
+        .update(bon)
+        .eq('id', id)
+        .select()
+        .single();
+      
+      if (error) throw error;
+      return data as BonLivraison;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['bons-livraison'] });
+      toast({
+        title: "Bon de livraison mis à jour avec succès",
+        variant: "default",
+      });
+    }
+  });
+
   return {
     bonsLivraison,
     isLoading,
     error,
-    createBonLivraison
+    createBonLivraison,
+    updateBonLivraison
   };
 };
 

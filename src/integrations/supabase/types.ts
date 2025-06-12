@@ -54,6 +54,54 @@ export type Database = {
           },
         ]
       }
+      articles_bon_livraison: {
+        Row: {
+          article_id: string | null
+          bon_livraison_id: string | null
+          created_at: string
+          id: string
+          montant_ligne: number
+          prix_unitaire: number
+          quantite_commandee: number
+          quantite_recue: number | null
+        }
+        Insert: {
+          article_id?: string | null
+          bon_livraison_id?: string | null
+          created_at?: string
+          id?: string
+          montant_ligne?: number
+          prix_unitaire?: number
+          quantite_commandee?: number
+          quantite_recue?: number | null
+        }
+        Update: {
+          article_id?: string | null
+          bon_livraison_id?: string | null
+          created_at?: string
+          id?: string
+          montant_ligne?: number
+          prix_unitaire?: number
+          quantite_commandee?: number
+          quantite_recue?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "articles_bon_livraison_article_id_fkey"
+            columns: ["article_id"]
+            isOneToOne: false
+            referencedRelation: "catalogue"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "articles_bon_livraison_bon_livraison_id_fkey"
+            columns: ["bon_livraison_id"]
+            isOneToOne: false
+            referencedRelation: "bons_de_livraison"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       articles_retour_client: {
         Row: {
           article_id: string | null
@@ -189,11 +237,13 @@ export type Database = {
           created_by: string | null
           date_livraison: string
           date_reception: string | null
+          entrepot_destination_id: string | null
           fournisseur: string
           id: string
           numero_bon: string
           numero_suivi: string | null
           observations: string | null
+          point_vente_destination_id: string | null
           statut: string
           taux_tva: number | null
           transit_douane: number | null
@@ -206,11 +256,13 @@ export type Database = {
           created_by?: string | null
           date_livraison?: string
           date_reception?: string | null
+          entrepot_destination_id?: string | null
           fournisseur: string
           id?: string
           numero_bon: string
           numero_suivi?: string | null
           observations?: string | null
+          point_vente_destination_id?: string | null
           statut?: string
           taux_tva?: number | null
           transit_douane?: number | null
@@ -223,11 +275,13 @@ export type Database = {
           created_by?: string | null
           date_livraison?: string
           date_reception?: string | null
+          entrepot_destination_id?: string | null
           fournisseur?: string
           id?: string
           numero_bon?: string
           numero_suivi?: string | null
           observations?: string | null
+          point_vente_destination_id?: string | null
           statut?: string
           taux_tva?: number | null
           transit_douane?: number | null
@@ -240,6 +294,20 @@ export type Database = {
             columns: ["bon_commande_id"]
             isOneToOne: false
             referencedRelation: "bons_de_commande"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bons_de_livraison_entrepot_destination_id_fkey"
+            columns: ["entrepot_destination_id"]
+            isOneToOne: false
+            referencedRelation: "entrepots"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bons_de_livraison_point_vente_destination_id_fkey"
+            columns: ["point_vente_destination_id"]
+            isOneToOne: false
+            referencedRelation: "points_de_vente"
             referencedColumns: ["id"]
           },
         ]

@@ -38,7 +38,17 @@ export interface BonLivraison {
   created_at: string;
   updated_at: string;
   created_by?: string;
+  entrepot_destination_id?: string;
+  point_vente_destination_id?: string;
   bon_commande?: BonCommande;
+  entrepot_destination?: {
+    id: string;
+    nom: string;
+  };
+  point_vente_destination?: {
+    id: string;
+    nom: string;
+  };
 }
 
 export interface FactureAchat {
