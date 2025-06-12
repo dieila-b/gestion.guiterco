@@ -1,9 +1,8 @@
-
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Plus, Edit, Trash } from 'lucide-react';
-import { useRetoursFournisseurs } from '@/hooks/usePurchases';
+import { useRetoursFournisseurs } from '@/hooks/useRetoursFournisseurs';
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';

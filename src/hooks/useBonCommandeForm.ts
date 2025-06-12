@@ -1,10 +1,9 @@
-
 import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useFournisseurs } from '@/hooks/useFournisseurs';
 import { useCatalogue } from '@/hooks/useCatalogue';
-import { useBonsCommande } from '@/hooks/usePurchases';
+import { useBonsCommande } from '@/hooks/useBonsCommande';
 import { toast } from '@/hooks/use-toast';
 import { 
   bonCommandeSchema, 
