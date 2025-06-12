@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -127,8 +128,10 @@ export const useBonCommandeForm = (onSuccess: () => void) => {
     const fournisseurName = fournisseur.nom_entreprise || fournisseur.nom || 'Fournisseur sans nom';
 
     try {
-      console.log('Submitting bon de commande with articles:', articlesLignes);
+      console.log('🚀 Soumission du bon de commande avec génération automatique du numéro...');
+      console.log('📦 Articles à inclure:', articlesLignes);
       
+      // Le numéro sera généré automatiquement par le trigger de base de données
       await createBonCommande.mutateAsync({
         fournisseur: fournisseurName,
         fournisseur_id: data.fournisseur_id,
@@ -148,9 +151,11 @@ export const useBonCommandeForm = (onSuccess: () => void) => {
         montant_paye: Number(montantPaye),
         articles: articlesLignes, // Passer les articles à la mutation
       });
+      
+      console.log('✅ Bon de commande créé avec numéro auto-généré au format BC-AA-MM-JJ-XXX');
       onSuccess();
     } catch (error) {
-      console.error('Erreur lors de la création du bon de commande:', error);
+      console.error('❌ Erreur lors de la création du bon de commande:', error);
     }
   };
 

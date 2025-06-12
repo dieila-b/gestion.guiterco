@@ -32,9 +32,14 @@ export const BasicInfoSection = ({
           <Label htmlFor="numero_bon">Numéro du bon</Label>
           <Input
             id="numero_bon"
-            {...form.register('numero_bon')}
-            placeholder="BC-XXXX"
+            value="Généré automatiquement (BC-AA-MM-JJ-XXX)"
+            readOnly
+            className="bg-gray-100 text-gray-600 cursor-not-allowed"
+            placeholder="BC-AA-MM-JJ-XXX"
           />
+          <p className="text-sm text-gray-500 mt-1">
+            Le numéro sera généré automatiquement au format BC-AA-MM-JJ-XXX lors de la création
+          </p>
         </div>
 
         <SupplierSection

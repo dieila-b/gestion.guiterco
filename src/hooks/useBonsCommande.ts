@@ -36,12 +36,14 @@ export const useBonsCommande = () => {
 
   const createBonCommande = useMutation({
     mutationFn: async (bonCommande: Omit<BonCommande, 'id' | 'created_at' | 'updated_at' | 'numero_bon'> & { articles?: any[] }) => {
-      console.log('Creating bon de commande:', bonCommande);
+      console.log('🔄 Création d\'un bon de commande avec numérotation automatique...');
+      console.log('📝 Données du bon de commande:', bonCommande);
       
       // Extraire les articles de l'objet bonCommande
       const { articles, ...bonCommandeData } = bonCommande;
       
-      // Le numéro sera généré automatiquement par le trigger de base de données
+      // Le numéro sera généré automatiquement par le trigger de base de données selon le format BC-AA-MM-JJ-XXX
+      console.log('🎯 Insertion du bon de commande - le numéro sera généré automatiquement...');
       const { data: newBonCommande, error: bonCommandeError } = await supabase
         .from('bons_de_commande')
         .insert([bonCommandeData as any])
@@ -49,15 +51,17 @@ export const useBonsCommande = () => {
         .single();
 
       if (bonCommandeError) {
-        console.error('Error creating bon de commande:', bonCommandeError);
+        console.error('❌ Erreur lors de la création du bon de commande:', bonCommandeError);
         throw bonCommandeError;
       }
 
-      console.log('Bon de commande created with auto-generated number:', newBonCommande);
+      console.log('✅ Bon de commande créé avec numéro auto-généré:', newBonCommande.numero_bon);
+      console.log('📋 Détails du bon de commande créé:', newBonCommande);
 
       // Si des articles sont fournis, les insérer dans articles_bon_commande
       if (articles && articles.length > 0) {
-        console.log('Inserting articles:', articles);
+        console.log('📦 Insertion des articles dans le bon de commande...');
+        console.log('🔢 Nombre d\'articles à insérer:', articles.length);
         
         const articlesData = articles.map(article => ({
           bon_commande_id: newBonCommande.id,
@@ -67,37 +71,39 @@ export const useBonsCommande = () => {
           montant_ligne: Number(article.montant_ligne)
         }));
 
+        console.log('📊 Données des articles formatées:', articlesData);
+
         const { error: articlesError } = await supabase
           .from('articles_bon_commande')
           .insert(articlesData);
 
         if (articlesError) {
-          console.error('Error inserting articles:', articlesError);
+          console.error('❌ Erreur lors de l\'insertion des articles:', articlesError);
           toast({
-            title: "Attention",
+            title: "⚠️ Attention",
             description: "Le bon de commande a été créé mais il y a eu un problème avec les articles.",
             variant: "destructive",
           });
         } else {
-          console.log('Articles inserted successfully');
+          console.log('✅ Articles insérés avec succès dans le bon de commande');
         }
       }
 
       return newBonCommande;
     },
-    onSuccess: () => {
+    onSuccess: (newBonCommande) => {
       queryClient.invalidateQueries({ queryKey: ['bons-commande'] });
       queryClient.invalidateQueries({ queryKey: ['all-bon-commande-articles-counts'] });
       toast({
-        title: "Succès",
-        description: "Bon de commande créé avec succès avec numéro auto-généré",
+        title: "✅ Bon de commande créé avec succès",
+        description: `Numéro généré automatiquement: ${newBonCommande.numero_bon} (format BC-AA-MM-JJ-XXX)`,
         variant: "default",
       });
     },
     onError: (error: any) => {
-      console.error('Error in createBonCommande mutation:', error);
+      console.error('❌ Erreur dans la mutation createBonCommande:', error);
       toast({
-        title: "Erreur",
+        title: "❌ Erreur de création",
         description: error.message || "Erreur lors de la création du bon de commande",
         variant: "destructive",
       });
