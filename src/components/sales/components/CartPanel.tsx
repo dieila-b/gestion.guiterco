@@ -1,9 +1,11 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { ShoppingCart, User, CreditCard, X } from 'lucide-react';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { ShoppingCart, User, CreditCard, X, Plus } from 'lucide-react';
 import { formatCurrency } from '@/lib/currency';
+import NewClientForm from './NewClientForm';
 
 interface CartItem {
   id: string;
@@ -43,10 +45,17 @@ const CartPanel: React.FC<CartPanelProps> = ({
   handlePayment,
   isLoading
 }) => {
+  const [showNewClientDialog, setShowNewClientDialog] = useState(false);
+
+  const handleNewClientSuccess = (clientName: string) => {
+    setSelectedClient(clientName);
+    setShowNewClientDialog(false);
+  };
+
   return (
     <div className="w-1/2 p-4 flex flex-col">
-      {/* Panier élevé avec ombre forte */}
-      <div className="bg-white rounded-lg shadow-2xl border border-gray-200 flex flex-col h-full">
+      {/* Panier élevé et aligné avec le haut de la zone produit */}
+      <div className="bg-white rounded-lg shadow-2xl border border-gray-200 flex flex-col h-full mt-0">
         {/* En-tête panier avec style élevé */}
         <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 border-b border-gray-200 rounded-t-lg">
           <div className="flex items-center justify-between mb-3">
@@ -77,7 +86,12 @@ const CartPanel: React.FC<CartPanelProps> = ({
               <Button size="sm" variant="outline">
                 <User className="h-4 w-4" />
               </Button>
-              <Button size="sm" variant="outline">
+              <Button 
+                size="sm" 
+                variant="outline"
+                onClick={() => setShowNewClientDialog(true)}
+              >
+                <Plus className="h-4 w-4 mr-1" />
                 Nouveau
               </Button>
             </div>
@@ -97,10 +111,10 @@ const CartPanel: React.FC<CartPanelProps> = ({
               {/* En-tête tableau */}
               <div className="grid grid-cols-12 gap-2 text-xs font-semibold text-gray-700 border-b pb-2 mb-3">
                 <div className="col-span-4">Nom d'article</div>
-                <div className="col-span-1 text-center">Qté</div>
+                <div className="col-span-2 text-center">Qté</div>
                 <div className="col-span-2 text-center">Remise</div>
                 <div className="col-span-2 text-center">P.U TTC</div>
-                <div className="col-span-2 text-center">Total</div>
+                <div className="col-span-1 text-center">Total</div>
                 <div className="col-span-1"></div>
               </div>
 
@@ -114,12 +128,12 @@ const CartPanel: React.FC<CartPanelProps> = ({
                       <div className="font-medium truncate text-gray-800">{item.nom}</div>
                     </div>
                     
-                    <div className="col-span-1">
+                    <div className="col-span-2">
                       <Input
                         type="number"
                         value={item.quantite}
                         onChange={(e) => handleQuantityChange(item.id, e.target.value)}
-                        className="h-8 text-center text-xs font-medium"
+                        className="h-9 w-full text-center text-sm font-medium"
                         min="1"
                       />
                     </div>
@@ -130,7 +144,7 @@ const CartPanel: React.FC<CartPanelProps> = ({
                         value={item.remise}
                         onChange={(e) => handleRemiseChange(item.id, e.target.value)}
                         placeholder="0"
-                        className="h-8 text-center text-xs"
+                        className="h-9 w-full text-center text-sm"
                         min="0"
                       />
                     </div>
@@ -139,7 +153,7 @@ const CartPanel: React.FC<CartPanelProps> = ({
                       {formatCurrency(prixApresRemise)}
                     </div>
 
-                    <div className="col-span-2 text-center font-bold text-blue-600">
+                    <div className="col-span-1 text-center font-bold text-blue-600">
                       {formatCurrency(totalLigne)}
                     </div>
 
@@ -199,6 +213,22 @@ const CartPanel: React.FC<CartPanelProps> = ({
           </div>
         )}
       </div>
+
+      {/* Dialog pour nouveau client */}
+      <Dialog open={showNewClientDialog} onOpenChange={setShowNewClientDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Nouveau Client</DialogTitle>
+            <DialogDescription>
+              Créer un nouveau client rapidement
+            </DialogDescription>
+          </DialogHeader>
+          <NewClientForm 
+            onSuccess={handleNewClientSuccess}
+            onCancel={() => setShowNewClientDialog(false)}
+          />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

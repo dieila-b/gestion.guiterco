@@ -44,11 +44,15 @@ const VenteComptoirResponsive = () => {
     isLoading
   } = useVenteComptoir();
 
-  // Éliminer les doublons de catégories
+  // Éliminer les doublons de catégories - amélioration de la logique
   const uniqueCategories = useMemo(() => {
-    const categorySet = new Set(['Biscuits', 'Chocolat']);
-    categories.forEach(cat => categorySet.add(cat));
-    return Array.from(categorySet);
+    const categorySet = new Set();
+    categories.forEach(cat => {
+      if (cat && cat.trim()) {
+        categorySet.add(cat);
+      }
+    });
+    return Array.from(categorySet) as string[];
   }, [categories]);
 
   // Calculer les totaux du panier
@@ -124,7 +128,7 @@ const VenteComptoirResponsive = () => {
           uniqueCategories={uniqueCategories}
         />
 
-        {/* Contenu principal */}
+        {/* Contenu principal - alignement amélioré */}
         <div className="flex-1 flex min-h-0">
           {/* Zone produits */}
           <ProductGrid
@@ -136,7 +140,7 @@ const VenteComptoirResponsive = () => {
             goToPage={goToPage}
           />
 
-          {/* Zone panier */}
+          {/* Zone panier - alignée avec le haut */}
           <CartPanel
             cart={cart}
             cartTotals={cartTotals}
