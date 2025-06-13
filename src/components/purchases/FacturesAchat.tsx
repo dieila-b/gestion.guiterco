@@ -5,14 +5,19 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Search, Plus, Edit, Trash, Printer } from 'lucide-react';
+import { Search, Plus } from 'lucide-react';
 import { useFacturesAchat } from '@/hooks/useFacturesAchat';
+import { useAllFactureAchatArticles } from '@/hooks/useFactureAchatArticles';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { formatCurrency } from '@/lib/currency';
+import { EditFactureAchatDialog } from './EditFactureAchatDialog';
+import { DeleteFactureAchatDialog } from './DeleteFactureAchatDialog';
+import { PrintFactureAchatDialog } from './PrintFactureAchatDialog';
 
 const FacturesAchat = () => {
   const { facturesAchat, isLoading } = useFacturesAchat();
+  const { data: articlesCounts } = useAllFactureAchatArticles();
   const [searchTerm, setSearchTerm] = useState('');
 
   const filteredFactures = facturesAchat?.filter(facture => 
@@ -42,8 +47,7 @@ const FacturesAchat = () => {
 
   // Calculate derived values for each invoice
   const getArticleCount = (facture: any) => {
-    // This would need to be calculated from related articles
-    return 150; // Placeholder value as shown in the image
+    return articlesCounts?.[facture.id] || 0;
   };
 
   const getPaidAmount = (facture: any) => {
@@ -147,30 +151,12 @@ const FacturesAchat = () => {
                       </TableCell>
                       <TableCell className="text-center">
                         <div className="flex justify-center space-x-1">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="h-8 px-3 text-xs bg-orange-500 hover:bg-orange-600 text-white border-orange-500"
-                            title="Modifier"
-                          >
-                            Modifier
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="h-8 px-3 text-xs bg-red-500 hover:bg-red-600 text-white border-red-500"
-                            title="Supprimer"
-                          >
-                            Supprimer
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="h-8 px-3 text-xs bg-blue-500 hover:bg-blue-600 text-white border-blue-500"
-                            title="Imprimer"
-                          >
-                            Imprimer
-                          </Button>
+                          <EditFactureAchatDialog facture={facture} />
+                          <DeleteFactureAchatDialog 
+                            factureId={facture.id} 
+                            numeroFacture={facture.numero_facture} 
+                          />
+                          <PrintFactureAchatDialog facture={facture} />
                         </div>
                       </TableCell>
                     </TableRow>

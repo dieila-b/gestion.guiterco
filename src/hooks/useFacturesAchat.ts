@@ -49,6 +49,7 @@ export const useFacturesAchat = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['factures-achat'] });
+      queryClient.invalidateQueries({ queryKey: ['all-facture-achat-articles'] });
       toast({
         title: "Facture d'achat créée avec succès",
         variant: "default",
@@ -100,6 +101,7 @@ export const useFacturesAchat = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['factures-achat'] });
+      queryClient.invalidateQueries({ queryKey: ['all-facture-achat-articles'] });
       toast({
         title: "Facture d'achat supprimée avec succès",
         variant: "default",

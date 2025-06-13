@@ -119,6 +119,51 @@ export type Database = {
           },
         ]
       }
+      articles_facture_achat: {
+        Row: {
+          article_id: string | null
+          created_at: string
+          facture_achat_id: string | null
+          id: string
+          montant_ligne: number
+          prix_unitaire: number
+          quantite: number
+        }
+        Insert: {
+          article_id?: string | null
+          created_at?: string
+          facture_achat_id?: string | null
+          id?: string
+          montant_ligne?: number
+          prix_unitaire?: number
+          quantite?: number
+        }
+        Update: {
+          article_id?: string | null
+          created_at?: string
+          facture_achat_id?: string | null
+          id?: string
+          montant_ligne?: number
+          prix_unitaire?: number
+          quantite?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "articles_facture_achat_article_id_fkey"
+            columns: ["article_id"]
+            isOneToOne: false
+            referencedRelation: "catalogue"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "articles_facture_achat_facture_achat_id_fkey"
+            columns: ["facture_achat_id"]
+            isOneToOne: false
+            referencedRelation: "factures_achat"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       articles_retour_client: {
         Row: {
           article_id: string | null
