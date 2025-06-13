@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -76,11 +75,11 @@ const ClientsSettings = () => {
     );
   });
 
-  const handleNewClientSuccess = (clientName: string) => {
-    console.log('Client créé avec succès:', clientName);
+  const handleNewClientSuccess = (clientData: { id: string; nom: string }) => {
+    console.log('Client créé avec succès:', clientData);
     toast({
       title: "Client créé avec succès",
-      description: `${clientName} a été ajouté à votre liste de clients.`,
+      description: `${clientData.nom} a été ajouté à votre liste de clients.`,
     });
     setIsDialogOpen(false);
     loadClients(); // Recharger la liste
@@ -138,8 +137,7 @@ const ClientsSettings = () => {
                 </DialogHeader>
                 <div className="flex items-center justify-center p-6 overflow-y-auto">
                   <NewClientForm 
-                    onSuccess={handleNewClientSuccess}
-                    onCancel={() => setIsDialogOpen(false)}
+                    onClientCreated={handleNewClientSuccess}
                   />
                 </div>
               </DialogContent>
