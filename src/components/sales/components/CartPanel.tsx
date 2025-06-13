@@ -1,6 +1,7 @@
+
 import React from 'react';
 import CartHeader from './cart/CartHeader';
-import CartItem from './cart/CartItem';
+import CartItems from './cart/CartItems';
 import CartFooter from './cart/CartFooter';
 import ClientSection from './cart/ClientSection';
 
@@ -33,7 +34,7 @@ const CartPanel: React.FC<CartPanelProps> = ({
 }) => {
   return (
     <div className="w-80 bg-white border-l border-gray-200 flex flex-col">
-      <CartHeader cart={cart} clearCart={clearCart} />
+      <CartHeader cartLength={cart.length} onClearCart={clearCart} />
       
       <div className="flex-1 p-4 overflow-y-auto">
         <ClientSection
@@ -42,31 +43,21 @@ const CartPanel: React.FC<CartPanelProps> = ({
           onNewClient={onNewClient}
         />
 
-        {cart.length === 0 ? (
-          <div className="text-center text-gray-500 mt-10">
-            Votre panier est vide.
-          </div>
-        ) : (
-          <ul className="space-y-3">
-            {cart.map((item) => (
-              <CartItem
-                key={item.id}
-                item={item}
-                handleQuantityChange={handleQuantityChange}
-                handleRemiseChange={handleRemiseChange}
-                removeFromCart={removeFromCart}
-              />
-            ))}
-          </ul>
-        )}
+        <CartItems
+          cart={cart}
+          handleQuantityChange={handleQuantityChange}
+          handleRemiseChange={handleRemiseChange}
+          removeFromCart={removeFromCart}
+        />
       </div>
 
       <CartFooter
         cartTotals={cartTotals}
-        handlePayment={handlePayment}
+        cartLength={cart.length}
+        selectedClient={selectedClient}
         isLoading={isLoading}
-        hasItems={cart.length > 0}
-        hasClient={!!selectedClient}
+        clearCart={clearCart}
+        handlePayment={handlePayment}
       />
     </div>
   );
