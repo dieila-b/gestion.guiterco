@@ -1,4 +1,3 @@
-
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useState, useCallback } from 'react';
@@ -146,10 +145,24 @@ export const useVenteComptoir = (selectedPDV?: string) => {
 
       // Mettre à jour le stock PDV
       for (const article of venteData.articles) {
+        // Récupérer d'abord la quantité actuelle
+        const { data: currentStock, error: fetchError } = await supabase
+          .from('stock_pdv')
+          .select('quantite_disponible')
+          .eq('article_id', article.id)
+          .eq('point_vente_id', selectedPDV)
+          .single();
+
+        if (fetchError) throw fetchError;
+
+        // Calculer la nouvelle quantité
+        const newQuantity = Math.max(0, currentStock.quantite_disponible - article.quantite);
+
+        // Mettre à jour le stock
         const { error: stockError } = await supabase
           .from('stock_pdv')
           .update({
-            quantite_disponible: supabase.raw(`quantite_disponible - ${article.quantite}`)
+            quantite_disponible: newQuantity
           })
           .eq('article_id', article.id)
           .eq('point_vente_id', selectedPDV);
