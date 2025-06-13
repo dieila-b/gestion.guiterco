@@ -1,10 +1,10 @@
 
 import React from 'react';
-import VenteComptoirModern from './VenteComptoirModern';
+import VenteComptoirResponsive from './VenteComptoirResponsive';
 
-// Wrapper pour remplacer l'ancien composant par la version moderne
+// Wrapper pour utiliser la nouvelle version responsive
 const VenteComptoir = () => {
-  return <VenteComptoirModern />;
+  return <VenteComptoirResponsive />;
 };
 
 export default VenteComptoir;
