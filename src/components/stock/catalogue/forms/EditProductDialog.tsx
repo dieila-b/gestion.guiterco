@@ -12,10 +12,10 @@ import { supabase } from '@/integrations/supabase/client';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useCategories } from '@/hooks/useCategories';
 import { useUnites } from '@/hooks/useUnites';
-import { Article } from '@/hooks/useCatalogueOptimized';
+import { ArticleOptimized } from '@/hooks/useCatalogueOptimized';
 
 interface EditProductDialogProps {
-  article: Article;
+  article: ArticleOptimized;
 }
 
 export const EditProductDialog = ({ article }: EditProductDialogProps) => {
@@ -33,8 +33,8 @@ export const EditProductDialog = ({ article }: EditProductDialogProps) => {
 
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const { categories } = useCategories();
-  const { unites } = useUnites();
+  const { data: categories } = useCategories();
+  const { data: unites } = useUnites();
 
   const updateProductMutation = useMutation({
     mutationFn: async (data: any) => {

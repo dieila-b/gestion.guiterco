@@ -6,10 +6,10 @@ import { Trash2, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { Article } from '@/hooks/useCatalogueOptimized';
+import { ArticleOptimized } from '@/hooks/useCatalogueOptimized';
 
 interface DeleteProductDialogProps {
-  article: Article;
+  article: ArticleOptimized;
 }
 
 export const DeleteProductDialog = ({ article }: DeleteProductDialogProps) => {
