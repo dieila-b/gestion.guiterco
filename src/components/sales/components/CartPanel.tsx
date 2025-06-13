@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { ShoppingCart, User, CreditCard, X, Plus } from 'lucide-react';
+import { ShoppingCart, CreditCard, X } from 'lucide-react';
 import { formatCurrency } from '@/lib/currency';
 import NewClientForm from './NewClientForm';
+import ClientSearchDropdown from './ClientSearchDropdown';
 
 interface CartItem {
   id: string;
@@ -55,7 +55,7 @@ const CartPanel: React.FC<CartPanelProps> = ({
     <div className="w-1/2 p-4 flex flex-col">
       {/* Panier élevé et aligné avec le haut de la zone produit */}
       <div className="bg-white rounded-lg shadow-2xl border border-gray-200 flex flex-col h-full mt-0">
-        {/* En-tête panier avec style élevé */}
+        {/* En-tête panier */}
         <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 border-b border-gray-200 rounded-t-lg">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-3">
@@ -69,31 +69,17 @@ const CartPanel: React.FC<CartPanelProps> = ({
             )}
           </div>
 
-          {/* Section client avec indicateur requis */}
+          {/* Section client */}
           <div className="mb-3">
             <div className="flex items-center gap-2 mb-2">
               <div className="h-2 w-2 bg-red-500 rounded-full"></div>
               <span className="text-sm font-medium text-red-600">Client requis</span>
             </div>
-            <div className="flex gap-2">
-              <Input
-                placeholder="Rechercher un client..."
-                value={selectedClient}
-                onChange={(e) => setSelectedClient(e.target.value)}
-                className="flex-1"
-              />
-              <Button size="sm" variant="outline">
-                <User className="h-4 w-4" />
-              </Button>
-              <Button 
-                size="sm" 
-                variant="outline"
-                onClick={() => setShowNewClientDialog(true)}
-              >
-                <Plus className="h-4 w-4 mr-1" />
-                Nouveau
-              </Button>
-            </div>
+            <ClientSearchDropdown
+              selectedClient={selectedClient}
+              setSelectedClient={setSelectedClient}
+              onNewClient={() => setShowNewClientDialog(true)}
+            />
           </div>
         </div>
 
@@ -128,22 +114,22 @@ const CartPanel: React.FC<CartPanelProps> = ({
                     </div>
                     
                     <div className="col-span-2">
-                      <Input
+                      <input
                         type="number"
                         value={item.quantite}
                         onChange={(e) => handleQuantityChange(item.id, e.target.value)}
-                        className="h-9 w-full text-center text-sm font-medium"
+                        className="h-9 w-full text-center text-sm font-medium border border-gray-300 rounded"
                         min="1"
                       />
                     </div>
 
                     <div className="col-span-2">
-                      <Input
+                      <input
                         type="number"
                         value={item.remise}
                         onChange={(e) => handleRemiseChange(item.id, e.target.value)}
                         placeholder="0"
-                        className="h-9 w-full text-center text-sm"
+                        className="h-9 w-full text-center text-sm border border-gray-300 rounded"
                         min="0"
                       />
                     </div>
@@ -215,11 +201,11 @@ const CartPanel: React.FC<CartPanelProps> = ({
 
       {/* Full-screen dialog for new client */}
       <Dialog open={showNewClientDialog} onOpenChange={setShowNewClientDialog}>
-        <DialogContent className="max-w-none w-screen h-screen p-0 bg-gray-900">
+        <DialogContent className="max-w-none w-screen h-screen p-0 bg-gray-900 m-0 rounded-none">
           <DialogHeader className="p-6 border-b border-gray-700">
             <DialogTitle className="text-2xl font-bold text-purple-400">Nouveau Client</DialogTitle>
           </DialogHeader>
-          <div className="flex items-center justify-center p-6">
+          <div className="flex items-center justify-center p-6 overflow-y-auto">
             <NewClientForm 
               onSuccess={handleNewClientSuccess}
               onCancel={() => setShowNewClientDialog(false)}
