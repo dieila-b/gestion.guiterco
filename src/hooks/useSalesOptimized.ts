@@ -52,8 +52,12 @@ export const useCommandesClientsRecent = (limit = 10) => {
           numero_commande,
           statut,
           montant_ttc,
+          montant_ht,
+          tva,
           date_commande,
-          client:clients!inner(id, nom, prenom)
+          created_at,
+          updated_at,
+          client:clients!inner(id, nom)
         `)
         .order('created_at', { ascending: false })
         .limit(limit);
@@ -81,8 +85,12 @@ export const useCommandesSearch = (searchTerm: string, enabled = false) => {
           numero_commande,
           statut,
           montant_ttc,
+          montant_ht,
+          tva,
           date_commande,
-          client:clients!inner(nom, prenom)
+          created_at,
+          updated_at,
+          client:clients!inner(nom)
         `)
         .or(`numero_commande.ilike.%${searchTerm}%,client.nom.ilike.%${searchTerm}%`)
         .limit(20);
@@ -106,7 +114,7 @@ export const usePrefetchSalesData = () => {
       queryFn: async () => {
         const { data, error } = await supabase
           .from('clients')
-          .select('id, nom, prenom, email, telephone')
+          .select('id, nom, email, telephone')
           .limit(50);
         if (error) throw error;
         return data;

@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Label } from '@/components/ui/label';
@@ -64,7 +63,7 @@ const ClientsReports: React.FC = () => {
               <SelectItem value="all">Tous les clients</SelectItem>
               {clients?.map((client) => (
                 <SelectItem key={client.id} value={client.id}>
-                  {client.nom} {client.prenom || ''}
+                  {client.nom}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -100,7 +99,7 @@ const ClientsReports: React.FC = () => {
                 <CardHeader>
                   <CardTitle className="flex items-center">
                     <Users className="mr-2 h-5 w-5" />
-                    Rapport détaillé - {selectedClientData.client.nom} {selectedClientData.client.prenom || ''}
+                    Rapport détaillé - {selectedClientData.client.nom}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -172,7 +171,7 @@ const ClientsReports: React.FC = () => {
                     {clientStats.map((stat) => (
                       <TableRow key={stat.client.id}>
                         <TableCell className="font-medium">
-                          {stat.client.nom} {stat.client.prenom || ''}
+                          {stat.client.nom}
                         </TableCell>
                         <TableCell>{stat.client.email || stat.client.telephone || '-'}</TableCell>
                         <TableCell>{stat.totalFactures}</TableCell>

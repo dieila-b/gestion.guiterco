@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Label } from '@/components/ui/label';
@@ -174,7 +173,7 @@ const DateRangeReports: React.FC = () => {
                       <TableCell className="font-medium">{facture.numero_facture}</TableCell>
                       <TableCell>{format(new Date(facture.date_facture), 'dd/MM/yyyy', { locale: fr })}</TableCell>
                       <TableCell>
-                        {facture.client ? `${facture.client.nom} ${facture.client.prenom || ''}`.trim() : 'Client non spécifié'}
+                        {facture.client ? facture.client.nom : 'Client non spécifié'}
                       </TableCell>
                       <TableCell>{formatCurrency(facture.montant_ht)}</TableCell>
                       <TableCell>{formatCurrency(facture.tva)}</TableCell>

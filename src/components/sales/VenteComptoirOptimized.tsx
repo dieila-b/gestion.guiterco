@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -286,7 +285,7 @@ const VenteComptoirOptimized = () => {
                   <div>
                     <div className="font-medium">{commande.numero_commande}</div>
                     <div className="text-sm text-gray-500">
-                      {commande.client ? `${commande.client.nom} ${commande.client.prenom || ''}`.trim() : 'Client non spécifié'}
+                      {commande.client ? commande.client.nom : 'Client non spécifié'}
                     </div>
                   </div>
                   <Badge variant={getStatusBadgeColor(commande.statut)}>

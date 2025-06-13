@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -64,7 +63,7 @@ const Precommandes = () => {
                 <div>
                   <p className="text-muted-foreground">Client</p>
                   <p className="font-medium">
-                    {precommande.client ? `${precommande.client.nom} ${precommande.client.prenom || ''}`.trim() : 'Client non spécifié'}
+                    {precommande.client ? precommande.client.nom : 'Client non spécifié'}
                   </p>
                 </div>
                 <div>

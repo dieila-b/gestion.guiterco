@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -94,7 +93,7 @@ const DevisVente = () => {
                 <div>
                   <p className="text-muted-foreground">Client</p>
                   <p className="font-medium">
-                    {devisItem.client ? `${devisItem.client.nom} ${devisItem.client.prenom || ''}`.trim() : 'Client non spécifié'}
+                    {devisItem.client ? devisItem.client.nom : 'Client non spécifié'}
                   </p>
                 </div>
                 <div>

@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Label } from '@/components/ui/label';
@@ -172,7 +171,7 @@ const UnpaidInvoicesReports: React.FC = () => {
                       <TableRow key={facture.id}>
                         <TableCell className="font-medium">{facture.numero_facture}</TableCell>
                         <TableCell>
-                          {facture.client ? `${facture.client.nom} ${facture.client.prenom || ''}`.trim() : 'Client non spécifié'}
+                          {facture.client ? facture.client.nom : 'Client non spécifié'}
                         </TableCell>
                         <TableCell>
                           {format(new Date(facture.date_facture), 'dd/MM/yyyy', { locale: fr })}

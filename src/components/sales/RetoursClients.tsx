@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -66,7 +65,7 @@ const RetoursClients = () => {
                 <div>
                   <p className="text-muted-foreground">Client</p>
                   <p className="font-medium">
-                    {retour.client ? `${retour.client.nom} ${retour.client.prenom || ''}`.trim() : 'Client non spécifié'}
+                    {retour.client ? retour.client.nom : 'Client non spécifié'}
                   </p>
                 </div>
                 <div>
