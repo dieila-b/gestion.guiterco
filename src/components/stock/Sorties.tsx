@@ -1,5 +1,6 @@
+
 import React, { useState } from 'react';
-import { useSortiesStock, useCatalogue, useEntrepots } from '@/hooks/stock';
+import { useSortiesStock, useCatalogue, useEntrepots, usePointsDeVente } from '@/hooks/stock';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -17,6 +18,7 @@ const Sorties = () => {
   const { sorties, isLoading, createSortie } = useSortiesStock();
   const { articles } = useCatalogue();
   const { entrepots } = useEntrepots();
+  const { pointsDeVente } = usePointsDeVente();
   const [searchTerm, setSearchTerm] = useState('');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   
@@ -80,6 +82,12 @@ const Sorties = () => {
     sortie.destination?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  // Combiner entrepôts et points de vente pour le sélecteur
+  const emplacements = [
+    ...(entrepots?.map(e => ({ id: e.id, nom: e.nom, type: 'Entrepôt' })) || []),
+    ...(pointsDeVente?.map(p => ({ id: p.id, nom: p.nom, type: 'Point de vente' })) || [])
+  ];
+
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -92,7 +100,7 @@ const Sorties = () => {
                 Nouvelle sortie
               </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-[425px]">
+            <DialogContent className="sm:max-w-[500px]">
               <DialogHeader>
                 <DialogTitle>Ajouter une sortie de stock</DialogTitle>
               </DialogHeader>
@@ -117,7 +125,7 @@ const Sorties = () => {
                     </Select>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="entrepot_id">Entrepôt *</Label>
+                    <Label htmlFor="entrepot_id">Emplacement *</Label>
                     <Select 
                       value={formData.entrepot_id} 
                       onValueChange={(value) => handleSelectChange('entrepot_id', value)}
@@ -126,9 +134,9 @@ const Sorties = () => {
                         <SelectValue placeholder="Sélectionner..." />
                       </SelectTrigger>
                       <SelectContent>
-                        {entrepots?.map(entrepot => (
-                          <SelectItem key={entrepot.id} value={entrepot.id}>
-                            {entrepot.nom}
+                        {emplacements.map(emplacement => (
+                          <SelectItem key={emplacement.id} value={emplacement.id}>
+                            {emplacement.nom} ({emplacement.type})
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -241,7 +249,7 @@ const Sorties = () => {
                 <TableRow>
                   <TableHead>Date</TableHead>
                   <TableHead>Article</TableHead>
-                  <TableHead>Entrepôt</TableHead>
+                  <TableHead>Emplacement</TableHead>
                   <TableHead>Type</TableHead>
                   <TableHead className="text-right">Quantité</TableHead>
                   <TableHead>Destination</TableHead>

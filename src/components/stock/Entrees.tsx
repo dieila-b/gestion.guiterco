@@ -1,5 +1,6 @@
+
 import React, { useState } from 'react';
-import { useEntreesStock, useCatalogue, useEntrepots } from '@/hooks/stock';
+import { useEntreesStock, useCatalogue, useEntrepots, usePointsDeVente } from '@/hooks/stock';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -12,11 +13,13 @@ import { format } from 'date-fns';
 import { fr } from 'date-fns/locale/fr';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from '@/hooks/use-toast';
+import { formatCurrency } from '@/lib/currency';
 
 const Entrees = () => {
   const { entrees, isLoading, createEntree } = useEntreesStock();
   const { articles } = useCatalogue();
   const { entrepots } = useEntrepots();
+  const { pointsDeVente } = usePointsDeVente();
   const [searchTerm, setSearchTerm] = useState('');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   
@@ -83,6 +86,12 @@ const Entrees = () => {
     entree.fournisseur?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  // Combiner entrepôts et points de vente pour le sélecteur
+  const emplacements = [
+    ...(entrepots?.map(e => ({ id: e.id, nom: e.nom, type: 'Entrepôt' })) || []),
+    ...(pointsDeVente?.map(p => ({ id: p.id, nom: p.nom, type: 'Point de vente' })) || [])
+  ];
+
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -95,7 +104,7 @@ const Entrees = () => {
                 Nouvelle entrée
               </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-[425px]">
+            <DialogContent className="sm:max-w-[500px]">
               <DialogHeader>
                 <DialogTitle>Ajouter une entrée de stock</DialogTitle>
               </DialogHeader>
@@ -120,7 +129,7 @@ const Entrees = () => {
                     </Select>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="entrepot_id">Entrepôt *</Label>
+                    <Label htmlFor="entrepot_id">Emplacement *</Label>
                     <Select 
                       value={formData.entrepot_id} 
                       onValueChange={(value) => handleSelectChange('entrepot_id', value)}
@@ -129,9 +138,9 @@ const Entrees = () => {
                         <SelectValue placeholder="Sélectionner..." />
                       </SelectTrigger>
                       <SelectContent>
-                        {entrepots?.map(entrepot => (
-                          <SelectItem key={entrepot.id} value={entrepot.id}>
-                            {entrepot.nom}
+                        {emplacements.map(emplacement => (
+                          <SelectItem key={emplacement.id} value={emplacement.id}>
+                            {emplacement.nom} ({emplacement.type})
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -193,14 +202,15 @@ const Entrees = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="prix_unitaire">Prix unitaire</Label>
+                  <Label htmlFor="prix_unitaire">Prix unitaire (GNF)</Label>
                   <Input
                     id="prix_unitaire"
                     name="prix_unitaire"
                     type="number"
-                    step="0.01"
+                    step="1"
                     value={formData.prix_unitaire}
                     onChange={handleInputChange}
+                    placeholder="Prix en GNF"
                   />
                 </div>
 
@@ -256,7 +266,7 @@ const Entrees = () => {
                 <TableRow>
                   <TableHead>Date</TableHead>
                   <TableHead>Article</TableHead>
-                  <TableHead>Entrepôt</TableHead>
+                  <TableHead>Emplacement</TableHead>
                   <TableHead>Type</TableHead>
                   <TableHead className="text-right">Quantité</TableHead>
                   <TableHead>Fournisseur</TableHead>
@@ -296,7 +306,9 @@ const Entrees = () => {
                       </TableCell>
                       <TableCell className="text-right">{entree.quantite}</TableCell>
                       <TableCell>{entree.fournisseur || 'N/A'}</TableCell>
-                      <TableCell className="text-right">{entree.prix_unitaire?.toFixed(2) || 'N/A'}</TableCell>
+                      <TableCell className="text-right">
+                        {entree.prix_unitaire ? formatCurrency(entree.prix_unitaire) : 'N/A'}
+                      </TableCell>
                       <TableCell>{entree.numero_bon || 'N/A'}</TableCell>
                     </TableRow>
                   ))
