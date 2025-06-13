@@ -7,6 +7,8 @@ import { toast } from 'sonner';
 import VenteHeader from './components/VenteHeader';
 import ProductGrid from './components/ProductGrid';
 import CartPanel from './components/CartPanel';
+import PaymentModal from './components/PaymentModal';
+import PostPaymentActions from './components/PostPaymentActions';
 
 const VenteComptoirResponsive = () => {
   const [selectedPDV, setSelectedPDV] = useState('PDV Madina');
@@ -14,6 +16,9 @@ const VenteComptoirResponsive = () => {
   const [selectedCategory, setSelectedCategory] = useState('Tous');
   const [selectedClient, setSelectedClient] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [showPostPaymentActions, setShowPostPaymentActions] = useState(false);
+  const [lastFacture, setLastFacture] = useState<any>(null);
   const productsPerPage = 20;
 
   // Debounce pour la recherche
@@ -32,19 +37,21 @@ const VenteComptoirResponsive = () => {
     selectedCategory === 'Tous' ? '' : selectedCategory
   );
 
-  // Hook vente comptoir
+  // Hook vente comptoir avec gestion du stock PDV
   const {
     cart,
+    stockPDV,
     addToCart,
     updateQuantity,
     updateRemise,
     removeFromCart,
     clearCart,
     createVente,
+    getStockColor,
     isLoading
-  } = useVenteComptoir();
+  } = useVenteComptoir(selectedPDV);
 
-  // Éliminer les doublons de catégories - amélioration de la logique
+  // Éliminer les doublons de catégories
   const uniqueCategories = useMemo(() => {
     const categorySet = new Set();
     categories.forEach(cat => {
@@ -81,18 +88,28 @@ const VenteComptoirResponsive = () => {
       return;
     }
 
+    setShowPaymentModal(true);
+  };
+
+  const handlePaymentConfirm = async (paymentData: any) => {
     try {
-      await createVente.mutateAsync({
+      const result = await createVente.mutateAsync({
         client_id: selectedClient,
         point_vente: selectedPDV,
         articles: cart,
-        montant_total: cartTotals.total
+        montant_total: cartTotals.total,
+        montant_paye: paymentData.montant_paye,
+        mode_paiement: paymentData.mode_paiement,
+        statut_livraison: paymentData.statut_livraison,
+        quantite_livree: paymentData.quantite_livree,
+        notes: paymentData.notes
       });
       
-      toast.success('Vente enregistrée avec succès');
+      setLastFacture(result.facture);
+      setShowPaymentModal(false);
+      setShowPostPaymentActions(true);
     } catch (error) {
       console.error('Erreur lors de la vente:', error);
-      toast.error('Erreur lors de l\'enregistrement de la vente');
     }
   };
 
@@ -128,19 +145,21 @@ const VenteComptoirResponsive = () => {
           uniqueCategories={uniqueCategories}
         />
 
-        {/* Contenu principal - alignement amélioré */}
+        {/* Contenu principal */}
         <div className="flex-1 flex min-h-0">
           {/* Zone produits */}
           <ProductGrid
             articles={articles}
+            stockPDV={stockPDV}
             loadingArticles={loadingArticles}
             addToCart={addToCart}
             currentPage={currentPage}
             totalPages={totalPages}
             goToPage={goToPage}
+            getStockColor={getStockColor}
           />
 
-          {/* Zone panier - alignée avec le haut */}
+          {/* Zone panier */}
           <CartPanel
             cart={cart}
             cartTotals={cartTotals}
@@ -155,6 +174,23 @@ const VenteComptoirResponsive = () => {
           />
         </div>
       </div>
+
+      {/* Modal de paiement */}
+      <PaymentModal
+        isOpen={showPaymentModal}
+        onClose={() => setShowPaymentModal(false)}
+        onConfirm={handlePaymentConfirm}
+        totalAmount={cartTotals.total}
+        cartItems={cart}
+        isLoading={isLoading}
+      />
+
+      {/* Actions post-paiement */}
+      <PostPaymentActions
+        isOpen={showPostPaymentActions}
+        onClose={() => setShowPostPaymentActions(false)}
+        factureData={lastFacture || {}}
+      />
     </div>
   );
 };
