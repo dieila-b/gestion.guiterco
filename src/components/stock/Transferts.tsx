@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useTransferts, useCatalogue, useEntrepots, usePointsDeVente } from '@/hooks/useStock';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -8,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search, Plus, RefreshCw, Check, X } from 'lucide-react';
+import { Search, Plus, RefreshCw, Check, X, Package, Truck } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale/fr';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -90,6 +89,8 @@ const Transferts = () => {
 
   const handleStatusChange = async (id: string, newStatus: string) => {
     try {
+      console.log(`Changement de statut du transfert ${id} vers ${newStatus}`);
+      
       const updateData: any = {
         id,
         statut: newStatus
@@ -97,13 +98,32 @@ const Transferts = () => {
       
       if (newStatus === 'expedie') {
         updateData.date_expedition = new Date().toISOString();
+        toast({
+          title: "Transfert expédié",
+          description: "Le stock de l'entrepôt source a été débité.",
+        });
       } else if (newStatus === 'recu') {
         updateData.date_reception = new Date().toISOString();
+        toast({
+          title: "Transfert reçu",
+          description: "Le stock de destination a été crédité.",
+        });
+      } else if (newStatus === 'annule') {
+        toast({
+          title: "Transfert annulé",
+          description: "Le transfert a été annulé.",
+          variant: "destructive",
+        });
       }
       
       await updateTransfert.mutateAsync(updateData);
     } catch (error) {
       console.error("Erreur lors du changement de statut:", error);
+      toast({
+        title: "Erreur",
+        description: "Une erreur est survenue lors du changement de statut.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -174,22 +194,39 @@ const Transferts = () => {
                         {format(new Date(transfert.created_at), 'dd/MM/yyyy', { locale: fr })}
                       </TableCell>
                       <TableCell className="font-medium">
-                        {transfert.article?.nom || 'N/A'}
+                        <div className="flex flex-col">
+                          <span>{transfert.article?.nom || 'N/A'}</span>
+                          <span className="text-xs text-muted-foreground">
+                            {transfert.article?.reference || ''}
+                          </span>
+                        </div>
                       </TableCell>
                       <TableCell>{transfert.entrepot_source?.nom || 'N/A'}</TableCell>
                       <TableCell>
-                        {transfert.entrepot_destination?.nom || transfert.pdv_destination?.nom || 'N/A'}
+                        <div className="flex items-center gap-1">
+                          {transfert.entrepot_destination_id ? (
+                            <>
+                              <Package className="h-3 w-3" />
+                              {transfert.entrepot_destination?.nom}
+                            </>
+                          ) : (
+                            <>
+                              <Truck className="h-3 w-3" />
+                              {transfert.pdv_destination?.nom}
+                            </>
+                          )}
+                        </div>
                       </TableCell>
-                      <TableCell className="text-right">{transfert.quantite}</TableCell>
+                      <TableCell className="text-right font-mono">{transfert.quantite}</TableCell>
                       <TableCell>
-                        <span className={`px-2 py-1 rounded-full text-xs ${
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${
                           transfert.statut === 'en_cours' 
-                            ? 'bg-blue-100 text-blue-800' 
+                            ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200' 
                             : transfert.statut === 'expedie'
-                            ? 'bg-orange-100 text-orange-800'
+                            ? 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200'
                             : transfert.statut === 'recu'
-                            ? 'bg-green-100 text-green-800'
-                            : 'bg-red-100 text-red-800'
+                            ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                            : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
                         }`}>
                           {transfert.statut === 'en_cours' 
                             ? 'En cours' 
@@ -202,44 +239,49 @@ const Transferts = () => {
                       </TableCell>
                       <TableCell>
                         {transfert.date_expedition 
-                          ? format(new Date(transfert.date_expedition), 'dd/MM/yyyy', { locale: fr })
-                          : 'Non expédié'}
+                          ? format(new Date(transfert.date_expedition), 'dd/MM/yyyy HH:mm', { locale: fr })
+                          : '-'}
                       </TableCell>
                       <TableCell>
                         {transfert.date_reception 
-                          ? format(new Date(transfert.date_reception), 'dd/MM/yyyy', { locale: fr })
-                          : 'Non reçu'}
+                          ? format(new Date(transfert.date_reception), 'dd/MM/yyyy HH:mm', { locale: fr })
+                          : '-'}
                       </TableCell>
                       <TableCell className="text-right">
-                        <div className="flex justify-end space-x-2">
+                        <div className="flex justify-end space-x-1">
                           {transfert.statut === 'en_cours' && (
                             <Button
                               variant="ghost"
-                              size="icon"
+                              size="sm"
                               onClick={() => handleStatusChange(transfert.id, 'expedie')}
                               title="Marquer comme expédié"
+                              className="h-8 px-2 text-orange-600 hover:text-orange-700 hover:bg-orange-50"
                             >
-                              <Check className="h-4 w-4 text-green-500" />
+                              <Truck className="h-3 w-3 mr-1" />
+                              Expédier
                             </Button>
                           )}
                           {transfert.statut === 'expedie' && (
                             <Button
                               variant="ghost"
-                              size="icon"
+                              size="sm"
                               onClick={() => handleStatusChange(transfert.id, 'recu')}
                               title="Marquer comme reçu"
+                              className="h-8 px-2 text-green-600 hover:text-green-700 hover:bg-green-50"
                             >
-                              <Check className="h-4 w-4 text-green-500" />
+                              <Check className="h-3 w-3 mr-1" />
+                              Réceptionner
                             </Button>
                           )}
                           {(transfert.statut === 'en_cours' || transfert.statut === 'expedie') && (
                             <Button
                               variant="ghost"
-                              size="icon"
+                              size="sm"
                               onClick={() => handleStatusChange(transfert.id, 'annule')}
                               title="Annuler le transfert"
+                              className="h-8 px-2 text-red-600 hover:text-red-700 hover:bg-red-50"
                             >
-                              <X className="h-4 w-4 text-red-500" />
+                              <X className="h-3 w-3" />
                             </Button>
                           )}
                         </div>
@@ -248,7 +290,7 @@ const Transferts = () => {
                   ))
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={9} className="text-center py-4">
+                    <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
                       Aucun transfert trouvé
                     </TableCell>
                   </TableRow>
