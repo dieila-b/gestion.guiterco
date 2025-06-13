@@ -8,7 +8,6 @@ import { supabase } from '@/integrations/supabase/client';
 interface Client {
   id: string;
   nom: string;
-  nom_entreprise?: string;
   type_client: string;
 }
 
@@ -39,8 +38,8 @@ const ClientSearchDropdown: React.FC<ClientSearchDropdownProps> = ({
     try {
       const { data, error } = await supabase
         .from('clients')
-        .select('id, nom, nom_entreprise, type_client')
-        .or(`nom.ilike.%${term}%,nom_entreprise.ilike.%${term}%`)
+        .select('id, nom, type_client')
+        .ilike('nom', `%${term}%`)
         .limit(10);
 
       if (error) throw error;
@@ -62,7 +61,7 @@ const ClientSearchDropdown: React.FC<ClientSearchDropdownProps> = ({
   }, [searchTerm]);
 
   const handleClientSelect = (client: Client) => {
-    const clientName = client.nom_entreprise || client.nom;
+    const clientName = client.nom;
     setSelectedClient(clientName);
     setSearchTerm(clientName);
     setShowDropdown(false);
@@ -93,15 +92,13 @@ const ClientSearchDropdown: React.FC<ClientSearchDropdownProps> = ({
                 <div className="p-3 text-center text-gray-500">Recherche...</div>
               ) : clients.length > 0 ? (
                 clients.map((client) => {
-                  const displayName = client.nom_entreprise || client.nom;
-                  
                   return (
                     <div
                       key={client.id}
                       className="p-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0"
                       onClick={() => handleClientSelect(client)}
                     >
-                      <div className="font-medium text-gray-900">{displayName}</div>
+                      <div className="font-medium text-gray-900">{client.nom}</div>
                       <div className="text-sm text-gray-500 capitalize">{client.type_client}</div>
                     </div>
                   );
