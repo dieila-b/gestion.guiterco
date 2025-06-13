@@ -351,20 +351,49 @@ export const useStockPrincipal = () => {
   const { data: stockEntrepot, isLoading, error } = useQuery({
     queryKey: ['stock-principal'],
     queryFn: async () => {
+      console.log('Fetching stock principal data...');
+      
       const { data, error } = await supabase
         .from('stock_principal')
         .select(`
           *,
-          article:article_id(*),
-          entrepot:entrepot_id(*)
+          article:article_id(
+            id,
+            reference,
+            nom,
+            description,
+            categorie,
+            unite_mesure,
+            prix_unitaire,
+            prix_achat,
+            prix_vente,
+            statut
+          ),
+          entrepot:entrepot_id(
+            id,
+            nom,
+            adresse,
+            gestionnaire,
+            statut
+          )
         `)
+        .eq('article.statut', 'actif')
+        .eq('entrepot.statut', 'actif')
         .order('updated_at', { ascending: false });
       
       if (error) {
+        console.error('Erreur lors du chargement du stock principal:', error);
         throw error;
       }
-      return data as StockPrincipal[];
-    }
+      
+      // Filter out items with null article or entrepot
+      const filteredData = data?.filter(item => item.article && item.entrepot) || [];
+      
+      console.log('Stock principal data loaded:', filteredData);
+      return filteredData as StockPrincipal[];
+    },
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    refetchOnWindowFocus: false
   });
 
   return {
