@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { useStockPrincipal, useEntrepots } from '@/hooks/useStock';
+import { useStockPrincipal, useEntrepots } from '@/hooks/stock';
 import { useCatalogueSync } from '@/hooks/useCatalogueSync';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';

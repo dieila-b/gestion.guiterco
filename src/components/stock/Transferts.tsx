@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useTransferts, useCatalogue, useEntrepots, usePointsDeVente } from '@/hooks/useStock';
+import { useTransferts, useCatalogue, useEntrepots, usePointsDeVente } from '@/hooks/stock';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';

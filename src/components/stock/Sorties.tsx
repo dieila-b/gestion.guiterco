@@ -1,6 +1,5 @@
-
 import React, { useState } from 'react';
-import { useSortiesStock, useCatalogue, useEntrepots } from '@/hooks/useStock';
+import { useSortiesStock, useCatalogue, useEntrepots } from '@/hooks/stock';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
