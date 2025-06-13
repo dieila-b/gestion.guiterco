@@ -1,6 +1,5 @@
 
 import React from 'react';
-import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Search } from 'lucide-react';
@@ -13,6 +12,7 @@ interface VenteHeaderProps {
   selectedCategory: string;
   setSelectedCategory: (value: string) => void;
   uniqueCategories: string[];
+  pointsDeVente?: any[];
 }
 
 const VenteHeader: React.FC<VenteHeaderProps> = ({
@@ -22,55 +22,71 @@ const VenteHeader: React.FC<VenteHeaderProps> = ({
   setSearchProduct,
   selectedCategory,
   setSelectedCategory,
-  uniqueCategories
+  uniqueCategories,
+  pointsDeVente = []
 }) => {
   return (
-    <div className="bg-white border-b p-4 flex-shrink-0 shadow-sm">
-      <h1 className="text-xl font-bold mb-3">Vente au Comptoir</h1>
-      
-      {/* Contrôles */}
-      <div className="flex flex-col sm:flex-row gap-3 mb-3">
-        <Select value={selectedPDV} onValueChange={setSelectedPDV}>
-          <SelectTrigger className="w-full sm:w-48">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="PDV Madina">PDV Madina</SelectItem>
-            <SelectItem value="PDV Centre">PDV Centre</SelectItem>
-            <SelectItem value="PDV Nord">PDV Nord</SelectItem>
-          </SelectContent>
-        </Select>
-
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-          <Input
-            placeholder="Rechercher un produit..."
-            value={searchProduct}
-            onChange={(e) => setSearchProduct(e.target.value)}
-            className="pl-10"
-          />
+    <div className="bg-white border-b border-gray-200 p-4">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        {/* Sélection du point de vente */}
+        <div className="space-y-2">
+          <label className="text-sm font-medium text-gray-700">Point de vente</label>
+          <Select value={selectedPDV} onValueChange={setSelectedPDV}>
+            <SelectTrigger>
+              <SelectValue placeholder="Sélectionner un PDV" />
+            </SelectTrigger>
+            <SelectContent>
+              {pointsDeVente.map((pdv) => (
+                <SelectItem key={pdv.id} value={pdv.nom}>
+                  {pdv.nom}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
-      </div>
 
-      {/* Filtres par catégorie */}
-      <div className="flex flex-wrap gap-2">
-        <Button
-          variant={selectedCategory === 'Tous' ? 'default' : 'outline'}
-          onClick={() => setSelectedCategory('Tous')}
-          size="sm"
-        >
-          Tous
-        </Button>
-        {uniqueCategories.slice(0, 5).map((category) => (
-          <Button
-            key={category}
-            variant={selectedCategory === category ? 'default' : 'outline'}
-            onClick={() => setSelectedCategory(category)}
-            size="sm"
-          >
-            {category}
-          </Button>
-        ))}
+        {/* Recherche de produit */}
+        <div className="space-y-2">
+          <label className="text-sm font-medium text-gray-700">Recherche produit</label>
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <Input
+              placeholder="Scanner ou rechercher..."
+              value={searchProduct}
+              onChange={(e) => setSearchProduct(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+        </div>
+
+        {/* Filtre par catégorie */}
+        <div className="space-y-2">
+          <label className="text-sm font-medium text-gray-700">Catégorie</label>
+          <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+            <SelectTrigger>
+              <SelectValue placeholder="Toutes catégories" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="Tous">Toutes catégories</SelectItem>
+              {uniqueCategories.map((cat) => (
+                <SelectItem key={cat} value={cat}>
+                  {cat}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Info du PDV sélectionné */}
+        <div className="space-y-2">
+          <label className="text-sm font-medium text-gray-700">Statut</label>
+          <div className="flex items-center space-x-2">
+            <div className={`h-3 w-3 rounded-full ${selectedPDV ? 'bg-green-500' : 'bg-gray-300'}`}></div>
+            <span className="text-sm text-gray-600">
+              {selectedPDV ? `${selectedPDV} - Connecté` : 'Aucun PDV sélectionné'}
+            </span>
+          </div>
+        </div>
       </div>
     </div>
   );

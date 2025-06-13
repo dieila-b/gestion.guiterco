@@ -10,34 +10,52 @@ interface Article {
   reference: string;
   prix_vente?: number;
   image_url?: string;
-  stock_disponible?: number;
 }
 
 interface ProductGridProps {
-  articles: Article[];
   stockPDV?: any[];
   loadingArticles: boolean;
-  addToCart: (article: Article) => void;
+  addToCart: (article: any) => void;
   currentPage: number;
   totalPages: number;
   goToPage: (page: number) => void;
   getStockColor: (quantite: number) => string;
+  searchProduct: string;
+  selectedCategory: string;
 }
 
 const ProductGrid: React.FC<ProductGridProps> = ({
-  articles,
   stockPDV,
   loadingArticles,
   addToCart,
   currentPage,
   totalPages,
   goToPage,
-  getStockColor
+  getStockColor,
+  searchProduct,
+  selectedCategory
 }) => {
-  const getStockForArticle = (articleId: string) => {
-    const stockItem = stockPDV?.find(item => item.article_id === articleId);
-    return stockItem ? stockItem.quantite_disponible : 0;
-  };
+  // Filtrer les produits en fonction de la recherche et de la catégorie
+  const filteredProducts = React.useMemo(() => {
+    if (!stockPDV) return [];
+    
+    return stockPDV.filter(stockItem => {
+      const article = stockItem.article;
+      if (!article) return false;
+
+      // Filtre par recherche
+      const matchesSearch = !searchProduct || 
+        article.nom.toLowerCase().includes(searchProduct.toLowerCase()) ||
+        article.reference.toLowerCase().includes(searchProduct.toLowerCase());
+
+      // Filtre par catégorie
+      const matchesCategory = selectedCategory === 'Tous' || 
+        !selectedCategory || 
+        article.categorie === selectedCategory;
+
+      return matchesSearch && matchesCategory;
+    });
+  }, [stockPDV, searchProduct, selectedCategory]);
 
   const getStockIndicator = (quantite: number) => {
     if (quantite > 50) return { emoji: '🟢', text: 'En stock' };
@@ -51,7 +69,9 @@ const ProductGrid: React.FC<ProductGridProps> = ({
         {/* En-tête produits */}
         <div className="p-4 border-b border-gray-200">
           <h3 className="text-lg font-bold text-gray-800">Produits disponibles</h3>
-          <p className="text-sm text-gray-500">Cliquez sur un produit pour l'ajouter au panier</p>
+          <p className="text-sm text-gray-500">
+            {filteredProducts.length} produits trouvés - Cliquez pour ajouter au panier
+          </p>
         </div>
 
         {/* Grille des produits */}
@@ -67,11 +87,18 @@ const ProductGrid: React.FC<ProductGridProps> = ({
                 </div>
               ))}
             </div>
+          ) : filteredProducts.length === 0 ? (
+            <div className="text-center py-8 text-gray-500">
+              <Image className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+              <p>Aucun produit trouvé</p>
+              <p className="text-sm">Essayez de changer les filtres ou sélectionner un autre PDV</p>
+            </div>
           ) : (
             <>
               <div className="grid grid-cols-5 gap-4 mb-4">
-                {articles.map((article) => {
-                  const stockDisponible = getStockForArticle(article.id);
+                {filteredProducts.map((stockItem) => {
+                  const article = stockItem.article;
+                  const stockDisponible = stockItem.quantite_disponible;
                   const stockIndicator = getStockIndicator(stockDisponible);
                   
                   return (

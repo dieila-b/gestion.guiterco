@@ -11,7 +11,7 @@ import PaymentModal from './components/PaymentModal';
 import PostPaymentActions from './components/PostPaymentActions';
 
 const VenteComptoirResponsive = () => {
-  const [selectedPDV, setSelectedPDV] = useState('PDV Madina');
+  const [selectedPDV, setSelectedPDV] = useState('');
   const [searchProduct, setSearchProduct] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('Tous');
   const [selectedClient, setSelectedClient] = useState('');
@@ -24,23 +24,11 @@ const VenteComptoirResponsive = () => {
   // Debounce pour la recherche
   const debouncedSearch = useDebounce(searchProduct, 300);
 
-  // Hook catalogue optimisé avec pagination
-  const { 
-    articles, 
-    categories, 
-    totalCount,
-    isLoading: loadingArticles
-  } = useCatalogueOptimized(
-    currentPage, 
-    productsPerPage, 
-    debouncedSearch, 
-    selectedCategory === 'Tous' ? '' : selectedCategory
-  );
-
   // Hook vente comptoir avec gestion du stock PDV
   const {
     cart,
     stockPDV,
+    pointsDeVente,
     addToCart,
     updateQuantity,
     updateRemise,
@@ -51,16 +39,29 @@ const VenteComptoirResponsive = () => {
     isLoading
   } = useVenteComptoir(selectedPDV);
 
+  // Hook catalogue optimisé avec pagination
+  const { 
+    categories, 
+    totalCount,
+    isLoading: loadingArticles
+  } = useCatalogueOptimized(
+    currentPage, 
+    productsPerPage, 
+    debouncedSearch, 
+    selectedCategory === 'Tous' ? '' : selectedCategory
+  );
+
   // Éliminer les doublons de catégories
   const uniqueCategories = useMemo(() => {
+    if (!stockPDV) return [];
     const categorySet = new Set();
-    categories.forEach(cat => {
-      if (cat && cat.trim()) {
-        categorySet.add(cat);
+    stockPDV.forEach(stockItem => {
+      if (stockItem.article?.categorie && stockItem.article.categorie.trim()) {
+        categorySet.add(stockItem.article.categorie);
       }
     });
     return Array.from(categorySet) as string[];
-  }, [categories]);
+  }, [stockPDV]);
 
   // Calculer les totaux du panier
   const cartTotals = useMemo(() => {
@@ -75,6 +76,13 @@ const VenteComptoirResponsive = () => {
     };
   }, [cart]);
 
+  // Sélectionner automatiquement le premier PDV disponible
+  React.useEffect(() => {
+    if (pointsDeVente && pointsDeVente.length > 0 && !selectedPDV) {
+      setSelectedPDV(pointsDeVente[0].nom);
+    }
+  }, [pointsDeVente, selectedPDV]);
+
   const totalPages = Math.ceil(totalCount / productsPerPage);
 
   const handlePayment = async () => {
@@ -85,6 +93,11 @@ const VenteComptoirResponsive = () => {
 
     if (cart.length === 0) {
       toast.error('Le panier est vide');
+      return;
+    }
+
+    if (!selectedPDV) {
+      toast.error('Veuillez sélectionner un point de vente');
       return;
     }
 
@@ -143,13 +156,13 @@ const VenteComptoirResponsive = () => {
           selectedCategory={selectedCategory}
           setSelectedCategory={setSelectedCategory}
           uniqueCategories={uniqueCategories}
+          pointsDeVente={pointsDeVente}
         />
 
         {/* Contenu principal */}
         <div className="flex-1 flex min-h-0">
           {/* Zone produits */}
           <ProductGrid
-            articles={articles}
             stockPDV={stockPDV}
             loadingArticles={loadingArticles}
             addToCart={addToCart}
@@ -157,6 +170,8 @@ const VenteComptoirResponsive = () => {
             totalPages={totalPages}
             goToPage={goToPage}
             getStockColor={getStockColor}
+            searchProduct={searchProduct}
+            selectedCategory={selectedCategory}
           />
 
           {/* Zone panier */}

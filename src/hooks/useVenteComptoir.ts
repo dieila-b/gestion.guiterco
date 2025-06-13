@@ -1,3 +1,4 @@
+
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useState, useCallback } from 'react';
@@ -28,25 +29,43 @@ export const useVenteComptoir = (selectedPDV?: string) => {
   const queryClient = useQueryClient();
   const [cart, setCart] = useState<CartItem[]>([]);
 
-  // Hook pour récupérer le stock PDV
+  // Hook pour récupérer les points de vente
+  const { data: pointsDeVente } = useQuery({
+    queryKey: ['points_de_vente'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('points_de_vente')
+        .select('*')
+        .eq('statut', 'actif');
+      
+      if (error) throw error;
+      return data;
+    }
+  });
+
+  // Hook pour récupérer le stock PDV avec filtrage par point de vente
   const { data: stockPDV } = useQuery({
     queryKey: ['stock_pdv', selectedPDV],
     queryFn: async () => {
       if (!selectedPDV) return [];
       
+      // Trouver l'ID du point de vente sélectionné
+      const pdvSelected = pointsDeVente?.find(pdv => pdv.nom === selectedPDV);
+      if (!pdvSelected) return [];
+      
       const { data, error } = await supabase
         .from('stock_pdv')
         .select(`
           *,
-          article:catalogue!inner(id, nom, prix_vente),
+          article:catalogue!inner(id, nom, prix_vente, reference, image_url),
           point_vente:points_de_vente!inner(nom)
         `)
-        .eq('point_vente_id', selectedPDV);
+        .eq('point_vente_id', pdvSelected.id);
       
       if (error) throw error;
       return data;
     },
-    enabled: !!selectedPDV
+    enabled: !!selectedPDV && !!pointsDeVente
   });
 
   // Fonction pour vérifier le stock disponible
@@ -70,6 +89,9 @@ export const useVenteComptoir = (selectedPDV?: string) => {
   // Mutation pour créer une vente avec gestion des paiements et livraisons
   const createVente = useMutation({
     mutationFn: async (venteData: VenteComptoirData) => {
+      const pdvSelected = pointsDeVente?.find(pdv => pdv.nom === selectedPDV);
+      if (!pdvSelected) throw new Error('Point de vente non trouvé');
+
       // Créer la commande client
       const numeroCommande = `CMD-${Date.now()}`;
       const { data: commande, error: commandeError } = await supabase
@@ -150,7 +172,7 @@ export const useVenteComptoir = (selectedPDV?: string) => {
           .from('stock_pdv')
           .select('quantite_disponible')
           .eq('article_id', article.id)
-          .eq('point_vente_id', selectedPDV)
+          .eq('point_vente_id', pdvSelected.id)
           .single();
 
         if (fetchError) throw fetchError;
@@ -165,7 +187,7 @@ export const useVenteComptoir = (selectedPDV?: string) => {
             quantite_disponible: newQuantity
           })
           .eq('article_id', article.id)
-          .eq('point_vente_id', selectedPDV);
+          .eq('point_vente_id', pdvSelected.id);
 
         if (stockError) throw stockError;
       }
@@ -267,6 +289,7 @@ export const useVenteComptoir = (selectedPDV?: string) => {
   return {
     cart,
     stockPDV,
+    pointsDeVente,
     addToCart,
     updateQuantity,
     updateRemise,
