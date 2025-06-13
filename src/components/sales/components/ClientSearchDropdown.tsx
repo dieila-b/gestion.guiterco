@@ -24,6 +24,7 @@ const ClientSearchDropdown: React.FC<ClientSearchDropdownProps> = ({
 }) => {
   const [clients, setClients] = useState<Client[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedClientData, setSelectedClientData] = useState<Client | null>(null);
   const [showDropdown, setShowDropdown] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -52,6 +53,30 @@ const ClientSearchDropdown: React.FC<ClientSearchDropdownProps> = ({
     }
   };
 
+  // Charger les données du client sélectionné si on a un ID
+  useEffect(() => {
+    const loadSelectedClient = async () => {
+      if (selectedClient && selectedClient.length === 36) { // UUID length check
+        try {
+          const { data, error } = await supabase
+            .from('clients')
+            .select('id, nom, type_client')
+            .eq('id', selectedClient)
+            .single();
+
+          if (!error && data) {
+            setSelectedClientData(data);
+            setSearchTerm(data.nom);
+          }
+        } catch (error) {
+          console.error('Erreur lors du chargement du client:', error);
+        }
+      }
+    };
+
+    loadSelectedClient();
+  }, [selectedClient]);
+
   useEffect(() => {
     const delayedSearch = setTimeout(() => {
       searchClients(searchTerm);
@@ -61,17 +86,33 @@ const ClientSearchDropdown: React.FC<ClientSearchDropdownProps> = ({
   }, [searchTerm]);
 
   const handleClientSelect = (client: Client) => {
-    const clientName = client.nom;
-    setSelectedClient(clientName);
-    setSearchTerm(clientName);
+    setSelectedClient(client.id); // Stocker l'ID, pas le nom
+    setSelectedClientData(client);
+    setSearchTerm(client.nom);
     setShowDropdown(false);
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setSearchTerm(value);
-    setSelectedClient(value);
     setShowDropdown(true);
+    
+    // Si l'utilisateur efface ou modifie le champ, réinitialiser la sélection
+    if (!value || (selectedClientData && value !== selectedClientData.nom)) {
+      setSelectedClient('');
+      setSelectedClientData(null);
+    }
+  };
+
+  const handleInputFocus = () => {
+    setShowDropdown(true);
+  };
+
+  const handleInputBlur = () => {
+    // Délai pour permettre le clic sur les éléments de la liste
+    setTimeout(() => {
+      setShowDropdown(false);
+    }, 200);
   };
 
   return (
@@ -82,8 +123,9 @@ const ClientSearchDropdown: React.FC<ClientSearchDropdownProps> = ({
             placeholder="Rechercher un client..."
             value={searchTerm}
             onChange={handleInputChange}
-            onFocus={() => setShowDropdown(true)}
-            className="flex-1"
+            onFocus={handleInputFocus}
+            onBlur={handleInputBlur}
+            className={`flex-1 ${selectedClientData ? 'border-green-300 bg-green-50' : ''}`}
           />
           
           {showDropdown && (searchTerm.length >= 2) && (
@@ -92,14 +134,18 @@ const ClientSearchDropdown: React.FC<ClientSearchDropdownProps> = ({
                 <div className="p-3 text-center text-gray-500">Recherche...</div>
               ) : clients.length > 0 ? (
                 clients.map((client) => {
+                  const isSelected = selectedClientData?.id === client.id;
                   return (
                     <div
                       key={client.id}
-                      className="p-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0"
+                      className={`p-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0 ${
+                        isSelected ? 'bg-green-50 border-green-200' : ''
+                      }`}
                       onClick={() => handleClientSelect(client)}
                     >
                       <div className="font-medium text-gray-900">{client.nom}</div>
                       <div className="text-sm text-gray-500 capitalize">{client.type_client}</div>
+                      {isSelected && <div className="text-xs text-green-600 mt-1">Sélectionné</div>}
                     </div>
                   );
                 })
@@ -123,6 +169,12 @@ const ClientSearchDropdown: React.FC<ClientSearchDropdownProps> = ({
           Nouveau
         </Button>
       </div>
+      
+      {selectedClientData && (
+        <div className="mt-2 text-xs text-green-600">
+          Client sélectionné : {selectedClientData.nom} ({selectedClientData.type_client})
+        </div>
+      )}
     </div>
   );
 };

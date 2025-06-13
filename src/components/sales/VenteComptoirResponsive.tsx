@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react';
 import { useCatalogueOptimized } from '@/hooks/useCatalogueOptimized';
 import { useDebounce } from '@/hooks/useDebounce';
@@ -9,6 +8,7 @@ import ProductGrid from './components/ProductGrid';
 import CartPanel from './components/CartPanel';
 import PaymentModal from './components/PaymentModal';
 import PostPaymentActions from './components/PostPaymentActions';
+import NewClientDialog from './components/cart/NewClientDialog';
 
 const VenteComptoirResponsive = () => {
   const [selectedPDV, setSelectedPDV] = useState('');
@@ -19,6 +19,7 @@ const VenteComptoirResponsive = () => {
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [showPostPaymentActions, setShowPostPaymentActions] = useState(false);
   const [lastFacture, setLastFacture] = useState<any>(null);
+  const [showNewClientDialog, setShowNewClientDialog] = useState(false);
   const productsPerPage = 20;
 
   // Debounce pour la recherche
@@ -91,6 +92,13 @@ const VenteComptoirResponsive = () => {
       return;
     }
 
+    // Vérifier que selectedClient est bien un UUID
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(selectedClient)) {
+      toast.error('Client sélectionné invalide. Veuillez sélectionner un client valide.');
+      return;
+    }
+
     if (cart.length === 0) {
       toast.error('Le panier est vide');
       return;
@@ -124,6 +132,17 @@ const VenteComptoirResponsive = () => {
     } catch (error) {
       console.error('Erreur lors de la vente:', error);
     }
+  };
+
+  const handleNewClient = () => {
+    setShowNewClientDialog(true);
+  };
+
+  const handleClientCreated = (clientId: string, clientName: string) => {
+    console.log('Nouveau client créé:', { id: clientId, name: clientName });
+    setSelectedClient(clientId); // Utiliser l'ID, pas le nom
+    setShowNewClientDialog(false);
+    toast.success(`Client ${clientName} créé avec succès`);
   };
 
   const goToPage = (page: number) => {
@@ -186,6 +205,7 @@ const VenteComptoirResponsive = () => {
             clearCart={clearCart}
             handlePayment={handlePayment}
             isLoading={isLoading}
+            onNewClient={handleNewClient}
           />
         </div>
       </div>
@@ -205,6 +225,13 @@ const VenteComptoirResponsive = () => {
         isOpen={showPostPaymentActions}
         onClose={() => setShowPostPaymentActions(false)}
         factureData={lastFacture || {}}
+      />
+
+      {/* Dialog nouveau client */}
+      <NewClientDialog
+        isOpen={showNewClientDialog}
+        onClose={() => setShowNewClientDialog(false)}
+        onClientCreated={handleClientCreated}
       />
     </div>
   );

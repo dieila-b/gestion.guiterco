@@ -1,27 +1,12 @@
-
-import React, { useState } from 'react';
+import React from 'react';
 import CartHeader from './cart/CartHeader';
-import ClientSection from './cart/ClientSection';
-import CartItems from './cart/CartItems';
+import CartItem from './cart/CartItem';
 import CartFooter from './cart/CartFooter';
-import NewClientDialog from './cart/NewClientDialog';
-
-interface CartItem {
-  id: string;
-  nom: string;
-  prix_vente: number;
-  quantite: number;
-  remise: number;
-}
-
-interface CartTotals {
-  sousTotal: number;
-  total: number;
-}
+import ClientSection from './cart/ClientSection';
 
 interface CartPanelProps {
-  cart: CartItem[];
-  cartTotals: CartTotals;
+  cart: any[];
+  cartTotals: { sousTotal: number; total: number };
   selectedClient: string;
   setSelectedClient: (value: string) => void;
   handleQuantityChange: (productId: string, newQuantity: string) => void;
@@ -30,6 +15,7 @@ interface CartPanelProps {
   clearCart: () => void;
   handlePayment: () => void;
   isLoading: boolean;
+  onNewClient: () => void;
 }
 
 const CartPanel: React.FC<CartPanelProps> = ({
@@ -42,62 +28,45 @@ const CartPanel: React.FC<CartPanelProps> = ({
   removeFromCart,
   clearCart,
   handlePayment,
-  isLoading
+  isLoading,
+  onNewClient
 }) => {
-  const [showNewClientDialog, setShowNewClientDialog] = useState(false);
-
-  const handleNewClientSuccess = (clientName: string) => {
-    setSelectedClient(clientName);
-    setShowNewClientDialog(false);
-  };
-
   return (
-    <div className="w-1/2 p-4 flex flex-col">
-      {/* Panier élevé et aligné avec le haut de la zone produit */}
-      <div className="bg-white rounded-lg shadow-2xl border border-gray-200 flex flex-col h-full mt-0">
-        {/* En-tête panier */}
-        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 border-b border-gray-200 rounded-t-lg">
-          <CartHeader 
-            cartLength={cart.length}
-            onClearCart={clearCart}
-          />
+    <div className="w-80 bg-white border-l border-gray-200 flex flex-col">
+      <CartHeader cart={cart} clearCart={clearCart} />
+      
+      <div className="flex-1 p-4 overflow-y-auto">
+        <ClientSection
+          selectedClient={selectedClient}
+          setSelectedClient={setSelectedClient}
+          onNewClient={onNewClient}
+        />
 
-          {/* Section client */}
-          <ClientSection
-            selectedClient={selectedClient}
-            setSelectedClient={setSelectedClient}
-            onNewClient={() => setShowNewClientDialog(true)}
-          />
-        </div>
-
-        {/* Articles du panier */}
-        <div className="flex-1 overflow-auto p-4">
-          <CartItems
-            cart={cart}
-            handleQuantityChange={handleQuantityChange}
-            handleRemiseChange={handleRemiseChange}
-            removeFromCart={removeFromCart}
-          />
-        </div>
-
-        {/* Totaux et actions */}
-        {cart.length > 0 && (
-          <CartFooter
-            cartTotals={cartTotals}
-            cartLength={cart.length}
-            selectedClient={selectedClient}
-            isLoading={isLoading}
-            clearCart={clearCart}
-            handlePayment={handlePayment}
-          />
+        {cart.length === 0 ? (
+          <div className="text-center text-gray-500 mt-10">
+            Votre panier est vide.
+          </div>
+        ) : (
+          <ul className="space-y-3">
+            {cart.map((item) => (
+              <CartItem
+                key={item.id}
+                item={item}
+                handleQuantityChange={handleQuantityChange}
+                handleRemiseChange={handleRemiseChange}
+                removeFromCart={removeFromCart}
+              />
+            ))}
+          </ul>
         )}
       </div>
 
-      {/* Dialog pour nouveau client */}
-      <NewClientDialog
-        open={showNewClientDialog}
-        onOpenChange={setShowNewClientDialog}
-        onSuccess={handleNewClientSuccess}
+      <CartFooter
+        cartTotals={cartTotals}
+        handlePayment={handlePayment}
+        isLoading={isLoading}
+        hasItems={cart.length > 0}
+        hasClient={!!selectedClient}
       />
     </div>
   );
