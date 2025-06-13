@@ -1,4 +1,3 @@
-
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useState, useCallback } from 'react';
@@ -57,7 +56,7 @@ export const useVenteComptoir = (selectedPDV?: string) => {
         .from('stock_pdv')
         .select(`
           *,
-          article:catalogue!inner(id, nom, prix_vente, reference, image_url),
+          article:catalogue!inner(id, nom, prix_vente, reference, image_url, categorie),
           point_vente:points_de_vente!inner(nom)
         `)
         .eq('point_vente_id', pdvSelected.id);
