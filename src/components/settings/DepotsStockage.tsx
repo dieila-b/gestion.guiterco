@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, Edit, Trash2, Warehouse, RefreshCw } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
-import { useEntrepots } from "@/hooks/useStock";
+import { useEntrepots } from "@/hooks/stock";
 import { Skeleton } from "@/components/ui/skeleton";
 import { 
   AlertDialog,

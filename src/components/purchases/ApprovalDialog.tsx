@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
-import { useEntrepots, usePointsDeVente } from '@/hooks/useStock';
+import { useEntrepots, usePointsDeVente } from '@/hooks/stock';
 import { useBonLivraisonArticles } from '@/hooks/useBonLivraisonArticles';
 import { useBonLivraisonApproval } from '@/hooks/useBonLivraisonApproval';
 import { formatCurrency } from '@/lib/currency';
