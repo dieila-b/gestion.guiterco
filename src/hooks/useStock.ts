@@ -343,20 +343,20 @@ export const useCatalogue = () => {
   };
 };
 
-// Gestion du stock principal (entrepôts)
+// Gestion du stock principal (entrepôts) - Version améliorée
 export const useStockPrincipal = () => {
   const queryClient = useQueryClient();
   
   const { data: stockEntrepot, isLoading, error } = useQuery({
     queryKey: ['stock-principal'],
     queryFn: async () => {
-      console.log('Fetching stock principal data...');
+      console.log('Fetching stock principal data with improved relations...');
       
       const { data, error } = await supabase
         .from('stock_principal')
         .select(`
           *,
-          article:article_id(
+          article:catalogue!inner(
             id,
             reference,
             nom,
@@ -371,7 +371,7 @@ export const useStockPrincipal = () => {
             created_at,
             updated_at
           ),
-          entrepot:entrepot_id(
+          entrepot:entrepots!inner(
             id,
             nom,
             adresse,
@@ -384,6 +384,7 @@ export const useStockPrincipal = () => {
         `)
         .eq('article.statut', 'actif')
         .eq('entrepot.statut', 'actif')
+        .gt('quantite_disponible', 0)
         .order('updated_at', { ascending: false });
       
       if (error) {
@@ -391,20 +392,26 @@ export const useStockPrincipal = () => {
         throw error;
       }
       
-      // Filter out items with null article or entrepot
-      const filteredData = data?.filter(item => item.article && item.entrepot) || [];
-      
-      console.log('Stock principal data loaded:', filteredData);
-      return filteredData as StockPrincipal[];
+      console.log('Stock principal data loaded with relations:', data);
+      return data as StockPrincipal[];
     },
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    refetchOnWindowFocus: false
+    staleTime: 2 * 60 * 1000, // 2 minutes pour des données plus fraîches
+    refetchOnWindowFocus: true, // Rafraîchir quand on revient sur la fenêtre
+    refetchInterval: 5 * 60 * 1000 // Rafraîchir automatiquement toutes les 5 minutes
   });
+
+  // Fonction pour forcer le rafraîchissement
+  const refreshStock = () => {
+    queryClient.invalidateQueries({ queryKey: ['stock-principal'] });
+    queryClient.invalidateQueries({ queryKey: ['catalogue'] });
+    queryClient.invalidateQueries({ queryKey: ['entrepots'] });
+  };
 
   return {
     stockEntrepot,
     isLoading,
-    error
+    error,
+    refreshStock
   };
 };
 

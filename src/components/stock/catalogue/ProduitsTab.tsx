@@ -2,13 +2,14 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Search, Edit, Trash2, Image } from 'lucide-react';
+import { Search, Image } from 'lucide-react';
 import { useCatalogueOptimized } from '@/hooks/useCatalogueOptimized';
 import { useDebounce } from '@/hooks/useDebounce';
 import CreateProductDialog from './forms/CreateProductDialog';
+import { EditProductDialog } from './forms/EditProductDialog';
+import { DeleteProductDialog } from './forms/DeleteProductDialog';
 
 const ProduitsTab = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -86,18 +87,20 @@ const ProduitsTab = () => {
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">
-                      <Button variant="outline" size="sm">
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button variant="outline" size="sm">
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      <EditProductDialog article={article} />
+                      <DeleteProductDialog article={article} />
                     </div>
                   </TableCell>
                 </TableRow>
               ))}
             </TableBody>
           </Table>
+        )}
+
+        {!isLoading && (!articles || articles.length === 0) && (
+          <div className="text-center py-8 text-gray-500">
+            {searchTerm ? 'Aucun produit trouvé pour cette recherche' : 'Aucun produit dans le catalogue'}
+          </div>
         )}
       </CardContent>
     </Card>

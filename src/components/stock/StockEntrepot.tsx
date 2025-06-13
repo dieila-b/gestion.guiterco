@@ -1,18 +1,21 @@
 
 import React, { useState } from 'react';
 import { useStockPrincipal, useEntrepots } from '@/hooks/useStock';
+import { useCatalogueSync } from '@/hooks/useCatalogueSync';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search, RefreshCw, Filter } from 'lucide-react';
+import { Search, RefreshCw, Filter, AlertTriangle } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { formatCurrency } from '@/lib/currency';
 
 const StockEntrepot = () => {
-  const { stockEntrepot, isLoading } = useStockPrincipal();
+  const { stockEntrepot, isLoading, error, refreshStock } = useStockPrincipal();
   const { entrepots } = useEntrepots();
+  const { syncCatalogue, checkDataIntegrity } = useCatalogueSync();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedEntrepot, setSelectedEntrepot] = useState<string>('tous');
 
@@ -33,13 +36,43 @@ const StockEntrepot = () => {
     return quantity * unitPrice;
   };
 
+  const handleSync = () => {
+    syncCatalogue.mutate();
+    refreshStock();
+  };
+
+  // Vérification de l'intégrité des données
+  const { data: integrityData } = checkDataIntegrity;
+  const hasIntegrityIssues = integrityData && (
+    integrityData.articlesWithoutCategory.length > 0 ||
+    integrityData.orphanedStock.length > 0 ||
+    integrityData.inactiveWarehousesWithStock.length > 0
+  );
+
   return (
     <div className="space-y-6">
+      {/* Alerte d'intégrité des données */}
+      {hasIntegrityIssues && (
+        <Alert>
+          <AlertTriangle className="h-4 w-4" />
+          <AlertDescription>
+            Des problèmes de cohérence des données ont été détectés. 
+            Cliquez sur "Synchroniser" pour corriger automatiquement.
+          </AlertDescription>
+        </Alert>
+      )}
+
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-xl font-bold text-primary">Liste des Articles</CardTitle>
-          <Button variant="outline" size="icon" title="Rafraîchir">
-            <RefreshCw className="h-4 w-4" />
+          <CardTitle className="text-xl font-bold text-primary">Stock des Entrepôts</CardTitle>
+          <Button 
+            variant="outline" 
+            size="icon" 
+            title="Synchroniser et rafraîchir"
+            onClick={handleSync}
+            disabled={syncCatalogue.isPending}
+          >
+            <RefreshCw className={`h-4 w-4 ${syncCatalogue.isPending ? 'animate-spin' : ''}`} />
           </Button>
         </CardHeader>
         <CardContent>
@@ -64,7 +97,7 @@ const StockEntrepot = () => {
             <div className="flex gap-2 flex-1">
               <div className="relative flex-1">
                 <Input
-                  placeholder="Rechercher..."
+                  placeholder="Rechercher un article..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pr-10"
@@ -76,6 +109,16 @@ const StockEntrepot = () => {
               </Button>
             </div>
           </div>
+
+          {/* Affichage d'erreur */}
+          {error && (
+            <Alert className="mb-4">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription>
+                Erreur lors du chargement des données: {error.message}
+              </AlertDescription>
+            </Alert>
+          )}
 
           {isLoading ? (
             <div className="space-y-2">
@@ -139,7 +182,9 @@ const StockEntrepot = () => {
                   ) : (
                     <TableRow>
                       <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
-                        {searchTerm || selectedEntrepot !== 'tous' ? 'Aucun article trouvé' : 'Aucun article trouvé'}
+                        {searchTerm || selectedEntrepot !== 'tous' 
+                          ? 'Aucun article trouvé avec ces critères' 
+                          : 'Aucun article en stock trouvé'}
                       </TableCell>
                     </TableRow>
                   )}
@@ -148,6 +193,7 @@ const StockEntrepot = () => {
             </div>
           )}
 
+          {/* Résumé du stock */}
           {filteredStock && filteredStock.length > 0 && (
             <div className="mt-4 p-4 bg-muted/50 rounded-lg">
               <div className="flex justify-between items-center text-sm">
