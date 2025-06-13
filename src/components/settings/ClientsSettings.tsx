@@ -36,12 +36,18 @@ const ClientsSettings = () => {
   const loadClients = async () => {
     setIsLoading(true);
     try {
+      console.log('Chargement des clients depuis Supabase...');
       const { data, error } = await supabase
         .from('clients')
         .select('*')
         .order('nom', { ascending: true });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Erreur lors du chargement des clients:', error);
+        throw error;
+      }
+      
+      console.log('Clients chargés:', data);
       setClients(data || []);
     } catch (error) {
       console.error('Erreur lors du chargement des clients:', error);
@@ -71,6 +77,7 @@ const ClientsSettings = () => {
   });
 
   const handleNewClientSuccess = (clientName: string) => {
+    console.log('Client créé avec succès:', clientName);
     toast({
       title: "Client créé avec succès",
       description: `${clientName} a été ajouté à votre liste de clients.`,
@@ -125,9 +132,9 @@ const ClientsSettings = () => {
                   Ajouter un client
                 </Button>
               </DialogTrigger>
-              <DialogContent className="max-w-none w-screen h-screen p-0 bg-gray-900 m-0 rounded-none">
-                <DialogHeader className="p-6 border-b border-gray-700">
-                  <DialogTitle className="text-2xl font-bold text-purple-400">Nouveau Client</DialogTitle>
+              <DialogContent className="max-w-none w-screen h-screen p-0 bg-white m-0 rounded-none">
+                <DialogHeader className="p-6 border-b border-gray-200">
+                  <DialogTitle className="text-2xl font-bold text-gray-800">Nouveau Client</DialogTitle>
                 </DialogHeader>
                 <div className="flex items-center justify-center p-6 overflow-y-auto">
                   <NewClientForm 
