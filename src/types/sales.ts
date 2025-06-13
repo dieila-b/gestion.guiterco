@@ -1,14 +1,19 @@
+
 export interface Client {
   id: string;
   nom: string;
   prenom?: string;
+  nom_entreprise?: string;
   email?: string;
   telephone?: string;
+  whatsapp?: string;
   adresse?: string;
   code_postal?: string;
   ville?: string;
   pays?: string;
   type_client?: string;
+  statut_client?: string;
+  limite_credit?: number;
   created_at: string;
   updated_at: string;
 }
