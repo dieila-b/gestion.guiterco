@@ -17,7 +17,7 @@ const NewClientForm: React.FC<NewClientFormProps> = ({ onSuccess, onCancel }) =>
     statut_client: 'particulier',
     nom: '',
     nom_entreprise: '',
-    type_client: 'particulier',
+    type_client: 'occasionnel',
     email: '',
     whatsapp: '',
     telephone: '',
@@ -40,7 +40,7 @@ const NewClientForm: React.FC<NewClientFormProps> = ({ onSuccess, onCancel }) =>
     try {
       const clientData = {
         nom: formData.nom.trim(),
-        nom_entreprise: formData.statut_client === 'particulier' ? null : formData.nom_entreprise.trim(),
+        nom_entreprise: formData.statut_client === 'particulier' ? null : formData.nom_entreprise.trim() || null,
         type_client: formData.type_client,
         statut_client: formData.statut_client,
         email: formData.email.trim() || null,
@@ -77,141 +77,177 @@ const NewClientForm: React.FC<NewClientFormProps> = ({ onSuccess, onCancel }) =>
     setFormData({ 
       ...formData, 
       statut_client: value,
-      type_client: value,
       nom_entreprise: value === 'particulier' ? '' : formData.nom_entreprise
     });
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="grid grid-cols-2 gap-3">
-        <div>
-          <Label htmlFor="statut_client">Statut client *</Label>
-          <Select value={formData.statut_client} onValueChange={handleStatusChange}>
-            <SelectTrigger>
-              <SelectValue placeholder="Sélectionner le statut" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="particulier">Particulier</SelectItem>
-              <SelectItem value="entreprise">Entreprise</SelectItem>
-            </SelectContent>
-          </Select>
+    <div className="bg-gray-900 text-white p-6 rounded-lg max-w-2xl w-full">
+      <form onSubmit={handleSubmit} className="space-y-6">
+        {/* First Row: Statut Client and Nom de l'entreprise */}
+        <div className="grid grid-cols-2 gap-6">
+          <div>
+            <Label htmlFor="statut_client" className="text-blue-300 mb-2 block">Statut Client</Label>
+            <Select value={formData.statut_client} onValueChange={handleStatusChange}>
+              <SelectTrigger className="bg-gray-800 border-gray-600 text-white">
+                <SelectValue placeholder="Particulier" />
+              </SelectTrigger>
+              <SelectContent className="bg-gray-800 border-gray-600">
+                <SelectItem value="particulier">Particulier</SelectItem>
+                <SelectItem value="entreprise">Entreprise</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          
+          <div>
+            <Label htmlFor="nom_entreprise" className="text-blue-300 mb-2 block">Nom de l'entreprise</Label>
+            <Input
+              id="nom_entreprise"
+              value={formData.nom_entreprise}
+              onChange={(e) => setFormData({ ...formData, nom_entreprise: e.target.value })}
+              placeholder="Entreprise ABC"
+              disabled={formData.statut_client === 'particulier'}
+              className={`bg-gray-800 border-gray-600 text-white placeholder:text-gray-400 ${
+                formData.statut_client === 'particulier' ? 'opacity-50 cursor-not-allowed' : ''
+              }`}
+            />
+          </div>
         </div>
-        
-        <div>
-          <Label htmlFor="nom">Nom du contact *</Label>
-          <Input
-            id="nom"
-            value={formData.nom}
-            onChange={(e) => setFormData({ ...formData, nom: e.target.value })}
-            placeholder="Nom du contact"
-            required
-          />
+
+        {/* Second Row: Nom du contact and Type de Client */}
+        <div className="grid grid-cols-2 gap-6">
+          <div>
+            <Label htmlFor="nom" className="text-blue-300 mb-2 block">
+              Nom du contact <span className="text-red-400">*</span>
+            </Label>
+            <Input
+              id="nom"
+              value={formData.nom}
+              onChange={(e) => setFormData({ ...formData, nom: e.target.value })}
+              placeholder="John Doe"
+              required
+              className="bg-gray-800 border-gray-600 text-white placeholder:text-gray-400"
+            />
+          </div>
+          
+          <div>
+            <Label htmlFor="type_client" className="text-blue-300 mb-2 block">Type de Client</Label>
+            <Select value={formData.type_client} onValueChange={(value) => setFormData({ ...formData, type_client: value })}>
+              <SelectTrigger className="bg-gray-800 border-gray-600 text-white">
+                <SelectValue placeholder="Occasionnel" />
+              </SelectTrigger>
+              <SelectContent className="bg-gray-800 border-gray-600">
+                <SelectItem value="occasionnel">Occasionnel</SelectItem>
+                <SelectItem value="regulier">Régulier</SelectItem>
+                <SelectItem value="vip">VIP</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
-      </div>
 
-      <div>
-        <Label htmlFor="nom_entreprise">Nom de l'entreprise</Label>
-        <Input
-          id="nom_entreprise"
-          value={formData.nom_entreprise}
-          onChange={(e) => setFormData({ ...formData, nom_entreprise: e.target.value })}
-          placeholder="Nom de l'entreprise"
-          disabled={formData.statut_client === 'particulier'}
-          className={formData.statut_client === 'particulier' ? 'bg-gray-100 text-gray-500' : ''}
-        />
-      </div>
-
-      <div>
-        <Label htmlFor="type_client">Type de client</Label>
-        <Select value={formData.type_client} onValueChange={(value) => setFormData({ ...formData, type_client: value })}>
-          <SelectTrigger>
-            <SelectValue placeholder="Sélectionner le type" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="particulier">Particulier</SelectItem>
-            <SelectItem value="entreprise">Entreprise</SelectItem>
-            <SelectItem value="professionnel">Professionnel</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-
-      <div className="grid grid-cols-2 gap-3">
-        <div>
-          <Label htmlFor="email">Email</Label>
-          <Input
-            id="email"
-            type="email"
-            value={formData.email}
-            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-            placeholder="Adresse email"
-          />
+        {/* Third Row: Email and WhatsApp */}
+        <div className="grid grid-cols-2 gap-6">
+          <div>
+            <Label htmlFor="email" className="text-blue-300 mb-2 block">Email</Label>
+            <Input
+              id="email"
+              type="email"
+              value={formData.email}
+              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+              placeholder="contact@entreprise.com"
+              className="bg-gray-800 border-gray-600 text-white placeholder:text-gray-400"
+            />
+          </div>
+          
+          <div>
+            <Label htmlFor="whatsapp" className="text-blue-300 mb-2 block">WhatsApp</Label>
+            <Input
+              id="whatsapp"
+              value={formData.whatsapp}
+              onChange={(e) => setFormData({ ...formData, whatsapp: e.target.value })}
+              placeholder="+224 123456789"
+              className="bg-gray-800 border-gray-600 text-white placeholder:text-gray-400"
+            />
+          </div>
         </div>
-        
-        <div>
-          <Label htmlFor="whatsapp">WhatsApp</Label>
-          <Input
-            id="whatsapp"
-            value={formData.whatsapp}
-            onChange={(e) => setFormData({ ...formData, whatsapp: e.target.value })}
-            placeholder="Numéro WhatsApp"
-          />
+
+        {/* Fourth Row: Téléphone and Adresse */}
+        <div className="grid grid-cols-2 gap-6">
+          <div>
+            <Label htmlFor="telephone" className="text-blue-300 mb-2 block">Téléphone</Label>
+            <Input
+              id="telephone"
+              value={formData.telephone}
+              onChange={(e) => setFormData({ ...formData, telephone: e.target.value })}
+              placeholder="+224 123456789"
+              className="bg-gray-800 border-gray-600 text-white placeholder:text-gray-400"
+            />
+          </div>
+          
+          <div>
+            <Label htmlFor="adresse" className="text-blue-300 mb-2 block">Adresse</Label>
+            <Input
+              id="adresse"
+              value={formData.adresse}
+              onChange={(e) => setFormData({ ...formData, adresse: e.target.value })}
+              placeholder="123 Rue Principale"
+              className="bg-gray-800 border-gray-600 text-white placeholder:text-gray-400"
+            />
+          </div>
         </div>
-      </div>
 
-      <div>
-        <Label htmlFor="telephone">Téléphone</Label>
-        <Input
-          id="telephone"
-          value={formData.telephone}
-          onChange={(e) => setFormData({ ...formData, telephone: e.target.value })}
-          placeholder="Numéro de téléphone"
-        />
-      </div>
-
-      <div>
-        <Label htmlFor="adresse">Adresse</Label>
-        <Input
-          id="adresse"
-          value={formData.adresse}
-          onChange={(e) => setFormData({ ...formData, adresse: e.target.value })}
-          placeholder="Adresse complète"
-        />
-      </div>
-
-      <div className="grid grid-cols-2 gap-3">
-        <div>
-          <Label htmlFor="ville">Ville</Label>
-          <Input
-            id="ville"
-            value={formData.ville}
-            onChange={(e) => setFormData({ ...formData, ville: e.target.value })}
-            placeholder="Ville"
-          />
+        {/* Fifth Row: Ville and Limite de crédit */}
+        <div className="grid grid-cols-2 gap-6">
+          <div>
+            <Label htmlFor="ville" className="text-blue-300 mb-2 block">Ville</Label>
+            <Input
+              id="ville"
+              value={formData.ville}
+              onChange={(e) => setFormData({ ...formData, ville: e.target.value })}
+              placeholder="Conakry"
+              className="bg-gray-800 border-gray-600 text-white placeholder:text-gray-400"
+            />
+          </div>
+          
+          <div>
+            <Label htmlFor="limite_credit" className="text-blue-300 mb-2 block">Limite de crédit (GNF)</Label>
+            <div className="relative">
+              <Input
+                id="limite_credit"
+                type="number"
+                min="0"
+                value={formData.limite_credit}
+                onChange={(e) => setFormData({ ...formData, limite_credit: parseFloat(e.target.value) || 0 })}
+                placeholder="0"
+                className="bg-gray-800 border-gray-600 text-white placeholder:text-gray-400 pr-10"
+              />
+              <div className="absolute inset-y-0 right-0 flex items-center pr-3">
+                <span className="text-gray-400 text-sm">GNF</span>
+              </div>
+            </div>
+          </div>
         </div>
-        
-        <div>
-          <Label htmlFor="limite_credit">Limite de crédit (GNF)</Label>
-          <Input
-            id="limite_credit"
-            type="number"
-            min="0"
-            value={formData.limite_credit}
-            onChange={(e) => setFormData({ ...formData, limite_credit: parseFloat(e.target.value) || 0 })}
-            placeholder="0"
-          />
-        </div>
-      </div>
 
-      <div className="flex justify-end space-x-2 pt-4">
-        <Button type="button" variant="outline" onClick={onCancel}>
-          Annuler
-        </Button>
-        <Button type="submit" disabled={isSubmitting}>
-          {isSubmitting ? 'Création...' : 'Créer'}
-        </Button>
-      </div>
-    </form>
+        {/* Action Buttons */}
+        <div className="flex justify-end space-x-4 pt-6">
+          <Button 
+            type="button" 
+            variant="outline" 
+            onClick={onCancel}
+            className="bg-transparent border-gray-600 text-gray-300 hover:bg-gray-800"
+          >
+            Annuler
+          </Button>
+          <Button 
+            type="submit" 
+            disabled={isSubmitting}
+            className="bg-purple-600 hover:bg-purple-700 text-white"
+          >
+            {isSubmitting ? 'Création...' : 'Créer le client'}
+          </Button>
+        </div>
+      </form>
+    </div>
   );
 };
 

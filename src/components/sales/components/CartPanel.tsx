@@ -1,8 +1,7 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ShoppingCart, User, CreditCard, X, Plus } from 'lucide-react';
 import { formatCurrency } from '@/lib/currency';
 import NewClientForm from './NewClientForm';
@@ -214,19 +213,18 @@ const CartPanel: React.FC<CartPanelProps> = ({
         )}
       </div>
 
-      {/* Dialog pour nouveau client */}
+      {/* Full-screen dialog for new client */}
       <Dialog open={showNewClientDialog} onOpenChange={setShowNewClientDialog}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Nouveau Client</DialogTitle>
-            <DialogDescription>
-              Créer un nouveau client rapidement
-            </DialogDescription>
+        <DialogContent className="max-w-none w-screen h-screen p-0 bg-gray-900">
+          <DialogHeader className="p-6 border-b border-gray-700">
+            <DialogTitle className="text-2xl font-bold text-purple-400">Nouveau Client</DialogTitle>
           </DialogHeader>
-          <NewClientForm 
-            onSuccess={handleNewClientSuccess}
-            onCancel={() => setShowNewClientDialog(false)}
-          />
+          <div className="flex items-center justify-center p-6">
+            <NewClientForm 
+              onSuccess={handleNewClientSuccess}
+              onCancel={() => setShowNewClientDialog(false)}
+            />
+          </div>
         </DialogContent>
       </Dialog>
     </div>
