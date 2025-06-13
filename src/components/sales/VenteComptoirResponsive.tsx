@@ -51,16 +51,16 @@ const VenteComptoirResponsive = () => {
     selectedCategory === 'Tous' ? '' : selectedCategory
   );
 
-  // Éliminer les doublons de catégories
+  // Éliminer les doublons de catégories basés sur le stock PDV
   const uniqueCategories = useMemo(() => {
     if (!stockPDV) return [];
-    const categorySet = new Set();
+    const categorySet = new Set<string>();
     stockPDV.forEach(stockItem => {
       if (stockItem.article?.categorie && stockItem.article.categorie.trim()) {
         categorySet.add(stockItem.article.categorie);
       }
     });
-    return Array.from(categorySet) as string[];
+    return Array.from(categorySet);
   }, [stockPDV]);
 
   // Calculer les totaux du panier
