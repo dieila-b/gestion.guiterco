@@ -517,13 +517,17 @@ export type Database = {
           created_at: string
           email: string | null
           id: string
+          limite_credit: number | null
           nom: string
+          nom_entreprise: string | null
           pays: string | null
           prenom: string | null
+          statut_client: string | null
           telephone: string | null
           type_client: string | null
           updated_at: string
           ville: string | null
+          whatsapp: string | null
         }
         Insert: {
           adresse?: string | null
@@ -531,13 +535,17 @@ export type Database = {
           created_at?: string
           email?: string | null
           id?: string
+          limite_credit?: number | null
           nom: string
+          nom_entreprise?: string | null
           pays?: string | null
           prenom?: string | null
+          statut_client?: string | null
           telephone?: string | null
           type_client?: string | null
           updated_at?: string
           ville?: string | null
+          whatsapp?: string | null
         }
         Update: {
           adresse?: string | null
@@ -545,13 +553,17 @@ export type Database = {
           created_at?: string
           email?: string | null
           id?: string
+          limite_credit?: number | null
           nom?: string
+          nom_entreprise?: string | null
           pays?: string | null
           prenom?: string | null
+          statut_client?: string | null
           telephone?: string | null
           type_client?: string | null
           updated_at?: string
           ville?: string | null
+          whatsapp?: string | null
         }
         Relationships: []
       }

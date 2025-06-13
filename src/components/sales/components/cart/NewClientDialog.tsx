@@ -25,11 +25,11 @@ const NewClientDialog: React.FC<NewClientDialogProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-none w-screen h-screen p-0 bg-white m-0 rounded-none">
-        <DialogHeader className="p-6 border-b border-gray-200">
+      <DialogContent className="max-w-none w-screen h-screen p-0 bg-gray-50 m-0 rounded-none">
+        <DialogHeader className="p-6 border-b border-gray-200 bg-white">
           <DialogTitle className="text-2xl font-bold text-gray-800">Nouveau Client</DialogTitle>
         </DialogHeader>
-        <div className="flex items-center justify-center p-6 overflow-y-auto">
+        <div className="flex items-center justify-center p-6 overflow-y-auto bg-gray-50">
           <NewClientForm 
             onSuccess={handleSuccess}
             onCancel={handleCancel}

@@ -94,196 +94,198 @@ const NewClientForm: React.FC<NewClientFormProps> = ({ onSuccess, onCancel }) =>
   };
 
   return (
-    <div className="bg-white p-8 rounded-lg max-w-4xl w-full mx-auto shadow-lg border">
-      <form onSubmit={handleSubmit} className="space-y-6">
-        <div className="grid grid-cols-2 gap-8">
-          
-          {/* Colonne de gauche */}
-          <div className="space-y-4">
-            {/* Statut Client */}
-            <div>
-              <Label htmlFor="statut_client" className="text-gray-700 mb-2 block text-sm font-medium">
-                Statut Client <span className="text-red-500">*</span>
-              </Label>
-              <Select value={formData.statut_client} onValueChange={handleStatusChange}>
-                <SelectTrigger className="bg-white border-gray-300 text-gray-900 h-10">
-                  <SelectValue placeholder="Sélectionner le statut" />
-                </SelectTrigger>
-                <SelectContent className="bg-white border-gray-300">
-                  <SelectItem value="particulier">Particulier</SelectItem>
-                  <SelectItem value="entreprise">Entreprise</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+    <div className="bg-white rounded-lg max-w-4xl w-full mx-auto border border-gray-200 shadow-sm">
+      <div className="p-8">
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="grid grid-cols-2 gap-8">
+            
+            {/* Colonne de gauche */}
+            <div className="space-y-4">
+              {/* Statut Client */}
+              <div>
+                <Label htmlFor="statut_client" className="text-gray-800 mb-2 block text-sm font-medium">
+                  Statut Client <span className="text-red-500">*</span>
+                </Label>
+                <Select value={formData.statut_client} onValueChange={handleStatusChange}>
+                  <SelectTrigger className="bg-white border-gray-300 focus:border-blue-500 focus:ring-blue-500 text-gray-900 h-10">
+                    <SelectValue placeholder="Sélectionner le statut" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-white border-gray-200 shadow-lg">
+                    <SelectItem value="particulier" className="hover:bg-gray-50">Particulier</SelectItem>
+                    <SelectItem value="entreprise" className="hover:bg-gray-50">Entreprise</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
 
-            {/* Nom du contact */}
-            <div>
-              <Label htmlFor="nom" className="text-gray-700 mb-2 block text-sm font-medium">
-                Nom du contact <span className="text-red-500">*</span>
-              </Label>
-              <Input
-                id="nom"
-                value={formData.nom}
-                onChange={(e) => setFormData({ ...formData, nom: e.target.value })}
-                placeholder="John Doe"
-                required
-                className="bg-white border-gray-300 text-gray-900 placeholder:text-gray-400 h-10"
-              />
-            </div>
-
-            {/* Email */}
-            <div>
-              <Label htmlFor="email" className="text-gray-700 mb-2 block text-sm font-medium">
-                Email
-              </Label>
-              <Input
-                id="email"
-                type="email"
-                value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                placeholder="contact@entreprise.com"
-                className="bg-white border-gray-300 text-gray-900 placeholder:text-gray-400 h-10"
-              />
-            </div>
-
-            {/* Téléphone */}
-            <div>
-              <Label htmlFor="telephone" className="text-gray-700 mb-2 block text-sm font-medium">
-                Téléphone
-              </Label>
-              <Input
-                id="telephone"
-                value={formData.telephone}
-                onChange={(e) => setFormData({ ...formData, telephone: e.target.value })}
-                placeholder="+224 123456789"
-                className="bg-white border-gray-300 text-gray-900 placeholder:text-gray-400 h-10"
-              />
-            </div>
-
-            {/* Ville */}
-            <div>
-              <Label htmlFor="ville" className="text-gray-700 mb-2 block text-sm font-medium">
-                Ville
-              </Label>
-              <Input
-                id="ville"
-                value={formData.ville}
-                onChange={(e) => setFormData({ ...formData, ville: e.target.value })}
-                placeholder="Conakry"
-                className="bg-white border-gray-300 text-gray-900 placeholder:text-gray-400 h-10"
-              />
-            </div>
-          </div>
-
-          {/* Colonne de droite */}
-          <div className="space-y-4">
-            {/* Nom de l'entreprise */}
-            <div>
-              <Label htmlFor="nom_entreprise" className="text-gray-700 mb-2 block text-sm font-medium">
-                Nom de l'entreprise {formData.statut_client === 'entreprise' && <span className="text-red-500">*</span>}
-              </Label>
-              <Input
-                id="nom_entreprise"
-                value={formData.nom_entreprise}
-                onChange={(e) => setFormData({ ...formData, nom_entreprise: e.target.value })}
-                placeholder="Entreprise ABC"
-                disabled={formData.statut_client === 'particulier'}
-                required={formData.statut_client === 'entreprise'}
-                className={`border-gray-300 text-gray-900 placeholder:text-gray-400 h-10 ${
-                  formData.statut_client === 'particulier' 
-                    ? 'opacity-50 cursor-not-allowed bg-gray-100' 
-                    : 'bg-white'
-                }`}
-              />
-            </div>
-
-            {/* Type de Client */}
-            <div>
-              <Label htmlFor="type_client" className="text-gray-700 mb-2 block text-sm font-medium">
-                Type de Client
-              </Label>
-              <Select value={formData.type_client} onValueChange={(value) => setFormData({ ...formData, type_client: value })}>
-                <SelectTrigger className="bg-white border-gray-300 text-gray-900 h-10">
-                  <SelectValue placeholder="Occasionnel" />
-                </SelectTrigger>
-                <SelectContent className="bg-white border-gray-300">
-                  <SelectItem value="occasionnel">Occasionnel</SelectItem>
-                  <SelectItem value="regulier">Régulier</SelectItem>
-                  <SelectItem value="vip">VIP</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* WhatsApp */}
-            <div>
-              <Label htmlFor="whatsapp" className="text-gray-700 mb-2 block text-sm font-medium">
-                WhatsApp
-              </Label>
-              <Input
-                id="whatsapp"
-                value={formData.whatsapp}
-                onChange={(e) => setFormData({ ...formData, whatsapp: e.target.value })}
-                placeholder="+224 123456789"
-                className="bg-white border-gray-300 text-gray-900 placeholder:text-gray-400 h-10"
-              />
-            </div>
-
-            {/* Adresse */}
-            <div>
-              <Label htmlFor="adresse" className="text-gray-700 mb-2 block text-sm font-medium">
-                Adresse
-              </Label>
-              <Input
-                id="adresse"
-                value={formData.adresse}
-                onChange={(e) => setFormData({ ...formData, adresse: e.target.value })}
-                placeholder="123 Rue Principale"
-                className="bg-white border-gray-300 text-gray-900 placeholder:text-gray-400 h-10"
-              />
-            </div>
-
-            {/* Limite de crédit */}
-            <div>
-              <Label htmlFor="limite_credit" className="text-gray-700 mb-2 block text-sm font-medium">
-                Limite de crédit (GNF)
-              </Label>
-              <div className="relative">
+              {/* Nom du contact */}
+              <div>
+                <Label htmlFor="nom" className="text-gray-800 mb-2 block text-sm font-medium">
+                  Nom du contact <span className="text-red-500">*</span>
+                </Label>
                 <Input
-                  id="limite_credit"
-                  type="number"
-                  min="0"
-                  value={formData.limite_credit}
-                  onChange={(e) => setFormData({ ...formData, limite_credit: parseFloat(e.target.value) || 0 })}
-                  placeholder="0"
-                  className="bg-white border-gray-300 text-gray-900 placeholder:text-gray-400 h-10 pr-12"
+                  id="nom"
+                  value={formData.nom}
+                  onChange={(e) => setFormData({ ...formData, nom: e.target.value })}
+                  placeholder="John Doe"
+                  required
+                  className="bg-white border-gray-300 focus:border-blue-500 focus:ring-blue-500 text-gray-900 placeholder:text-gray-400 h-10"
                 />
-                <div className="absolute inset-y-0 right-0 flex items-center pr-3">
-                  <span className="text-gray-400 text-sm">GNF</span>
+              </div>
+
+              {/* Email */}
+              <div>
+                <Label htmlFor="email" className="text-gray-800 mb-2 block text-sm font-medium">
+                  Email
+                </Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  placeholder="contact@entreprise.com"
+                  className="bg-white border-gray-300 focus:border-blue-500 focus:ring-blue-500 text-gray-900 placeholder:text-gray-400 h-10"
+                />
+              </div>
+
+              {/* Téléphone */}
+              <div>
+                <Label htmlFor="telephone" className="text-gray-800 mb-2 block text-sm font-medium">
+                  Téléphone
+                </Label>
+                <Input
+                  id="telephone"
+                  value={formData.telephone}
+                  onChange={(e) => setFormData({ ...formData, telephone: e.target.value })}
+                  placeholder="+224 123456789"
+                  className="bg-white border-gray-300 focus:border-blue-500 focus:ring-blue-500 text-gray-900 placeholder:text-gray-400 h-10"
+                />
+              </div>
+
+              {/* Ville */}
+              <div>
+                <Label htmlFor="ville" className="text-gray-800 mb-2 block text-sm font-medium">
+                  Ville
+                </Label>
+                <Input
+                  id="ville"
+                  value={formData.ville}
+                  onChange={(e) => setFormData({ ...formData, ville: e.target.value })}
+                  placeholder="Conakry"
+                  className="bg-white border-gray-300 focus:border-blue-500 focus:ring-blue-500 text-gray-900 placeholder:text-gray-400 h-10"
+                />
+              </div>
+            </div>
+
+            {/* Colonne de droite */}
+            <div className="space-y-4">
+              {/* Nom de l'entreprise */}
+              <div>
+                <Label htmlFor="nom_entreprise" className="text-gray-800 mb-2 block text-sm font-medium">
+                  Nom de l'entreprise {formData.statut_client === 'entreprise' && <span className="text-red-500">*</span>}
+                </Label>
+                <Input
+                  id="nom_entreprise"
+                  value={formData.nom_entreprise}
+                  onChange={(e) => setFormData({ ...formData, nom_entreprise: e.target.value })}
+                  placeholder="Entreprise ABC"
+                  disabled={formData.statut_client === 'particulier'}
+                  required={formData.statut_client === 'entreprise'}
+                  className={`border-gray-300 focus:border-blue-500 focus:ring-blue-500 text-gray-900 placeholder:text-gray-400 h-10 ${
+                    formData.statut_client === 'particulier' 
+                      ? 'opacity-50 cursor-not-allowed bg-gray-100 text-gray-500' 
+                      : 'bg-white'
+                  }`}
+                />
+              </div>
+
+              {/* Type de Client */}
+              <div>
+                <Label htmlFor="type_client" className="text-gray-800 mb-2 block text-sm font-medium">
+                  Type de Client
+                </Label>
+                <Select value={formData.type_client} onValueChange={(value) => setFormData({ ...formData, type_client: value })}>
+                  <SelectTrigger className="bg-white border-gray-300 focus:border-blue-500 focus:ring-blue-500 text-gray-900 h-10">
+                    <SelectValue placeholder="Occasionnel" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-white border-gray-200 shadow-lg">
+                    <SelectItem value="occasionnel" className="hover:bg-gray-50">Occasionnel</SelectItem>
+                    <SelectItem value="regulier" className="hover:bg-gray-50">Régulier</SelectItem>
+                    <SelectItem value="vip" className="hover:bg-gray-50">VIP</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* WhatsApp */}
+              <div>
+                <Label htmlFor="whatsapp" className="text-gray-800 mb-2 block text-sm font-medium">
+                  WhatsApp
+                </Label>
+                <Input
+                  id="whatsapp"
+                  value={formData.whatsapp}
+                  onChange={(e) => setFormData({ ...formData, whatsapp: e.target.value })}
+                  placeholder="+224 123456789"
+                  className="bg-white border-gray-300 focus:border-blue-500 focus:ring-blue-500 text-gray-900 placeholder:text-gray-400 h-10"
+                />
+              </div>
+
+              {/* Adresse */}
+              <div>
+                <Label htmlFor="adresse" className="text-gray-800 mb-2 block text-sm font-medium">
+                  Adresse
+                </Label>
+                <Input
+                  id="adresse"
+                  value={formData.adresse}
+                  onChange={(e) => setFormData({ ...formData, adresse: e.target.value })}
+                  placeholder="123 Rue Principale"
+                  className="bg-white border-gray-300 focus:border-blue-500 focus:ring-blue-500 text-gray-900 placeholder:text-gray-400 h-10"
+                />
+              </div>
+
+              {/* Limite de crédit */}
+              <div>
+                <Label htmlFor="limite_credit" className="text-gray-800 mb-2 block text-sm font-medium">
+                  Limite de crédit (GNF)
+                </Label>
+                <div className="relative">
+                  <Input
+                    id="limite_credit"
+                    type="number"
+                    min="0"
+                    value={formData.limite_credit}
+                    onChange={(e) => setFormData({ ...formData, limite_credit: parseFloat(e.target.value) || 0 })}
+                    placeholder="0"
+                    className="bg-white border-gray-300 focus:border-blue-500 focus:ring-blue-500 text-gray-900 placeholder:text-gray-400 h-10 pr-12"
+                  />
+                  <div className="absolute inset-y-0 right-0 flex items-center pr-3">
+                    <span className="text-gray-500 text-sm">GNF</span>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
-        </div>
 
-        {/* Boutons d'action */}
-        <div className="flex justify-end space-x-4 pt-6 border-t border-gray-200">
-          <Button 
-            type="button" 
-            variant="outline" 
-            onClick={onCancel}
-            className="bg-white border-gray-300 text-gray-700 hover:bg-gray-50 px-6"
-          >
-            Annuler
-          </Button>
-          <Button 
-            type="submit" 
-            disabled={isSubmitting}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-6"
-          >
-            {isSubmitting ? 'Création...' : 'Créer le client'}
-          </Button>
-        </div>
-      </form>
+          {/* Boutons d'action */}
+          <div className="flex justify-end space-x-4 pt-6 border-t border-gray-200">
+            <Button 
+              type="button" 
+              variant="outline" 
+              onClick={onCancel}
+              className="bg-white border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400 px-6"
+            >
+              Annuler
+            </Button>
+            <Button 
+              type="submit" 
+              disabled={isSubmitting}
+              className="bg-blue-600 hover:bg-blue-700 text-white px-6 disabled:opacity-50"
+            >
+              {isSubmitting ? 'Création...' : 'Créer le client'}
+            </Button>
+          </div>
+        </form>
+      </div>
     </div>
   );
 };
