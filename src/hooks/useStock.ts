@@ -1,4 +1,3 @@
-
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useState } from 'react';
@@ -367,14 +366,20 @@ export const useStockPrincipal = () => {
             prix_unitaire,
             prix_achat,
             prix_vente,
-            statut
+            statut,
+            seuil_alerte,
+            created_at,
+            updated_at
           ),
           entrepot:entrepot_id(
             id,
             nom,
             adresse,
             gestionnaire,
-            statut
+            statut,
+            capacite_max,
+            created_at,
+            updated_at
           )
         `)
         .eq('article.statut', 'actif')

@@ -30,6 +30,8 @@ export type Article = {
   categorie: string | null;
   unite_mesure: string | null;
   prix_unitaire: number | null;
+  prix_achat: number | null;
+  prix_vente: number | null;
   seuil_alerte: number | null;
   statut: string | null;
   created_at: string;
