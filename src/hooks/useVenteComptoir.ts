@@ -8,7 +8,7 @@ interface CartItem {
   nom: string;
   prix_vente: number;
   quantite: number;
-  remise: number;
+  remise: number; // Remise en montant fixe
 }
 
 interface VenteComptoirData {
@@ -43,14 +43,17 @@ export const useVenteComptoir = () => {
 
       if (commandeError) throw commandeError;
 
-      // Créer les lignes de commande
-      const lignesCommande = venteData.articles.map(article => ({
-        commande_id: commande.id,
-        article_id: article.id,
-        quantite: article.quantite,
-        prix_unitaire: article.prix_vente * (1 - article.remise / 100),
-        montant_ligne: (article.prix_vente * (1 - article.remise / 100)) * article.quantite
-      }));
+      // Créer les lignes de commande avec remise en montant fixe
+      const lignesCommande = venteData.articles.map(article => {
+        const prixApresRemise = Math.max(0, article.prix_vente - article.remise);
+        return {
+          commande_id: commande.id,
+          article_id: article.id,
+          quantite: article.quantite,
+          prix_unitaire: prixApresRemise,
+          montant_ligne: prixApresRemise * article.quantite
+        };
+      });
 
       const { error: lignesError } = await supabase
         .from('lignes_commande')
@@ -105,7 +108,7 @@ export const useVenteComptoir = () => {
         nom: article.nom,
         prix_vente: article.prix_vente || 0,
         quantite: 1,
-        remise: 0
+        remise: 0 // Remise en montant fixe
       }];
     });
   }, []);
@@ -128,7 +131,7 @@ export const useVenteComptoir = () => {
     setCart(prevCart => 
       prevCart.map(item =>
         item.id === productId
-          ? { ...item, remise: Math.min(100, Math.max(0, remise)) }
+          ? { ...item, remise: Math.max(0, remise) } // Remise en montant fixe
           : item
       )
     );
