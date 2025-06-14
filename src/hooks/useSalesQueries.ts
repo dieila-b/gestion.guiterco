@@ -1,4 +1,3 @@
-
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import type {
@@ -97,7 +96,7 @@ export const useFacturesVente = () => {
               reference
             )
           ),
-          versements:versements_clients(
+          versements:versements_clients!facture_id( 
             id,
             numero_versement,
             montant,
