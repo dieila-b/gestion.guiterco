@@ -3,6 +3,7 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { ShoppingCart, X } from 'lucide-react';
 import { formatCurrency } from '@/lib/currency';
+import StepperInput from './StepperInput';
 
 interface CartItem {
   id: string;
@@ -35,17 +36,21 @@ const CartItems: React.FC<CartItemsProps> = ({
     );
   }
 
+  const handleStepperChange = (productId: string, newQuantity: number) => {
+    handleQuantityChange(productId, newQuantity.toString());
+  };
+
   return (
     <div className="border border-gray-300 rounded overflow-hidden">
       <table className="w-full border-collapse">
         <thead>
           <tr className="bg-gray-50 border-b border-gray-300">
-            <th className="text-gray-800 text-xs font-bold px-2 py-1 text-left border-r border-gray-300 w-[40%]">Nom d'article</th>
-            <th className="text-gray-800 text-xs font-bold px-2 py-1 text-center border-r border-gray-300 w-[12%]">Qté</th>
-            <th className="text-gray-800 text-xs font-bold px-2 py-1 text-center border-r border-gray-300 w-[15%]">Remise</th>
+            <th className="text-gray-800 text-xs font-bold px-2 py-1 text-left border-r border-gray-300 w-[30%]">Nom d'article</th>
+            <th className="text-gray-800 text-xs font-bold px-2 py-1 text-center border-r border-gray-300 w-[18%]">Qté</th>
+            <th className="text-gray-800 text-xs font-bold px-2 py-1 text-center border-r border-gray-300 w-[18%]">Remise</th>
             <th className="text-gray-800 text-xs font-bold px-2 py-1 text-right border-r border-gray-300 w-[15%]">PU TTC</th>
             <th className="text-gray-800 text-xs font-bold px-2 py-1 text-right border-r border-gray-300 w-[15%]">Total</th>
-            <th className="text-gray-800 text-xs font-bold px-2 py-1 text-center w-[3%]"></th>
+            <th className="text-gray-800 text-xs font-bold px-2 py-1 text-center w-[4%]"></th>
           </tr>
         </thead>
         <tbody>
@@ -60,13 +65,14 @@ const CartItems: React.FC<CartItemsProps> = ({
                 </td>
                 
                 <td className="px-2 py-1 text-center border-r border-gray-200">
-                  <input
-                    type="number"
-                    value={item.quantite}
-                    onChange={(e) => handleQuantityChange(item.id, e.target.value)}
-                    className="h-7 w-14 text-center text-xs border border-gray-300 rounded px-1 bg-blue-50 text-blue-700"
-                    min="1"
-                  />
+                  <div className="flex justify-center">
+                    <StepperInput
+                      value={item.quantite}
+                      onChange={(newQuantity) => handleStepperChange(item.id, newQuantity)}
+                      min={1}
+                      max={9999}
+                    />
+                  </div>
                 </td>
 
                 <td className="px-2 py-1 text-center border-r border-gray-200">
@@ -75,7 +81,7 @@ const CartItems: React.FC<CartItemsProps> = ({
                     value={item.remise}
                     onChange={(e) => handleRemiseChange(item.id, e.target.value)}
                     placeholder="0"
-                    className="h-7 w-16 text-center text-xs border border-gray-300 rounded px-1 text-red-600"
+                    className="h-7 w-20 text-center text-xs border border-gray-300 rounded px-1 text-red-600"
                     min="0"
                   />
                 </td>
