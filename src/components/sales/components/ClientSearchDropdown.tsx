@@ -2,12 +2,14 @@
 import React, { useState, useEffect } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { User, Plus } from 'lucide-react';
+import { User, Plus, ChevronDown } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 
 interface Client {
   id: string;
   nom: string;
+  prenom?: string;
+  nom_entreprise?: string;
   type_client: string;
 }
 
@@ -27,10 +29,30 @@ const ClientSearchDropdown: React.FC<ClientSearchDropdownProps> = ({
   const [showDropdown, setShowDropdown] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
+  // Charger tous les clients au montage du composant
+  const loadAllClients = async () => {
+    setIsLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('clients')
+        .select('id, nom, prenom, nom_entreprise, type_client')
+        .order('nom', { ascending: true })
+        .limit(50);
+
+      if (error) throw error;
+      setClients(data || []);
+    } catch (error) {
+      console.error('Erreur lors du chargement des clients:', error);
+      setClients([]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   // Rechercher les clients dans Supabase
   const searchClients = async (term: string) => {
     if (term.length < 2) {
-      setClients([]);
+      loadAllClients(); // Charger tous les clients si le terme est trop court
       return;
     }
 
@@ -38,9 +60,10 @@ const ClientSearchDropdown: React.FC<ClientSearchDropdownProps> = ({
     try {
       const { data, error } = await supabase
         .from('clients')
-        .select('id, nom, type_client')
-        .ilike('nom', `%${term}%`)
-        .limit(10);
+        .select('id, nom, prenom, nom_entreprise, type_client')
+        .or(`nom.ilike.%${term}%,prenom.ilike.%${term}%,nom_entreprise.ilike.%${term}%`)
+        .order('nom', { ascending: true })
+        .limit(20);
 
       if (error) throw error;
       setClients(data || []);
@@ -53,15 +76,21 @@ const ClientSearchDropdown: React.FC<ClientSearchDropdownProps> = ({
   };
 
   useEffect(() => {
+    loadAllClients();
+  }, []);
+
+  useEffect(() => {
     const delayedSearch = setTimeout(() => {
-      searchClients(searchTerm);
+      if (showDropdown) {
+        searchClients(searchTerm);
+      }
     }, 300);
 
     return () => clearTimeout(delayedSearch);
-  }, [searchTerm]);
+  }, [searchTerm, showDropdown]);
 
   const handleClientSelect = (client: Client) => {
-    const clientName = client.nom;
+    const clientName = getClientDisplayName(client);
     setSelectedClient(clientName);
     setSearchTerm(clientName);
     setShowDropdown(false);
@@ -74,37 +103,69 @@ const ClientSearchDropdown: React.FC<ClientSearchDropdownProps> = ({
     setShowDropdown(true);
   };
 
+  const handleInputFocus = () => {
+    setShowDropdown(true);
+    if (!searchTerm) {
+      loadAllClients();
+    }
+  };
+
+  const getClientDisplayName = (client: Client) => {
+    if (client.nom_entreprise) {
+      return client.nom_entreprise;
+    }
+    return client.prenom ? `${client.prenom} ${client.nom}` : client.nom;
+  };
+
+  const getClientSecondaryInfo = (client: Client) => {
+    if (client.nom_entreprise && client.nom) {
+      return client.prenom ? `${client.prenom} ${client.nom}` : client.nom;
+    }
+    return client.type_client;
+  };
+
   return (
     <div className="relative">
       <div className="flex gap-2">
         <div className="flex-1 relative">
-          <Input
-            placeholder="Rechercher un client..."
-            value={searchTerm}
-            onChange={handleInputChange}
-            onFocus={() => setShowDropdown(true)}
-            className="flex-1"
-          />
+          <div className="relative">
+            <Input
+              placeholder="Rechercher un client..."
+              value={searchTerm}
+              onChange={handleInputChange}
+              onFocus={handleInputFocus}
+              className="flex-1 pr-8"
+            />
+            <ChevronDown 
+              className="absolute right-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 cursor-pointer"
+              onClick={() => setShowDropdown(!showDropdown)}
+            />
+          </div>
           
-          {showDropdown && (searchTerm.length >= 2) && (
+          {showDropdown && (
             <div className="absolute top-full left-0 right-0 bg-white border border-gray-200 rounded-md shadow-lg z-50 max-h-60 overflow-y-auto">
               {isLoading ? (
                 <div className="p-3 text-center text-gray-500">Recherche...</div>
               ) : clients.length > 0 ? (
                 clients.map((client) => {
+                  const displayName = getClientDisplayName(client);
+                  const secondaryInfo = getClientSecondaryInfo(client);
+                  
                   return (
                     <div
                       key={client.id}
                       className="p-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0"
                       onClick={() => handleClientSelect(client)}
                     >
-                      <div className="font-medium text-gray-900">{client.nom}</div>
-                      <div className="text-sm text-gray-500 capitalize">{client.type_client}</div>
+                      <div className="font-medium text-gray-900">{displayName}</div>
+                      <div className="text-sm text-gray-500">{secondaryInfo}</div>
                     </div>
                   );
                 })
               ) : (
-                <div className="p-3 text-center text-gray-500">Aucun client trouvé</div>
+                <div className="p-3 text-center text-gray-500">
+                  {searchTerm ? 'Aucun client trouvé' : 'Aucun client disponible'}
+                </div>
               )}
             </div>
           )}

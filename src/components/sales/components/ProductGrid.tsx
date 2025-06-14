@@ -128,12 +128,8 @@ const ProductGrid: React.FC<ProductGridProps> = ({
                         )}
                       </div>
                       
-                      <div className="text-sm font-medium truncate mb-1" title={article.nom}>
+                      <div className="text-sm font-medium truncate mb-2" title={article.nom}>
                         {article.nom}
-                      </div>
-                      
-                      <div className="text-xs text-gray-500 mb-1">
-                        {article.reference}
                       </div>
                       
                       {/* Stock disponible avec couleur */}
