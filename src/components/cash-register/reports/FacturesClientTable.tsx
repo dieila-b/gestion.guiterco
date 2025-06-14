@@ -8,11 +8,12 @@ import type { FactureVente } from "@/types/sales";
 
 interface FacturesClientTableProps {
   factures: FactureVente[];
+  clientSelected?: boolean;
 }
 
-const FacturesClientTable: React.FC<FacturesClientTableProps> = ({ factures }) => {
+const FacturesClientTable: React.FC<FacturesClientTableProps> = ({ factures, clientSelected }) => {
   return (
-    <div className="overflow-x-auto border border-zinc-100 rounded-lg bg-white shadow">
+    <div className="overflow-x-auto border border-zinc-100 rounded-lg bg-white shadow dark:bg-zinc-900 dark:border-zinc-800">
       <Table>
         <TableHeader>
           <TableRow>
@@ -26,7 +27,13 @@ const FacturesClientTable: React.FC<FacturesClientTableProps> = ({ factures }) =
           </TableRow>
         </TableHeader>
         <TableBody>
-          {factures.length === 0 ? (
+          {!clientSelected ? (
+            <TableRow>
+              <TableCell colSpan={7} className="text-center text-zinc-400">
+                Veuillez sélectionner un client
+              </TableCell>
+            </TableRow>
+          ) : factures.length === 0 ? (
             <TableRow>
               <TableCell colSpan={7} className="text-center text-zinc-400">
                 Aucune facture trouvée pour cette période.
