@@ -15,7 +15,8 @@ export const useEntreesStock = () => {
         .select(`
           *,
           article:article_id(*),
-          entrepot:entrepot_id(*)
+          entrepot:entrepot_id(*),
+          point_vente:point_vente_id(*)
         `)
         .order('created_at', { ascending: false });
       
@@ -40,6 +41,7 @@ export const useEntreesStock = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['entrees-stock'] });
       queryClient.invalidateQueries({ queryKey: ['stock-principal'] });
+      queryClient.invalidateQueries({ queryKey: ['stock-pdv'] });
       toast({
         title: "Entrée de stock créée avec succès",
         variant: "default",

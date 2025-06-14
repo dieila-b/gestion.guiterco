@@ -20,6 +20,8 @@ export const AddEntreeForm = ({ onSuccess }: AddEntreeFormProps) => {
   const [formData, setFormData] = useState({
     article_id: '',
     entrepot_id: '',
+    point_vente_id: '',
+    emplacement_type: 'entrepot',
     quantite: 0,
     type_entree: 'achat',
     numero_bon: '',
@@ -35,12 +37,31 @@ export const AddEntreeForm = ({ onSuccess }: AddEntreeFormProps) => {
   };
 
   const handleSelectChange = (name: string, value: string) => {
-    setFormData(prev => ({ ...prev, [name]: value }));
+    setFormData(prev => {
+      const newData = { ...prev, [name]: value };
+      
+      // Reset l'autre champ d'emplacement quand on change le type
+      if (name === 'emplacement_type') {
+        newData.entrepot_id = '';
+        newData.point_vente_id = '';
+      }
+      
+      return newData;
+    });
+  };
+
+  const handleEmplacementChange = (value: string) => {
+    setFormData(prev => ({
+      ...prev,
+      entrepot_id: prev.emplacement_type === 'entrepot' ? value : '',
+      point_vente_id: prev.emplacement_type === 'point_vente' ? value : ''
+    }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.article_id || !formData.entrepot_id || formData.quantite <= 0) {
+    
+    if (!formData.article_id || formData.quantite <= 0) {
       toast({
         title: "Erreur de validation",
         description: "Veuillez remplir tous les champs obligatoires",
@@ -49,16 +70,36 @@ export const AddEntreeForm = ({ onSuccess }: AddEntreeFormProps) => {
       return;
     }
 
-    try {
-      await createEntree.mutateAsync({
-        ...formData,
-        quantite: Number(formData.quantite),
-        prix_unitaire: formData.prix_unitaire ? Number(formData.prix_unitaire) : null
+    if (!formData.entrepot_id && !formData.point_vente_id) {
+      toast({
+        title: "Erreur de validation",
+        description: "Veuillez sélectionner un emplacement",
+        variant: "destructive",
       });
+      return;
+    }
+
+    try {
+      const entreeData = {
+        article_id: formData.article_id,
+        entrepot_id: formData.entrepot_id || null,
+        point_vente_id: formData.point_vente_id || null,
+        quantite: Number(formData.quantite),
+        type_entree: formData.type_entree,
+        numero_bon: formData.numero_bon || null,
+        fournisseur: formData.fournisseur || null,
+        prix_unitaire: formData.prix_unitaire ? Number(formData.prix_unitaire) : null,
+        observations: formData.observations || null,
+        created_by: formData.created_by
+      };
+
+      await createEntree.mutateAsync(entreeData);
       onSuccess();
       setFormData({
         article_id: '',
         entrepot_id: '',
+        point_vente_id: '',
+        emplacement_type: 'entrepot',
         quantite: 0,
         type_entree: 'achat',
         numero_bon: '',
@@ -71,12 +112,6 @@ export const AddEntreeForm = ({ onSuccess }: AddEntreeFormProps) => {
       console.error("Erreur lors de l'ajout d'entrée:", error);
     }
   };
-
-  // Combiner entrepôts et points de vente pour le sélecteur
-  const emplacements = [
-    ...(entrepots?.map(e => ({ id: e.id, nom: e.nom, type: 'Entrepôt' })) || []),
-    ...(pointsDeVente?.map(p => ({ id: p.id, nom: p.nom, type: 'Point de vente' })) || [])
-  ];
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4 mt-4">
@@ -99,24 +134,49 @@ export const AddEntreeForm = ({ onSuccess }: AddEntreeFormProps) => {
             </SelectContent>
           </Select>
         </div>
+        
         <div className="space-y-2">
-          <Label htmlFor="entrepot_id">Emplacement *</Label>
+          <Label htmlFor="emplacement_type">Type d'emplacement *</Label>
           <Select 
-            value={formData.entrepot_id} 
-            onValueChange={(value) => handleSelectChange('entrepot_id', value)}
+            value={formData.emplacement_type} 
+            onValueChange={(value) => handleSelectChange('emplacement_type', value)}
           >
             <SelectTrigger>
               <SelectValue placeholder="Sélectionner..." />
             </SelectTrigger>
             <SelectContent>
-              {emplacements.map(emplacement => (
-                <SelectItem key={emplacement.id} value={emplacement.id}>
-                  {emplacement.nom} ({emplacement.type})
-                </SelectItem>
-              ))}
+              <SelectItem value="entrepot">Entrepôt</SelectItem>
+              <SelectItem value="point_vente">Point de vente</SelectItem>
             </SelectContent>
           </Select>
         </div>
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="emplacement">Emplacement *</Label>
+        <Select 
+          value={formData.emplacement_type === 'entrepot' ? formData.entrepot_id : formData.point_vente_id}
+          onValueChange={handleEmplacementChange}
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="Sélectionner un emplacement..." />
+          </SelectTrigger>
+          <SelectContent>
+            {formData.emplacement_type === 'entrepot' ? (
+              entrepots?.map(entrepot => (
+                <SelectItem key={entrepot.id} value={entrepot.id}>
+                  {entrepot.nom}
+                </SelectItem>
+              ))
+            ) : (
+              pointsDeVente?.map(pdv => (
+                <SelectItem key={pdv.id} value={pdv.id}>
+                  {pdv.nom}
+                </SelectItem>
+              ))
+            )}
+          </SelectContent>
+        </Select>
       </div>
 
       <div className="grid grid-cols-2 gap-4">

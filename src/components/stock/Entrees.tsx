@@ -13,12 +13,16 @@ const Entrees = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
-  const filteredEntrees = entrees?.filter(entree => 
-    entree.article?.nom.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    entree.article?.reference.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    entree.entrepot?.nom.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    entree.fournisseur?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredEntrees = entrees?.filter(entree => {
+    const searchLower = searchTerm.toLowerCase();
+    return (
+      entree.article?.nom?.toLowerCase().includes(searchLower) || 
+      entree.article?.reference?.toLowerCase().includes(searchLower) ||
+      entree.entrepot?.nom?.toLowerCase().includes(searchLower) ||
+      entree.point_vente?.nom?.toLowerCase().includes(searchLower) ||
+      entree.fournisseur?.toLowerCase().includes(searchLower)
+    );
+  });
 
   return (
     <Card>

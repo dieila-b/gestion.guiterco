@@ -70,6 +70,7 @@ export type EntreeStock = {
   id: string;
   article_id: string | null;
   entrepot_id: string | null;
+  point_vente_id: string | null;
   quantite: number;
   type_entree: string;
   numero_bon: string | null;
@@ -80,6 +81,7 @@ export type EntreeStock = {
   created_by: string | null;
   article?: Article;
   entrepot?: Entrepot;
+  point_vente?: PointDeVente;
 };
 
 export type SortieStock = {
