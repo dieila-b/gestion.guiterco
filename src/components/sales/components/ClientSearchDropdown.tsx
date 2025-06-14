@@ -28,6 +28,7 @@ const ClientSearchDropdown: React.FC<ClientSearchDropdownProps> = ({
   const [searchTerm, setSearchTerm] = useState('');
   const [showDropdown, setShowDropdown] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [selectedClientData, setSelectedClientData] = useState<Client | null>(null);
 
   // Charger tous les clients au montage du composant
   const loadAllClients = async () => {
@@ -52,7 +53,7 @@ const ClientSearchDropdown: React.FC<ClientSearchDropdownProps> = ({
   // Rechercher les clients dans Supabase
   const searchClients = async (term: string) => {
     if (term.length < 2) {
-      loadAllClients(); // Charger tous les clients si le terme est trop court
+      loadAllClients();
       return;
     }
 
@@ -75,6 +76,32 @@ const ClientSearchDropdown: React.FC<ClientSearchDropdownProps> = ({
     }
   };
 
+  // Charger les données du client sélectionné si on a un ID
+  useEffect(() => {
+    const loadSelectedClientData = async () => {
+      if (selectedClient && selectedClient.length > 10) { // Vérifier si c'est un UUID
+        try {
+          const { data, error } = await supabase
+            .from('clients')
+            .select('id, nom, prenom, nom_entreprise, type_client')
+            .eq('id', selectedClient)
+            .single();
+
+          if (error) throw error;
+          if (data) {
+            setSelectedClientData(data);
+            setSearchTerm(getClientDisplayName(data));
+          }
+        } catch (error) {
+          console.error('Erreur lors du chargement du client sélectionné:', error);
+          setSelectedClientData(null);
+        }
+      }
+    };
+
+    loadSelectedClientData();
+  }, [selectedClient]);
+
   useEffect(() => {
     loadAllClients();
   }, []);
@@ -90,8 +117,10 @@ const ClientSearchDropdown: React.FC<ClientSearchDropdownProps> = ({
   }, [searchTerm, showDropdown]);
 
   const handleClientSelect = (client: Client) => {
+    console.log('Client sélectionné:', client);
     const clientName = getClientDisplayName(client);
-    setSelectedClient(clientName);
+    setSelectedClient(client.id); // Utiliser l'ID au lieu du nom
+    setSelectedClientData(client);
     setSearchTerm(clientName);
     setShowDropdown(false);
   };
@@ -99,7 +128,11 @@ const ClientSearchDropdown: React.FC<ClientSearchDropdownProps> = ({
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setSearchTerm(value);
-    setSelectedClient(value);
+    // Si l'utilisateur modifie le texte, réinitialiser la sélection
+    if (value !== getClientDisplayName(selectedClientData)) {
+      setSelectedClient('');
+      setSelectedClientData(null);
+    }
     setShowDropdown(true);
   };
 
@@ -110,7 +143,8 @@ const ClientSearchDropdown: React.FC<ClientSearchDropdownProps> = ({
     }
   };
 
-  const getClientDisplayName = (client: Client) => {
+  const getClientDisplayName = (client: Client | null) => {
+    if (!client) return '';
     if (client.nom_entreprise) {
       return client.nom_entreprise;
     }
