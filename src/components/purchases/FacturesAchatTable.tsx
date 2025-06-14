@@ -23,7 +23,7 @@ const TicketFactureAchatDialog = ({ facture }: { facture: any }) => {
 
   return (
     <>
-      <Button variant="outline" size="sm" onClick={() => setOpen(true)} title="Ticket">
+      <Button variant="ghost" size="sm" onClick={() => setOpen(true)} title="Ticket">
         <Receipt className="h-4 w-4" />
       </Button>
       {open && (
@@ -34,7 +34,7 @@ const TicketFactureAchatDialog = ({ facture }: { facture: any }) => {
               <span>Facture : {facture.numero_facture}</span>
               <span>{format(new Date(facture.date_facture), "dd/MM/yy", { locale: fr })}</span>
             </div>
-            <div className="text-xs mb-2">Fournisseur : {facture.fournisseur}</div>
+            <div className="text-xs mb-2">Fournisseur : {facture.fournisseur_nom || facture.fournisseur}</div>
             <div className="border-b border-gray-200 mb-1"></div>
             {articles && articles.length > 0 ? (
               <table className="text-xs w-full mb-1">
@@ -93,15 +93,15 @@ export const FacturesAchatTable = ({ facturesAchat }: FacturesAchatTableProps) =
   const getStatusBadgeVariant = (statut: string) => {
     switch (statut) {
       case 'paye':
-        return 'default';
+        return 'outline';
       case 'partiellement_paye':
         return 'secondary';
       case 'en_attente':
-        return 'outline';
+        return 'default';
       case 'en_retard':
         return 'destructive';
       default:
-        return 'outline';
+        return 'default';
     }
   };
 
@@ -112,7 +112,7 @@ export const FacturesAchatTable = ({ facturesAchat }: FacturesAchatTableProps) =
           <TableRow>
             <TableHead>N° Facture</TableHead>
             <TableHead>Date</TableHead>
-            <TableHead>Fournisseur</TableHead>
+            <TableHead>Client</TableHead>
             <TableHead className="text-center">Articles</TableHead>
             <TableHead className="text-right">Total</TableHead>
             <TableHead className="text-right">Payé</TableHead>
@@ -130,7 +130,7 @@ export const FacturesAchatTable = ({ facturesAchat }: FacturesAchatTableProps) =
                 <TableCell>
                   {format(new Date(facture.date_facture), 'dd/MM/yyyy', { locale: fr })}
                 </TableCell>
-                <TableCell>{facture.fournisseur}</TableCell>
+                <TableCell>{facture.fournisseur_nom || facture.fournisseur}</TableCell>
                 <TableCell className="text-center">{useArticlesCount(facture.id)}</TableCell>
                 <TableCell className="text-right font-medium">
                   {formatCurrency(facture.montant_ttc)}
@@ -150,13 +150,16 @@ export const FacturesAchatTable = ({ facturesAchat }: FacturesAchatTableProps) =
                   {facture.bon_livraison?.numero_bon || '—'}
                 </TableCell>
                 <TableCell>
-                  <div className="flex items-center gap-1">
-                    <EditFactureAchatDialog facture={facture} />
-                    <DeleteFactureAchatDialog
-                      factureId={facture.id}
-                      numeroFacture={facture.numero_facture}
-                    />
-                    <PrintFactureAchatDialog facture={facture} />
+                  <div className="flex items-center space-x-2">
+                    <Button variant="ghost" size="sm" title="Modifier">
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                    <Button variant="ghost" size="sm" title="Supprimer">
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                    <Button variant="ghost" size="sm" title="Imprimer">
+                      <Printer className="h-4 w-4" />
+                    </Button>
                     <TicketFactureAchatDialog facture={facture} />
                   </div>
                 </TableCell>
