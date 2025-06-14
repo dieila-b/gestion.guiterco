@@ -689,6 +689,7 @@ export type Database = {
           id: string
           numero_bon: string | null
           observations: string | null
+          point_vente_id: string | null
           prix_unitaire: number | null
           quantite: number
           type_entree: string
@@ -702,6 +703,7 @@ export type Database = {
           id?: string
           numero_bon?: string | null
           observations?: string | null
+          point_vente_id?: string | null
           prix_unitaire?: number | null
           quantite: number
           type_entree: string
@@ -715,6 +717,7 @@ export type Database = {
           id?: string
           numero_bon?: string | null
           observations?: string | null
+          point_vente_id?: string | null
           prix_unitaire?: number | null
           quantite?: number
           type_entree?: string
@@ -732,6 +735,13 @@ export type Database = {
             columns: ["entrepot_id"]
             isOneToOne: false
             referencedRelation: "entrepots"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entrees_stock_point_vente_id_fkey"
+            columns: ["point_vente_id"]
+            isOneToOne: false
+            referencedRelation: "points_de_vente"
             referencedColumns: ["id"]
           },
         ]

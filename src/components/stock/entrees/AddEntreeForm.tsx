@@ -95,6 +95,8 @@ export const AddEntreeForm = ({ onSuccess }: AddEntreeFormProps) => {
 
       await createEntree.mutateAsync(entreeData);
       onSuccess();
+      
+      // Reset du formulaire
       setFormData({
         article_id: '',
         entrepot_id: '',
@@ -259,7 +261,9 @@ export const AddEntreeForm = ({ onSuccess }: AddEntreeFormProps) => {
         <Button type="button" variant="outline" onClick={() => onSuccess()}>
           Annuler
         </Button>
-        <Button type="submit">Enregistrer</Button>
+        <Button type="submit" disabled={createEntree.isPending}>
+          {createEntree.isPending ? "Enregistrement..." : "Enregistrer"}
+        </Button>
       </div>
     </form>
   );

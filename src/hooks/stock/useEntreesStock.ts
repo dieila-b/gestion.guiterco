@@ -32,7 +32,12 @@ export const useEntreesStock = () => {
       const { data, error } = await supabase
         .from('entrees_stock')
         .insert(newEntree)
-        .select()
+        .select(`
+          *,
+          article:article_id(*),
+          entrepot:entrepot_id(*),
+          point_vente:point_vente_id(*)
+        `)
         .single();
       
       if (error) throw error;
