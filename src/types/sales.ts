@@ -77,7 +77,8 @@ export interface FactureVente {
   commande?: CommandeClient;
   lignes_facture?: LigneFactureVente[];
   versements?: VersementClient[];
-  nb_articles?: number; // <-- Champ optionnel pour le nombre d'articles, fourni par la fonction SQL
+  nb_articles?: number; // Si renvoyé par backend
+  statut_livraison?: string; // <-- Statut livraison dynamique
 }
 
 export interface Precommande {

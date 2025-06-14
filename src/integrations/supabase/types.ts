@@ -947,6 +947,7 @@ export type Database = {
           montant_ttc: number
           numero_facture: string
           observations: string | null
+          statut_livraison: string | null
           statut_paiement: string
           taux_tva: number | null
           tva: number
@@ -965,6 +966,7 @@ export type Database = {
           montant_ttc?: number
           numero_facture: string
           observations?: string | null
+          statut_livraison?: string | null
           statut_paiement?: string
           taux_tva?: number | null
           tva?: number
@@ -983,6 +985,7 @@ export type Database = {
           montant_ttc?: number
           numero_facture?: string
           observations?: string | null
+          statut_livraison?: string | null
           statut_paiement?: string
           taux_tva?: number | null
           tva?: number

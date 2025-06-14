@@ -49,13 +49,47 @@ const FacturesVenteTable = ({ factures, isLoading }: FacturesVenteTableProps) =>
   };
 
   const getArticleCount = (facture: FactureVente) => {
-    // Utilise d'abord le champ nb_articles remonté par le backend si disponible,
-    // Sinon, fallback sur l'ancien comptage sur lignes_facture
+    // Privilégie la valeur du champ renvoyé par le backend
     if (typeof facture.nb_articles === 'number') {
       return facture.nb_articles;
     }
-    const lignes = facture.lignes_facture || [];
-    return lignes.length;
+    // Fallback sécurisé
+    if (facture.lignes_facture) {
+      return facture.lignes_facture.length;
+    }
+    console.warn(
+      'Aucun champ nb_articles ni lignes_facture pour la facture :',
+      facture.numero_facture,
+      facture
+    );
+    return 0;
+  };
+
+  // Nouvelle fonction pour badge livraison
+  const getLivraisonBadge = (facture: FactureVente) => {
+    const statut = facture.statut_livraison || 'livree';
+    switch (statut) {
+      case 'en_attente':
+        return (
+          <Badge variant="outline" className="bg-orange-100 text-orange-800 border-orange-300">
+            En attente
+          </Badge>
+        );
+      case 'partielle':
+      case 'partiellement_livree':
+        return (
+          <Badge variant="outline" className="bg-yellow-100 text-yellow-800 border-yellow-300">
+            Partielle
+          </Badge>
+        );
+      case 'livree':
+      default:
+        return (
+          <Badge variant="outline" className="bg-blue-100 text-blue-800 border-blue-300">
+            Livrée
+          </Badge>
+        );
+    }
   };
 
   if (isLoading) {
@@ -90,7 +124,6 @@ const FacturesVenteTable = ({ factures, isLoading }: FacturesVenteTableProps) =>
             factures.map((facture) => {
               const articleCount = getArticleCount(facture);
               console.log(`Facture ${facture.numero_facture} - Articles count:`, articleCount);
-              
               return (
                 <TableRow key={facture.id} className="hover:bg-muted/30">
                   <TableCell className="font-medium text-blue-600">
@@ -123,9 +156,7 @@ const FacturesVenteTable = ({ factures, isLoading }: FacturesVenteTableProps) =>
                     </Badge>
                   </TableCell>
                   <TableCell className="text-center">
-                    <Badge variant="outline" className="bg-blue-100 text-blue-800 border-blue-300">
-                      Livrée
-                    </Badge>
+                    {getLivraisonBadge(facture)}
                   </TableCell>
                   <TableCell className="text-center">
                     <FacturesVenteActions facture={facture} />
