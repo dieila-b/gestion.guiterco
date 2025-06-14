@@ -37,29 +37,29 @@ export const BonCommandeTableRow = ({ bon, articlesCount, onApprove, onDelete }:
 
   return (
     <TableRow className="border-gray-700 hover:bg-gray-700/50">
-      <TableCell className="text-white font-medium">
+      <TableCell className="text-white font-medium text-xs px-2 py-1">
         {bon.numero_bon}
       </TableCell>
-      <TableCell className="text-gray-300">
+      <TableCell className="text-gray-300 text-xs px-2 py-1">
         {format(new Date(bon.date_commande), 'dd/MM/yyyy', { locale: fr })}
       </TableCell>
-      <TableCell className="text-gray-300">
+      <TableCell className="text-gray-300 text-xs px-2 py-1">
         {bon.fournisseur}
       </TableCell>
-      <TableCell className="text-gray-300">
-        <span className="bg-blue-500/20 text-blue-400 px-2 py-1 rounded text-sm">
+      <TableCell className="text-gray-300 text-xs px-2 py-1 text-center">
+        <span className="bg-blue-500/20 text-blue-400 px-1 py-0.5 rounded text-xs">
           {articlesCount} article{articlesCount > 1 ? 's' : ''}
         </span>
       </TableCell>
-      <TableCell>
-        <Badge variant={getStatusBadgeColor(bon.statut)} className="text-xs">
+      <TableCell className="px-2 py-1 text-center">
+        <Badge variant={getStatusBadgeColor(bon.statut)} className="text-xs px-1 py-0.5">
           {getStatusLabel(bon.statut)}
         </Badge>
       </TableCell>
-      <TableCell className="text-white font-semibold">
+      <TableCell className="text-white font-bold text-sm px-2 py-1 text-center">
         {formatCurrency(bon.montant_total)}
       </TableCell>
-      <TableCell>
+      <TableCell className="px-2 py-1 text-center">
         <BonCommandeActionButtons
           bon={bon}
           onApprove={onApprove}
