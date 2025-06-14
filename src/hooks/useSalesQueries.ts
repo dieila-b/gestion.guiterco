@@ -97,7 +97,7 @@ export const useFacturesVente = () => {
               reference
             )
           ),
-          versements:versements_clients!facture_id(
+          versements:versements_clients(
             id,
             numero_versement,
             montant,
