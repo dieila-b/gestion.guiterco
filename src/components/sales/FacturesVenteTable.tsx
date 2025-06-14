@@ -39,7 +39,7 @@ const FacturesVenteTable = ({ factures, isLoading }: FacturesVenteTableProps) =>
       return facture.montant_ttc;
     }
     // Calculer le montant payé à partir des versements
-    const versements = (facture as any).versements || [];
+    const versements = facture.versements || [];
     return versements.reduce((total: number, versement: any) => total + (versement.montant || 0), 0);
   };
 
@@ -49,7 +49,7 @@ const FacturesVenteTable = ({ factures, isLoading }: FacturesVenteTableProps) =>
   };
 
   const getArticleCount = (facture: FactureVente) => {
-    const lignes = (facture as any).lignes_facture || [];
+    const lignes = facture.lignes_facture || [];
     return lignes.length;
   };
 

@@ -72,8 +72,13 @@ export const useFacturesVente = () => {
           commande:commandes_clients(
             id,
             numero_commande,
+            date_commande,
             statut,
-            montant_ttc
+            montant_ht,
+            montant_ttc,
+            tva,
+            created_at,
+            updated_at
           ),
           lignes_facture:lignes_facture_vente(
             id,
