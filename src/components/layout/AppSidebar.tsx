@@ -24,7 +24,7 @@ import {
 
 const mainMenu = [
   {
-    title: "Dashboard",
+    title: "Tableau de Bord", // Modifié ici
     url: "/",
     icon: Database,
   },
