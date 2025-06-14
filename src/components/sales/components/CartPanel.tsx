@@ -1,14 +1,27 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import CartHeader from './cart/CartHeader';
+import ClientSection from './cart/ClientSection';
 import CartItems from './cart/CartItems';
 import CartFooter from './cart/CartFooter';
-import ClientSection from './cart/ClientSection';
-import { X } from 'lucide-react';
+import NewClientDialog from './cart/NewClientDialog';
+
+interface CartItem {
+  id: string;
+  nom: string;
+  prix_vente: number;
+  quantite: number;
+  remise: number;
+}
+
+interface CartTotals {
+  sousTotal: number;
+  total: number;
+}
 
 interface CartPanelProps {
-  cart: any[];
-  cartTotals: { sousTotal: number; total: number };
+  cart: CartItem[];
+  cartTotals: CartTotals;
   selectedClient: string;
   setSelectedClient: (value: string) => void;
   handleQuantityChange: (productId: string, newQuantity: string) => void;
@@ -17,8 +30,6 @@ interface CartPanelProps {
   clearCart: () => void;
   handlePayment: () => void;
   isLoading: boolean;
-  onNewClient: () => void;
-  onClose?: () => void;
 }
 
 const CartPanel: React.FC<CartPanelProps> = ({
@@ -31,46 +42,62 @@ const CartPanel: React.FC<CartPanelProps> = ({
   removeFromCart,
   clearCart,
   handlePayment,
-  isLoading,
-  onNewClient,
-  onClose
+  isLoading
 }) => {
+  const [showNewClientDialog, setShowNewClientDialog] = useState(false);
+
+  const handleNewClientSuccess = (clientName: string) => {
+    setSelectedClient(clientName);
+    setShowNewClientDialog(false);
+  };
+
   return (
-    <div className="h-full bg-white border-l border-gray-200 flex flex-col relative">
-      {/* Bouton fermer pour mobile */}
-      {onClose && (
-        <button
-          onClick={onClose}
-          className="absolute top-4 right-4 lg:hidden z-10 p-2 text-gray-500 hover:text-gray-700"
-        >
-          <X className="h-5 w-5" />
-        </button>
-      )}
+    <div className="w-1/2 p-4 flex flex-col">
+      {/* Panier élevé et aligné avec le haut de la zone produit */}
+      <div className="bg-white rounded-lg shadow-2xl border border-gray-200 flex flex-col h-full mt-0">
+        {/* En-tête panier */}
+        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 border-b border-gray-200 rounded-t-lg">
+          <CartHeader 
+            cartLength={cart.length}
+            onClearCart={clearCart}
+          />
 
-      <CartHeader cartLength={cart.length} onClearCart={clearCart} />
-      
-      <div className="flex-1 p-4 overflow-y-auto">
-        <ClientSection
-          selectedClient={selectedClient}
-          setSelectedClient={setSelectedClient}
-          onNewClient={onNewClient}
-        />
+          {/* Section client */}
+          <ClientSection
+            selectedClient={selectedClient}
+            setSelectedClient={setSelectedClient}
+            onNewClient={() => setShowNewClientDialog(true)}
+          />
+        </div>
 
-        <CartItems
-          cart={cart}
-          handleQuantityChange={handleQuantityChange}
-          handleRemiseChange={handleRemiseChange}
-          removeFromCart={removeFromCart}
-        />
+        {/* Articles du panier */}
+        <div className="flex-1 overflow-auto p-4">
+          <CartItems
+            cart={cart}
+            handleQuantityChange={handleQuantityChange}
+            handleRemiseChange={handleRemiseChange}
+            removeFromCart={removeFromCart}
+          />
+        </div>
+
+        {/* Totaux et actions */}
+        {cart.length > 0 && (
+          <CartFooter
+            cartTotals={cartTotals}
+            cartLength={cart.length}
+            selectedClient={selectedClient}
+            isLoading={isLoading}
+            clearCart={clearCart}
+            handlePayment={handlePayment}
+          />
+        )}
       </div>
 
-      <CartFooter
-        cartTotals={cartTotals}
-        cartLength={cart.length}
-        selectedClient={selectedClient}
-        isLoading={isLoading}
-        clearCart={clearCart}
-        handlePayment={handlePayment}
+      {/* Dialog pour nouveau client */}
+      <NewClientDialog
+        open={showNewClientDialog}
+        onOpenChange={setShowNewClientDialog}
+        onSuccess={handleNewClientSuccess}
       />
     </div>
   );

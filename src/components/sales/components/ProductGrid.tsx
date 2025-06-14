@@ -1,18 +1,25 @@
 
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
+import { Image, ChevronLeft, ChevronRight } from 'lucide-react';
 import { formatCurrency } from '@/lib/currency';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+
+interface Article {
+  id: string;
+  nom: string;
+  reference: string;
+  prix_vente?: number;
+  image_url?: string;
+}
 
 interface ProductGridProps {
-  stockPDV: any[];
+  stockPDV?: any[];
   loadingArticles: boolean;
-  addToCart: (product: any) => void;
+  addToCart: (article: any) => void;
   currentPage: number;
   totalPages: number;
   goToPage: (page: number) => void;
-  getStockColor: (stock: number) => string;
+  getStockColor: (quantite: number) => string;
   searchProduct: string;
   selectedCategory: string;
 }
@@ -28,228 +35,156 @@ const ProductGrid: React.FC<ProductGridProps> = ({
   searchProduct,
   selectedCategory
 }) => {
-  if (loadingArticles) {
-    return (
-      <div className="flex-1 p-4 lg:p-6">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4">
-          {[...Array(12)].map((_, index) => (
-            <Card key={index} className="animate-pulse">
-              <CardContent className="p-4">
-                <div className="h-32 bg-gray-200 rounded mb-4"></div>
-                <div className="h-4 bg-gray-200 rounded mb-2"></div>
-                <div className="h-4 bg-gray-200 rounded w-2/3"></div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      </div>
-    );
-  }
+  // Filtrer les produits en fonction de la recherche et de la catégorie
+  const filteredProducts = React.useMemo(() => {
+    if (!stockPDV) return [];
+    
+    return stockPDV.filter(stockItem => {
+      const article = stockItem.article;
+      if (!article) return false;
 
-  // Filtrer les produits selon la recherche et la catégorie
-  const filteredProducts = stockPDV?.filter((stockItem) => {
-    const article = stockItem.article;
-    if (!article) return false;
+      // Filtre par recherche
+      const matchesSearch = !searchProduct || 
+        article.nom.toLowerCase().includes(searchProduct.toLowerCase()) ||
+        article.reference.toLowerCase().includes(searchProduct.toLowerCase());
 
-    const matchesSearch = !searchProduct || 
-      article.nom?.toLowerCase().includes(searchProduct.toLowerCase()) ||
-      article.reference?.toLowerCase().includes(searchProduct.toLowerCase());
+      // Filtre par catégorie
+      const matchesCategory = selectedCategory === 'Tous' || 
+        !selectedCategory || 
+        article.categorie === selectedCategory;
 
-    const matchesCategory = selectedCategory === 'Tous' || 
-      article.categorie === selectedCategory;
+      return matchesSearch && matchesCategory;
+    });
+  }, [stockPDV, searchProduct, selectedCategory]);
 
-    return matchesSearch && matchesCategory;
-  }) || [];
+  const getStockIndicator = (quantite: number) => {
+    if (quantite > 50) return { emoji: '🟢', text: 'En stock' };
+    if (quantite >= 10) return { emoji: '🟠', text: 'Stock moyen' };
+    return { emoji: '🔴', text: 'Stock faible' };
+  };
 
   return (
-    <div className="flex-1 flex flex-col h-full bg-white">
-      {/* En-tête avec résultats */}
-      <div className="p-4 lg:p-6 border-b bg-gray-50">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <h2 className="text-lg font-semibold text-gray-800">Produits disponibles</h2>
-            <p className="text-sm text-gray-600">
-              {filteredProducts.length} produit{filteredProducts.length > 1 ? 's' : ''} trouvé{filteredProducts.length > 1 ? 's' : ''}
-              {searchProduct && ` pour "${searchProduct}"`}
-              {selectedCategory !== 'Tous' && ` dans "${selectedCategory}"`}
-            </p>
-          </div>
-          
-          {/* Pagination compacte pour mobile */}
-          {totalPages > 1 && (
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => goToPage(currentPage - 1)}
-                disabled={currentPage <= 1}
-              >
-                <ChevronLeft className="h-4 w-4" />
-              </Button>
-              
-              <span className="text-sm text-gray-600 px-2">
-                {currentPage} / {totalPages}
-              </span>
-              
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => goToPage(currentPage + 1)}
-                disabled={currentPage >= totalPages}
-              >
-                <ChevronRight className="h-4 w-4" />
-              </Button>
-            </div>
-          )}
+    <div className="w-1/2 p-4 flex flex-col">
+      <div className="bg-white rounded-lg shadow-lg border border-gray-200 flex flex-col h-full">
+        {/* En-tête produits */}
+        <div className="p-4 border-b border-gray-200">
+          <h3 className="text-lg font-bold text-gray-800">Produits disponibles</h3>
+          <p className="text-sm text-gray-500">
+            {filteredProducts.length} produits trouvés - Cliquez pour ajouter au panier
+          </p>
         </div>
-      </div>
 
-      {/* Grille de produits responsive */}
-      <div className="flex-1 p-4 lg:p-6 overflow-y-auto">
-        {filteredProducts.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-64 text-gray-500">
-            <div className="text-6xl mb-4">📦</div>
-            <h3 className="text-xl font-medium mb-2">Aucun produit trouvé</h3>
-            <p className="text-center">
-              {searchProduct || selectedCategory !== 'Tous'
-                ? 'Essayez de modifier vos critères de recherche'
-                : 'Aucun produit disponible dans ce point de vente'
-              }
-            </p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 lg:gap-6">
-            {filteredProducts.map((stockItem) => {
-              const article = stockItem.article;
-              const stock = stockItem.quantite_disponible || 0;
-              const stockColor = getStockColor(stock);
-
-              return (
-                <Card key={article.id} className="group hover:shadow-lg transition-all duration-200 cursor-pointer">
-                  <CardContent className="p-4">
-                    {/* Image du produit */}
-                    <div className="aspect-square bg-gray-100 rounded-lg mb-4 overflow-hidden">
-                      {article.image_url ? (
-                        <img
-                          src={article.image_url}
-                          alt={article.nom}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center text-gray-400 text-4xl">
-                          📦
+        {/* Grille des produits */}
+        <div className="flex-1 overflow-auto p-4">
+          {loadingArticles ? (
+            <div className="grid grid-cols-5 gap-4">
+              {Array.from({ length: 20 }).map((_, i) => (
+                <div key={i} className="animate-pulse">
+                  <div className="aspect-square bg-gray-200 rounded mb-2"></div>
+                  <div className="h-4 bg-gray-200 rounded mb-1"></div>
+                  <div className="h-3 bg-gray-200 rounded mb-1"></div>
+                  <div className="h-4 bg-gray-200 rounded"></div>
+                </div>
+              ))}
+            </div>
+          ) : filteredProducts.length === 0 ? (
+            <div className="text-center py-8 text-gray-500">
+              <Image className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+              <p>Aucun produit trouvé</p>
+              <p className="text-sm">Essayez de changer les filtres ou sélectionner un autre PDV</p>
+            </div>
+          ) : (
+            <>
+              <div className="grid grid-cols-5 gap-4 mb-4">
+                {filteredProducts.map((stockItem) => {
+                  const article = stockItem.article;
+                  const stockDisponible = stockItem.quantite_disponible;
+                  const stockIndicator = getStockIndicator(stockDisponible);
+                  
+                  return (
+                    <div 
+                      key={article.id}
+                      className={`border rounded-lg p-3 transition-all cursor-pointer hover:shadow-md bg-background relative ${
+                        stockDisponible === 0 ? 'opacity-50 cursor-not-allowed' : 'hover:border-blue-300'
+                      }`}
+                      onClick={() => stockDisponible > 0 && addToCart(article)}
+                    >
+                      {/* Indicateur de stock */}
+                      <div className="absolute top-2 right-2 text-lg">
+                        {stockIndicator.emoji}
+                      </div>
+                      
+                      <div className="aspect-square bg-gray-100 rounded mb-2 flex items-center justify-center overflow-hidden">
+                        {article.image_url ? (
+                          <img 
+                            src={article.image_url} 
+                            alt={article.nom}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-full h-full bg-gradient-to-br from-blue-100 to-blue-200 flex items-center justify-center">
+                            <Image className="h-8 w-8 text-blue-400" />
+                          </div>
+                        )}
+                      </div>
+                      
+                      <div className="text-sm font-medium truncate mb-1" title={article.nom}>
+                        {article.nom}
+                      </div>
+                      
+                      <div className="text-xs text-gray-500 mb-1">
+                        {article.reference}
+                      </div>
+                      
+                      {/* Stock disponible avec couleur */}
+                      <div className={`text-xs font-medium mb-1 ${getStockColor(stockDisponible)}`}>
+                        Stock: {stockDisponible}
+                      </div>
+                      
+                      <div className="font-bold text-blue-600">
+                        {formatCurrency(article.prix_vente || 0)}
+                      </div>
+                      
+                      {stockDisponible === 0 && (
+                        <div className="absolute inset-0 bg-black bg-opacity-50 rounded-lg flex items-center justify-center">
+                          <span className="text-white text-xs font-bold">RUPTURE</span>
                         </div>
                       )}
                     </div>
+                  );
+                })}
+              </div>
 
-                    {/* Informations produit */}
-                    <div className="space-y-2">
-                      <h3 className="font-medium text-gray-900 text-sm line-clamp-2 group-hover:text-blue-600 transition-colors">
-                        {article.nom}
-                      </h3>
-                      
-                      <div className="text-xs text-gray-500">
-                        REF: {article.reference}
-                      </div>
-
-                      {/* Prix */}
-                      <div className="text-lg font-bold text-blue-600">
-                        {formatCurrency(article.prix_vente || 0)}
-                      </div>
-
-                      {/* Stock */}
-                      <div className="flex items-center justify-between">
-                        <span className={`text-xs px-2 py-1 rounded-full ${stockColor}`}>
-                          Stock: {stock}
-                        </span>
-                        
-                        {article.categorie && (
-                          <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
-                            {article.categorie}
-                          </span>
-                        )}
-                      </div>
-
-                      {/* Bouton d'ajout */}
-                      <Button
-                        className="w-full mt-3 group-hover:bg-blue-600 group-hover:text-white transition-colors"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => addToCart(article)}
-                        disabled={stock <= 0}
-                      >
-                        {stock <= 0 ? 'Rupture de stock' : 'Ajouter au panier'}
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </div>
-        )}
-      </div>
-
-      {/* Pagination en bas pour desktop */}
-      {totalPages > 1 && (
-        <div className="hidden lg:flex items-center justify-center gap-2 p-4 border-t bg-gray-50">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => goToPage(1)}
-            disabled={currentPage <= 1}
-          >
-            Premier
-          </Button>
-          
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => goToPage(currentPage - 1)}
-            disabled={currentPage <= 1}
-          >
-            <ChevronLeft className="h-4 w-4 mr-1" />
-            Précédent
-          </Button>
-
-          <div className="flex items-center gap-1">
-            {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-              const pageNum = Math.max(1, currentPage - 2) + i;
-              if (pageNum > totalPages) return null;
-              
-              return (
-                <Button
-                  key={pageNum}
-                  variant={pageNum === currentPage ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => goToPage(pageNum)}
-                  className="w-8 h-8 p-0"
-                >
-                  {pageNum}
-                </Button>
-              );
-            })}
-          </div>
-
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => goToPage(currentPage + 1)}
-            disabled={currentPage >= totalPages}
-          >
-            Suivant
-            <ChevronRight className="h-4 w-4 ml-1" />
-          </Button>
-          
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => goToPage(totalPages)}
-            disabled={currentPage >= totalPages}
-          >
-            Dernier
-          </Button>
+              {/* Pagination */}
+              {totalPages > 1 && (
+                <div className="flex justify-center items-center gap-2 pt-4 border-t">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => goToPage(currentPage - 1)}
+                    disabled={currentPage === 1}
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </Button>
+                  
+                  <span className="text-sm text-gray-600">
+                    Page {currentPage} sur {totalPages}
+                  </span>
+                  
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => goToPage(currentPage + 1)}
+                    disabled={currentPage === totalPages}
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </div>
+              )}
+            </>
+          )}
         </div>
-      )}
+      </div>
     </div>
   );
 };
