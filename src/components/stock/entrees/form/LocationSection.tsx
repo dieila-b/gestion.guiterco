@@ -2,7 +2,29 @@
 import React from 'react';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Entrepot, PointDeVente } from '@/components/stock/types';
+
+// Importer depuis stock/types.ts pour les entrepôts et points de vente
+interface Entrepot {
+  id: string;
+  nom: string;
+  adresse: string | null;
+  capacite_max: number | null;
+  gestionnaire: string | null;
+  statut: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+interface PointDeVente {
+  id: string;
+  nom: string;
+  adresse: string | null;
+  type_pdv: string | null;
+  responsable: string | null;
+  statut: string | null;
+  created_at: string;
+  updated_at: string;
+}
 
 interface LocationSectionProps {
   emplacementType: string;
