@@ -49,8 +49,11 @@ const FacturesVenteTable = ({ factures, isLoading }: FacturesVenteTableProps) =>
   };
 
   const getArticleCount = (facture: FactureVente) => {
-    // Correction du comptage des articles
-    console.log('Facture lignes_facture:', facture.lignes_facture);
+    // Utilise d'abord le champ nb_articles remonté par le backend si disponible,
+    // Sinon, fallback sur l'ancien comptage sur lignes_facture
+    if (typeof facture.nb_articles === 'number') {
+      return facture.nb_articles;
+    }
     const lignes = facture.lignes_facture || [];
     return lignes.length;
   };

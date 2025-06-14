@@ -1,4 +1,3 @@
-
 export interface Client {
   id: string;
   nom: string;
@@ -78,6 +77,7 @@ export interface FactureVente {
   commande?: CommandeClient;
   lignes_facture?: LigneFactureVente[];
   versements?: VersementClient[];
+  nb_articles?: number; // <-- Champ optionnel pour le nombre d'articles, fourni par la fonction SQL
 }
 
 export interface Precommande {
