@@ -68,6 +68,7 @@ const ClientsReports: React.FC = () => {
 
   return (
     <div className="space-y-6">
+      <h2 className="text-lg font-semibold">Synthèse Clients</h2>
       <div className="flex flex-col md:flex-row md:items-end gap-4">
         <div className="flex-1">
           <ClientReportFilter
