@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo } from 'react';
 import { useCatalogueOptimized } from '@/hooks/useCatalogueOptimized';
 import { useDebounce } from '@/hooks/useDebounce';
@@ -20,6 +21,7 @@ const VenteComptoirResponsive = () => {
   const [showPostPaymentActions, setShowPostPaymentActions] = useState(false);
   const [lastFacture, setLastFacture] = useState<any>(null);
   const [showNewClientDialog, setShowNewClientDialog] = useState(false);
+  const [isCartOpen, setIsCartOpen] = useState(false);
   const productsPerPage = 20;
 
   // Debounce pour la recherche
@@ -178,35 +180,70 @@ const VenteComptoirResponsive = () => {
           pointsDeVente={pointsDeVente}
         />
 
-        {/* Contenu principal */}
-        <div className="flex-1 flex min-h-0">
-          {/* Zone produits */}
-          <ProductGrid
-            stockPDV={stockPDV}
-            loadingArticles={loadingArticles}
-            addToCart={addToCart}
-            currentPage={currentPage}
-            totalPages={totalPages}
-            goToPage={goToPage}
-            getStockColor={getStockColor}
-            searchProduct={searchProduct}
-            selectedCategory={selectedCategory}
-          />
+        {/* Contenu principal - Responsive */}
+        <div className="flex-1 flex min-h-0 relative">
+          {/* Zone produits - responsive avec flex-grow */}
+          <div className={`flex-1 min-w-0 transition-all duration-300 ${
+            isCartOpen ? 'lg:flex-1' : 'w-full'
+          }`}>
+            <ProductGrid
+              stockPDV={stockPDV}
+              loadingArticles={loadingArticles}
+              addToCart={addToCart}
+              currentPage={currentPage}
+              totalPages={totalPages}
+              goToPage={goToPage}
+              getStockColor={getStockColor}
+              searchProduct={searchProduct}
+              selectedCategory={selectedCategory}
+            />
+          </div>
 
-          {/* Zone panier */}
-          <CartPanel
-            cart={cart}
-            cartTotals={cartTotals}
-            selectedClient={selectedClient}
-            setSelectedClient={setSelectedClient}
-            handleQuantityChange={handleQuantityChange}
-            handleRemiseChange={handleRemiseChange}
-            removeFromCart={removeFromCart}
-            clearCart={clearCart}
-            handlePayment={handlePayment}
-            isLoading={isLoading}
-            onNewClient={handleNewClient}
-          />
+          {/* Zone panier - responsive avec overlay sur mobile */}
+          <div className={`
+            ${isCartOpen ? 'translate-x-0' : 'translate-x-full lg:translate-x-0'}
+            fixed lg:relative top-0 right-0 h-full w-full sm:w-96 lg:w-80 xl:w-96 
+            bg-white shadow-lg lg:shadow-none border-l border-gray-200 
+            transition-transform duration-300 ease-in-out z-30
+          `}>
+            <CartPanel
+              cart={cart}
+              cartTotals={cartTotals}
+              selectedClient={selectedClient}
+              setSelectedClient={setSelectedClient}
+              handleQuantityChange={handleQuantityChange}
+              handleRemiseChange={handleRemiseChange}
+              removeFromCart={removeFromCart}
+              clearCart={clearCart}
+              handlePayment={handlePayment}
+              isLoading={isLoading}
+              onNewClient={handleNewClient}
+              onClose={() => setIsCartOpen(false)}
+            />
+          </div>
+
+          {/* Overlay pour mobile */}
+          {isCartOpen && (
+            <div 
+              className="fixed inset-0 bg-black bg-opacity-50 z-20 lg:hidden"
+              onClick={() => setIsCartOpen(false)}
+            />
+          )}
+
+          {/* Bouton panier flottant pour mobile */}
+          <button
+            onClick={() => setIsCartOpen(true)}
+            className="fixed bottom-6 right-6 lg:hidden bg-blue-600 text-white p-4 rounded-full shadow-lg z-40 flex items-center justify-center"
+          >
+            <div className="relative">
+              🛒
+              {cart.length > 0 && (
+                <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                  {cart.length}
+                </span>
+              )}
+            </div>
+          </button>
         </div>
       </div>
 

@@ -4,6 +4,7 @@ import CartHeader from './cart/CartHeader';
 import CartItems from './cart/CartItems';
 import CartFooter from './cart/CartFooter';
 import ClientSection from './cart/ClientSection';
+import { X } from 'lucide-react';
 
 interface CartPanelProps {
   cart: any[];
@@ -17,6 +18,7 @@ interface CartPanelProps {
   handlePayment: () => void;
   isLoading: boolean;
   onNewClient: () => void;
+  onClose?: () => void;
 }
 
 const CartPanel: React.FC<CartPanelProps> = ({
@@ -30,10 +32,21 @@ const CartPanel: React.FC<CartPanelProps> = ({
   clearCart,
   handlePayment,
   isLoading,
-  onNewClient
+  onNewClient,
+  onClose
 }) => {
   return (
-    <div className="w-80 bg-white border-l border-gray-200 flex flex-col">
+    <div className="h-full bg-white border-l border-gray-200 flex flex-col relative">
+      {/* Bouton fermer pour mobile */}
+      {onClose && (
+        <button
+          onClick={onClose}
+          className="absolute top-4 right-4 lg:hidden z-10 p-2 text-gray-500 hover:text-gray-700"
+        >
+          <X className="h-5 w-5" />
+        </button>
+      )}
+
       <CartHeader cartLength={cart.length} onClearCart={clearCart} />
       
       <div className="flex-1 p-4 overflow-y-auto">
