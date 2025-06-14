@@ -77,6 +77,9 @@ export const useFacturesVente = () => {
             montant_ht,
             montant_ttc,
             tva,
+            taux_tva,
+            mode_paiement,
+            observations,
             created_at,
             updated_at
           ),
@@ -86,6 +89,8 @@ export const useFacturesVente = () => {
             prix_unitaire,
             montant_ligne,
             created_at,
+            facture_vente_id,
+            article_id,
             article:catalogue(
               id,
               nom,
@@ -94,9 +99,16 @@ export const useFacturesVente = () => {
           ),
           versements:versements_clients(
             id,
+            numero_versement,
             montant,
             date_versement,
-            mode_paiement
+            mode_paiement,
+            reference_paiement,
+            observations,
+            created_at,
+            updated_at,
+            client_id,
+            facture_id
           )
         `)
         .order('created_at', { ascending: false });
