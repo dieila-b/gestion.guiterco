@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Minus, Plus } from 'lucide-react';
 
@@ -18,12 +18,6 @@ const StepperInput: React.FC<StepperInputProps> = ({
   max = 9999,
   className = ""
 }) => {
-  const [inputValue, setInputValue] = useState(value.toString());
-
-  useEffect(() => {
-    setInputValue(value.toString());
-  }, [value]);
-
   const handleIncrement = () => {
     const newValue = Math.min(max, value + 1);
     onChange(newValue);
@@ -34,24 +28,6 @@ const StepperInput: React.FC<StepperInputProps> = ({
     onChange(newValue);
   };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newValue = e.target.value;
-    setInputValue(newValue);
-  };
-
-  const handleInputBlur = () => {
-    let numValue = parseInt(inputValue) || min;
-    numValue = Math.max(min, Math.min(max, numValue));
-    onChange(numValue);
-    setInputValue(numValue.toString());
-  };
-
-  const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
-      handleInputBlur();
-    }
-  };
-
   return (
     <div className={`flex items-center ${className}`}>
       <Button
@@ -60,21 +36,14 @@ const StepperInput: React.FC<StepperInputProps> = ({
         size="sm"
         onClick={handleDecrement}
         disabled={value <= min}
-        className="h-7 w-7 p-0 border-r-0 rounded-r-none bg-gray-50 hover:bg-gray-100"
+        className="h-7 w-7 p-0 bg-gray-50 hover:bg-gray-100 rounded-l border-r-0"
       >
         <Minus className="h-3 w-3" />
       </Button>
       
-      <input
-        type="number"
-        value={inputValue}
-        onChange={handleInputChange}
-        onBlur={handleInputBlur}
-        onKeyPress={handleKeyPress}
-        className="h-7 w-12 text-center text-xs border border-gray-300 border-l-0 border-r-0 bg-white focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
-        min={min}
-        max={max}
-      />
+      <div className="h-7 w-8 flex items-center justify-center text-xs font-medium border-t border-b border-gray-300 bg-white">
+        {value}
+      </div>
       
       <Button
         type="button"
@@ -82,7 +51,7 @@ const StepperInput: React.FC<StepperInputProps> = ({
         size="sm"
         onClick={handleIncrement}
         disabled={value >= max}
-        className="h-7 w-7 p-0 border-l-0 rounded-l-none bg-gray-50 hover:bg-gray-100"
+        className="h-7 w-7 p-0 bg-gray-50 hover:bg-gray-100 rounded-r border-l-0"
       >
         <Plus className="h-3 w-3" />
       </Button>
