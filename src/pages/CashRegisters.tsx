@@ -6,7 +6,6 @@ import { useToast } from '@/hooks/use-toast';
 import CashRegisterOverview from '@/components/cash-register/CashRegisterOverview';
 import TransactionDialog from '@/components/cash-register/TransactionDialog';
 import TransactionsHistory from '@/components/cash-register/TransactionsHistory';
-import ReportsTab from '@/components/cash-register/ReportsTab';
 import AddCashRegisterDialog from '@/components/cash-register/AddCashRegisterDialog';
 import { useCashRegisters } from '@/hooks/useCashRegisters';
 import { useTransactions, useTodayTransactions } from '@/hooks/useTransactions';
@@ -89,7 +88,6 @@ const CashRegisters: React.FC = () => {
           <TabsList>
             <TabsTrigger value="overview">Aperçu</TabsTrigger>
             <TabsTrigger value="transactions">Transactions</TabsTrigger>
-            <TabsTrigger value="reports">Rapports</TabsTrigger>
           </TabsList>
           <div className="space-x-2">
             <AddCashRegisterDialog onRegisterCreated={handleRegisterCreated} />
@@ -123,10 +121,6 @@ const CashRegisters: React.FC = () => {
             setDate={setDate}
             formatCurrency={formatCurrency}
           />
-        </TabsContent>
-
-        <TabsContent value="reports" className="space-y-4">
-          <ReportsTab />
         </TabsContent>
       </Tabs>
     </AppLayout>
