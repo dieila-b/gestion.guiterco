@@ -789,7 +789,6 @@ export type Database = {
           date_facture: string
           date_paiement: string | null
           fournisseur: string
-          fournisseur_id: string | null
           id: string
           mode_paiement: string | null
           montant_ht: number
@@ -811,7 +810,6 @@ export type Database = {
           date_facture?: string
           date_paiement?: string | null
           fournisseur: string
-          fournisseur_id?: string | null
           id?: string
           mode_paiement?: string | null
           montant_ht?: number
@@ -833,7 +831,6 @@ export type Database = {
           date_facture?: string
           date_paiement?: string | null
           fournisseur?: string
-          fournisseur_id?: string | null
           id?: string
           mode_paiement?: string | null
           montant_ht?: number
@@ -859,13 +856,6 @@ export type Database = {
             columns: ["bon_livraison_id"]
             isOneToOne: false
             referencedRelation: "bons_de_livraison"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "fk_factures_achat_fournisseur"
-            columns: ["fournisseur_id"]
-            isOneToOne: false
-            referencedRelation: "fournisseurs"
             referencedColumns: ["id"]
           },
         ]
@@ -1330,53 +1320,6 @@ export type Database = {
             columns: ["client_id"]
             isOneToOne: false
             referencedRelation: "clients"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      reglements_achat: {
-        Row: {
-          created_at: string
-          created_by: string | null
-          date_reglement: string
-          facture_achat_id: string
-          id: string
-          mode_paiement: string
-          montant: number
-          observations: string | null
-          reference_paiement: string | null
-          updated_at: string
-        }
-        Insert: {
-          created_at?: string
-          created_by?: string | null
-          date_reglement?: string
-          facture_achat_id: string
-          id?: string
-          mode_paiement: string
-          montant?: number
-          observations?: string | null
-          reference_paiement?: string | null
-          updated_at?: string
-        }
-        Update: {
-          created_at?: string
-          created_by?: string | null
-          date_reglement?: string
-          facture_achat_id?: string
-          id?: string
-          mode_paiement?: string
-          montant?: number
-          observations?: string | null
-          reference_paiement?: string | null
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "fk_reglements_achat_facture"
-            columns: ["facture_achat_id"]
-            isOneToOne: false
-            referencedRelation: "factures_achat"
             referencedColumns: ["id"]
           },
         ]

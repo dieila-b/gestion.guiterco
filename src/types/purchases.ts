@@ -1,4 +1,3 @@
-
 export interface BonCommande {
   id: string;
   numero_bon: string;
@@ -58,8 +57,6 @@ export interface FactureAchat {
   bon_commande_id?: string;
   bon_livraison_id?: string;
   fournisseur: string;
-  fournisseur_id?: string;
-  fournisseur_nom?: string;
   date_facture: string;
   date_echeance?: string;
   montant_ht: number;
@@ -76,14 +73,6 @@ export interface FactureAchat {
   created_by?: string;
   bon_commande?: BonCommande;
   bon_livraison?: BonLivraison;
-  fournisseur_rel?: {
-    id: string;
-    nom_entreprise?: string;
-    nom?: string;
-    contact_principal?: string;
-    email?: string;
-    telephone_mobile?: string;
-  };
 }
 
 export interface RetourFournisseur {
