@@ -1,4 +1,3 @@
-
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import type {
@@ -47,23 +46,46 @@ export const useCommandesClients = () => {
   });
 };
 
-// Hook pour les factures de vente
+// Hook pour les factures de vente avec relations complètes
 export const useFacturesVente = () => {
   return useQuery({
     queryKey: ['factures_vente'],
     queryFn: async () => {
+      console.log('Fetching factures vente with enhanced relations...');
+      
       const { data, error } = await supabase
         .from('factures_vente')
         .select(`
           *,
-          client:clients(*),
-          commande:commandes_clients(*)
+          client:clients!inner(
+            id,
+            nom,
+            nom_entreprise,
+            email,
+            telephone,
+            type_client,
+            statut_client
+          ),
+          commande:commandes_clients(
+            id,
+            numero_commande,
+            statut,
+            montant_ttc
+          )
         `)
         .order('created_at', { ascending: false });
       
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching factures vente:', error);
+        throw error;
+      }
+      
+      console.log('Fetched factures vente with relations:', data);
       return data as FactureVente[];
-    }
+    },
+    staleTime: 30000,
+    refetchOnWindowFocus: true,
+    refetchInterval: 60000 // Synchronisation temps réel
   });
 };
 

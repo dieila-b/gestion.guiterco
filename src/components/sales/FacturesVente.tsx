@@ -1,105 +1,54 @@
-import React from 'react';
+
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Plus, Edit, Trash, FileText, Download } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Search, Plus } from 'lucide-react';
 import { useFacturesVente } from '@/hooks/useSales';
-import { Badge } from '@/components/ui/badge';
-import { format } from 'date-fns';
-import { fr } from 'date-fns/locale';
-import { formatCurrency } from '@/lib/currency';
+import FacturesVenteTable from './FacturesVenteTable';
 
 const FacturesVente = () => {
   const { data: factures, isLoading } = useFacturesVente();
+  const [searchTerm, setSearchTerm] = useState('');
 
-  const getStatusBadgeColor = (statut: string) => {
-    switch (statut) {
-      case 'en_attente': return 'default';
-      case 'partiellement_payee': return 'secondary';
-      case 'payee': return 'outline';
-      case 'en_retard': return 'destructive';
-      default: return 'default';
-    }
-  };
-
-  if (isLoading) {
-    return <div className="flex justify-center py-8">Chargement...</div>;
-  }
+  const filteredFactures = factures?.filter(facture => 
+    facture.numero_facture.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (facture.client?.nom && facture.client.nom.toLowerCase().includes(searchTerm.toLowerCase()))
+  );
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold">Factures de vente</h2>
-        <Button>
-          <Plus className="mr-2 h-4 w-4" />
-          Nouvelle facture
-        </Button>
-      </div>
-
-      <div className="grid gap-4">
-        {factures?.map((facture) => (
-          <Card key={facture.id}>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-lg font-medium">
-                {facture.numero_facture}
-              </CardTitle>
-              <div className="flex items-center space-x-2">
-                <Badge variant={getStatusBadgeColor(facture.statut_paiement)}>
-                  {facture.statut_paiement}
-                </Badge>
-                <Button variant="ghost" size="sm" title="Voir PDF">
-                  <FileText className="h-4 w-4" />
-                </Button>
-                <Button variant="ghost" size="sm" title="Télécharger">
-                  <Download className="h-4 w-4" />
-                </Button>
-                <Button variant="ghost" size="sm">
-                  <Edit className="h-4 w-4" />
-                </Button>
-                <Button variant="ghost" size="sm">
-                  <Trash className="h-4 w-4" />
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm">
-                <div>
-                  <p className="text-muted-foreground">Client</p>
-                  <p className="font-medium">
-                    {facture.client ? facture.client.nom : 'Client non spécifié'}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-muted-foreground">Date facture</p>
-                  <p className="font-medium">
-                    {format(new Date(facture.date_facture), 'dd/MM/yyyy', { locale: fr })}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-muted-foreground">Montant TTC</p>
-                  <p className="font-medium">{formatCurrency(facture.montant_ttc)}</p>
-                </div>
-                <div>
-                  <p className="text-muted-foreground">Échéance</p>
-                  <p className="font-medium">
-                    {facture.date_echeance 
-                      ? format(new Date(facture.date_echeance), 'dd/MM/yyyy', { locale: fr })
-                      : 'Non définie'
-                    }
-                  </p>
-                </div>
-              </div>
-              {facture.date_paiement && (
-                <div className="mt-4">
-                  <p className="text-muted-foreground text-sm">Date de paiement</p>
-                  <p className="text-sm font-medium">
-                    {format(new Date(facture.date_paiement), 'dd/MM/yyyy', { locale: fr })}
-                  </p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
+          <div>
+            <CardTitle className="text-xl font-bold">Factures de vente</CardTitle>
+            <p className="text-sm text-muted-foreground">Gérez vos factures de vente clients</p>
+          </div>
+          <div className="flex items-center space-x-4">
+            <div className="flex w-full max-w-sm items-center space-x-2">
+              <Input
+                placeholder="Rechercher..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full"
+              />
+              <Button type="submit" size="icon" variant="secondary">
+                <Search className="h-4 w-4" />
+              </Button>
+            </div>
+            <Button className="bg-blue-600 hover:bg-blue-700">
+              <Plus className="mr-2 h-4 w-4" />
+              Nouvelle facture
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <FacturesVenteTable 
+            factures={filteredFactures || []} 
+            isLoading={isLoading} 
+          />
+        </CardContent>
+      </Card>
     </div>
   );
 };
