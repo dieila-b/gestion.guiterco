@@ -143,8 +143,13 @@ const CaissesTab: React.FC = () => {
           Sauvegarder
         </Button>
       </div>
-      {/* Historique des opérations de caisse */}
+      {/* Historique des transactions */}
+      {/* -------- NOUVEAU TITRE -------- */}
       <div className="bg-background p-6 rounded-xl border shadow-sm">
+        <h2 className="font-semibold text-lg mb-6">
+          Historique des transactions
+        </h2>
+        {/* Filtres et tableau alignés comme dans la capture */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 mb-2">
           <div className="flex gap-2">
             <Select value={String(year)} onValueChange={(y) => setYear(Number(y))}>
@@ -224,3 +229,4 @@ const CaissesTab: React.FC = () => {
 };
 
 export default CaissesTab;
+
