@@ -381,6 +381,44 @@ export type Database = {
           },
         ]
       }
+      cash_operations: {
+        Row: {
+          commentaire: string | null
+          created_at: string | null
+          id: string
+          montant: number
+          point_vente_id: string | null
+          type: string
+          utilisateur_id: string | null
+        }
+        Insert: {
+          commentaire?: string | null
+          created_at?: string | null
+          id?: string
+          montant: number
+          point_vente_id?: string | null
+          type: string
+          utilisateur_id?: string | null
+        }
+        Update: {
+          commentaire?: string | null
+          created_at?: string | null
+          id?: string
+          montant?: number
+          point_vente_id?: string | null
+          type?: string
+          utilisateur_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cash_operations_point_vente_id_fkey"
+            columns: ["point_vente_id"]
+            isOneToOne: false
+            referencedRelation: "points_de_vente"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cash_registers: {
         Row: {
           balance: number
