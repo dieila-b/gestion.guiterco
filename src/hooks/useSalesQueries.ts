@@ -85,6 +85,7 @@ export const useFacturesVente = () => {
             quantite,
             prix_unitaire,
             montant_ligne,
+            created_at,
             article:catalogue(
               id,
               nom,
