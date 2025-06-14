@@ -49,14 +49,14 @@ const mainMenu = [
     icon: Users,
   },
   {
-    title: "Caisses",
+    title: "Finances", // Renommé depuis "Caisses"
     url: "/cash-registers",
     icon: Calendar,
   },
   {
     title: "Rapports",
     url: "/reports",
-    icon: ArrowRight, // Utilisation d'une icône disponible
+    icon: ArrowRight,
   }
 ];
 
