@@ -88,9 +88,8 @@ const CashRegisters: React.FC = () => {
         <div className="flex justify-between items-center">
           <TabsList>
             <TabsTrigger value="overview">Aperçu</TabsTrigger>
-            <TabsTrigger value="transactions">Transactions</TabsTrigger>
-            <TabsTrigger value="expenses">Dépenses</TabsTrigger>
             <TabsTrigger value="caisses">Caisses</TabsTrigger>
+            <TabsTrigger value="expenses">Dépenses</TabsTrigger>
           </TabsList>
           <div className="space-x-2">
             <AddCashRegisterDialog onRegisterCreated={handleRegisterCreated} />
@@ -117,21 +116,12 @@ const CashRegisters: React.FC = () => {
           />
         </TabsContent>
 
-        <TabsContent value="transactions" className="space-y-4">
-          <TransactionsHistory 
-            transactions={transactions || []}
-            date={date}
-            setDate={setDate}
-            formatCurrency={_formatCurrency}
-          />
+        <TabsContent value="caisses" className="space-y-4">
+          <CaissesTab />
         </TabsContent>
 
         <TabsContent value="expenses" className="space-y-4">
           <ExpensesTab />
-        </TabsContent>
-
-        <TabsContent value="caisses" className="space-y-4">
-          <CaissesTab />
         </TabsContent>
       </Tabs>
     </AppLayout>

@@ -20,7 +20,6 @@ const ExpensesTab: React.FC = () => {
   const { data: categories = [] } = useExpenseCategories();
   const [subTab, setSubTab] = React.useState("sorties");
 
-  // Pour version MVP : seules les sorties sont affichées
   return (
     <div className="space-y-6">
       {/* Sous-onglets */}
@@ -28,12 +27,8 @@ const ExpensesTab: React.FC = () => {
         <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-4 gap-2">
           <TabsList>
             <TabsTrigger value="sorties">Sorties</TabsTrigger>
-            <TabsTrigger value="entrees" disabled>
-              Entrées
-            </TabsTrigger>
-            <TabsTrigger value="categories" disabled>
-              Catégories
-            </TabsTrigger>
+            <TabsTrigger value="entrees">Entrées</TabsTrigger>
+            <TabsTrigger value="categories">Catégories</TabsTrigger>
           </TabsList>
           <div className="flex gap-2 w-full md:w-auto mt-2 md:mt-0 justify-between md:justify-end">
             <Button variant="outline" className="rounded-md flex items-center">
@@ -48,6 +43,7 @@ const ExpensesTab: React.FC = () => {
         </div>
         {/* Tab content */}
         <TabsContent value="sorties">
+          {/* Liste des dépenses */}
           <div className="bg-background rounded-lg shadow border overflow-x-auto">
             <Table>
               <TableHeader>
@@ -90,6 +86,26 @@ const ExpensesTab: React.FC = () => {
                 ))}
               </TableBody>
             </Table>
+          </div>
+        </TabsContent>
+        <TabsContent value="entrees">
+          {/* Liste des entrées */}
+          <div className="bg-background rounded-lg shadow border px-6 py-10 text-center text-muted-foreground">
+            <div className="mb-2 font-semibold">🚧 À venir</div>
+            <div>
+              La liste des entrées financières (ex : remboursements, versements).
+              <br/> Merci d’implémenter la table correspondante si besoin.
+            </div>
+          </div>
+        </TabsContent>
+        <TabsContent value="categories">
+          {/* Liste des catégories */}
+          <div className="bg-background rounded-lg shadow border px-6 py-10 text-center text-muted-foreground">
+            <div className="mb-2 font-semibold">🚧 À venir</div>
+            <div>
+              Edition des catégories de dépenses : création, modification, suppression.
+              <br/> (Déjà branchées pour l’affichage mais non éditables ici)
+            </div>
           </div>
         </TabsContent>
       </Tabs>
