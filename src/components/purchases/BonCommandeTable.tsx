@@ -12,32 +12,34 @@ interface BonCommandeTableProps {
 
 export const BonCommandeTable = ({ bons, articlesCounts, onApprove, onDelete }: BonCommandeTableProps) => {
   return (
-    <Table className="border-collapse">
-      <TableHeader>
-        <TableRow className="border-gray-700">
-          <TableHead className="text-gray-300 text-xs px-2 py-1">N° Commande</TableHead>
-          <TableHead className="text-gray-300 text-xs px-2 py-1">Date</TableHead>
-          <TableHead className="text-gray-300 text-xs px-2 py-1">Fournisseur</TableHead>
-          <TableHead className="text-gray-300 text-xs px-2 py-1 text-center">Articles</TableHead>
-          <TableHead className="text-gray-300 text-xs px-2 py-1 text-center">Statut</TableHead>
-          <TableHead className="text-gray-300 text-xs px-2 py-1 text-center">Total</TableHead>
-          <TableHead className="text-gray-300 text-xs px-2 py-1 text-center">Actions</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody className="space-y-0">
-        {bons.map((bon) => {
-          const articlesCount = articlesCounts[bon.id] || 0;
-          return (
-            <BonCommandeTableRow
-              key={bon.id}
-              bon={bon}
-              articlesCount={articlesCount}
-              onApprove={onApprove}
-              onDelete={onDelete}
-            />
-          );
-        })}
-      </TableBody>
-    </Table>
+    <div className="border border-gray-300 rounded overflow-hidden">
+      <Table className="border-collapse">
+        <TableHeader>
+          <TableRow className="border-gray-300 bg-gray-50">
+            <TableHead className="text-gray-800 text-xs font-bold px-3 py-2 border-r border-gray-300">N° Commande</TableHead>
+            <TableHead className="text-gray-800 text-xs font-bold px-3 py-2 border-r border-gray-300">Date</TableHead>
+            <TableHead className="text-gray-800 text-xs font-bold px-3 py-2 border-r border-gray-300">Fournisseur</TableHead>
+            <TableHead className="text-gray-800 text-xs font-bold px-3 py-2 text-center border-r border-gray-300">Articles</TableHead>
+            <TableHead className="text-gray-800 text-xs font-bold px-3 py-2 text-center border-r border-gray-300">Statut</TableHead>
+            <TableHead className="text-gray-800 text-xs font-bold px-3 py-2 text-right border-r border-gray-300">Total</TableHead>
+            <TableHead className="text-gray-800 text-xs font-bold px-3 py-2 text-center">Actions</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {bons.map((bon) => {
+            const articlesCount = articlesCounts[bon.id] || 0;
+            return (
+              <BonCommandeTableRow
+                key={bon.id}
+                bon={bon}
+                articlesCount={articlesCount}
+                onApprove={onApprove}
+                onDelete={onDelete}
+              />
+            );
+          })}
+        </TableBody>
+      </Table>
+    </div>
   );
 };

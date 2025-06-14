@@ -36,30 +36,30 @@ export const BonCommandeTableRow = ({ bon, articlesCount, onApprove, onDelete }:
   };
 
   return (
-    <TableRow className="border-gray-700 hover:bg-gray-700/50">
-      <TableCell className="text-white font-medium text-xs px-2 py-1">
+    <TableRow className="border-gray-300 hover:bg-gray-50">
+      <TableCell className="text-gray-800 text-xs px-3 py-1 border-r border-gray-200">
         {bon.numero_bon}
       </TableCell>
-      <TableCell className="text-gray-300 text-xs px-2 py-1">
+      <TableCell className="text-gray-700 text-xs px-3 py-1 border-r border-gray-200">
         {format(new Date(bon.date_commande), 'dd/MM/yyyy', { locale: fr })}
       </TableCell>
-      <TableCell className="text-gray-300 text-xs px-2 py-1">
+      <TableCell className="text-gray-700 text-xs px-3 py-1 border-r border-gray-200">
         {bon.fournisseur}
       </TableCell>
-      <TableCell className="text-gray-300 text-xs px-2 py-1 text-center">
-        <span className="bg-blue-500/20 text-blue-400 px-1 py-0.5 rounded text-xs">
-          {articlesCount} article{articlesCount > 1 ? 's' : ''}
+      <TableCell className="text-gray-700 text-xs px-3 py-1 text-center border-r border-gray-200">
+        <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded text-xs font-medium">
+          {articlesCount}
         </span>
       </TableCell>
-      <TableCell className="px-2 py-1 text-center">
-        <Badge variant={getStatusBadgeColor(bon.statut)} className="text-xs px-1 py-0.5">
+      <TableCell className="px-3 py-1 text-center border-r border-gray-200">
+        <Badge variant={getStatusBadgeColor(bon.statut)} className="text-xs px-2 py-1">
           {getStatusLabel(bon.statut)}
         </Badge>
       </TableCell>
-      <TableCell className="text-white font-bold text-sm px-2 py-1 text-center">
+      <TableCell className="text-black font-bold text-xs px-3 py-1 text-right border-r border-gray-200">
         {formatCurrency(bon.montant_total)}
       </TableCell>
-      <TableCell className="px-2 py-1 text-center">
+      <TableCell className="px-3 py-1 text-center">
         <BonCommandeActionButtons
           bon={bon}
           onApprove={onApprove}

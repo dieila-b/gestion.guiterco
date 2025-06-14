@@ -36,69 +36,74 @@ const CartItems: React.FC<CartItemsProps> = ({
   }
 
   return (
-    <div className="space-y-0">
-      {/* En-tête tableau */}
-      <div className="grid grid-cols-12 gap-1 text-xs font-semibold text-gray-700 border-b pb-1 mb-1 px-1">
-        <div className="col-span-4 text-left">Nom d'article</div>
-        <div className="col-span-2 text-center">Qté</div>
-        <div className="col-span-2 text-center">T remise</div>
-        <div className="col-span-2 text-center">PU TTC</div>
-        <div className="col-span-1 text-center">Total</div>
-        <div className="col-span-1"></div>
+    <div className="border border-gray-300 rounded">
+      {/* En-tête du tableau */}
+      <div className="bg-gray-50 border-b border-gray-300">
+        <div className="grid grid-cols-12 gap-2 px-2 py-2 text-xs font-bold text-gray-800">
+          <div className="col-span-4">Nom d'article</div>
+          <div className="col-span-1 text-center">Qté</div>
+          <div className="col-span-2 text-center">T remise</div>
+          <div className="col-span-2 text-right">PU TTC</div>
+          <div className="col-span-2 text-right font-bold">Total</div>
+          <div className="col-span-1"></div>
+        </div>
       </div>
 
-      {cart.map((item) => {
-        const prixApresRemise = Math.max(0, item.prix_vente - item.remise);
-        const totalLigne = prixApresRemise * item.quantite;
-        
-        return (
-          <div key={item.id} className="grid grid-cols-12 gap-1 items-center py-1 border-b border-gray-100 text-sm hover:bg-gray-50 px-1">
-            <div className="col-span-4 text-left">
-              <div className="font-medium text-gray-800 text-xs leading-tight">{item.nom}</div>
-            </div>
-            
-            <div className="col-span-2 flex justify-center">
-              <input
-                type="number"
-                value={item.quantite}
-                onChange={(e) => handleQuantityChange(item.id, e.target.value)}
-                className="h-7 w-12 text-center text-xs font-medium border border-gray-300 rounded px-1"
-                min="1"
-              />
-            </div>
+      {/* Corps du tableau */}
+      <div className="divide-y divide-gray-200">
+        {cart.map((item) => {
+          const prixApresRemise = Math.max(0, item.prix_vente - item.remise);
+          const totalLigne = prixApresRemise * item.quantite;
+          
+          return (
+            <div key={item.id} className="grid grid-cols-12 gap-2 items-center px-2 py-1 hover:bg-gray-50">
+              <div className="col-span-4">
+                <div className="text-xs text-gray-800 truncate pr-1">{item.nom}</div>
+              </div>
+              
+              <div className="col-span-1 flex justify-center">
+                <input
+                  type="number"
+                  value={item.quantite}
+                  onChange={(e) => handleQuantityChange(item.id, e.target.value)}
+                  className="h-6 w-10 text-center text-xs border border-gray-300 rounded px-1 bg-blue-50 text-blue-700"
+                  min="1"
+                />
+              </div>
 
-            <div className="col-span-2 flex justify-center">
-              <input
-                type="number"
-                value={item.remise}
-                onChange={(e) => handleRemiseChange(item.id, e.target.value)}
-                placeholder="0"
-                className="h-7 w-12 text-center text-xs border border-red-300 rounded px-1 text-red-600"
-                min="0"
-              />
-            </div>
-            
-            <div className="col-span-2 text-center font-medium text-gray-700 text-xs">
-              {formatCurrency(prixApresRemise)}
-            </div>
+              <div className="col-span-2 flex justify-center">
+                <input
+                  type="number"
+                  value={item.remise}
+                  onChange={(e) => handleRemiseChange(item.id, e.target.value)}
+                  placeholder="0"
+                  className="h-6 w-12 text-center text-xs border border-gray-300 rounded px-1 text-red-600"
+                  min="0"
+                />
+              </div>
+              
+              <div className="col-span-2 text-right text-xs text-gray-700">
+                {formatCurrency(prixApresRemise)}
+              </div>
 
-            <div className="col-span-1 text-center font-bold text-black text-sm">
-              {formatCurrency(totalLigne)}
-            </div>
+              <div className="col-span-2 text-right text-xs font-bold text-black">
+                {formatCurrency(totalLigne)}
+              </div>
 
-            <div className="col-span-1 flex justify-center">
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={() => removeFromCart(item.id)}
-                className="text-white bg-red-500 hover:bg-red-600 h-5 w-5 p-0 rounded"
-              >
-                <X className="h-3 w-3" />
-              </Button>
+              <div className="col-span-1 flex justify-center">
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => removeFromCart(item.id)}
+                  className="h-6 w-6 p-0 bg-red-500 hover:bg-red-600 text-white rounded"
+                >
+                  <X className="h-3 w-3" />
+                </Button>
+              </div>
             </div>
-          </div>
-        );
-      })}
+          );
+        })}
+      </div>
     </div>
   );
 };
