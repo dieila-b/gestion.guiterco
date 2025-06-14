@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -10,6 +9,7 @@ import AddCashRegisterDialog from '@/components/cash-register/AddCashRegisterDia
 import { useCashRegisters } from '@/hooks/useCashRegisters';
 import { useTransactions, useTodayTransactions } from '@/hooks/useTransactions';
 import { formatCurrency } from '@/lib/currency';
+import ExpensesTab from '@/components/cash-register/ExpensesTab';
 
 const CashRegisters: React.FC = () => {
   const { toast } = useToast();
@@ -88,6 +88,7 @@ const CashRegisters: React.FC = () => {
           <TabsList>
             <TabsTrigger value="overview">Aperçu</TabsTrigger>
             <TabsTrigger value="transactions">Transactions</TabsTrigger>
+            <TabsTrigger value="expenses">Dépenses</TabsTrigger>
           </TabsList>
           <div className="space-x-2">
             <AddCashRegisterDialog onRegisterCreated={handleRegisterCreated} />
@@ -122,10 +123,13 @@ const CashRegisters: React.FC = () => {
             formatCurrency={_formatCurrency}
           />
         </TabsContent>
+
+        <TabsContent value="expenses" className="space-y-4">
+          <ExpensesTab />
+        </TabsContent>
       </Tabs>
     </AppLayout>
   );
 };
 
 export default CashRegisters;
-

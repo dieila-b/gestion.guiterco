@@ -510,6 +510,33 @@ export type Database = {
         }
         Relationships: []
       }
+      categories_depenses: {
+        Row: {
+          couleur: string | null
+          created_at: string | null
+          description: string | null
+          id: string
+          nom: string
+          updated_at: string | null
+        }
+        Insert: {
+          couleur?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          nom: string
+          updated_at?: string | null
+        }
+        Update: {
+          couleur?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          nom?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       clients: {
         Row: {
           adresse: string | null
@@ -1547,6 +1574,44 @@ export type Database = {
             columns: ["facture_achat_id"]
             isOneToOne: false
             referencedRelation: "factures_achat"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sorties_financieres: {
+        Row: {
+          categorie_id: string | null
+          created_at: string | null
+          date_sortie: string
+          description: string
+          id: string
+          montant: number
+          updated_at: string | null
+        }
+        Insert: {
+          categorie_id?: string | null
+          created_at?: string | null
+          date_sortie?: string
+          description: string
+          id?: string
+          montant: number
+          updated_at?: string | null
+        }
+        Update: {
+          categorie_id?: string | null
+          created_at?: string | null
+          date_sortie?: string
+          description?: string
+          id?: string
+          montant?: number
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sorties_financieres_categorie_id_fkey"
+            columns: ["categorie_id"]
+            isOneToOne: false
+            referencedRelation: "categories_depenses"
             referencedColumns: ["id"]
           },
         ]
