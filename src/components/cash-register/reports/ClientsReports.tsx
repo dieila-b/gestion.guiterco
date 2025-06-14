@@ -1,9 +1,8 @@
-
 import React, { useState, useMemo } from "react";
 import { useClientsQuery, useFacturesVenteQuery } from '@/hooks/useSalesQueries';
-import ClientPeriodFilter from "./ClientPeriodFilter";
-import StatsCards from "./StatsCards";
-import FacturesClientTable from "./FacturesClientTable";
+import ClientReportFilter from './ClientReportFilter';
+import ClientReportActions from './ClientReportActions';
+import AllClientsReportTable from './AllClientsReportTable';
 import { formatCurrency } from "@/lib/currency";
 import type { FactureVente, Client } from "@/types/sales";
 
@@ -22,55 +21,69 @@ const ClientsReports: React.FC = () => {
   const { data: clients = [] } = useClientsQuery();
   const { data: factures = [] } = useFacturesVenteQuery();
 
-  const [selectedClientId, setSelectedClientId] = useState<string | undefined>(undefined);
-  const [startDate, setStartDate] = useState<Date | undefined>(undefined);
-  const [endDate, setEndDate] = useState<Date | undefined>(undefined);
+  // Client selection for filter
+  const [selectedClientId, setSelectedClientId] = useState<string>("all"); // "all" by default
 
-  // Filtrer les factures selon le client sélectionné et la période
+  // Filtrer les factures selon le client sélectionné
   const filteredFactures = useMemo(() => {
-    let res = factures;
-    if (selectedClientId) {
-      res = res.filter(f => f.client_id === selectedClientId);
-    }
-    if (startDate) {
-      const startDay = new Date(startDate); startDay.setHours(0,0,0,0);
-      res = res.filter(f => new Date(f.date_facture) >= startDay);
-    }
-    if (endDate) {
-      const endDay = new Date(endDate); endDay.setHours(23,59,59,999);
-      res = res.filter(f => new Date(f.date_facture) <= endDay);
-    }
-    return res;
-  }, [factures, selectedClientId, startDate, endDate]);
+    if (selectedClientId === "all") return factures;
+    return factures.filter(f => f.client_id === selectedClientId);
+  }, [factures, selectedClientId]);
 
-  const { totalVentes, montantEncaisse, resteAPayer } = useMemo(
-    () => computeStats(filteredFactures),
-    [filteredFactures]
-  );
+  // Agréger les ventes/factures par client unique
+  const clientStats = useMemo(() => {
+    let stats: { [clientId: string]: any } = {};
+    for (const client of clients) {
+      stats[client.id] = {
+        client,
+        totalFactures: 0,
+        totalCA: 0,
+        facturesPayees: 0,
+        facturesEnRetard: 0,
+        facturesRecentes: [],
+      }
+    }
+    filteredFactures.forEach(facture => {
+      const clid = facture.client_id;
+      if (!stats[clid]) return;
+      stats[clid].totalFactures += 1;
+      stats[clid].totalCA += facture.montant_ttc;
+      // Paiement: une facture est payée si tous versements >= montant_ttc, en retard si montant payé < montant_ttc et date_echeance < aujourd'hui
+      const totalVerse = (facture.versements ?? []).reduce((sum, v) => sum + (v.montant || 0), 0);
+      if (totalVerse >= facture.montant_ttc) {
+        stats[clid].facturesPayees += 1;
+      } else if (facture.date_echeance && new Date(facture.date_echeance) < new Date() && totalVerse < facture.montant_ttc) {
+        stats[clid].facturesEnRetard += 1;
+      }
+      // Collecte des factures pour détail éventuel
+      stats[clid].facturesRecentes.push(facture);
+    });
+    // Retirer les clients sans aucune facture
+    return Object.values(stats).filter(stat => stat.totalFactures > 0);
+  }, [filteredFactures, clients]);
+
+  function handleGenerate() { /* aucun effet requis pour ce bouton ici */ }
+  function handleExportPDF() {/* TODO: add export PDF report */}
+  function handleExportExcel() { /* TODO: add export XLS report */ }
 
   return (
     <div className="space-y-6">
-      {/* Filtres client & période */}
-      <ClientPeriodFilter
-        clients={clients}
-        selectedClientId={selectedClientId}
-        onClientChange={val => setSelectedClientId(val)}
-        startDate={startDate}
-        endDate={endDate}
-        onStartDateChange={date => setStartDate(date)}
-        onEndDateChange={date => setEndDate(date)}
-      />
-
-      {/* Cartes de synthèse */}
-      <StatsCards
-        totalVentes={totalVentes}
-        montantEncaisse={montantEncaisse}
-        resteAPayer={resteAPayer}
-        formatCurrency={formatCurrency}
-      />
-
-      {/* Tableau factures */}
-      <FacturesClientTable factures={filteredFactures} />
+      <div className="flex flex-col md:flex-row md:items-end gap-4">
+        <div className="flex-1">
+          <ClientReportFilter
+            selectedClient={selectedClientId}
+            onSelectedClientChange={setSelectedClientId}
+            clients={clients}
+          />
+        </div>
+        <ClientReportActions
+          showResults={true}
+          onGenerateReport={handleGenerate}
+          onExportPDF={handleExportPDF}
+          onExportExcel={handleExportExcel}
+        />
+      </div>
+      <AllClientsReportTable clientStats={clientStats} />
     </div>
   );
 };
