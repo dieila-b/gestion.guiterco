@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Label } from '@/components/ui/label';
@@ -8,7 +9,7 @@ import { CalendarIcon, Download, FileText, Filter } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
-import { useFacturesVente } from '@/hooks/useSales';
+import { useFacturesVenteQuery } from '@/hooks/useSales';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { formatCurrency } from '@/lib/currency';
@@ -18,7 +19,7 @@ const DateRangeReports: React.FC = () => {
   const [endDate, setEndDate] = useState<Date>();
   const [showResults, setShowResults] = useState(false);
 
-  const { data: factures } = useFacturesVente();
+  const { data: factures } = useFacturesVenteQuery();
 
   const filteredFactures = factures?.filter(facture => {
     if (!startDate || !endDate) return false;
@@ -196,3 +197,4 @@ const DateRangeReports: React.FC = () => {
 };
 
 export default DateRangeReports;
+

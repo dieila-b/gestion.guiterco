@@ -1,8 +1,9 @@
+
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Plus, Edit, Trash, FileText, ArrowRight } from 'lucide-react';
-import { useDevisVente, useConvertDevisToCommande } from '@/hooks/useSales';
+import { useDevisVenteQuery, useConvertDevisToCommande } from '@/hooks/useSales';
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
@@ -10,7 +11,7 @@ import { useToast } from '@/hooks/use-toast';
 import { formatCurrency } from '@/lib/currency';
 
 const DevisVente = () => {
-  const { data: devis, isLoading } = useDevisVente();
+  const { data: devis, isLoading } = useDevisVenteQuery();
   const convertMutation = useConvertDevisToCommande();
   const { toast } = useToast();
 
@@ -63,7 +64,7 @@ const DevisVente = () => {
                 {devisItem.numero_devis}
               </CardTitle>
               <div className="flex items-center space-x-2">
-                <Badge variant={getStatusBadgeColor(devisItem.statut)}>
+                <Badge variant={getStatusBadgeColor(devisItem.statut) as any}>
                   {devisItem.statut}
                 </Badge>
                 {devisItem.statut === 'envoye' && (
@@ -125,3 +126,4 @@ const DevisVente = () => {
 };
 
 export default DevisVente;
+

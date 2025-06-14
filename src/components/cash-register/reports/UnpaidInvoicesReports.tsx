@@ -1,10 +1,11 @@
+
 import React, { useState } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Download, FileText, Filter, AlertTriangle } from 'lucide-react';
-import { useFacturesVente } from '@/hooks/useSales';
+import { useFacturesVenteQuery } from '@/hooks/useSales';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { format, differenceInDays } from 'date-fns';
@@ -15,7 +16,7 @@ const UnpaidInvoicesReports: React.FC = () => {
   const [filterType, setFilterType] = useState<string>('all');
   const [showResults, setShowResults] = useState(false);
 
-  const { data: factures } = useFacturesVente();
+  const { data: factures } = useFacturesVenteQuery();
 
   const unpaidFactures = factures?.filter(facture => 
     facture.statut_paiement !== 'payee'
@@ -41,7 +42,7 @@ const UnpaidInvoicesReports: React.FC = () => {
   );
   const totalOverdue = overdueFactures.reduce((sum, f) => sum + f.montant_ttc, 0);
 
-  const getRetardDays = (dateEcheance: string | null) => {
+  const getRetardDays = (dateEcheance: string | null | undefined) => {
     if (!dateEcheance) return 0;
     const today = new Date();
     const echeance = new Date(dateEcheance);
@@ -140,7 +141,7 @@ const UnpaidInvoicesReports: React.FC = () => {
               </CardHeader>
               <CardContent>
                 <p className="text-2xl font-bold">
-                  {factures ? (((factures.length - unpaidFactures.length) / factures.length * 100).toFixed(1)) : 0}%
+                  {factures && factures.length > 0 ? (((factures.length - unpaidFactures.length) / factures.length * 100).toFixed(1)) : 0}%
                 </p>
                 <p className="text-sm text-muted-foreground">Factures payées</p>
               </CardContent>
@@ -208,3 +209,4 @@ const UnpaidInvoicesReports: React.FC = () => {
 };
 
 export default UnpaidInvoicesReports;
+

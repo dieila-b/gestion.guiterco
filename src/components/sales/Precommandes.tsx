@@ -1,15 +1,16 @@
+
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Plus, Edit, Trash, Package } from 'lucide-react';
-import { usePrecommandes } from '@/hooks/useSales';
+import { usePrecommandesQuery } from '@/hooks/useSales';
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { formatCurrency } from '@/lib/currency';
 
 const Precommandes = () => {
-  const { data: precommandes, isLoading } = usePrecommandes();
+  const { data: precommandes, isLoading } = usePrecommandesQuery();
 
   const getStatusBadgeColor = (statut: string) => {
     switch (statut) {
@@ -44,7 +45,7 @@ const Precommandes = () => {
                 {precommande.numero_precommande}
               </CardTitle>
               <div className="flex items-center space-x-2">
-                <Badge variant={getStatusBadgeColor(precommande.statut)}>
+                <Badge variant={getStatusBadgeColor(precommande.statut) as any}>
                   {precommande.statut}
                 </Badge>
                 <Button variant="ghost" size="sm" title="Gérer stock">
@@ -101,3 +102,4 @@ const Precommandes = () => {
 };
 
 export default Precommandes;
+

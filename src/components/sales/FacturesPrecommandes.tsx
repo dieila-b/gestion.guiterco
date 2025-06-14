@@ -1,15 +1,16 @@
+
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Plus, Edit, Trash, FileText } from 'lucide-react';
-import { useFacturesPrecommandes } from '@/hooks/useSales';
+import { useFacturesPrecommandesQuery } from '@/hooks/useSales';
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { formatCurrency } from '@/lib/currency';
 
 const FacturesPrecommandes = () => {
-  const { data: factures, isLoading } = useFacturesPrecommandes();
+  const { data: factures, isLoading } = useFacturesPrecommandesQuery();
 
   const getStatusBadgeColor = (statut: string) => {
     switch (statut) {
@@ -51,10 +52,10 @@ const FacturesPrecommandes = () => {
                 {facture.numero_facture}
               </CardTitle>
               <div className="flex items-center space-x-2">
-                <Badge variant={getTypeBadgeColor(facture.type_facture)}>
+                <Badge variant={getTypeBadgeColor(facture.type_facture) as any}>
                   {facture.type_facture}
                 </Badge>
-                <Badge variant={getStatusBadgeColor(facture.statut_paiement)}>
+                <Badge variant={getStatusBadgeColor(facture.statut_paiement) as any}>
                   {facture.statut_paiement}
                 </Badge>
                 <Button variant="ghost" size="sm" title="Voir PDF">
@@ -102,3 +103,4 @@ const FacturesPrecommandes = () => {
 };
 
 export default FacturesPrecommandes;
+

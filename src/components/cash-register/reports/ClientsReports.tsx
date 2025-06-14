@@ -1,10 +1,11 @@
+
 import React, { useState } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Download, FileText, Filter, Users } from 'lucide-react';
-import { useClients, useFacturesVente } from '@/hooks/useSales';
+import { useClientsQuery, useFacturesVenteQuery } from '@/hooks/useSales';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { formatCurrency } from '@/lib/currency';
@@ -13,8 +14,8 @@ const ClientsReports: React.FC = () => {
   const [selectedClient, setSelectedClient] = useState<string>('all');
   const [showResults, setShowResults] = useState(false);
 
-  const { data: clients } = useClients();
-  const { data: factures } = useFacturesVente();
+  const { data: clients } = useClientsQuery();
+  const { data: factures } = useFacturesVenteQuery();
 
   const clientStats = clients?.map(client => {
     const clientFactures = factures?.filter(f => f.client_id === client.id) || [];
@@ -31,7 +32,7 @@ const ClientsReports: React.FC = () => {
       totalCA,
       facturesPayees: facturesPayees.length,
       facturesEnRetard: facturesEnRetard.length,
-      facturesRecentes: clientFactures.slice(-5)
+      facturesRecentes: clientFactures.slice(-5) // Ensure facturesRecentes is an array
     };
   }).sort((a, b) => b.totalCA - a.totalCA) || [];
 
@@ -198,3 +199,4 @@ const ClientsReports: React.FC = () => {
 };
 
 export default ClientsReports;
+

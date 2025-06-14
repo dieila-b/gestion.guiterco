@@ -1,15 +1,16 @@
+
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Plus, Edit, Trash, CreditCard } from 'lucide-react';
-import { useVersementsClients } from '@/hooks/useSales';
+import { useVersementsClientsQuery } from '@/hooks/useSales';
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { formatCurrency } from '@/lib/currency';
 
 const VersementsClients = () => {
-  const { data: versements, isLoading } = useVersementsClients();
+  const { data: versements, isLoading } = useVersementsClientsQuery();
 
   const getPaymentMethodBadge = (mode: string) => {
     switch (mode) {
@@ -92,3 +93,4 @@ const VersementsClients = () => {
 };
 
 export default VersementsClients;
+

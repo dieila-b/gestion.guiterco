@@ -4,11 +4,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Search, Plus } from 'lucide-react';
-import { useFacturesVente } from '@/hooks/useSales';
+import { useFacturesVenteQuery } from '@/hooks/useSales';
 import FacturesVenteTable from './FacturesVenteTable';
 
 const FacturesVente = () => {
-  const { data: factures, isLoading } = useFacturesVente();
+  const { data: factures, isLoading } = useFacturesVenteQuery();
   const [searchTerm, setSearchTerm] = useState('');
 
   const filteredFactures = factures?.filter(facture => 
@@ -54,3 +54,4 @@ const FacturesVente = () => {
 };
 
 export default FacturesVente;
+

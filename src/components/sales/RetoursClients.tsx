@@ -1,15 +1,16 @@
+
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Plus, Edit, Trash, RotateCcw, Package } from 'lucide-react';
-import { useRetoursClients } from '@/hooks/useSales';
+import { useRetoursClientsQuery } from '@/hooks/useSales';
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { formatCurrency } from '@/lib/currency';
 
 const RetoursClients = () => {
-  const { data: retours, isLoading } = useRetoursClients();
+  const { data: retours, isLoading } = useRetoursClientsQuery();
 
   const getStatusBadgeColor = (statut: string) => {
     switch (statut) {
@@ -43,7 +44,7 @@ const RetoursClients = () => {
                 {retour.numero_retour}
               </CardTitle>
               <div className="flex items-center space-x-2">
-                <Badge variant={getStatusBadgeColor(retour.statut)}>
+                <Badge variant={getStatusBadgeColor(retour.statut) as any}>
                   {retour.statut}
                 </Badge>
                 <Button variant="ghost" size="sm" title="Gérer articles">
@@ -106,3 +107,4 @@ const RetoursClients = () => {
 };
 
 export default RetoursClients;
+

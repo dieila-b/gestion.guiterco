@@ -1,11 +1,19 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import type { FactureVente } from '@/types/sales';
+import type { FactureVente, VersementClient } from '@/types/sales';
+
+// Define a type for the raw data structure, especially for the versements part
+interface RawFactureVenteData extends Omit<FactureVente, 'versements' | 'client' | 'commande' | 'lignes_facture'> {
+  client: FactureVente['client']; // Assuming Client type is correct
+  commande: FactureVente['commande']; // Assuming CommandeClient type is correct
+  lignes_facture: FactureVente['lignes_facture']; // Assuming LigneFactureVente[] type is correct
+  versements: VersementClient[] | ({ error: true } & string) | undefined | null; // More specific type for raw versements
+}
 
 // Hook pour les factures de vente avec relations complètes et nombre d'articles
 export const useFacturesVenteQuery = () => {
-  return useQuery({
+  return useQuery<FactureVente[], Error>({ // Specify Error type for the query
     queryKey: ['factures_vente'],
     queryFn: async () => {
       console.log('Fetching factures vente with enhanced relations (attempting fix for versements)...');
@@ -74,8 +82,24 @@ export const useFacturesVenteQuery = () => {
         throw error;
       }
       
-      console.log('Fetched factures vente with relations:', data);
-      return data as FactureVente[];
+      console.log('Raw fetched factures vente data:', data);
+
+      // Process data to handle potential error objects in versements
+      const processedData = (data as RawFactureVenteData[]).map(facture => {
+        // Check if versements is an error object
+        if (facture.versements && typeof facture.versements === 'object' && 'error' in facture.versements && facture.versements.error === true) {
+          console.warn(`Failed to fetch versements for facture ${facture.id}. Error details:`, facture.versements);
+          return { ...facture, versements: [] }; // Replace error object with empty array
+        }
+        // Ensure versements is an array or undefined, not null
+        if (facture.versements === null) {
+          return { ...facture, versements: undefined };
+        }
+        return facture;
+      });
+      
+      console.log('Processed factures vente with relations:', processedData);
+      return processedData as FactureVente[];
     },
     staleTime: 30000,
     refetchOnWindowFocus: true,
