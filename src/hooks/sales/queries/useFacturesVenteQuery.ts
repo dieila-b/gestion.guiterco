@@ -53,7 +53,7 @@ export const useFacturesVenteQuery = () => {
               reference
             )
           ),
-          versements:versements_clients(
+          versements:versements_clients!facture_id( 
             id,
             numero_versement,
             montant,
@@ -75,8 +75,6 @@ export const useFacturesVenteQuery = () => {
       }
       
       console.log('Fetched factures vente with relations:', data);
-      // The TypeScript error TS2352 originates here due to the 'versements' type.
-      // This refactoring does not fix the underlying type issue.
       return data as FactureVente[];
     },
     staleTime: 30000,
