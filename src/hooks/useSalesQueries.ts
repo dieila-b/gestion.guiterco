@@ -1,3 +1,4 @@
+
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import type {
@@ -46,7 +47,7 @@ export const useCommandesClients = () => {
   });
 };
 
-// Hook pour les factures de vente avec relations complètes
+// Hook pour les factures de vente avec relations complètes et nombre d'articles
 export const useFacturesVente = () => {
   return useQuery({
     queryKey: ['factures_vente'],
@@ -64,13 +65,32 @@ export const useFacturesVente = () => {
             email,
             telephone,
             type_client,
-            statut_client
+            statut_client,
+            created_at,
+            updated_at
           ),
           commande:commandes_clients(
             id,
             numero_commande,
             statut,
             montant_ttc
+          ),
+          lignes_facture:lignes_facture_vente(
+            id,
+            quantite,
+            prix_unitaire,
+            montant_ligne,
+            article:catalogue(
+              id,
+              nom,
+              reference
+            )
+          ),
+          versements:versements_clients(
+            id,
+            montant,
+            date_versement,
+            mode_paiement
           )
         `)
         .order('created_at', { ascending: false });

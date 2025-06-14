@@ -1173,6 +1173,51 @@ export type Database = {
           },
         ]
       }
+      lignes_facture_vente: {
+        Row: {
+          article_id: string | null
+          created_at: string
+          facture_vente_id: string | null
+          id: string
+          montant_ligne: number
+          prix_unitaire: number
+          quantite: number
+        }
+        Insert: {
+          article_id?: string | null
+          created_at?: string
+          facture_vente_id?: string | null
+          id?: string
+          montant_ligne?: number
+          prix_unitaire?: number
+          quantite?: number
+        }
+        Update: {
+          article_id?: string | null
+          created_at?: string
+          facture_vente_id?: string | null
+          id?: string
+          montant_ligne?: number
+          prix_unitaire?: number
+          quantite?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lignes_facture_vente_article_id_fkey"
+            columns: ["article_id"]
+            isOneToOne: false
+            referencedRelation: "catalogue"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lignes_facture_vente_facture_vente_id_fkey"
+            columns: ["facture_vente_id"]
+            isOneToOne: false
+            referencedRelation: "factures_vente"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lignes_precommande: {
         Row: {
           article_id: string | null
@@ -1900,6 +1945,10 @@ export type Database = {
       }
       generate_bon_livraison_number: {
         Args: { bon_commande_numero: string }
+        Returns: string
+      }
+      generate_facture_vente_number: {
+        Args: Record<PropertyKey, never>
         Returns: string
       }
       generate_product_reference: {

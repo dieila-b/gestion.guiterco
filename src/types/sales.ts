@@ -1,3 +1,4 @@
+
 export interface Client {
   id: string;
   nom: string;
@@ -41,6 +42,21 @@ export interface LigneCommande {
   created_at: string;
 }
 
+export interface LigneFactureVente {
+  id: string;
+  facture_vente_id?: string;
+  article_id?: string;
+  quantite: number;
+  prix_unitaire: number;
+  montant_ligne: number;
+  created_at: string;
+  article?: {
+    id: string;
+    nom: string;
+    reference: string;
+  };
+}
+
 export interface FactureVente {
   id: string;
   numero_facture: string;
@@ -60,6 +76,8 @@ export interface FactureVente {
   updated_at: string;
   client?: Client;
   commande?: CommandeClient;
+  lignes_facture?: LigneFactureVente[];
+  versements?: VersementClient[];
 }
 
 export interface Precommande {
