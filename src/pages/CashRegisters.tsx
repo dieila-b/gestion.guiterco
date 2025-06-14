@@ -9,6 +9,7 @@ import TransactionsHistory from '@/components/cash-register/TransactionsHistory'
 import AddCashRegisterDialog from '@/components/cash-register/AddCashRegisterDialog';
 import { useCashRegisters } from '@/hooks/useCashRegisters';
 import { useTransactions, useTodayTransactions } from '@/hooks/useTransactions';
+import { formatCurrency } from '@/lib/currency';
 
 const CashRegisters: React.FC = () => {
   const { toast } = useToast();
@@ -32,14 +33,14 @@ const CashRegisters: React.FC = () => {
   const handleOpenRegister = () => {
     toast({
       title: "Caisse ouverte",
-      description: "La caisse a été ouverte avec un solde initial de 0.00€",
+      description: "La caisse a été ouverte avec un solde initial de 0 GNF",
     });
   };
 
   const handleCloseRegister = () => {
     toast({
       title: "Caisse fermée",
-      description: "La caisse a été fermée avec un solde final de 1250.00€",
+      description: "La caisse a été fermée avec un solde final de 0 GNF",
     });
   };
 
@@ -65,9 +66,8 @@ const CashRegisters: React.FC = () => {
     });
   };
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(amount);
-  };
+  // Utilisation GNF dans toute la section Finances
+  const _formatCurrency = formatCurrency;
 
   const activeRegister = cashRegisters?.find(register => register.id === selectedRegister);
 
@@ -82,7 +82,7 @@ const CashRegisters: React.FC = () => {
   }
 
   return (
-    <AppLayout title="Gestion des caisses">
+    <AppLayout title="Gestion des finances">
       <Tabs defaultValue="overview" className="space-y-4">
         <div className="flex justify-between items-center">
           <TabsList>
@@ -110,7 +110,7 @@ const CashRegisters: React.FC = () => {
             handleOpenRegister={handleOpenRegister}
             handleCloseRegister={handleCloseRegister}
             handlePrint={handlePrint}
-            formatCurrency={formatCurrency}
+            formatCurrency={_formatCurrency}
           />
         </TabsContent>
 
@@ -119,7 +119,7 @@ const CashRegisters: React.FC = () => {
             transactions={transactions || []}
             date={date}
             setDate={setDate}
-            formatCurrency={formatCurrency}
+            formatCurrency={_formatCurrency}
           />
         </TabsContent>
       </Tabs>
@@ -128,3 +128,4 @@ const CashRegisters: React.FC = () => {
 };
 
 export default CashRegisters;
+
