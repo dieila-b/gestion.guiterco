@@ -1955,6 +1955,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: string
       }
+      get_factures_vente_with_details: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
+      }
       update_stock_pdv: {
         Args: {
           p_article_id: string
