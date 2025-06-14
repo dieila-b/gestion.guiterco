@@ -12,6 +12,7 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import {
+  ArrowRight,
   Archive,
   Calendar,
   ClipboardList,
@@ -52,6 +53,11 @@ const mainMenu = [
     url: "/cash-registers",
     icon: Calendar,
   },
+  {
+    title: "Rapports",
+    url: "/reports",
+    icon: ArrowRight, // Utilisation d'une icône disponible
+  }
 ];
 
 const settingsMenu = [
@@ -96,7 +102,6 @@ export function AppSidebar() {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
-        
         <SidebarGroup>
           <SidebarGroupLabel>Configuration</SidebarGroupLabel>
           <SidebarGroupContent>
