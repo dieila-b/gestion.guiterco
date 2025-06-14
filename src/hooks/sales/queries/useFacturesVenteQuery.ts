@@ -71,8 +71,8 @@ export const useFacturesVenteQuery = () => {
             observations,
             created_at,
             updated_at,
-            client_id,
-            facture_id 
+            client_id 
+            /* facture_id removed from here as it's part of the join condition */
           )
         `)
         .order('created_at', { ascending: false });
@@ -101,9 +101,9 @@ export const useFacturesVenteQuery = () => {
       console.log('Processed factures vente with relations:', processedData);
       return processedData as FactureVente[];
     },
-    staleTime: 30000,
-    refetchOnWindowFocus: true,
-    refetchInterval: 60000 // Synchronisation temps réel
+    staleTime: 30000, // Keep existing staleTime
+    refetchOnWindowFocus: true, // Keep existing refetchOnWindowFocus
+    refetchInterval: 60000 // Keep existing refetchInterval
   });
 };
 
