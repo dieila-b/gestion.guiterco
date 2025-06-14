@@ -51,7 +51,7 @@ export const useFacturesVente = () => {
   return useQuery({
     queryKey: ['factures_vente'],
     queryFn: async () => {
-      console.log('Fetching factures vente with enhanced relations...');
+      console.log('Fetching factures vente with enhanced relations (attempting fix for versements)...');
       
       const { data, error } = await supabase
         .from('factures_vente')
@@ -96,7 +96,7 @@ export const useFacturesVente = () => {
               reference
             )
           ),
-          versements:versements_clients!facture_id( 
+          versements:versements_clients(
             id,
             numero_versement,
             montant,
@@ -107,7 +107,7 @@ export const useFacturesVente = () => {
             created_at,
             updated_at,
             client_id,
-            facture_id
+            facture_id 
           )
         `)
         .order('created_at', { ascending: false });
