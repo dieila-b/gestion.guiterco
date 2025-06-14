@@ -1,94 +1,76 @@
 
-import React, { useState } from 'react';
-import { useClientsQuery, useFacturesVenteQuery } from '@/hooks/useSalesQueries'; // Corrected import
-import ClientReportFilter from './ClientReportFilter';
-import ClientReportActions from './ClientReportActions';
-import SelectedClientReport from './SelectedClientReport';
-import AllClientsReportTable from './AllClientsReportTable';
-import type { FactureVente, Client } from '@/types/sales';
+import React, { useState, useMemo } from "react";
+import { useClientsQuery, useFacturesVenteQuery } from '@/hooks/useSalesQueries';
+import ClientPeriodFilter from "./ClientPeriodFilter";
+import StatsCards from "./StatsCards";
+import FacturesClientTable from "./FacturesClientTable";
+import { formatCurrency } from "@/lib/currency";
+import type { FactureVente, Client } from "@/types/sales";
 
-
-interface ClientStat {
-  client: Client;
-  totalFactures: number;
-  totalCA: number;
-  facturesPayees: number;
-  facturesEnRetard: number;
-  facturesRecentes: FactureVente[];
-}
+// Calcul des totaux pour des factures filtrées
+const computeStats = (factures: FactureVente[]) => {
+  const totalVentes = factures.reduce((sum, f) => sum + (f.montant_ttc || 0), 0);
+  const montantEncaisse = factures.reduce(
+    (sum, f) => sum + ((f.versements ?? []).reduce((sv, v) => sv + (v.montant || 0), 0)),
+    0
+  );
+  const resteAPayer = totalVentes - montantEncaisse;
+  return { totalVentes, montantEncaisse, resteAPayer };
+};
 
 const ClientsReports: React.FC = () => {
-  const [selectedClient, setSelectedClient] = useState<string>('all');
-  const [showResults, setShowResults] = useState(false);
+  const { data: clients = [] } = useClientsQuery();
+  const { data: factures = [] } = useFacturesVenteQuery();
 
-  const { data: clients } = useClientsQuery();
-  const { data: factures } = useFacturesVenteQuery();
+  const [selectedClientId, setSelectedClientId] = useState<string | undefined>(undefined);
+  const [startDate, setStartDate] = useState<Date | undefined>(undefined);
+  const [endDate, setEndDate] = useState<Date | undefined>(undefined);
 
-  const clientStats: ClientStat[] = clients?.map(client => {
-    const clientFactures = factures?.filter(f => f.client_id === client.id) || [];
-    const totalCA = clientFactures.reduce((sum, f) => sum + f.montant_ttc, 0);
-    const facturesPayees = clientFactures.filter(f => f.statut_paiement === 'payee');
-    const facturesEnRetard = clientFactures.filter(f => {
-      if (!f.date_echeance) return false;
-      return new Date(f.date_echeance) < new Date() && f.statut_paiement !== 'payee';
-    });
+  // Filtrer les factures selon le client sélectionné et la période
+  const filteredFactures = useMemo(() => {
+    let res = factures;
+    if (selectedClientId) {
+      res = res.filter(f => f.client_id === selectedClientId);
+    }
+    if (startDate) {
+      const startDay = new Date(startDate); startDay.setHours(0,0,0,0);
+      res = res.filter(f => new Date(f.date_facture) >= startDay);
+    }
+    if (endDate) {
+      const endDay = new Date(endDate); endDay.setHours(23,59,59,999);
+      res = res.filter(f => new Date(f.date_facture) <= endDay);
+    }
+    return res;
+  }, [factures, selectedClientId, startDate, endDate]);
 
-    // Ensure facturesRecentes is always an array, even if clientFactures is empty
-    const facturesRecentes = clientFactures.length > 0 ? clientFactures.slice(-5) : [];
-    
-    return {
-      client,
-      totalFactures: clientFactures.length,
-      totalCA,
-      facturesPayees: facturesPayees.length,
-      facturesEnRetard: facturesEnRetard.length,
-      facturesRecentes
-    };
-  }).sort((a, b) => b.totalCA - a.totalCA) || [];
-
-  const selectedClientData = selectedClient !== 'all' ? 
-    clientStats.find(stat => stat.client.id === selectedClient) : null;
-
-  const handleGenerateReport = () => {
-    setShowResults(true);
-  };
-
-  const handleExportPDF = () => {
-    console.log('Export PDF rapport clients');
-    // Placeholder for PDF export logic
-  };
-
-  const handleExportExcel = () => {
-    console.log('Export Excel rapport clients');
-    // Placeholder for Excel export logic
-  };
+  const { totalVentes, montantEncaisse, resteAPayer } = useMemo(
+    () => computeStats(filteredFactures),
+    [filteredFactures]
+  );
 
   return (
-    <div className="space-y-4">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <ClientReportFilter
-          selectedClient={selectedClient}
-          onSelectedClientChange={setSelectedClient}
-          clients={clients}
-        />
-      </div>
-
-      <ClientReportActions
-        showResults={showResults}
-        onGenerateReport={handleGenerateReport}
-        onExportPDF={handleExportPDF}
-        onExportExcel={handleExportExcel}
+    <div className="space-y-6">
+      {/* Filtres client & période */}
+      <ClientPeriodFilter
+        clients={clients}
+        selectedClientId={selectedClientId}
+        onClientChange={val => setSelectedClientId(val)}
+        startDate={startDate}
+        endDate={endDate}
+        onStartDateChange={date => setStartDate(date)}
+        onEndDateChange={date => setEndDate(date)}
       />
 
-      {showResults && (
-        <div className="space-y-4">
-          {selectedClientData ? (
-            <SelectedClientReport clientData={selectedClientData} />
-          ) : (
-            <AllClientsReportTable clientStats={clientStats} />
-          )}
-        </div>
-      )}
+      {/* Cartes de synthèse */}
+      <StatsCards
+        totalVentes={totalVentes}
+        montantEncaisse={montantEncaisse}
+        resteAPayer={resteAPayer}
+        formatCurrency={formatCurrency}
+      />
+
+      {/* Tableau factures */}
+      <FacturesClientTable factures={filteredFactures} />
     </div>
   );
 };
