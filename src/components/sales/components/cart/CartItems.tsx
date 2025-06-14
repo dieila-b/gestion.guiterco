@@ -45,11 +45,11 @@ const CartItems: React.FC<CartItemsProps> = ({
       <table className="w-full border-collapse">
         <thead>
           <tr className="bg-gray-50 border-b border-gray-300">
-            <th className="text-gray-800 text-xs font-bold px-2 py-1 text-left border-r border-gray-300 w-[30%]">Nom d'article</th>
-            <th className="text-gray-800 text-xs font-bold px-2 py-1 text-center border-r border-gray-300 w-[18%]">Qté</th>
+            <th className="text-gray-800 text-xs font-bold px-2 py-1 text-left border-r border-gray-300 w-[25%]">Nom d'article</th>
+            <th className="text-gray-800 text-xs font-bold px-2 py-1 text-center border-r border-gray-300 w-[20%]">Qté</th>
             <th className="text-gray-800 text-xs font-bold px-2 py-1 text-center border-r border-gray-300 w-[18%]">Remise</th>
             <th className="text-gray-800 text-xs font-bold px-2 py-1 text-right border-r border-gray-300 w-[15%]">PU TTC</th>
-            <th className="text-gray-800 text-xs font-bold px-2 py-1 text-right border-r border-gray-300 w-[15%]">Total</th>
+            <th className="text-gray-800 text-xs font-bold px-2 py-1 text-right border-r border-gray-300 w-[18%]">Total</th>
             <th className="text-gray-800 text-xs font-bold px-2 py-1 text-center w-[4%]"></th>
           </tr>
         </thead>
@@ -77,11 +77,22 @@ const CartItems: React.FC<CartItemsProps> = ({
 
                 <td className="px-2 py-1 text-center border-r border-gray-200">
                   <input
-                    type="number"
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
                     value={item.remise}
-                    onChange={(e) => handleRemiseChange(item.id, e.target.value)}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      if (value === '' || /^\d*\.?\d*$/.test(value)) {
+                        handleRemiseChange(item.id, value);
+                      }
+                    }}
                     placeholder="0"
-                    className="h-7 w-20 text-center text-xs border border-gray-300 rounded px-1 text-red-600"
+                    className="h-7 w-20 text-center text-xs border border-gray-300 rounded px-1 text-red-600 appearance-none"
+                    style={{ 
+                      MozAppearance: 'textfield',
+                      WebkitAppearance: 'none'
+                    }}
                     min="0"
                   />
                 </td>
