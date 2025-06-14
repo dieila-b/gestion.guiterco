@@ -49,6 +49,8 @@ const FacturesVenteTable = ({ factures, isLoading }: FacturesVenteTableProps) =>
   };
 
   const getArticleCount = (facture: FactureVente) => {
+    // Correction du comptage des articles
+    console.log('Facture lignes_facture:', facture.lignes_facture);
     const lignes = facture.lignes_facture || [];
     return lignes.length;
   };
@@ -82,47 +84,52 @@ const FacturesVenteTable = ({ factures, isLoading }: FacturesVenteTableProps) =>
         </TableHeader>
         <TableBody>
           {factures && factures.length > 0 ? (
-            factures.map((facture) => (
-              <TableRow key={facture.id} className="hover:bg-muted/30">
-                <TableCell className="font-medium text-blue-600">
-                  {facture.numero_facture}
-                </TableCell>
-                <TableCell>
-                  {format(new Date(facture.date_facture), 'dd/MM/yyyy', { locale: fr })}
-                </TableCell>
-                <TableCell className="font-medium">
-                  {facture.client ? facture.client.nom : 'Client non spécifié'}
-                </TableCell>
-                <TableCell className="text-center">
-                  <span className="font-medium">{getArticleCount(facture)}</span>
-                </TableCell>
-                <TableCell className="text-right font-medium">
-                  {formatCurrency(facture.montant_ttc)}
-                </TableCell>
-                <TableCell className="text-right">
-                  {formatCurrency(calculatePaidAmount(facture))}
-                </TableCell>
-                <TableCell className="text-right font-medium">
-                  {formatCurrency(calculateRemainingAmount(facture))}
-                </TableCell>
-                <TableCell className="text-center">
-                  <Badge 
-                    variant="outline" 
-                    className={`${getStatusBadgeColor(facture.statut_paiement)} font-medium`}
-                  >
-                    {getStatusLabel(facture.statut_paiement)}
-                  </Badge>
-                </TableCell>
-                <TableCell className="text-center">
-                  <Badge variant="outline" className="bg-blue-100 text-blue-800 border-blue-300">
-                    Livrée
-                  </Badge>
-                </TableCell>
-                <TableCell className="text-center">
-                  <FacturesVenteActions facture={facture} />
-                </TableCell>
-              </TableRow>
-            ))
+            factures.map((facture) => {
+              const articleCount = getArticleCount(facture);
+              console.log(`Facture ${facture.numero_facture} - Articles count:`, articleCount);
+              
+              return (
+                <TableRow key={facture.id} className="hover:bg-muted/30">
+                  <TableCell className="font-medium text-blue-600">
+                    {facture.numero_facture}
+                  </TableCell>
+                  <TableCell>
+                    {format(new Date(facture.date_facture), 'dd/MM/yyyy', { locale: fr })}
+                  </TableCell>
+                  <TableCell className="font-medium">
+                    {facture.client ? facture.client.nom : 'Client non spécifié'}
+                  </TableCell>
+                  <TableCell className="text-center">
+                    <span className="font-medium">{articleCount}</span>
+                  </TableCell>
+                  <TableCell className="text-right font-medium">
+                    {formatCurrency(facture.montant_ttc)}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    {formatCurrency(calculatePaidAmount(facture))}
+                  </TableCell>
+                  <TableCell className="text-right font-medium">
+                    {formatCurrency(calculateRemainingAmount(facture))}
+                  </TableCell>
+                  <TableCell className="text-center">
+                    <Badge 
+                      variant="outline" 
+                      className={`${getStatusBadgeColor(facture.statut_paiement)} font-medium`}
+                    >
+                      {getStatusLabel(facture.statut_paiement)}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-center">
+                    <Badge variant="outline" className="bg-blue-100 text-blue-800 border-blue-300">
+                      Livrée
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-center">
+                    <FacturesVenteActions facture={facture} />
+                  </TableCell>
+                </TableRow>
+              );
+            })
           ) : (
             <TableRow>
               <TableCell colSpan={10} className="text-center py-8">

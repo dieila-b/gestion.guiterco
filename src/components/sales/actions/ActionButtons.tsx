@@ -1,9 +1,9 @@
 
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { Edit, Trash, Printer, Ticket } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
+import { Trash, Printer, Ticket } from 'lucide-react';
 import { printFacture, printTicket } from './printUtils';
+import EditFactureDialog from './EditFactureDialog';
 import type { FactureVente } from '@/types/sales';
 
 interface ActionButtonsProps {
@@ -13,17 +13,6 @@ interface ActionButtonsProps {
 }
 
 const ActionButtons = ({ facture, onEdit, onDelete }: ActionButtonsProps) => {
-  const { toast } = useToast();
-
-  const handleEdit = () => {
-    toast({
-      title: "Modification",
-      description: "Fonctionnalité de modification en cours de développement.",
-    });
-    console.log('Modifier facture:', facture.id);
-    onEdit();
-  };
-
   const handlePrint = () => {
     printFacture(facture);
   };
@@ -34,15 +23,7 @@ const ActionButtons = ({ facture, onEdit, onDelete }: ActionButtonsProps) => {
 
   return (
     <div className="flex justify-center space-x-1">
-      <Button
-        variant="ghost"
-        size="sm"
-        onClick={handleEdit}
-        className="h-8 w-8 p-0 hover:bg-orange-100"
-        title="Modifier"
-      >
-        <Edit className="h-4 w-4 text-orange-600" />
-      </Button>
+      <EditFactureDialog facture={facture} />
       <Button
         variant="ghost"
         size="sm"

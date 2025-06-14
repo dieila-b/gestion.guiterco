@@ -29,7 +29,8 @@ export const useFacturesVenteQuery = () => {
       }
       
       console.log('Processed factures vente from function:', facturesData);
-      return facturesData as FactureVente[];
+      // Correction du type avec unknown intermédiaire
+      return facturesData as unknown as FactureVente[];
     },
     staleTime: 30000,
     refetchOnWindowFocus: true,
