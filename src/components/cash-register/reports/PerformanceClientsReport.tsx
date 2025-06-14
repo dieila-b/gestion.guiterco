@@ -1,7 +1,6 @@
-
 import React, { useState, useMemo } from "react";
 import { Button } from '@/components/ui/button';
-import { Printer, FilePdf, FileExcel } from "lucide-react";
+import { Printer, File, FileSpreadsheet } from "lucide-react";
 import { useClientsQuery, useFacturesVenteQuery } from '@/hooks/useSalesQueries';
 import { formatCurrency } from "@/lib/currency";
 import { Table, TableBody, TableHead, TableHeader, TableRow, TableCell } from "@/components/ui/table";
@@ -63,8 +62,8 @@ const PerformanceClientsReport: React.FC = () => {
         </div>
         <div className="flex gap-2">
           <Button variant="outline"><Printer className="mr-2"/>Imprimer</Button>
-          <Button variant="outline"><FilePdf className="mr-2"/>Exporter PDF</Button>
-          <Button variant="outline"><FileExcel className="mr-2"/>Exporter Excel</Button>
+          <Button variant="outline"><File className="mr-2"/>Exporter PDF</Button>
+          <Button variant="outline"><FileSpreadsheet className="mr-2"/>Exporter Excel</Button>
         </div>
       </div>
       <div className="overflow-x-auto border border-zinc-100 rounded-lg bg-white shadow dark:bg-zinc-900 dark:border-zinc-800">

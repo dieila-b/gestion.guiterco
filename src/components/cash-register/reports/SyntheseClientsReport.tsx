@@ -1,11 +1,10 @@
-
 import React, { useMemo, useState } from "react";
 import { useClientsQuery, useFacturesVenteQuery } from '@/hooks/useSalesQueries';
 import ClientPeriodFilter from './ClientPeriodFilter';
 import StatsCards from './StatsCards';
 import FacturesClientTable from './FacturesClientTable';
 import { Button } from '@/components/ui/button';
-import { Printer, FilePdf } from "lucide-react";
+import { Printer, File } from "lucide-react";
 import { formatCurrency } from "@/lib/currency";
 
 const SyntheseClientsReport: React.FC = () => {
@@ -54,7 +53,7 @@ const SyntheseClientsReport: React.FC = () => {
         </div>
         <div className="flex gap-2">
           <Button variant="outline"><Printer className="mr-2"/>Imprimer</Button>
-          <Button variant="outline"><FilePdf className="mr-2"/>Exporter PDF</Button>
+          <Button variant="outline"><File className="mr-2"/>Exporter PDF</Button>
         </div>
       </div>
       <StatsCards 
