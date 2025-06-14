@@ -1,4 +1,3 @@
-
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
@@ -15,6 +14,14 @@ export const useFacturesAchat = () => {
         .from('factures_achat')
         .select(`
           *,
+          fournisseur_rel:fournisseur_id(
+            id,
+            nom_entreprise,
+            nom,
+            contact_principal,
+            email,
+            telephone_mobile
+          ),
           bon_commande:bons_de_commande!factures_achat_bon_commande_id_fkey(*),
           bon_livraison:bons_de_livraison!factures_achat_bon_livraison_id_fkey(*)
         `)
@@ -25,8 +32,14 @@ export const useFacturesAchat = () => {
         throw error;
       }
       
-      console.log('Fetched factures achat:', data);
-      return data as FactureAchat[];
+      // Map data to use fournisseur_rel if available, fallback to fournisseur field
+      const mappedData = data?.map(facture => ({
+        ...facture,
+        fournisseur_nom: facture.fournisseur_rel?.nom_entreprise || facture.fournisseur_rel?.nom || facture.fournisseur
+      }));
+      
+      console.log('Fetched factures achat:', mappedData);
+      return mappedData as FactureAchat[];
     }
   });
 
