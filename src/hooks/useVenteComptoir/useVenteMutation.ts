@@ -143,16 +143,21 @@ export const useVenteMutation = (pointsDeVente?: any[], selectedPDV?: string, se
         throw lignesFactureError;
       }
 
-      // Récupérer la première caisse disponible pour les transactions
-      const { data: cashRegisters } = await supabase
-        .from('cash_registers')
-        .select('id')
-        .limit(1);
+      // Si un paiement a été effectué, une transaction doit être enregistrée
+      if (venteData.montant_paye > 0) {
+        // Récupérer la première caisse disponible pour les transactions
+        const { data: cashRegisters } = await supabase
+          .from('cash_registers')
+          .select('id')
+          .limit(1);
 
-      const cashRegisterId = cashRegisters?.[0]?.id;
+        const cashRegisterId = cashRegisters?.[0]?.id;
+        
+        if (!cashRegisterId) {
+          throw new Error("Aucune caisse n'est configurée. Impossible d'enregistrer la transaction.");
+        }
 
-      // Créer une transaction pour la vente (entrée de caisse)
-      if (venteData.montant_paye > 0 && cashRegisterId) {
+        // Créer une transaction pour la vente (entrée de caisse)
         const { error: transactionError } = await supabase
           .from('transactions')
           .insert({
@@ -171,7 +176,7 @@ export const useVenteMutation = (pointsDeVente?: any[], selectedPDV?: string, se
 
         if (transactionError) {
           console.error('Erreur création transaction:', transactionError);
-          // Ne pas faire échouer toute la vente pour une erreur de transaction
+          throw transactionError; // On propage l'erreur pour que la mutation échoue
         }
       }
 
