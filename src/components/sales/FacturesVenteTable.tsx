@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
@@ -81,6 +80,7 @@ const FacturesVenteTable = ({ factures, isLoading }: FacturesVenteTableProps) =>
 
   // Nouvelle fonction pour badge livraison
   const getLivraisonBadge = (facture: FactureVente) => {
+    // Utilise statut_livraison calculé par le backend (possible valeurs : en_attente, partiellement_livree, livree)
     const statut = facture.statut_livraison || 'livree';
     switch (statut) {
       case 'en_attente':
@@ -89,7 +89,6 @@ const FacturesVenteTable = ({ factures, isLoading }: FacturesVenteTableProps) =>
             En attente
           </Badge>
         );
-      case 'partielle':
       case 'partiellement_livree':
         return (
           <Badge variant="outline" className="bg-yellow-100 text-yellow-800 border-yellow-300">

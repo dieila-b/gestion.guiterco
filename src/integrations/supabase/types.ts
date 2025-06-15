@@ -1280,6 +1280,7 @@ export type Database = {
           montant_ligne: number
           prix_unitaire: number
           quantite: number
+          statut_livraison: string | null
         }
         Insert: {
           article_id?: string | null
@@ -1289,6 +1290,7 @@ export type Database = {
           montant_ligne?: number
           prix_unitaire?: number
           quantite?: number
+          statut_livraison?: string | null
         }
         Update: {
           article_id?: string | null
@@ -1298,6 +1300,7 @@ export type Database = {
           montant_ligne?: number
           prix_unitaire?: number
           quantite?: number
+          statut_livraison?: string | null
         }
         Relationships: [
           {
