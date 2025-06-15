@@ -5,6 +5,7 @@ import { Trash, Printer, Ticket, Pencil } from 'lucide-react';
 import { printFacture, printTicket } from './printUtils';
 import EditFactureDialog from './EditFactureDialog';
 import type { FactureVente } from '@/types/sales';
+import { calculatePaidAmount, getActualDeliveryStatus } from '../table/StatusUtils';
 
 interface ActionButtonsProps {
   facture: FactureVente;
@@ -22,14 +23,19 @@ const ActionButtons = ({ facture, onEdit, onDelete, isArchived }: ActionButtonsP
     printTicket(facture);
   };
 
+  // Nouvelle règle suppression :
+  // => Afficher le bouton supprimer UNIQUEMENT si aucun paiement ET aucune livraison effectuée
+  const isDeletable =
+    calculatePaidAmount(facture) === 0 && getActualDeliveryStatus(facture) === 'en_attente';
+
   return (
     <div className="flex justify-center space-x-1">
       {/* Bouton Modifier désactivé si archivée */}
       {!isArchived && (
         <EditFactureDialog facture={facture} />
       )}
-      {/* Bouton Supprimer désactivé si archivée */}
-      {!isArchived && (
+      {/* Bouton Supprimer affiché UNIQUEMENT si facture ni payée ni livrée */}
+      {isDeletable && !isArchived && (
         <Button
           variant="ghost"
           size="sm"
@@ -63,3 +69,4 @@ const ActionButtons = ({ facture, onEdit, onDelete, isArchived }: ActionButtonsP
 };
 
 export default ActionButtons;
+
