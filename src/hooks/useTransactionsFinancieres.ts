@@ -84,12 +84,20 @@ export function useCreateTransactionFinanciere() {
         throw new Error("Aucune caisse disponible");
       }
 
+      // Déterminer la source correcte selon le type
+      let source: string;
+      if (transaction.type === 'income') {
+        source = 'Entrée manuelle';
+      } else {
+        source = 'Sortie manuelle';
+      }
+
       const transactionToInsert = {
         ...transaction,
         cash_register_id: cashRegisters.id,
         category: 'other' as const,
         payment_method: 'cash' as const,
-        source: transaction.type === 'income' ? 'Entrée manuelle' : 'Sortie manuelle',
+        source: source,
       };
 
       const { data, error } = await supabase

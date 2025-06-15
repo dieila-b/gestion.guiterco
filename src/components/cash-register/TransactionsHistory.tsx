@@ -20,29 +20,35 @@ interface TransactionsHistoryProps {
 }
 
 const getTransactionTypeDetails = (source: string | null, type: 'income' | 'expense') => {
-  switch (source) {
-    case 'Vente':
-    case 'Vente réglée':
-    case 'Vente encaissée':
+  // Normaliser la source pour éviter les problèmes de casse et d'espaces
+  const normalizedSource = source?.trim().toLowerCase();
+  
+  switch (normalizedSource) {
+    case 'vente':
+    case 'vente réglée':
+    case 'vente encaissée':
       return { label: 'Vente', className: 'bg-green-50 text-green-700' };
-    case 'Paiement d’un impayé':
+    case 'paiement d\'un impayé':
+    case 'règlement impayés':
+    case 'paiement impayé':
       return { label: 'Règlement Impayés', className: 'bg-orange-50 text-orange-700' };
-    case 'Entrée manuelle':
-       return { label: 'Entrée', className: 'bg-blue-50 text-blue-700' };
-    case 'Sortie':
-    case 'Sortie manuelle':
-       return { label: 'Sortie', className: 'bg-red-50 text-red-700' };
+    case 'entrée manuelle':
+      return { label: 'Entrée', className: 'bg-blue-50 text-blue-700' };
+    case 'sortie':
+    case 'sortie manuelle':
+      return { label: 'Sortie', className: 'bg-red-50 text-red-700' };
     default:
+      // Fallback logic améliorée
       if (type === 'expense') {
         return { label: 'Sortie', className: 'bg-red-50 text-red-700' };
       }
-      if (source === 'transactions' && type === 'income') {
+      // Pour les transactions income sans source claire, on essaie de deviner depuis la source originale
+      if (source === 'transactions' || !source) {
         return { label: 'Vente', className: 'bg-green-50 text-green-700' };
       }
-      return { label: 'Entrée', className: 'bg-green-50 text-green-700' };
+      return { label: 'Entrée', className: 'bg-blue-50 text-blue-700' };
   }
 };
-
 
 const TransactionsHistory: React.FC<TransactionsHistoryProps> = ({
   transactions,
