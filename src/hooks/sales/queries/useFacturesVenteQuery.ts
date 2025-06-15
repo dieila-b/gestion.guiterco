@@ -39,25 +39,17 @@ export const useFacturesVenteQuery = () => {
       
       console.log('✅ Factures récupérées:', facturesData.length);
       
-      // Log détaillé pour diagnostic avec focus sur les statuts
+      // Log détaillé pour diagnostic
       facturesData.forEach((facture: any, index: number) => {
         const lignesCount = facture.lignes_facture?.length || 0;
-        const versementsCount = facture.versements?.length || 0;
-        const montantVerse = facture.versements?.reduce((sum: number, v: any) => sum + (Number(v.montant) || 0), 0) || 0;
-        
         console.log(`📊 Facture ${facture.numero_facture}:`, {
           nb_articles: facture.nb_articles,
           lignes_facture_count: lignesCount,
-          versements_count: versementsCount,
+          statut_paiement: facture.statut_paiement,
+          statut_livraison: facture.statut_livraison,
           montant_ttc: facture.montant_ttc,
-          montant_verse: montantVerse,
-          reste_a_payer: facture.montant_ttc - montantVerse,
-          statut_paiement_db: facture.statut_paiement,
-          statut_livraison_db: facture.statut_livraison,
           has_lignes_data: lignesCount > 0,
-          has_versements_data: versementsCount > 0,
-          versements_sample: facture.versements?.slice(0, 2), // Échantillon des versements
-          lignes_sample: facture.lignes_facture?.slice(0, 2)  // Échantillon des lignes
+          lignes_sample: facture.lignes_facture?.slice(0, 2) // Échantillon des lignes
         });
       });
       

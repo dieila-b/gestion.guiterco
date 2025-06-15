@@ -8,15 +8,12 @@ interface PaymentStatusBadgeProps {
 }
 
 const PaymentStatusBadge = ({ status }: PaymentStatusBadgeProps) => {
-  // S'assurer que le statut est bien traité
-  const normalizedStatus = status?.toLowerCase() || 'en_attente';
-  
   return (
     <Badge 
       variant="outline" 
-      className={`${getStatusBadgeColor(normalizedStatus)} font-medium`}
+      className={`${getStatusBadgeColor(status)} font-medium`}
     >
-      {getStatusLabel(normalizedStatus)}
+      {getStatusLabel(status)}
     </Badge>
   );
 };

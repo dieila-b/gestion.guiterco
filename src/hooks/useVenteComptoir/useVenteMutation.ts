@@ -24,13 +24,7 @@ export const useVenteMutation = (
         throw new Error('Panier vide');
       }
 
-      if (!selectedPDV) {
-        throw new Error('Point de vente non sélectionné');
-      }
-
-      console.log('🏪 Point de vente sélectionné:', selectedPDV);
-
-      // Utiliser la mutation de création de facture avec le bon point de vente
+      // Utiliser la mutation de création de facture
       const result = await createFactureVente.mutateAsync({
         client_id: venteData.client_id,
         cart: venteData.cart,
@@ -38,8 +32,7 @@ export const useVenteMutation = (
         tva: venteData.tva,
         montant_ttc: venteData.montant_ttc,
         mode_paiement: venteData.mode_paiement,
-        point_vente_id: selectedPDV, // Passer le nom du PDV pour recherche
-        montant_paye: venteData.montant_ttc // Pour vente comptoir, montant payé = montant total
+        point_vente_id: selectedPDV
       });
 
       console.log('✅ Vente comptoir créée avec succès:', result);

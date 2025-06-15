@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Minus, Plus } from 'lucide-react';
 
@@ -18,13 +18,6 @@ const StepperInput: React.FC<StepperInputProps> = ({
   max = 9999,
   className = ""
 }) => {
-  const [inputValue, setInputValue] = useState(value.toString());
-
-  // Synchroniser l'état local avec la prop value
-  useEffect(() => {
-    setInputValue(value.toString());
-  }, [value]);
-
   const handleIncrement = () => {
     const newValue = Math.min(max, value + 1);
     onChange(newValue);
@@ -33,28 +26,6 @@ const StepperInput: React.FC<StepperInputProps> = ({
   const handleDecrement = () => {
     const newValue = Math.max(min, value - 1);
     onChange(newValue);
-  };
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const inputVal = e.target.value;
-    
-    // Permettre la saisie de nombres uniquement
-    if (inputVal === '' || /^\d+$/.test(inputVal)) {
-      setInputValue(inputVal);
-    }
-  };
-
-  const handleInputBlur = () => {
-    const numValue = parseInt(inputValue) || min;
-    const clampedValue = Math.max(min, Math.min(max, numValue));
-    onChange(clampedValue);
-    setInputValue(clampedValue.toString());
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
-      e.currentTarget.blur();
-    }
   };
 
   return (
@@ -70,17 +41,9 @@ const StepperInput: React.FC<StepperInputProps> = ({
         <Minus className="h-3 w-3" />
       </Button>
       
-      <input
-        type="text"
-        inputMode="numeric"
-        value={inputValue}
-        onChange={handleInputChange}
-        onBlur={handleInputBlur}
-        onKeyDown={handleKeyDown}
-        className="h-7 w-12 text-center text-xs font-medium border-t border-b border-gray-300 bg-white focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
-        min={min}
-        max={max}
-      />
+      <div className="h-7 w-8 flex items-center justify-center text-xs font-medium border-t border-b border-gray-300 bg-white">
+        {value}
+      </div>
       
       <Button
         type="button"
