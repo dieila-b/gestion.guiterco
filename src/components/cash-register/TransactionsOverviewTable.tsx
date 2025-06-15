@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
@@ -64,12 +63,12 @@ const TransactionsOverviewTable: React.FC = () => {
     });
   }, [expenses, year, month]);
 
-  // Agréger toutes les opérations
+  // Agréger toutes les opérations avec typage stricte
   const allRows: AllTx[] = [
     ...sales.map((v: any) => ({
       id: v.id,
       date: v.date_facture,
-      type: "sale",
+      type: "sale" as const,
       montant: v.montant_ttc,
       commentaire: v.observations ?? "-"
     })),
@@ -78,7 +77,7 @@ const TransactionsOverviewTable: React.FC = () => {
       .map((co: any) => ({
         id: co.id,
         date: co.created_at,
-        type: "income",
+        type: "income" as const,
         montant: co.montant,
         commentaire: co.commentaire ?? "-"
       })),
@@ -87,14 +86,14 @@ const TransactionsOverviewTable: React.FC = () => {
       .map((co: any) => ({
         id: co.id,
         date: co.created_at,
-        type: "expense",
+        type: "expense" as const,
         montant: co.montant,
         commentaire: co.commentaire ?? "-"
       })),
     ...filteredExpenses.map((exp: any) => ({
       id: exp.id,
       date: exp.date_sortie,
-      type: "expense",
+      type: "expense" as const,
       montant: exp.montant,
       commentaire: exp.description ?? "-"
     }))
