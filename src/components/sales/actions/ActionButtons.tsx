@@ -10,9 +10,10 @@ interface ActionButtonsProps {
   facture: FactureVente;
   onEdit: () => void;
   onDelete: () => void;
+  hideEditDelete?: boolean;
 }
 
-const ActionButtons = ({ facture, onEdit, onDelete }: ActionButtonsProps) => {
+const ActionButtons = ({ facture, onEdit, onDelete, hideEditDelete }: ActionButtonsProps) => {
   const handlePrint = () => {
     printFacture(facture);
   };
@@ -23,16 +24,21 @@ const ActionButtons = ({ facture, onEdit, onDelete }: ActionButtonsProps) => {
 
   return (
     <div className="flex justify-center space-x-1">
-      <EditFactureDialog facture={facture} />
-      <Button
-        variant="ghost"
-        size="sm"
-        onClick={onDelete}
-        className="h-8 w-8 p-0 hover:bg-red-100"
-        title="Supprimer"
-      >
-        <Trash className="h-4 w-4 text-red-600" />
-      </Button>
+      {/* Affichage conditionnel des boutons d'édition et suppression */}
+      {!hideEditDelete && (
+        <>
+          <EditFactureDialog facture={facture} />
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onDelete}
+            className="h-8 w-8 p-0 hover:bg-red-100"
+            title="Supprimer"
+          >
+            <Trash className="h-4 w-4 text-red-600" />
+          </Button>
+        </>
+      )}
       <Button
         variant="ghost"
         size="sm"

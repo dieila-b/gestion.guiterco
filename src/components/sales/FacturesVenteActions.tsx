@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+
+import React from 'react';
 import ActionButtons from './actions/ActionButtons';
 import DeleteFactureDialog from './actions/DeleteFactureDialog';
 import type { FactureVente } from '@/types/sales';
@@ -8,12 +9,12 @@ interface FacturesVenteActionsProps {
 }
 
 const FacturesVenteActions = ({ facture }: FacturesVenteActionsProps) => {
-  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = React.useState(false);
 
-  const handleEdit = () => {
-    // Edit functionality placeholder
-  };
+  // On masque Edit/Supprimer si payée
+  const hideEditDelete = facture.statut_paiement === 'payee';
 
+  const handleEdit = () => {};
   const handleDelete = () => {
     setShowDeleteDialog(true);
   };
@@ -24,6 +25,7 @@ const FacturesVenteActions = ({ facture }: FacturesVenteActionsProps) => {
         facture={facture}
         onEdit={handleEdit}
         onDelete={handleDelete}
+        hideEditDelete={hideEditDelete}
       />
 
       <DeleteFactureDialog
