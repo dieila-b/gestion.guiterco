@@ -3,6 +3,15 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Transaction, TransactionInsert } from '@/components/cash-register/types';
 
+export type NormalizedFinancialTransaction = {
+  id: string;
+  type: 'income' | 'expense';
+  amount: number;
+  description: string;
+  date: string;
+  source: string;
+};
+
 export const useTransactions = (cashRegisterId?: string) => {
   return useQuery({
     queryKey: ['transactions', cashRegisterId],
@@ -77,7 +86,7 @@ export const useTodayTransactions = (cashRegisterId?: string) => {
 
 // Hook unifié pour toutes les transactions financières (transactions + cash_operations + sorties_financieres)
 export const useAllFinancialTransactions = () => {
-  return useQuery({
+  return useQuery<NormalizedFinancialTransaction[]>({
     queryKey: ['all-financial-transactions'],
     queryFn: async () => {
       const today = new Date();
@@ -142,11 +151,13 @@ export const useAllFinancialTransactions = () => {
         source: 'Sortie'
       }));
 
-      return [
+      const result: NormalizedFinancialTransaction[] = [
         ...normalizedTransactions,
         ...normalizedCashOps,
         ...normalizedExpenses
       ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+      
+      return result;
     }
   });
 };
