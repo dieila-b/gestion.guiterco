@@ -45,7 +45,7 @@ export const useCartManagement = (checkStock: (articleId: string, quantiteDemand
         quantite: 1,
         remise: 0,
         prix_total: prixApresRemise,
-        stock_disponible: stockCheck.quantiteDisponible
+        stock_disponible: stockCheck.quantiteDisponible || 0 // S'assurer qu'il n'est jamais undefined
       }];
     });
   }, [checkStock]);
