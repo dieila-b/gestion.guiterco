@@ -8,43 +8,6 @@ import { format } from "date-fns";
 import { useAllFinancialTransactions } from "@/hooks/useTransactions";
 import { formatCurrency } from "@/lib/currency";
 
-// Fonction pour déterminer le type d'affichage selon la source
-const getTransactionDisplayType = (transaction: any) => {
-  if (transaction.type === 'expense') return 'Sortie';
-  
-  // Pour les entrées, on différencie selon la source
-  switch (transaction.source) {
-    case 'vente':
-      return 'Vente';
-    case 'paiement_impaye':
-    case 'reglement_impaye':
-      return 'Règlement Impayés';
-    case 'manuelle':
-    case 'manuel':
-      return 'Entrée';
-    default:
-      return transaction.type === 'income' ? 'Entrée' : 'Sortie';
-  }
-};
-
-// Fonction pour déterminer la couleur selon le type
-const getTransactionTypeColor = (transaction: any) => {
-  const displayType = getTransactionDisplayType(transaction);
-  
-  switch (displayType) {
-    case 'Vente':
-      return 'bg-green-50 text-green-700';
-    case 'Règlement Impayés':
-      return 'bg-orange-50 text-orange-700';
-    case 'Entrée':
-      return 'bg-blue-50 text-blue-700';
-    case 'Sortie':
-      return 'bg-red-50 text-red-700';
-    default:
-      return 'bg-gray-50 text-gray-700';
-  }
-};
-
 const TransactionsOverviewTable: React.FC = () => {
   const today = new Date();
   const [year, setYear] = React.useState(today.getFullYear());
@@ -128,8 +91,12 @@ const TransactionsOverviewTable: React.FC = () => {
                       <tr key={`${transaction.source}-${transaction.id}`} className="border-b last:border-b-0">
                         <td className="py-2 px-3">{format(new Date(transaction.date), "dd/MM/yyyy HH:mm")}</td>
                         <td className="py-2 px-3 font-medium">
-                          <span className={`px-2 py-0.5 rounded ${getTransactionTypeColor(transaction)}`}>
-                            {getTransactionDisplayType(transaction)}
+                          <span className={`px-2 py-0.5 rounded ${
+                            transaction.type === 'income' 
+                              ? 'bg-green-50 text-green-700' 
+                              : 'bg-red-50 text-red-700'
+                          }`}>
+                            {transaction.type === 'income' ? 'Entrée' : 'Sortie'}
                           </span>
                         </td>
                         <td className={`py-2 px-3 font-bold ${
