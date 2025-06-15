@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo } from 'react';
 import { useCatalogueOptimized } from '@/hooks/useCatalogueOptimized';
 import { useDebounce } from '@/hooks/useDebounce';

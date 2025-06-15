@@ -1,6 +1,5 @@
 
 import { useMutation } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import type { CartItem, VenteComptoirData } from './types';
 import { useCreateFactureVente } from '../sales/mutations/useFactureVenteMutations';
@@ -51,7 +50,7 @@ export const useVenteMutation = (
   });
 
   return {
-    createVente: mutation.mutate,
+    createVente: mutation.mutateAsync,
     isLoading: mutation.isPending || createFactureVente.isPending
   };
 };
