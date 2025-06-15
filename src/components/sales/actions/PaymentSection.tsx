@@ -24,21 +24,58 @@ const PaymentSection = ({ facture, remainingAmount }: PaymentSectionProps) => {
   const createVersement = useCreateVersement();
 
   const handleAddPayment = () => {
-    if (montant <= 0 || montant > remainingAmount) return;
+    console.log('🎯 TENTATIVE PAIEMENT:', {
+      montant: montant,
+      remainingAmount: remainingAmount,
+      facture_id: facture.id,
+      client_id: facture.client_id,
+      mode_paiement: modePaiement
+    });
+
+    // Validation des données
+    if (!montant || montant <= 0) {
+      console.error('❌ ERREUR: Montant invalide:', montant);
+      return;
+    }
+
+    if (montant > remainingAmount) {
+      console.error('❌ ERREUR: Montant supérieur au restant:', {
+        montant: montant,
+        remainingAmount: remainingAmount
+      });
+      return;
+    }
+
+    if (!facture.id || !facture.client_id) {
+      console.error('❌ ERREUR: Données facture manquantes:', {
+        facture_id: facture.id,
+        client_id: facture.client_id
+      });
+      return;
+    }
+
+    console.log('✅ VALIDATION RÉUSSIE - Lancement création versement...');
 
     createVersement.mutate({
       facture_id: facture.id,
       client_id: facture.client_id,
-      montant,
+      montant: montant,
       mode_paiement: modePaiement,
-      reference_paiement: referencePaiement || undefined,
-      observations: observations || undefined
+      reference_paiement: referencePaiement.trim() || undefined,
+      observations: observations.trim() || undefined
+    }, {
+      onSuccess: () => {
+        console.log('🎉 PAIEMENT AJOUTÉ AVEC SUCCÈS');
+        // Reset form après succès
+        const newRemaining = remainingAmount - montant;
+        setMontant(newRemaining > 0 ? newRemaining : 0);
+        setReferencePaiement('');
+        setObservations('');
+      },
+      onError: (error) => {
+        console.error('❌ ÉCHEC AJOUT PAIEMENT:', error);
+      }
     });
-
-    // Reset form
-    setMontant(remainingAmount - montant);
-    setReferencePaiement('');
-    setObservations('');
   };
 
   if (remainingAmount <= 0) {
@@ -72,7 +109,11 @@ const PaymentSection = ({ facture, remainingAmount }: PaymentSectionProps) => {
               id="montant"
               type="number"
               value={montant}
-              onChange={(e) => setMontant(Number(e.target.value))}
+              onChange={(e) => {
+                const value = Number(e.target.value);
+                console.log('💰 Montant saisi:', value);
+                setMontant(value);
+              }}
               max={remainingAmount}
               min="0"
               step="0.01"
@@ -81,7 +122,10 @@ const PaymentSection = ({ facture, remainingAmount }: PaymentSectionProps) => {
           
           <div className="space-y-2">
             <Label htmlFor="mode_paiement">Mode de paiement</Label>
-            <Select value={modePaiement} onValueChange={setModePaiement}>
+            <Select value={modePaiement} onValueChange={(value) => {
+              console.log('💳 Mode paiement sélectionné:', value);
+              setModePaiement(value);
+            }}>
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
