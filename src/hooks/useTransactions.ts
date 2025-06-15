@@ -123,10 +123,10 @@ export const useAllFinancialTransactions = () => {
 
       // Normaliser toutes les données
       const normalizedTransactions = (transactions || [])
-        .filter(t => t.type === 'income' || t.type === 'expense') // More specific filter
+        .filter((t): t is Transaction & { type: 'income' | 'expense' } => t.type === 'income' || t.type === 'expense')
         .map(t => ({
         id: t.id,
-        type: t.type as 'income' | 'expense',
+        type: t.type,
         amount: t.amount || t.montant || 0,
         description: t.description || '',
         date: t.date_operation || t.created_at,
@@ -135,7 +135,7 @@ export const useAllFinancialTransactions = () => {
 
       const normalizedCashOps = (cashOps || []).map(c => ({
         id: c.id,
-        type: c.type === 'depot' ? 'income' : 'expense',
+        type: (c.type === 'depot' ? 'income' : 'expense') as 'income' | 'expense',
         amount: c.montant || 0,
         description: c.commentaire || 'Opération de caisse',
         date: c.created_at || new Date().toISOString(),
@@ -155,7 +155,11 @@ export const useAllFinancialTransactions = () => {
         ...normalizedTransactions,
         ...normalizedCashOps,
         ...normalizedExpenses
-      ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+      ].sort((a, b) => {
+        const dateA = a.date ? new Date(a.date).getTime() : 0;
+        const dateB = b.date ? new Date(b.date).getTime() : 0;
+        return dateB - dateA;
+      });
       
       return result;
     }
