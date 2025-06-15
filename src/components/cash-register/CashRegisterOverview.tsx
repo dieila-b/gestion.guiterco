@@ -10,6 +10,16 @@ import { useExpenses } from "@/hooks/useExpenses";
 import { formatCurrency } from "@/lib/currency";
 import TransactionsOverviewTable from "./TransactionsOverviewTable";
 
+// Type guard pour transaction
+function isTransaction(t: any): t is { amount: number } {
+  return typeof t.amount === "number";
+}
+
+// Type guard pour dépenses
+function isExpense(t: any): t is { montant: number } {
+  return typeof t.montant === "number";
+}
+
 // Utilitaire pour filtrer la date du jour
 function isToday(d: Date) {
   const now = new Date();
@@ -21,38 +31,42 @@ function isToday(d: Date) {
 }
 
 const CashRegisterOverview: React.FC = () => {
-  // 1. Obtenir la caisse "principale"
+  // Caisse principale
   const { data: cashRegisters } = useCashRegisters();
   const principalRegister = React.useMemo(
-    () => cashRegisters?.[0], // On prend la première existante, ou logiquement il faudrait filtrer 'main'
+    () => cashRegisters?.[0],
     [cashRegisters]
   );
 
-  // 2. Transactions du jour (entrées/sorties)
+  // Transactions du jour (entrées/sorties)
   const { data: todayTransactions = [], isLoading: isLoadingTransactions } = useTodayTransactions(principalRegister?.id);
-  // 3. Dépenses autres (sorties_financieres)
+  // Dépenses autres (sorties_financieres)
   const { data: allExpenses = [], isLoading: isLoadingExpenses } = useExpenses();
-  // Dépenses du jour côté dépenses manuelles
   const todaysExtraExpenses = React.useMemo(() =>
-    allExpenses.filter(
-      (e: any) => isToday(new Date(e.date_sortie))
+    allExpenses.filter((e: any) =>
+      isToday(new Date(e.date_sortie))
     ),
     [allExpenses]
   );
 
-  // 4. Agréger
-  const todayIncomes = todayTransactions.filter(t => t.type === "income");
+  // Entrées/sorties du jour
+  const todayIncomes = todayTransactions.filter(t => isTransaction(t) && t.type === "income");
   const todayExpenses = [
-    ...todayTransactions.filter(t => t.type === "expense"),
+    ...todayTransactions.filter(t => isTransaction(t) && t.type === "expense"),
     ...todaysExtraExpenses
   ];
 
-  // Sommes
+  // Fonctions helpers pour obtenir le montant
+  function getMontant(tx: any): number {
+    if (isTransaction(tx)) return Number(tx.amount);
+    if (isExpense(tx)) return Number(tx.montant);
+    return 0;
+  }
+
+  // Calcul des totaux
   const totals = {
-    income: todayIncomes.reduce((sum, t) => sum + Number(t.amount ?? t.montant), 0),
-    expense: todayExpenses.reduce((sum, t) => 
-      sum + (t.amount !== undefined ? Number(t.amount) : Number(t.montant)), 0
-    )
+    income: todayIncomes.reduce((sum, t) => sum + getMontant(t), 0),
+    expense: todayExpenses.reduce((sum, t) => sum + getMontant(t), 0)
   };
   const totalBalance = totals.income - totals.expense;
 

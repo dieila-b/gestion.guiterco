@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -107,14 +106,8 @@ const CashRegisters: React.FC = () => {
         </div>
 
         <TabsContent value="overview" className="space-y-4">
-          <CashRegisterOverview 
-            activeRegister={activeRegister}
-            mockTransactions={transactions || []}
-            handleOpenRegister={handleOpenRegister}
-            handleCloseRegister={handleCloseRegister}
-            handlePrint={handlePrint}
-            formatCurrency={_formatCurrency}
-          />
+          {/* Correction ici: n'envoyer aucune prop custom */}
+          <CashRegisterOverview />
         </TabsContent>
 
         {/* Suppression de TabsContent value="caisses" */}
@@ -128,4 +121,3 @@ const CashRegisters: React.FC = () => {
 };
 
 export default CashRegisters;
-
