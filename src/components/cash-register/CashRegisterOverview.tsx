@@ -8,7 +8,9 @@ import { useCashRegisters } from "@/hooks/useCashRegisters";
 import { useTodayTransactions } from "@/hooks/useTransactions";
 import { useExpenses } from "@/hooks/useExpenses";
 import { useTransactionsFinancieresAujourdhui } from "@/hooks/useTransactionsFinancieresAujourdhui";
+import { useCashRegisterBalance } from "@/hooks/useCashRegisterBalance";
 import { formatCurrency } from "@/lib/currency";
+import { useToast } from "@/hooks/use-toast";
 import TransactionsOverviewTable from "./TransactionsOverviewTable";
 
 // Type guard pour transaction
@@ -32,12 +34,17 @@ function isToday(d: Date) {
 }
 
 const CashRegisterOverview: React.FC = () => {
+  const { toast } = useToast();
+  
   // Caisse principale
   const { data: cashRegisters } = useCashRegisters();
   const principalRegister = React.useMemo(
     () => cashRegisters?.[0],
     [cashRegisters]
   );
+
+  // Solde calculé automatiquement
+  const { data: calculatedBalance = 0 } = useCashRegisterBalance(principalRegister?.id);
 
   // Transactions financières du jour (nouvelles données)
   const { data: transactionsFinancieresAujourdhui = [], isLoading: isLoadingTransactionsFinancieres } = useTransactionsFinancieresAujourdhui();
@@ -92,6 +99,35 @@ const CashRegisterOverview: React.FC = () => {
     ? format(new Date(principalRegister.updated_at), 'dd/MM/yyyy HH:mm')
     : 'N/A';
 
+  // Actions de gestion de caisse
+  const handleCloseCashRegister = () => {
+    toast({
+      title: "Fermeture de caisse",
+      description: "Fonction en cours de développement",
+    });
+  };
+
+  const handlePrintCashStatement = () => {
+    toast({
+      title: "Impression état de caisse",
+      description: "Fonction en cours de développement",
+    });
+  };
+
+  const handlePerformCounting = () => {
+    toast({
+      title: "Comptage de caisse",
+      description: "Fonction en cours de développement",
+    });
+  };
+
+  const handleExportTransactions = () => {
+    toast({
+      title: "Export des transactions",
+      description: "Fonction en cours de développement",
+    });
+  };
+
   return (
     <>
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
@@ -102,7 +138,7 @@ const CashRegisterOverview: React.FC = () => {
             <CardDescription>Caisse principale</CardDescription>
           </CardHeader>
           <CardContent>
-            <p className="text-3xl font-bold">{formatCurrency(Number(principalRegister?.balance) || 0)}</p>
+            <p className="text-3xl font-bold">{formatCurrency(calculatedBalance)}</p>
             <p className="text-sm text-muted-foreground mt-1">
               Dernière mise à jour: {lastUpdate}
             </p>
@@ -152,16 +188,16 @@ const CashRegisterOverview: React.FC = () => {
             <CardTitle>Actions</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
-            <Button variant="outline" className="w-full">
+            <Button variant="outline" className="w-full" onClick={handleCloseCashRegister}>
               Fermer la caisse
             </Button>
-            <Button variant="outline" className="w-full">
+            <Button variant="outline" className="w-full" onClick={handlePrintCashStatement}>
               Imprimer état de caisse
             </Button>
-            <Button variant="outline" className="w-full">
+            <Button variant="outline" className="w-full" onClick={handlePerformCounting}>
               Effectuer un comptage
             </Button>
-            <Button variant="outline" className="w-full">
+            <Button variant="outline" className="w-full" onClick={handleExportTransactions}>
               Exporter les transactions
             </Button>
           </CardContent>
