@@ -21,7 +21,7 @@ export const useCreateFactureVente = () => {
     mutationFn: async (data: CreateFactureVenteData) => {
       console.log('🔄 Création facture vente avec données:', data);
       
-      // 1. Créer la facture
+      // 1. Créer la facture - le trigger auto_generate_facture_vente_number() générera automatiquement le numero_facture
       const { data: facture, error: factureError } = await supabase
         .from('factures_vente')
         .insert({
@@ -92,10 +92,25 @@ export const useCreateFactureVente = () => {
       // 4. Mettre à jour le stock PDV si spécifié
       if (data.point_vente_id) {
         for (const item of data.cart) {
+          // Récupérer la quantité actuelle pour la mise à jour
+          const { data: stockActuel, error: stockSelectError } = await supabase
+            .from('stock_pdv')
+            .select('quantite_disponible')
+            .eq('article_id', item.article_id)
+            .eq('point_vente_id', data.point_vente_id)
+            .single();
+
+          if (stockSelectError) {
+            console.error('❌ Erreur lecture stock PDV:', stockSelectError);
+            continue;
+          }
+
+          const nouvelleQuantite = Math.max(0, stockActuel.quantite_disponible - item.quantite);
+
           const { error: stockError } = await supabase
             .from('stock_pdv')
             .update({
-              quantite_disponible: supabase.raw(`quantite_disponible - ${item.quantite}`)
+              quantite_disponible: nouvelleQuantite
             })
             .eq('article_id', item.article_id)
             .eq('point_vente_id', data.point_vente_id);
@@ -118,6 +133,67 @@ export const useCreateFactureVente = () => {
     onError: (error: Error) => {
       console.error('❌ Erreur lors de la création de la facture:', error);
       toast.error('Erreur lors de la création de la facture');
+    }
+  });
+};
+
+// Exports pour les autres mutations (placeholders pour éviter les erreurs)
+export const useUpdateFactureStatut = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async ({ factureId, statut_livraison }: { factureId: string, statut_livraison: string }) => {
+      const { data, error } = await supabase
+        .from('factures_vente')
+        .update({ statut_livraison })
+        .eq('id', factureId)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['factures_vente'] });
+      toast.success('Statut mis à jour');
+    }
+  });
+};
+
+export const useCreateVersement = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async ({ facture_id, client_id, montant, mode_paiement, reference_paiement, observations }: {
+      facture_id: string;
+      client_id: string;
+      montant: number;
+      mode_paiement: string;
+      reference_paiement?: string;
+      observations?: string;
+    }) => {
+      const { data, error } = await supabase
+        .from('versements_clients')
+        .insert({
+          facture_id,
+          client_id,
+          montant,
+          mode_paiement,
+          reference_paiement,
+          observations,
+          date_versement: new Date().toISOString(),
+          numero_versement: `V-${Date.now()}`
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['factures_vente'] });
+      queryClient.invalidateQueries({ queryKey: ['versements_clients'] });
+      toast.success('Paiement enregistré');
     }
   });
 };

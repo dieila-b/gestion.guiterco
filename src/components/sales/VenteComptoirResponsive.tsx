@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react';
 import { useCatalogueOptimized } from '@/hooks/useCatalogueOptimized';
 import { useDebounce } from '@/hooks/useDebounce';
@@ -66,7 +65,7 @@ const VenteComptoirResponsive = () => {
   // Calculer les totaux du panier
   const cartTotals = useMemo(() => {
     const sousTotal = cart.reduce((sum, item) => {
-      const prixApresRemise = Math.max(0, item.prix_vente - item.remise);
+      const prixApresRemise = Math.max(0, item.prix_unitaire - (item.remise || 0));
       return sum + (prixApresRemise * item.quantite);
     }, 0);
     
@@ -106,16 +105,14 @@ const VenteComptoirResponsive = () => {
 
   const handlePaymentConfirm = async (paymentData: any) => {
     try {
-      const result = await createVente.mutateAsync({
+      const result = await createVente({
         client_id: selectedClient,
-        point_vente: selectedPDV,
-        articles: cart,
-        montant_total: cartTotals.total,
-        montant_paye: paymentData.montant_paye,
+        cart: cart,
+        montant_ht: cartTotals.total / 1.2, // Estimation sans TVA
+        tva: cartTotals.total * 0.2 / 1.2, // Estimation TVA
+        montant_ttc: cartTotals.total,
         mode_paiement: paymentData.mode_paiement,
-        statut_livraison: paymentData.statut_livraison,
-        quantite_livree: paymentData.quantite_livree,
-        notes: paymentData.notes
+        point_vente_id: selectedPDV
       });
       
       setLastFacture(result.facture);

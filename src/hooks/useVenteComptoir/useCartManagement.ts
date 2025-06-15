@@ -15,7 +15,7 @@ export const useCartManagement = (checkStock: (articleId: string, quantiteDemand
     }
 
     setCart(prevCart => {
-      const existingItem = prevCart.find(item => item.id === article.id);
+      const existingItem = prevCart.find(item => item.article_id === article.id);
       
       if (existingItem) {
         const nouvelleQuantite = existingItem.quantite + 1;
@@ -27,26 +27,37 @@ export const useCartManagement = (checkStock: (articleId: string, quantiteDemand
         }
         
         return prevCart.map(item =>
-          item.id === article.id
-            ? { ...item, quantite: nouvelleQuantite }
+          item.article_id === article.id
+            ? { 
+                ...item, 
+                quantite: nouvelleQuantite,
+                prix_final: (item.prix_unitaire - (item.remise || 0)) * nouvelleQuantite
+              }
             : item
         );
       }
       
-      return [...prevCart, {
-        id: article.id,
+      const newItem: CartItem = {
+        article_id: article.id,
         nom: article.nom,
-        prix_vente: article.prix_vente || 0,
+        reference: article.reference || '',
+        prix_unitaire: article.prix_vente || 0,
         quantite: 1,
         remise: 0,
-        stock_disponible: stockCheck.quantiteDisponible
-      }];
+        prix_final: article.prix_vente || 0,
+        stock_disponible: stockCheck.quantiteDisponible,
+        // Compatibilité avec l'ancien code
+        id: article.id,
+        prix_vente: article.prix_vente
+      };
+      
+      return [...prevCart, newItem];
     });
   }, [checkStock]);
 
   const updateQuantity = useCallback((productId: string, newQuantity: number) => {
     if (newQuantity <= 0) {
-      setCart(prevCart => prevCart.filter(item => item.id !== productId));
+      setCart(prevCart => prevCart.filter(item => item.article_id !== productId));
       return;
     }
 
@@ -59,8 +70,12 @@ export const useCartManagement = (checkStock: (articleId: string, quantiteDemand
 
     setCart(prevCart => 
       prevCart.map(item =>
-        item.id === productId
-          ? { ...item, quantite: newQuantity }
+        item.article_id === productId
+          ? { 
+              ...item, 
+              quantite: newQuantity,
+              prix_final: (item.prix_unitaire - (item.remise || 0)) * newQuantity
+            }
           : item
       )
     );
@@ -69,15 +84,19 @@ export const useCartManagement = (checkStock: (articleId: string, quantiteDemand
   const updateRemise = useCallback((productId: string, remise: number) => {
     setCart(prevCart => 
       prevCart.map(item =>
-        item.id === productId
-          ? { ...item, remise: Math.max(0, remise) }
+        item.article_id === productId
+          ? { 
+              ...item, 
+              remise: Math.max(0, remise),
+              prix_final: (item.prix_unitaire - Math.max(0, remise)) * item.quantite
+            }
           : item
       )
     );
   }, []);
 
   const removeFromCart = useCallback((productId: string) => {
-    setCart(prevCart => prevCart.filter(item => item.id !== productId));
+    setCart(prevCart => prevCart.filter(item => item.article_id !== productId));
   }, []);
 
   const clearCart = useCallback(() => {

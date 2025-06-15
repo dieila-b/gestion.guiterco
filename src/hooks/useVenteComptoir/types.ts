@@ -8,6 +8,9 @@ export interface CartItem {
   remise?: number;
   prix_final: number;
   stock_disponible?: number;
+  // Alias pour compatibilité avec l'ancien code
+  id?: string;
+  prix_vente?: number;
 }
 
 export interface VenteComptoirData {

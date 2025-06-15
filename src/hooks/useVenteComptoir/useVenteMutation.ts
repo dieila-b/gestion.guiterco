@@ -51,7 +51,7 @@ export const useVenteMutation = (
   });
 
   return {
-    createVente: mutation.mutateAsync,
+    createVente: mutation.mutate,
     isLoading: mutation.isPending || createFactureVente.isPending
   };
 };
