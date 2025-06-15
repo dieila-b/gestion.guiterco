@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
@@ -34,9 +35,6 @@ const FacturesVenteTable = ({ factures, isLoading }: FacturesVenteTableProps) =>
   };
 
   const calculatePaidAmount = (facture: FactureVente) => {
-    if (facture.statut_paiement === 'payee') {
-      return facture.montant_ttc;
-    }
     // Calculer le montant payé à partir des versements
     const versements = facture.versements || [];
     return versements.reduce((total: number, versement: any) => total + (versement.montant || 0), 0);
@@ -47,41 +45,38 @@ const FacturesVenteTable = ({ factures, isLoading }: FacturesVenteTableProps) =>
     return Math.max(0, facture.montant_ttc - paid);
   };
 
-  const getArticleCount = (facture: FactureVente) => {
-    // Debug logs pour identifier le problème
-    console.log(`Facture ${facture.numero_facture}:`, {
-      nb_articles: facture.nb_articles,
-      lignes_facture_length: facture.lignes_facture?.length,
-      facture_complete: facture
-    });
+  // Calcul dynamique du statut de paiement basé sur les versements réels
+  const getActualPaymentStatus = (facture: FactureVente) => {
+    const paidAmount = calculatePaidAmount(facture);
+    const totalAmount = facture.montant_ttc;
+    
+    if (paidAmount === 0) {
+      return 'en_attente';
+    } else if (paidAmount >= totalAmount) {
+      return 'payee';
+    } else {
+      return 'partiellement_payee';
+    }
+  };
 
-    // Priorité 1: Utiliser nb_articles si disponible et valide
+  const getArticleCount = (facture: FactureVente) => {
+    // Utiliser nb_articles en priorité (calculé par la fonction SQL)
     if (typeof facture.nb_articles === 'number' && facture.nb_articles >= 0) {
       return facture.nb_articles;
     }
     
-    // Priorité 2: Compter les lignes de facture
+    // Fallback: compter les lignes de facture
     if (facture.lignes_facture && Array.isArray(facture.lignes_facture)) {
       return facture.lignes_facture.length;
     }
     
-    // Fallback: retourner 0 avec un warning
-    console.warn(
-      `Impossible de déterminer le nombre d'articles pour la facture ${facture.numero_facture}:`,
-      {
-        nb_articles: facture.nb_articles,
-        lignes_facture: facture.lignes_facture,
-        type_nb_articles: typeof facture.nb_articles,
-        is_array_lignes: Array.isArray(facture.lignes_facture)
-      }
-    );
     return 0;
   };
 
-  // Nouvelle fonction pour badge livraison
+  // Badge de livraison basé sur le statut calculé dynamiquement
   const getLivraisonBadge = (facture: FactureVente) => {
-    // Utilise statut_livraison calculé par le backend (possible valeurs : en_attente, partiellement_livree, livree)
-    const statut = facture.statut_livraison || 'livree';
+    const statut = facture.statut_livraison || 'en_attente';
+    
     switch (statut) {
       case 'en_attente':
         return (
@@ -96,10 +91,15 @@ const FacturesVenteTable = ({ factures, isLoading }: FacturesVenteTableProps) =>
           </Badge>
         );
       case 'livree':
+        return (
+          <Badge variant="outline" className="bg-green-100 text-green-800 border-green-300">
+            Livrée
+          </Badge>
+        );
       default:
         return (
-          <Badge variant="outline" className="bg-blue-100 text-blue-800 border-blue-300">
-            Livrée
+          <Badge variant="outline" className="bg-gray-100 text-gray-800 border-gray-300">
+            Non défini
           </Badge>
         );
     }
@@ -136,6 +136,10 @@ const FacturesVenteTable = ({ factures, isLoading }: FacturesVenteTableProps) =>
           {factures && factures.length > 0 ? (
             factures.map((facture) => {
               const articleCount = getArticleCount(facture);
+              const actualPaymentStatus = getActualPaymentStatus(facture);
+              const paidAmount = calculatePaidAmount(facture);
+              const remainingAmount = calculateRemainingAmount(facture);
+              
               return (
                 <TableRow key={facture.id} className="hover:bg-muted/30">
                   <TableCell className="font-medium text-blue-600">
@@ -154,17 +158,17 @@ const FacturesVenteTable = ({ factures, isLoading }: FacturesVenteTableProps) =>
                     {formatCurrency(facture.montant_ttc)}
                   </TableCell>
                   <TableCell className="text-right">
-                    {formatCurrency(calculatePaidAmount(facture))}
+                    {formatCurrency(paidAmount)}
                   </TableCell>
                   <TableCell className="text-right font-medium">
-                    {formatCurrency(calculateRemainingAmount(facture))}
+                    {formatCurrency(remainingAmount)}
                   </TableCell>
                   <TableCell className="text-center">
                     <Badge 
                       variant="outline" 
-                      className={`${getStatusBadgeColor(facture.statut_paiement)} font-medium`}
+                      className={`${getStatusBadgeColor(actualPaymentStatus)} font-medium`}
                     >
-                      {getStatusLabel(facture.statut_paiement)}
+                      {getStatusLabel(actualPaymentStatus)}
                     </Badge>
                   </TableCell>
                   <TableCell className="text-center">

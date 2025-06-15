@@ -28,8 +28,18 @@ export const useFacturesVenteQuery = () => {
         return [];
       }
       
+      // Log pour débugger les données de chaque facture
+      facturesData.forEach((facture: any) => {
+        console.log(`Facture ${facture.numero_facture}:`, {
+          nb_articles: facture.nb_articles,
+          lignes_facture_length: facture.lignes_facture?.length,
+          versements_length: facture.versements?.length,
+          statut_livraison: facture.statut_livraison,
+          statut_paiement: facture.statut_paiement
+        });
+      });
+      
       console.log('Processed factures vente from function:', facturesData);
-      // Correction du type avec unknown intermédiaire
       return facturesData as unknown as FactureVente[];
     },
     staleTime: 30000,
