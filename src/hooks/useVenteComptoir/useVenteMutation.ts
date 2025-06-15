@@ -13,6 +13,16 @@ export const useVenteMutation = (pointsDeVente?: any[], selectedPDV?: string, se
     return uuidRegex.test(uuid);
   };
 
+  // Fonction pour générer un numéro de facture au bon format
+  const generateFactureNumber = () => {
+    const now = new Date();
+    const year = now.getFullYear().toString().slice(-2);
+    const month = (now.getMonth() + 1).toString().padStart(2, '0');
+    const day = now.getDate().toString().padStart(2, '0');
+    const timestamp = Date.now().toString().slice(-4);
+    return `FA-${year}-${month}-${day}-${timestamp}`;
+  };
+
   // Mutation pour créer une vente avec gestion des paiements et livraisons
   const createVente = useMutation({
     mutationFn: async (venteData: VenteComptoirData) => {
@@ -96,8 +106,8 @@ export const useVenteMutation = (pointsDeVente?: any[], selectedPDV?: string, se
         throw lignesError;
       }
 
-      // Créer la facture
-      const numeroFacture = `FA-${Date.now()}`;
+      // Créer la facture avec le bon format de numéro
+      const numeroFacture = generateFactureNumber();
       
       const { data: facture, error: factureError } = await supabase
         .from('factures_vente')
@@ -140,9 +150,9 @@ export const useVenteMutation = (pointsDeVente?: any[], selectedPDV?: string, se
         }
       }
 
-      // CRÉER UNE TRANSACTION DE CAISSE POUR CHAQUE VENTE AVEC PAIEMENT
+      // CRÉER UNE TRANSACTION DE CAISSE UNIQUEMENT SI IL Y A UN PAIEMENT EFFECTIF
       if (venteData.montant_paye > 0) {
-        console.log('💰 Création transaction de caisse pour vente:', venteData.montant_paye);
+        console.log('💰 Création transaction de caisse pour vente payée:', venteData.montant_paye);
         
         // Récupérer la première caisse disponible
         const { data: cashRegister, error: cashRegisterError } = await supabase
@@ -174,7 +184,7 @@ export const useVenteMutation = (pointsDeVente?: any[], selectedPDV?: string, se
               break;
           }
 
-          console.log('🔄 Insertion transaction avec:', {
+          console.log('🔄 Insertion transaction avec format correct:', {
             type: 'income',
             amount: venteData.montant_paye,
             description: `Vente ${numeroFacture}`,
@@ -203,9 +213,11 @@ export const useVenteMutation = (pointsDeVente?: any[], selectedPDV?: string, se
             console.error('❌ Erreur création transaction de caisse:', transactionError);
             // Ne pas faire échouer toute la vente pour ça, juste logger
           } else {
-            console.log('✅ Transaction de caisse créée avec succès pour la vente:', venteData.montant_paye);
+            console.log('✅ Transaction de caisse créée avec succès pour la vente:', venteData.montant_paye, 'avec numéro:', numeroFacture);
           }
         }
+      } else {
+        console.log('ℹ️ Pas de paiement effectué (montant_paye = 0), aucune transaction de caisse créée');
       }
 
       // Mettre à jour le stock PDV
