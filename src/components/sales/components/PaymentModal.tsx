@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -34,13 +34,26 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
   cartItems,
   isLoading
 }) => {
-  const [montantPaye, setMontantPaye] = useState(totalAmount);
+  const [montantPaye, setMontantPaye] = useState(0);
   const [modePaiement, setModePaiement] = useState('especes');
   const [statutLivraison, setStatutLivraison] = useState('livre');
   const [notes, setNotes] = useState('');
   const [quantitesLivrees, setQuantitesLivrees] = useState<{ [key: string]: number }>({});
 
+  // Préremplir automatiquement le montant payé avec le montant total
+  useEffect(() => {
+    if (isOpen && totalAmount > 0) {
+      setMontantPaye(totalAmount);
+    }
+  }, [isOpen, totalAmount]);
+
+  // Calcul dynamique du reste à payer
   const restePayer = Math.max(0, totalAmount - montantPaye);
+
+  const handleMontantPayeChange = (value: string) => {
+    const amount = parseFloat(value) || 0;
+    setMontantPaye(amount);
+  };
 
   const handleConfirm = () => {
     const paymentData: PaymentData = {
@@ -64,8 +77,18 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
     }));
   };
 
+  // Réinitialiser les valeurs à la fermeture
+  const handleClose = () => {
+    setMontantPaye(0);
+    setModePaiement('especes');
+    setStatutLivraison('livre');
+    setNotes('');
+    setQuantitesLivrees({});
+    onClose();
+  };
+
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Paiement</DialogTitle>
@@ -87,10 +110,20 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
                 <span className="text-xl font-bold">{formatCurrency(totalAmount)}</span>
               </div>
               
-              <div className="flex justify-between items-center text-yellow-400">
-                <span>Reste à payer:</span>
-                <span className="font-bold">{formatCurrency(restePayer)}</span>
+              <div className="flex justify-between items-center">
+                <span className={`${restePayer > 0 ? 'text-yellow-400' : 'text-green-400'}`}>
+                  Reste à payer:
+                </span>
+                <span className={`font-bold text-lg ${restePayer > 0 ? 'text-yellow-400' : 'text-green-400'}`}>
+                  {formatCurrency(restePayer)}
+                </span>
               </div>
+              
+              {restePayer === 0 && (
+                <div className="mt-2 p-2 bg-green-600 rounded text-center text-sm">
+                  ✓ Facture entièrement réglée
+                </div>
+              )}
             </div>
 
             <div className="space-y-4">
@@ -100,9 +133,16 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
                   id="montant-paye"
                   type="number"
                   value={montantPaye}
-                  onChange={(e) => setMontantPaye(Number(e.target.value))}
+                  onChange={(e) => handleMontantPayeChange(e.target.value)}
                   className="text-lg font-bold"
+                  placeholder="0"
+                  step="0.01"
+                  min="0"
+                  max={totalAmount}
                 />
+                <div className="text-sm text-gray-500 mt-1">
+                  Montant maximum: {formatCurrency(totalAmount)}
+                </div>
               </div>
 
               <div>
@@ -184,12 +224,12 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
         </Tabs>
 
         <div className="flex justify-end space-x-2 pt-4 border-t">
-          <Button variant="outline" onClick={onClose}>
+          <Button variant="outline" onClick={handleClose}>
             Annuler
           </Button>
           <Button 
             onClick={handleConfirm}
-            disabled={isLoading}
+            disabled={isLoading || montantPaye < 0}
             className="bg-purple-600 hover:bg-purple-700"
           >
             {isLoading ? 'Traitement...' : 'Valider le paiement'}

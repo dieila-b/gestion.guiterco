@@ -41,7 +41,7 @@ const CartPanel: React.FC<CartPanelProps> = ({
 
   const handleNewClientSuccess = (clientId: string) => {
     console.log('Nouveau client créé avec ID:', clientId);
-    setSelectedClient(clientId); // Utiliser l'ID du client créé
+    setSelectedClient(clientId);
     setShowNewClientDialog(false);
   };
 
