@@ -5,80 +5,49 @@ import { Button } from '@/components/ui/button';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale/fr';
 import { useCashRegisters } from "@/hooks/useCashRegisters";
-import { useTodayTransactions } from "@/hooks/useTransactions";
-import { useExpenses } from "@/hooks/useExpenses";
+import { useAllFinancialTransactions } from "@/hooks/useTransactions";
 import { formatCurrency } from "@/lib/currency";
 import TransactionsOverviewTable from "./TransactionsOverviewTable";
 
-// Type guard pour transaction
-function isTransaction(t: any): t is { amount: number } {
-  return typeof t.amount === "number";
-}
-
-// Type guard pour dépenses
-function isExpense(t: any): t is { montant: number } {
-  return typeof t.montant === "number";
-}
-
-// Utilitaire pour filtrer la date du jour
-function isToday(d: Date) {
-  const now = new Date();
-  return (
-    d.getFullYear() === now.getFullYear() &&
-    d.getMonth() === now.getMonth() &&
-    d.getDate() === now.getDate()
-  );
-}
-
 const CashRegisterOverview: React.FC = () => {
   // Caisse principale
-  const { data: cashRegisters } = useCashRegisters();
+  const { data: cashRegisters, isLoading: isLoadingRegisters } = useCashRegisters();
   const principalRegister = React.useMemo(
     () => cashRegisters?.[0],
     [cashRegisters]
   );
 
-  // Transactions du jour (entrées/sorties)
-  const { data: todayTransactions = [], isLoading: isLoadingTransactions } = useTodayTransactions(principalRegister?.id);
-  // Dépenses autres (sorties_financieres)
-  const { data: allExpenses = [], isLoading: isLoadingExpenses } = useExpenses();
-  const todaysExtraExpenses = React.useMemo(() =>
-    allExpenses.filter((e: any) =>
-      isToday(new Date(e.date_sortie))
-    ),
-    [allExpenses]
-  );
+  // Toutes les transactions financières du jour
+  const { data: allTransactions = [], isLoading: isLoadingTransactions } = useAllFinancialTransactions();
 
-  // Entrées/sorties du jour
-  const todayIncomes = todayTransactions.filter(t => isTransaction(t) && t.type === "income");
-  const todayExpenses = [
-    ...todayTransactions.filter(t => isTransaction(t) && t.type === "expense"),
-    ...todaysExtraExpenses
-  ];
+  // Calcul des totaux basé sur les transactions unifiées
+  const todayIncomes = allTransactions.filter(t => t.type === 'income');
+  const todayExpenses = allTransactions.filter(t => t.type === 'expense');
 
-  // Fonctions helpers pour obtenir le montant
-  function getMontant(tx: any): number {
-    if (isTransaction(tx)) return Number(tx.amount);
-    if (isExpense(tx)) return Number(tx.montant);
-    return 0;
-  }
-
-  // Calcul des totaux
   const totals = {
-    income: todayIncomes.reduce((sum, t) => sum + getMontant(t), 0),
-    expense: todayExpenses.reduce((sum, t) => sum + getMontant(t), 0)
+    income: todayIncomes.reduce((sum, t) => sum + (t.amount || 0), 0),
+    expense: todayExpenses.reduce((sum, t) => sum + (t.amount || 0), 0)
   };
   const totalBalance = totals.income - totals.expense;
 
   // Nb txs
   const nbIncome = todayIncomes.length;
   const nbExpense = todayExpenses.length;
-  const nbTotal = todayTransactions.length + todaysExtraExpenses.length;
+  const nbTotal = allTransactions.length;
 
   // Formattage de la date
   const lastUpdate = principalRegister?.updated_at
     ? format(new Date(principalRegister.updated_at), 'dd/MM/yyyy HH:mm')
     : 'N/A';
+
+  // Gestion du loading
+  if (isLoadingRegisters || isLoadingTransactions) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <p>Chargement des données financières...</p>
+      </div>
+    );
+  }
 
   return (
     <>
@@ -96,6 +65,7 @@ const CashRegisterOverview: React.FC = () => {
             </p>
           </CardContent>
         </Card>
+        
         {/* Entrées du jour */}
         <Card>
           <CardHeader>
@@ -107,6 +77,7 @@ const CashRegisterOverview: React.FC = () => {
             <p className="text-sm text-muted-foreground mt-1">{nbIncome} transaction{nbIncome > 1 ? "s" : ""}</p>
           </CardContent>
         </Card>
+        
         {/* Dépenses du jour */}
         <Card>
           <CardHeader>
@@ -118,6 +89,7 @@ const CashRegisterOverview: React.FC = () => {
             <p className="text-sm text-muted-foreground mt-1">{nbExpense} transaction{nbExpense > 1 ? "s" : ""}</p>
           </CardContent>
         </Card>
+        
         {/* Balance du jour */}
         <Card>
           <CardHeader>

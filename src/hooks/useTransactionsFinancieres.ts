@@ -64,20 +64,24 @@ export function useCreateTransactionFinanciere() {
       commentaire?: string;
       description: string;
     }) => {
-      // Récupérer la première caisse disponible comme valeur par défaut
+      // Récupérer la première caisse disponible
       const { data: cashRegisters } = await supabase
         .from("cash_registers")
         .select("id")
         .limit(1)
         .single();
 
+      if (!cashRegisters) {
+        throw new Error("Aucune caisse disponible");
+      }
+
       const { data, error } = await supabase
         .from("transactions")
         .insert({
           ...transaction,
-          cash_register_id: cashRegisters?.id || crypto.randomUUID(), // Valeur par défaut si pas de caisse
-          category: 'other' as const, // Valeur par défaut pour category
-          payment_method: 'cash' as const // Valeur par défaut pour payment_method
+          cash_register_id: cashRegisters.id,
+          category: 'other' as const,
+          payment_method: 'cash' as const
         })
         .select()
         .single();
@@ -86,8 +90,13 @@ export function useCreateTransactionFinanciere() {
       return data;
     },
     onSuccess: () => {
+      // Invalider toutes les requêtes liées
       queryClient.invalidateQueries({ queryKey: ["transactions-financieres"] });
+      queryClient.invalidateQueries({ queryKey: ["transactions"] });
+      queryClient.invalidateQueries({ queryKey: ["today-transactions"] });
+      queryClient.invalidateQueries({ queryKey: ["all-financial-transactions"] });
       queryClient.invalidateQueries({ queryKey: ["cash-registers"] });
+      queryClient.invalidateQueries({ queryKey: ["vue_solde_caisse"] });
     },
   });
 }
