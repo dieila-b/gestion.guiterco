@@ -115,7 +115,7 @@ export const useAllFinancialTransactions = () => {
       // Normaliser toutes les données
       const normalizedTransactions = (transactions || []).map(t => ({
         id: t.id,
-        type: t.type,
+        type: t.type as 'income' | 'expense',
         amount: t.amount || t.montant || 0,
         description: t.description || '',
         date: t.date_operation || t.created_at,
