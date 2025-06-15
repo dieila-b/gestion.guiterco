@@ -35,40 +35,24 @@ const FacturesVenteTable = ({ factures, isLoading }: FacturesVenteTableProps) =>
   };
 
   const calculatePaidAmount = (facture: FactureVente) => {
-    console.log(`💰 Calculating paid amount for ${facture.numero_facture}:`, facture.versements);
-    
     if (!facture.versements || !Array.isArray(facture.versements)) {
-      console.log(`No versements found for ${facture.numero_facture}`);
       return 0;
     }
     
-    const total = facture.versements.reduce((sum: number, versement: any) => {
-      const montant = versement.montant || 0;
-      console.log(`Adding versement: ${montant}`);
-      return sum + montant;
+    return facture.versements.reduce((sum: number, versement: any) => {
+      return sum + (versement.montant || 0);
     }, 0);
-    
-    console.log(`Total paid for ${facture.numero_facture}: ${total}`);
-    return total;
   };
 
   const calculateRemainingAmount = (facture: FactureVente) => {
     const paid = calculatePaidAmount(facture);
-    const remaining = Math.max(0, facture.montant_ttc - paid);
-    console.log(`Remaining amount for ${facture.numero_facture}: ${remaining} (Total: ${facture.montant_ttc}, Paid: ${paid})`);
-    return remaining;
+    return Math.max(0, facture.montant_ttc - paid);
   };
 
   // Calcul dynamique du statut de paiement basé sur les versements réels
   const getActualPaymentStatus = (facture: FactureVente) => {
     const paidAmount = calculatePaidAmount(facture);
     const totalAmount = facture.montant_ttc;
-    
-    console.log(`Payment status calculation for ${facture.numero_facture}:`, {
-      paid: paidAmount,
-      total: totalAmount,
-      percentage: (paidAmount / totalAmount) * 100
-    });
     
     if (paidAmount === 0) {
       return 'en_attente';
@@ -80,55 +64,33 @@ const FacturesVenteTable = ({ factures, isLoading }: FacturesVenteTableProps) =>
   };
 
   const getArticleCount = (facture: FactureVente) => {
-    console.log(`📦 Getting article count for ${facture.numero_facture}:`, {
-      nb_articles_from_function: facture.nb_articles,
-      lignes_facture_array: facture.lignes_facture,
-      lignes_facture_length: facture.lignes_facture?.length
-    });
-    
     // Utiliser nb_articles en priorité (calculé par la fonction SQL)
     if (typeof facture.nb_articles === 'number' && facture.nb_articles >= 0) {
-      console.log(`Using nb_articles from function: ${facture.nb_articles}`);
       return facture.nb_articles;
     }
     
     // Fallback: compter les lignes de facture
     if (facture.lignes_facture && Array.isArray(facture.lignes_facture)) {
-      const count = facture.lignes_facture.length;
-      console.log(`Using lignes_facture length: ${count}`);
-      return count;
+      return facture.lignes_facture.length;
     }
     
-    console.log(`No articles found for ${facture.numero_facture}`);
     return 0;
   };
 
   // Calcul dynamique du statut de livraison
   const getActualDeliveryStatus = (facture: FactureVente) => {
-    console.log(`🚚 Getting delivery status for ${facture.numero_facture}:`, {
-      statut_livraison_from_db: facture.statut_livraison,
-      lignes_facture: facture.lignes_facture
-    });
-    
     // Si on a le statut calculé par la fonction SQL, l'utiliser
     if (facture.statut_livraison) {
-      console.log(`Using delivery status from function: ${facture.statut_livraison}`);
       return facture.statut_livraison;
     }
     
     // Fallback: calculer en fonction des lignes
     if (!facture.lignes_facture || !Array.isArray(facture.lignes_facture) || facture.lignes_facture.length === 0) {
-      console.log(`No lines found, defaulting to livree`);
       return 'livree'; // Pas d'articles = livré par défaut
     }
     
     const totalLignes = facture.lignes_facture.length;
     const lignesLivrees = facture.lignes_facture.filter((ligne: any) => ligne.statut_livraison === 'livree').length;
-    
-    console.log(`Delivery calculation:`, {
-      total: totalLignes,
-      livrees: lignesLivrees
-    });
     
     if (lignesLivrees === 0) {
       return 'en_attente';
@@ -181,8 +143,6 @@ const FacturesVenteTable = ({ factures, isLoading }: FacturesVenteTableProps) =>
     );
   }
 
-  console.log('🖥️ Rendering table with factures:', factures?.length || 0);
-
   return (
     <div className="rounded-md border">
       <Table>
@@ -207,13 +167,6 @@ const FacturesVenteTable = ({ factures, isLoading }: FacturesVenteTableProps) =>
               const actualPaymentStatus = getActualPaymentStatus(facture);
               const paidAmount = calculatePaidAmount(facture);
               const remainingAmount = calculateRemainingAmount(facture);
-              
-              console.log(`🧾 Rendering row for ${facture.numero_facture}:`, {
-                articles: articleCount,
-                paymentStatus: actualPaymentStatus,
-                paid: paidAmount,
-                remaining: remainingAmount
-              });
               
               return (
                 <TableRow key={facture.id} className="hover:bg-muted/30">
