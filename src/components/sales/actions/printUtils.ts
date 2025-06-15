@@ -282,7 +282,7 @@ export const printFacture = (facture: FactureVente) => {
             <p><strong>Téléphone:</strong> ${facture.client?.telephone || 'Non renseigné'}</p>
             <p><strong>Adresse:</strong> ${facture.client?.adresse || 'Non renseignée'}</p>
             <p><strong>Email:</strong> ${facture.client?.email || 'Non renseigné'}</p>
-            <p><strong>Code:</strong> ${facture.client?.code_client || 'Non attribué'}</p>
+            <p><strong>Code:</strong> ${facture.client?.id || 'Non attribué'}</p>
           </div>
         </div>
 

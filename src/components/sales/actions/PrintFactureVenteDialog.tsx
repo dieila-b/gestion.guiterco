@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -150,7 +149,7 @@ export const PrintFactureVenteDialog = ({ facture }: PrintFactureVenteDialogProp
               <p><strong>Téléphone:</strong> {facture.client?.telephone || 'Non renseigné'}</p>
               <p><strong>Adresse:</strong> {facture.client?.adresse || 'Non renseignée'}</p>
               <p><strong>Email:</strong> {facture.client?.email || 'Non renseigné'}</p>
-              <p><strong>Code:</strong> {facture.client?.code_client || 'Non attribué'}</p>
+              <p><strong>Code:</strong> {facture.client?.id || 'Non attribué'}</p>
             </div>
           </div>
 

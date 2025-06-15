@@ -15,9 +15,10 @@ import { calculatePaidAmount, calculateRemainingAmount, getActualDeliveryStatus 
 
 interface EditFactureDialogProps {
   facture: FactureVente;
+  children?: React.ReactNode;
 }
 
-const EditFactureDialog = ({ facture }: EditFactureDialogProps) => {
+const EditFactureDialog = ({ facture, children }: EditFactureDialogProps) => {
   const [open, setOpen] = useState(false);
 
   const paidAmount = calculatePaidAmount(facture);
@@ -25,17 +26,21 @@ const EditFactureDialog = ({ facture }: EditFactureDialogProps) => {
   const dateFacture = format(new Date(facture.date_facture), 'yyyy-MM-dd');
   const dateEcheance = facture.date_echeance ? format(new Date(facture.date_echeance), 'yyyy-MM-dd') : '';
 
+  const trigger = children || (
+    <Button
+      variant="ghost"
+      size="sm"
+      className="h-8 w-8 p-0 hover:bg-orange-100"
+      title="Modifier"
+    >
+      <Edit className="h-4 w-4 text-orange-600" />
+    </Button>
+  );
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button
-          variant="ghost"
-          size="sm"
-          className="h-8 w-8 p-0 hover:bg-orange-100"
-          title="Modifier"
-        >
-          <Edit className="h-4 w-4 text-orange-600" />
-        </Button>
+        {trigger}
       </DialogTrigger>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
