@@ -1,22 +1,16 @@
+
 import React, { useState } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import CashRegisterOverview from '@/components/cash-register/CashRegisterOverview';
-import TransactionDialog from '@/components/cash-register/TransactionDialog';
-import TransactionsHistory from '@/components/cash-register/TransactionsHistory';
 import AddCashRegisterDialog from '@/components/cash-register/AddCashRegisterDialog';
 import { useCashRegisters } from '@/hooks/useCashRegisters';
 import { useTransactions, useTodayTransactions } from '@/hooks/useTransactions';
-import { formatCurrency } from '@/lib/currency';
 import ExpensesTab from '@/components/cash-register/ExpensesTab';
-// Suppression de l'import CaissesTab
 
 const CashRegisters: React.FC = () => {
   const { toast } = useToast();
-  const [date, setDate] = useState<Date | undefined>(new Date());
-  const [newTransactionOpen, setNewTransactionOpen] = useState(false);
-  const [transactionType, setTransactionType] = useState('income');
   const [selectedRegister, setSelectedRegister] = useState<string | null>(null);
 
   // Fetch data from Supabase
@@ -31,44 +25,12 @@ const CashRegisters: React.FC = () => {
     }
   }, [cashRegisters, selectedRegister]);
 
-  const handleOpenRegister = () => {
-    toast({
-      title: "Caisse ouverte",
-      description: "La caisse a été ouverte avec un solde initial de 0 GNF",
-    });
-  };
-
-  const handleCloseRegister = () => {
-    toast({
-      title: "Caisse fermée",
-      description: "La caisse a été fermée avec un solde final de 0 GNF",
-    });
-  };
-
-  const handleAddTransaction = () => {
-    setNewTransactionOpen(false);
-    toast({
-      title: "Transaction ajoutée",
-      description: `Nouvelle ${transactionType === 'income' ? 'entrée' : 'dépense'} ajoutée à la caisse`,
-    });
-  };
-
-  const handlePrint = () => {
-    toast({
-      title: "Impression",
-      description: "Le rapport de caisse a été envoyé à l'impression",
-    });
-  };
-
   const handleRegisterCreated = () => {
     toast({
       title: "Caisse créée",
       description: "La nouvelle caisse a été créée avec succès",
     });
   };
-
-  // Utilisation GNF dans toute la section Finances
-  const _formatCurrency = formatCurrency;
 
   const activeRegister = cashRegisters?.find(register => register.id === selectedRegister);
 
@@ -88,29 +50,16 @@ const CashRegisters: React.FC = () => {
         <div className="flex justify-between items-center">
           <TabsList>
             <TabsTrigger value="overview">Aperçu</TabsTrigger>
-            {/* Suppression de l'onglet Caisses */}
             <TabsTrigger value="expenses">Dépenses</TabsTrigger>
           </TabsList>
           <div className="space-x-2">
             <AddCashRegisterDialog onRegisterCreated={handleRegisterCreated} />
-            <TransactionDialog
-              open={newTransactionOpen}
-              onOpenChange={setNewTransactionOpen}
-              transactionType={transactionType}
-              setTransactionType={setTransactionType}
-              date={date}
-              setDate={setDate}
-              handleAddTransaction={handleAddTransaction}
-            />
           </div>
         </div>
 
         <TabsContent value="overview" className="space-y-4">
-          {/* Correction ici: n'envoyer aucune prop custom */}
           <CashRegisterOverview />
         </TabsContent>
-
-        {/* Suppression de TabsContent value="caisses" */}
 
         <TabsContent value="expenses" className="space-y-4">
           <ExpensesTab />

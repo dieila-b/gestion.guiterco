@@ -575,6 +575,36 @@ export type Database = {
         }
         Relationships: []
       }
+      categories_financieres: {
+        Row: {
+          couleur: string | null
+          created_at: string | null
+          description: string | null
+          id: string
+          nom: string
+          type: string
+          updated_at: string | null
+        }
+        Insert: {
+          couleur?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          nom: string
+          type: string
+          updated_at?: string | null
+        }
+        Update: {
+          couleur?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          nom?: string
+          type?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       clients: {
         Row: {
           adresse: string | null
@@ -1814,30 +1844,42 @@ export type Database = {
         Row: {
           amount: number
           cash_register_id: string
+          categorie_id: string | null
           category: Database["public"]["Enums"]["transaction_category"]
+          commentaire: string | null
           created_at: string
+          date_operation: string | null
           description: string
           id: string
+          montant: number | null
           payment_method: Database["public"]["Enums"]["payment_method"]
           type: Database["public"]["Enums"]["transaction_type"]
         }
         Insert: {
           amount: number
           cash_register_id: string
+          categorie_id?: string | null
           category: Database["public"]["Enums"]["transaction_category"]
+          commentaire?: string | null
           created_at?: string
+          date_operation?: string | null
           description: string
           id?: string
+          montant?: number | null
           payment_method: Database["public"]["Enums"]["payment_method"]
           type: Database["public"]["Enums"]["transaction_type"]
         }
         Update: {
           amount?: number
           cash_register_id?: string
+          categorie_id?: string | null
           category?: Database["public"]["Enums"]["transaction_category"]
+          commentaire?: string | null
           created_at?: string
+          date_operation?: string | null
           description?: string
           id?: string
+          montant?: number | null
           payment_method?: Database["public"]["Enums"]["payment_method"]
           type?: Database["public"]["Enums"]["transaction_type"]
         }
@@ -1847,6 +1889,13 @@ export type Database = {
             columns: ["cash_register_id"]
             isOneToOne: false
             referencedRelation: "cash_registers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transactions_categorie_id_fkey"
+            columns: ["categorie_id"]
+            isOneToOne: false
+            referencedRelation: "categories_financieres"
             referencedColumns: ["id"]
           },
         ]
