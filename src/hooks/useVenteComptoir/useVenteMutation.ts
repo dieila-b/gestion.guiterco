@@ -1,27 +1,14 @@
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import type { VenteComptoirData } from './types';
+import { validateVenteData } from './utils/validationUtils';
+import { createVenteEntries } from './services/venteService';
+import { createCashTransaction } from './services/transactionService';
+import { updateStockPDV } from './services/stockService';
 
 export const useVenteMutation = (pointsDeVente?: any[], selectedPDV?: string, setCart?: (cart: any[]) => void) => {
   const queryClient = useQueryClient();
-
-  // Fonction pour valider un UUID
-  const isValidUUID = (uuid: string) => {
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-    return uuidRegex.test(uuid);
-  };
-
-  // Fonction pour générer un numéro de facture au bon format
-  const generateFactureNumber = () => {
-    const now = new Date();
-    const year = now.getFullYear().toString().slice(-2);
-    const month = (now.getMonth() + 1).toString().padStart(2, '0');
-    const day = now.getDate().toString().padStart(2, '0');
-    const timestamp = Date.now().toString().slice(-4);
-    return `FA-${year}-${month}-${day}-${timestamp}`;
-  };
 
   // Mutation pour créer une vente avec gestion des paiements et livraisons
   const createVente = useMutation({
@@ -29,236 +16,21 @@ export const useVenteMutation = (pointsDeVente?: any[], selectedPDV?: string, se
       console.log('Données de vente reçues:', venteData);
 
       // Validation des données critiques
-      if (!isValidUUID(venteData.client_id)) {
-        throw new Error(`ID client invalide: ${venteData.client_id}. Veuillez sélectionner un client valide.`);
-      }
-
-      if (!venteData.articles || venteData.articles.length === 0) {
-        throw new Error('Aucun article dans le panier.');
-      }
-
-      if (venteData.montant_total <= 0) {
-        throw new Error('Le montant total doit être supérieur à 0.');
-      }
-
-      if (venteData.montant_paye < 0) {
-        throw new Error('Le montant payé ne peut pas être négatif.');
-      }
+      validateVenteData(venteData);
 
       const pdvSelected = pointsDeVente?.find(pdv => pdv.nom === selectedPDV);
       if (!pdvSelected) throw new Error('Point de vente non trouvé');
 
-      // Déterminer le statut de paiement
-      const montantRestant = venteData.montant_total - venteData.montant_paye;
-      let statutPaiement = 'en_attente';
-      
-      if (venteData.montant_paye >= venteData.montant_total) {
-        statutPaiement = 'paye';
-      } else if (venteData.montant_paye > 0) {
-        statutPaiement = 'partiel';
-      }
+      // Créer toutes les entrées de vente (commande, facture, versements)
+      const result = await createVenteEntries(venteData, pdvSelected);
 
-      console.log('Statut de paiement calculé:', statutPaiement);
-      console.log('Montant restant:', montantRestant);
-
-      // Créer la commande client
-      const numeroCommande = `CMD-${Date.now()}`;
-      const { data: commande, error: commandeError } = await supabase
-        .from('commandes_clients')
-        .insert({
-          numero_commande: numeroCommande,
-          client_id: venteData.client_id,
-          montant_ttc: venteData.montant_total,
-          montant_ht: venteData.montant_total / 1.2,
-          tva: venteData.montant_total - (venteData.montant_total / 1.2),
-          statut: 'confirmee',
-          mode_paiement: venteData.mode_paiement,
-          observations: venteData.notes
-        })
-        .select()
-        .single();
-
-      if (commandeError) {
-        console.error('Erreur création commande:', commandeError);
-        throw commandeError;
-      }
-
-      console.log('Commande créée:', commande);
-
-      // Créer les lignes de commande
-      const lignesCommande = venteData.articles.map(article => {
-        const prixApresRemise = Math.max(0, article.prix_vente - article.remise);
-        return {
-          commande_id: commande.id,
-          article_id: article.id,
-          quantite: article.quantite,
-          prix_unitaire: prixApresRemise,
-          montant_ligne: prixApresRemise * article.quantite
-        };
-      });
-
-      const { error: lignesError } = await supabase
-        .from('lignes_commande')
-        .insert(lignesCommande);
-
-      if (lignesError) {
-        console.error('Erreur création lignes commande:', lignesError);
-        throw lignesError;
-      }
-
-      // Créer la facture avec le bon format de numéro
-      const numeroFacture = generateFactureNumber();
-      
-      const { data: facture, error: factureError } = await supabase
-        .from('factures_vente')
-        .insert({
-          numero_facture: numeroFacture,
-          commande_id: commande.id,
-          client_id: venteData.client_id,
-          montant_ttc: venteData.montant_total,
-          montant_ht: venteData.montant_total / 1.2,
-          tva: venteData.montant_total - (venteData.montant_total / 1.2),
-          statut_paiement: statutPaiement,
-          mode_paiement: venteData.mode_paiement
-        })
-        .select()
-        .single();
-
-      if (factureError) {
-        console.error('Erreur création facture:', factureError);
-        throw factureError;
-      }
-
-      console.log('Facture créée:', facture);
-
-      // Enregistrer le versement si paiement effectué
-      if (venteData.montant_paye > 0) {
-        const { error: versementError } = await supabase
-          .from('versements_clients')
-          .insert({
-            numero_versement: `VER-${Date.now()}`,
-            client_id: venteData.client_id,
-            facture_id: facture.id,
-            montant: venteData.montant_paye,
-            mode_paiement: venteData.mode_paiement,
-            observations: venteData.notes || `Versement ${statutPaiement === 'paye' ? 'complet' : 'partiel'} pour facture ${numeroFacture}`
-          });
-
-        if (versementError) {
-          console.error('Erreur création versement:', versementError);
-          throw versementError;
-        }
-      }
-
-      // CRÉER UNE TRANSACTION DE CAISSE UNIQUEMENT SI IL Y A UN PAIEMENT EFFECTIF
-      if (venteData.montant_paye > 0) {
-        console.log('💰 Création transaction de caisse pour vente payée:', venteData.montant_paye);
-        
-        // Récupérer la première caisse disponible
-        const { data: cashRegister, error: cashRegisterError } = await supabase
-          .from('cash_registers')
-          .select('id')
-          .limit(1)
-          .single();
-
-        if (cashRegisterError) {
-          console.error('❌ Erreur récupération caisse:', cashRegisterError);
-          // Ne pas faire échouer la vente pour ça, mais logger l'erreur
-        } else if (cashRegister) {
-          // Mapper le mode de paiement vers les valeurs acceptées par Supabase
-          let paymentMethod: 'cash' | 'card' | 'transfer' | 'check' = 'cash';
-          
-          switch(venteData.mode_paiement) {
-            case 'carte':
-              paymentMethod = 'card';
-              break;
-            case 'virement':
-              paymentMethod = 'transfer';
-              break;
-            case 'cheque':
-              paymentMethod = 'check';
-              break;
-            case 'especes':
-            default:
-              paymentMethod = 'cash';
-              break;
-          }
-
-          console.log('🔄 Insertion transaction avec format correct:', {
-            type: 'income',
-            amount: venteData.montant_paye,
-            description: `Vente ${numeroFacture}`,
-            category: 'sales',
-            payment_method: paymentMethod,
-            cash_register_id: cashRegister.id,
-            source: 'vente'
-          });
-
-          const { error: transactionError } = await supabase
-            .from('transactions')
-            .insert({
-              type: 'income',
-              amount: venteData.montant_paye,
-              montant: venteData.montant_paye,
-              description: `Vente ${numeroFacture}`,
-              commentaire: venteData.notes || `Paiement vente ${numeroFacture} - Client: ${venteData.client_id}`,
-              category: 'sales',
-              payment_method: paymentMethod,
-              cash_register_id: cashRegister.id,
-              date_operation: new Date().toISOString(),
-              source: 'vente'
-            });
-
-          if (transactionError) {
-            console.error('❌ Erreur création transaction de caisse:', transactionError);
-            // Ne pas faire échouer toute la vente pour ça, juste logger
-          } else {
-            console.log('✅ Transaction de caisse créée avec succès pour la vente:', venteData.montant_paye, 'avec numéro:', numeroFacture);
-          }
-        }
-      } else {
-        console.log('ℹ️ Pas de paiement effectué (montant_paye = 0), aucune transaction de caisse créée');
-      }
+      // Créer une transaction de caisse uniquement si il y a un paiement effectif
+      await createCashTransaction(venteData, result.numeroFacture);
 
       // Mettre à jour le stock PDV
-      for (const article of venteData.articles) {
-        // Récupérer d'abord la quantité actuelle
-        const { data: currentStock, error: fetchError } = await supabase
-          .from('stock_pdv')
-          .select('quantite_disponible')
-          .eq('article_id', article.id)
-          .eq('point_vente_id', pdvSelected.id)
-          .single();
+      await updateStockPDV(venteData, pdvSelected);
 
-        if (fetchError) {
-          console.error('Erreur récupération stock:', fetchError);
-          throw fetchError;
-        }
-
-        // Calculer la nouvelle quantité
-        const newQuantity = Math.max(0, currentStock.quantite_disponible - article.quantite);
-
-        // Mettre à jour le stock
-        const { error: stockError } = await supabase
-          .from('stock_pdv')
-          .update({
-            quantite_disponible: newQuantity
-          })
-          .eq('article_id', article.id)
-          .eq('point_vente_id', pdvSelected.id);
-
-        if (stockError) {
-          console.error('Erreur mise à jour stock:', stockError);
-          throw stockError;
-        }
-      }
-
-      return { 
-        commande, 
-        facture, 
-        statutPaiement, 
-        montantRestant: Math.max(0, montantRestant)
-      };
+      return result;
     },
     onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ['commandes_clients'] });
