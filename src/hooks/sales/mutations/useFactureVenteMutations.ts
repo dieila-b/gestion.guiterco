@@ -21,10 +21,13 @@ export const useCreateFactureVente = () => {
     mutationFn: async (data: CreateFactureVenteData) => {
       console.log('🔄 Création facture vente avec données:', data);
       
-      // 1. Créer la facture - le trigger auto_generate_facture_vente_number() générera automatiquement le numero_facture
+      // 1. Créer la facture avec un numero_facture généré
+      const numeroFacture = `F-${Date.now()}`;
+      
       const { data: facture, error: factureError } = await supabase
         .from('factures_vente')
         .insert({
+          numero_facture: numeroFacture,
           client_id: data.client_id,
           date_facture: new Date().toISOString(),
           montant_ht: data.montant_ht,
@@ -137,7 +140,7 @@ export const useCreateFactureVente = () => {
   });
 };
 
-// Exports pour les autres mutations (placeholders pour éviter les erreurs)
+// Exports pour les autres mutations
 export const useUpdateFactureStatut = () => {
   const queryClient = useQueryClient();
   
