@@ -27,7 +27,7 @@ export const calculatePaidAmount = (facture: FactureVente) => {
   console.log('🔍 Versements disponibles:', facture.versements);
   
   if (!facture.versements || !Array.isArray(facture.versements)) {
-    console.log('❌ Aucun versement trouvé ou versements non-array pour facture:', facture.numero_facture);
+    console.log('❌ Aucun versement trouvé pour facture:', facture.numero_facture);
     return 0;
   }
   
@@ -60,11 +60,11 @@ export const getActualPaymentStatus = (facture: FactureVente) => {
   console.log('🔄 Calcul statut paiement - Facture:', facture.numero_facture);
   console.log('🔄 Montant payé:', paidAmount, 'Montant total:', totalAmount);
   
-  let status;
-  
   // Arrondir les montants pour éviter les problèmes de précision
   const paidRounded = Math.round(paidAmount * 100) / 100;
   const totalRounded = Math.round(totalAmount * 100) / 100;
+  
+  let status;
   
   if (paidRounded === 0) {
     status = 'en_attente';
@@ -99,7 +99,7 @@ export const getArticleCount = (facture: FactureVente) => {
     return count;
   }
   
-  console.log('❌ Aucune donnée d\'articles trouvée, requête directe nécessaire pour facture:', facture.numero_facture);
+  console.log('❌ Aucune donnée d\'articles trouvée pour facture:', facture.numero_facture);
   return 0;
 };
 
@@ -107,12 +107,6 @@ export const getActualDeliveryStatus = (facture: FactureVente) => {
   console.log('🚚 getActualDeliveryStatus - Facture:', facture.numero_facture);
   console.log('🚚 Statut livraison facture:', facture.statut_livraison);
   console.log('🚚 Lignes facture:', facture.lignes_facture);
-  
-  // Si statut_livraison est défini au niveau facture et n'est pas celui par défaut, l'utiliser
-  if (facture.statut_livraison && facture.statut_livraison !== 'livree') {
-    console.log('🚚 Utilisation statut_livraison explicite de la facture:', facture.statut_livraison);
-    return facture.statut_livraison;
-  }
   
   // Calculer à partir des lignes si disponibles
   if (facture.lignes_facture && Array.isArray(facture.lignes_facture) && facture.lignes_facture.length > 0) {
@@ -136,12 +130,13 @@ export const getActualDeliveryStatus = (facture: FactureVente) => {
     return status;
   }
   
-  // Pour les ventes comptoir sans lignes détaillées, considérer comme livré par défaut
-  console.log('🚚 Pas de lignes détaillées, utilisation du statut par défaut livré (vente comptoir)');
-  return 'livree';
+  // Sinon utiliser le statut de la facture ou par défaut pour vente comptoir
+  const status = facture.statut_livraison || 'livree';
+  console.log('🚚 Statut livraison depuis facture ou défaut:', status);
+  return status;
 };
 
-// Nouvelle fonction pour récupérer le nombre d'articles en temps réel si nécessaire
+// Fonction pour récupérer le nombre d'articles en temps réel si nécessaire
 export const fetchArticleCountForFacture = async (factureId: string): Promise<number> => {
   try {
     const { data, error } = await supabase

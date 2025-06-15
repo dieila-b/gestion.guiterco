@@ -1,4 +1,3 @@
-
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -12,7 +11,7 @@ interface CreateFactureVenteData {
   montant_ttc: number;
   mode_paiement?: string;
   point_vente_id?: string;
-  montant_paye?: number; // Montant effectivement payé
+  montant_paye?: number;
 }
 
 export const useCreateFactureVente = () => {
@@ -23,7 +22,7 @@ export const useCreateFactureVente = () => {
       console.log('🔄 Création facture vente avec données:', data);
       
       // Calculer le statut de paiement basé sur le montant payé vs montant total
-      const montantPaye = data.montant_paye || data.montant_ttc; // Par défaut, vente comptoir = payée entièrement
+      const montantPaye = data.montant_paye || data.montant_ttc;
       let statutPaiement = 'en_attente';
       
       if (montantPaye >= data.montant_ttc) {
@@ -38,7 +37,7 @@ export const useCreateFactureVente = () => {
         statut: statutPaiement
       });
       
-      // 1. Créer la facture avec le statut correct
+      // 1. Créer la facture avec le bon statut de livraison initial
       const numeroFacture = `F-${Date.now()}`;
       
       const { data: facture, error: factureError } = await supabase
@@ -52,7 +51,7 @@ export const useCreateFactureVente = () => {
           montant_ttc: data.montant_ttc,
           mode_paiement: data.mode_paiement,
           statut_paiement: statutPaiement,
-          statut_livraison: 'en_attente' // Commence en attente, sera mis à jour selon la livraison
+          statut_livraison: 'en_attente' // Démarre en attente
         })
         .select()
         .single();
@@ -64,14 +63,14 @@ export const useCreateFactureVente = () => {
 
       console.log('✅ Facture créée:', facture);
 
-      // 2. Créer les lignes de facture pour chaque article du panier
+      // 2. Créer les lignes de facture
       const lignesFacture = data.cart.map(item => ({
         facture_vente_id: facture.id,
         article_id: item.article_id,
         quantite: item.quantite,
         prix_unitaire: item.prix_unitaire,
         montant_ligne: item.quantite * item.prix_unitaire,
-        statut_livraison: 'livree' // Pour vente comptoir, articles livrés immédiatement
+        statut_livraison: 'livree' // Pour vente comptoir
       }));
 
       console.log('🔄 Création lignes facture:', lignesFacture);
@@ -88,7 +87,7 @@ export const useCreateFactureVente = () => {
 
       console.log('✅ Lignes facture créées:', lignesCreees);
 
-      // 3. Mettre à jour le statut de livraison de la facture à "livree" pour vente comptoir
+      // 3. Mettre à jour le statut de livraison de la facture
       const { error: updateFactureError } = await supabase
         .from('factures_vente')
         .update({ statut_livraison: 'livree' })
@@ -98,7 +97,7 @@ export const useCreateFactureVente = () => {
         console.error('❌ Erreur mise à jour statut livraison:', updateFactureError);
       }
 
-      // 4. Créer le versement si un montant est payé
+      // 4. Créer le versement si montant payé
       if (montantPaye > 0) {
         const { error: versementError } = await supabase
           .from('versements_clients')
@@ -119,60 +118,97 @@ export const useCreateFactureVente = () => {
         console.log('✅ Versement créé pour facture:', facture.numero_facture);
       }
 
-      // 5. Mettre à jour le stock PDV si spécifié
+      // 5. CORRECTION : Mise à jour du stock PDV plus robuste
       if (data.point_vente_id) {
-        console.log('🔄 Mise à jour stock PDV pour point de vente:', data.point_vente_id);
+        console.log('🔄 Mise à jour stock PDV pour:', data.point_vente_id);
         
-        // Récupérer l'ID du point de vente à partir du nom
+        // Rechercher le point de vente par nom
         const { data: pointVente, error: pdvError } = await supabase
           .from('points_de_vente')
-          .select('id')
+          .select('id, nom')
           .eq('nom', data.point_vente_id)
           .single();
 
-        if (pdvError) {
-          console.error('❌ Erreur recherche point de vente:', pdvError);
+        if (pdvError || !pointVente) {
+          console.error('❌ Point de vente non trouvé:', data.point_vente_id, pdvError);
+          // Ne pas faire échouer la vente pour un problème de stock
         } else {
           console.log('✅ Point de vente trouvé:', pointVente);
           
+          // Traitement du stock pour chaque article
+          const stockErrors = [];
+          
           for (const item of data.cart) {
-            // Récupérer la quantité actuelle pour la mise à jour
-            const { data: stockActuel, error: stockSelectError } = await supabase
-              .from('stock_pdv')
-              .select('quantite_disponible')
-              .eq('article_id', item.article_id)
-              .eq('point_vente_id', pointVente.id)
-              .single();
+            try {
+              // Vérifier d'abord si l'enregistrement existe
+              const { data: stockActuel, error: stockSelectError } = await supabase
+                .from('stock_pdv')
+                .select('quantite_disponible, id')
+                .eq('article_id', item.article_id)
+                .eq('point_vente_id', pointVente.id)
+                .maybeSingle(); // Utiliser maybeSingle au lieu de single
 
-            if (stockSelectError) {
-              console.error('❌ Erreur lecture stock PDV pour article:', item.article_id, stockSelectError);
-              continue;
-            }
+              if (stockSelectError) {
+                console.error('❌ Erreur lecture stock PDV pour article:', item.article_id, stockSelectError);
+                stockErrors.push(`Article ${item.article_id}: ${stockSelectError.message}`);
+                continue;
+              }
 
-            const nouvelleQuantite = Math.max(0, stockActuel.quantite_disponible - item.quantite);
-            console.log('📦 Mise à jour stock:', {
-              article_id: item.article_id,
-              quantite_actuelle: stockActuel.quantite_disponible,
-              quantite_vendue: item.quantite,
-              nouvelle_quantite: nouvelleQuantite
-            });
+              if (!stockActuel) {
+                console.warn('⚠️ Aucun stock trouvé pour article:', item.article_id, 'dans PDV:', pointVente.nom);
+                // Créer un nouvel enregistrement avec quantité 0
+                const { error: createStockError } = await supabase
+                  .from('stock_pdv')
+                  .insert({
+                    article_id: item.article_id,
+                    point_vente_id: pointVente.id,
+                    quantite_disponible: 0, // Démarre à 0 puisqu'il n'y avait pas de stock
+                    derniere_livraison: new Date().toISOString()
+                  });
 
-            const { error: stockError } = await supabase
-              .from('stock_pdv')
-              .update({
-                quantite_disponible: nouvelleQuantite
-              })
-              .eq('article_id', item.article_id)
-              .eq('point_vente_id', pointVente.id);
+                if (createStockError) {
+                  console.error('❌ Erreur création stock PDV:', createStockError);
+                  stockErrors.push(`Création stock article ${item.article_id}: ${createStockError.message}`);
+                }
+                continue;
+              }
 
-            if (stockError) {
-              console.error('❌ Erreur mise à jour stock PDV:', stockError);
-              // Ne pas faire échouer la transaction pour un problème de stock
-            } else {
-              console.log('✅ Stock mis à jour pour article:', item.article_id);
+              const nouvelleQuantite = Math.max(0, stockActuel.quantite_disponible - item.quantite);
+              
+              console.log('📦 Mise à jour stock:', {
+                article_id: item.article_id,
+                article_nom: item.nom,
+                quantite_actuelle: stockActuel.quantite_disponible,
+                quantite_vendue: item.quantite,
+                nouvelle_quantite: nouvelleQuantite
+              });
+
+              const { error: stockError } = await supabase
+                .from('stock_pdv')
+                .update({
+                  quantite_disponible: nouvelleQuantite,
+                  updated_at: new Date().toISOString()
+                })
+                .eq('id', stockActuel.id);
+
+              if (stockError) {
+                console.error('❌ Erreur mise à jour stock PDV:', stockError);
+                stockErrors.push(`Article ${item.article_id}: ${stockError.message}`);
+              } else {
+                console.log('✅ Stock mis à jour pour article:', item.nom, 'Nouvelle quantité:', nouvelleQuantite);
+              }
+            } catch (error) {
+              console.error('❌ Erreur inattendue lors de la mise à jour du stock:', error);
+              stockErrors.push(`Article ${item.article_id}: Erreur inattendue`);
             }
           }
-          console.log('✅ Stock PDV mis à jour pour tous les articles');
+
+          if (stockErrors.length > 0) {
+            console.warn('⚠️ Erreurs lors de la mise à jour du stock:', stockErrors);
+            // Optionnel: notifier l'utilisateur mais ne pas faire échouer la vente
+          } else {
+            console.log('✅ Tous les stocks PDV mis à jour avec succès');
+          }
         }
       }
 
@@ -180,13 +216,16 @@ export const useCreateFactureVente = () => {
     },
     onSuccess: () => {
       console.log('✅ Facture de vente créée avec succès');
+      // Invalider plusieurs caches pour forcer le rafraîchissement
       queryClient.invalidateQueries({ queryKey: ['factures_vente'] });
-      queryClient.invalidateQueries({ queryKey: ['stock_pdv'] }); // Invalider le cache du stock
-      toast.success('Facture créée avec succès');
+      queryClient.invalidateQueries({ queryKey: ['stock_pdv'] });
+      queryClient.invalidateQueries({ queryKey: ['stock-pdv'] }); // Hook alternatif
+      queryClient.invalidateQueries({ queryKey: ['versements_clients'] });
+      toast.success('Vente enregistrée avec succès');
     },
     onError: (error: Error) => {
       console.error('❌ Erreur lors de la création de la facture:', error);
-      toast.error('Erreur lors de la création de la facture');
+      toast.error('Erreur lors de la création de la facture: ' + error.message);
     }
   });
 };
