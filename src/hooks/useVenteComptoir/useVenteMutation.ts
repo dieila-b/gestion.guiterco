@@ -1,3 +1,4 @@
+
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -139,25 +140,49 @@ export const useVenteMutation = (pointsDeVente?: any[], selectedPDV?: string, se
         }
       }
 
-      // Créer une transaction de caisse pour chaque vente avec paiement
+      // CRÉER UNE TRANSACTION DE CAISSE POUR CHAQUE VENTE AVEC PAIEMENT
       if (venteData.montant_paye > 0) {
+        console.log('💰 Création transaction de caisse pour vente:', venteData.montant_paye);
+        
         // Récupérer la première caisse disponible
-        const { data: cashRegister } = await supabase
+        const { data: cashRegister, error: cashRegisterError } = await supabase
           .from('cash_registers')
           .select('id')
           .limit(1)
           .single();
 
-        if (cashRegister) {
-          // Mapper le mode de paiement vers les valeurs acceptées
+        if (cashRegisterError) {
+          console.error('❌ Erreur récupération caisse:', cashRegisterError);
+          // Ne pas faire échouer la vente pour ça, mais logger l'erreur
+        } else if (cashRegister) {
+          // Mapper le mode de paiement vers les valeurs acceptées par Supabase
           let paymentMethod: 'cash' | 'card' | 'transfer' | 'check' = 'cash';
-          if (venteData.mode_paiement === 'carte') {
-            paymentMethod = 'card';
-          } else if (venteData.mode_paiement === 'virement') {
-            paymentMethod = 'transfer';
-          } else if (venteData.mode_paiement === 'cheque') {
-            paymentMethod = 'check';
+          
+          switch(venteData.mode_paiement) {
+            case 'carte':
+              paymentMethod = 'card';
+              break;
+            case 'virement':
+              paymentMethod = 'transfer';
+              break;
+            case 'cheque':
+              paymentMethod = 'check';
+              break;
+            case 'especes':
+            default:
+              paymentMethod = 'cash';
+              break;
           }
+
+          console.log('🔄 Insertion transaction avec:', {
+            type: 'income',
+            amount: venteData.montant_paye,
+            description: `Vente ${numeroFacture}`,
+            category: 'sales',
+            payment_method: paymentMethod,
+            cash_register_id: cashRegister.id,
+            source: 'vente'
+          });
 
           const { error: transactionError } = await supabase
             .from('transactions')
@@ -165,21 +190,20 @@ export const useVenteMutation = (pointsDeVente?: any[], selectedPDV?: string, se
               type: 'income',
               amount: venteData.montant_paye,
               montant: venteData.montant_paye,
-              description: `Vente ${numeroFacture} - Client: ${venteData.client_id}`,
-              commentaire: venteData.notes || `Paiement vente ${numeroFacture}`,
+              description: `Vente ${numeroFacture}`,
+              commentaire: venteData.notes || `Paiement vente ${numeroFacture} - Client: ${venteData.client_id}`,
               category: 'sales',
               payment_method: paymentMethod,
               cash_register_id: cashRegister.id,
               date_operation: new Date().toISOString(),
-              // Champ ajouté pour l'identification claire
               source: 'vente'
             });
 
           if (transactionError) {
-            console.error('Erreur création transaction de caisse:', transactionError);
+            console.error('❌ Erreur création transaction de caisse:', transactionError);
             // Ne pas faire échouer toute la vente pour ça, juste logger
           } else {
-            console.log('Transaction de caisse créée pour la vente:', venteData.montant_paye);
+            console.log('✅ Transaction de caisse créée avec succès pour la vente:', venteData.montant_paye);
           }
         }
       }
@@ -228,7 +252,7 @@ export const useVenteMutation = (pointsDeVente?: any[], selectedPDV?: string, se
       queryClient.invalidateQueries({ queryKey: ['commandes_clients'] });
       queryClient.invalidateQueries({ queryKey: ['factures_vente'] });
       queryClient.invalidateQueries({ queryKey: ['stock_pdv'] });
-      // Invalider aussi les données de caisse
+      // Invalider aussi les données de caisse - CRUCIAL pour voir les ventes
       queryClient.invalidateQueries({ queryKey: ['transactions'] });
       queryClient.invalidateQueries({ queryKey: ['today-transactions'] });
       queryClient.invalidateQueries({ queryKey: ['cash-registers'] });
