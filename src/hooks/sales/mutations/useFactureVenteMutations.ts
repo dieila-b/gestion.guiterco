@@ -12,6 +12,7 @@ interface CreateFactureVenteData {
   montant_ttc: number;
   mode_paiement?: string;
   point_vente_id?: string;
+  montant_paye?: number; // Montant effectivement payé
 }
 
 export const useCreateFactureVente = () => {
@@ -21,7 +22,23 @@ export const useCreateFactureVente = () => {
     mutationFn: async (data: CreateFactureVenteData) => {
       console.log('🔄 Création facture vente avec données:', data);
       
-      // 1. Créer la facture avec un numero_facture généré
+      // Calculer le statut de paiement basé sur le montant payé vs montant total
+      const montantPaye = data.montant_paye || data.montant_ttc; // Par défaut, vente comptoir = payée entièrement
+      let statutPaiement = 'en_attente';
+      
+      if (montantPaye >= data.montant_ttc) {
+        statutPaiement = 'payee';
+      } else if (montantPaye > 0) {
+        statutPaiement = 'partiellement_payee';
+      }
+
+      console.log('💰 Calcul statut paiement:', {
+        montantPaye,
+        montantTTC: data.montant_ttc,
+        statut: statutPaiement
+      });
+      
+      // 1. Créer la facture avec le statut correct
       const numeroFacture = `F-${Date.now()}`;
       
       const { data: facture, error: factureError } = await supabase
@@ -34,8 +51,8 @@ export const useCreateFactureVente = () => {
           tva: data.tva,
           montant_ttc: data.montant_ttc,
           mode_paiement: data.mode_paiement,
-          statut_paiement: 'payee', // Vente comptoir = directement payée
-          statut_livraison: 'livree' // Vente comptoir = directement livrée
+          statut_paiement: statutPaiement,
+          statut_livraison: 'en_attente' // Commence en attente, sera mis à jour selon la livraison
         })
         .select()
         .single();
@@ -54,7 +71,7 @@ export const useCreateFactureVente = () => {
         quantite: item.quantite,
         prix_unitaire: item.prix_unitaire,
         montant_ligne: item.quantite * item.prix_unitaire,
-        statut_livraison: 'livree' // Vente comptoir = directement livrée
+        statut_livraison: 'livree' // Pour vente comptoir, articles livrés immédiatement
       }));
 
       console.log('🔄 Création lignes facture:', lignesFacture);
@@ -71,15 +88,25 @@ export const useCreateFactureVente = () => {
 
       console.log('✅ Lignes facture créées:', lignesCreees);
 
-      // 3. Créer le versement si un mode de paiement est spécifié
-      if (data.mode_paiement) {
+      // 3. Mettre à jour le statut de livraison de la facture à "livree" pour vente comptoir
+      const { error: updateFactureError } = await supabase
+        .from('factures_vente')
+        .update({ statut_livraison: 'livree' })
+        .eq('id', facture.id);
+
+      if (updateFactureError) {
+        console.error('❌ Erreur mise à jour statut livraison:', updateFactureError);
+      }
+
+      // 4. Créer le versement si un montant est payé
+      if (montantPaye > 0) {
         const { error: versementError } = await supabase
           .from('versements_clients')
           .insert({
             client_id: data.client_id,
             facture_id: facture.id,
-            montant: data.montant_ttc,
-            mode_paiement: data.mode_paiement,
+            montant: montantPaye,
+            mode_paiement: data.mode_paiement || 'espece',
             date_versement: new Date().toISOString(),
             numero_versement: `V-${facture.numero_facture}`
           });
@@ -92,38 +119,61 @@ export const useCreateFactureVente = () => {
         console.log('✅ Versement créé pour facture:', facture.numero_facture);
       }
 
-      // 4. Mettre à jour le stock PDV si spécifié
+      // 5. Mettre à jour le stock PDV si spécifié
       if (data.point_vente_id) {
-        for (const item of data.cart) {
-          // Récupérer la quantité actuelle pour la mise à jour
-          const { data: stockActuel, error: stockSelectError } = await supabase
-            .from('stock_pdv')
-            .select('quantite_disponible')
-            .eq('article_id', item.article_id)
-            .eq('point_vente_id', data.point_vente_id)
-            .single();
+        console.log('🔄 Mise à jour stock PDV pour point de vente:', data.point_vente_id);
+        
+        // Récupérer l'ID du point de vente à partir du nom
+        const { data: pointVente, error: pdvError } = await supabase
+          .from('points_de_vente')
+          .select('id')
+          .eq('nom', data.point_vente_id)
+          .single();
 
-          if (stockSelectError) {
-            console.error('❌ Erreur lecture stock PDV:', stockSelectError);
-            continue;
+        if (pdvError) {
+          console.error('❌ Erreur recherche point de vente:', pdvError);
+        } else {
+          console.log('✅ Point de vente trouvé:', pointVente);
+          
+          for (const item of data.cart) {
+            // Récupérer la quantité actuelle pour la mise à jour
+            const { data: stockActuel, error: stockSelectError } = await supabase
+              .from('stock_pdv')
+              .select('quantite_disponible')
+              .eq('article_id', item.article_id)
+              .eq('point_vente_id', pointVente.id)
+              .single();
+
+            if (stockSelectError) {
+              console.error('❌ Erreur lecture stock PDV pour article:', item.article_id, stockSelectError);
+              continue;
+            }
+
+            const nouvelleQuantite = Math.max(0, stockActuel.quantite_disponible - item.quantite);
+            console.log('📦 Mise à jour stock:', {
+              article_id: item.article_id,
+              quantite_actuelle: stockActuel.quantite_disponible,
+              quantite_vendue: item.quantite,
+              nouvelle_quantite: nouvelleQuantite
+            });
+
+            const { error: stockError } = await supabase
+              .from('stock_pdv')
+              .update({
+                quantite_disponible: nouvelleQuantite
+              })
+              .eq('article_id', item.article_id)
+              .eq('point_vente_id', pointVente.id);
+
+            if (stockError) {
+              console.error('❌ Erreur mise à jour stock PDV:', stockError);
+              // Ne pas faire échouer la transaction pour un problème de stock
+            } else {
+              console.log('✅ Stock mis à jour pour article:', item.article_id);
+            }
           }
-
-          const nouvelleQuantite = Math.max(0, stockActuel.quantite_disponible - item.quantite);
-
-          const { error: stockError } = await supabase
-            .from('stock_pdv')
-            .update({
-              quantite_disponible: nouvelleQuantite
-            })
-            .eq('article_id', item.article_id)
-            .eq('point_vente_id', data.point_vente_id);
-
-          if (stockError) {
-            console.error('❌ Erreur mise à jour stock PDV:', stockError);
-            // Ne pas faire échouer la transaction pour un problème de stock
-          }
+          console.log('✅ Stock PDV mis à jour pour tous les articles');
         }
-        console.log('✅ Stock PDV mis à jour');
       }
 
       return { facture, lignes: lignesCreees };
@@ -131,6 +181,7 @@ export const useCreateFactureVente = () => {
     onSuccess: () => {
       console.log('✅ Facture de vente créée avec succès');
       queryClient.invalidateQueries({ queryKey: ['factures_vente'] });
+      queryClient.invalidateQueries({ queryKey: ['stock_pdv'] }); // Invalider le cache du stock
       toast.success('Facture créée avec succès');
     },
     onError: (error: Error) => {
