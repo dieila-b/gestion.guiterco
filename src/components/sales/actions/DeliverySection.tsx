@@ -1,20 +1,18 @@
+
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useUpdateFactureStatut } from '@/hooks/sales/mutations/useFactureVenteMutations';
 import { getActualDeliveryStatus } from '../table/StatusUtils';
 import type { FactureVente } from '@/types/sales';
 
 interface DeliverySectionProps {
   facture: FactureVente;
-  open?: boolean;
-  onOpenChange?: (open: boolean) => void;
 }
 
-const DeliverySection = ({ facture, open, onOpenChange }: DeliverySectionProps) => {
+const DeliverySection = ({ facture }: DeliverySectionProps) => {
   const currentStatus = getActualDeliveryStatus(facture);
   const [statutLivraison, setStatutLivraison] = useState(currentStatus);
   
@@ -26,10 +24,6 @@ const DeliverySection = ({ facture, open, onOpenChange }: DeliverySectionProps) 
     updateFactureStatut.mutate({
       factureId: facture.id,
       statut_livraison: statutLivraison
-    }, {
-      onSuccess: () => {
-        if (onOpenChange) onOpenChange(false);
-      }
     });
   };
 
@@ -51,7 +45,7 @@ const DeliverySection = ({ facture, open, onOpenChange }: DeliverySectionProps) 
     }
   };
 
-  const content = (
+  return (
     <Card>
       <CardHeader>
         <CardTitle>Statut de livraison</CardTitle>
@@ -87,23 +81,6 @@ const DeliverySection = ({ facture, open, onOpenChange }: DeliverySectionProps) 
       </CardContent>
     </Card>
   );
-
-  // If open/onOpenChange props are provided, wrap in a Dialog
-  if (open !== undefined && onOpenChange) {
-    return (
-      <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Gestion de la livraison</DialogTitle>
-          </DialogHeader>
-          {content}
-        </DialogContent>
-      </Dialog>
-    );
-  }
-
-  // Otherwise, return the content directly
-  return content;
 };
 
 export default DeliverySection;

@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -9,7 +9,6 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
@@ -18,11 +17,11 @@ import type { FactureVente } from '@/types/sales';
 
 interface DeleteFactureDialogProps {
   facture: FactureVente;
-  children?: React.ReactNode;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
 }
 
-const DeleteFactureDialog = ({ facture, children }: DeleteFactureDialogProps) => {
-  const [open, setOpen] = useState(false);
+const DeleteFactureDialog = ({ facture, open, onOpenChange }: DeleteFactureDialogProps) => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -41,7 +40,7 @@ const DeleteFactureDialog = ({ facture, children }: DeleteFactureDialogProps) =>
         title: "Facture supprimée",
         description: "La facture a été supprimée avec succès.",
       });
-      setOpen(false);
+      onOpenChange(false);
     },
     onError: (error) => {
       toast({
@@ -58,10 +57,7 @@ const DeleteFactureDialog = ({ facture, children }: DeleteFactureDialogProps) =>
   };
 
   return (
-    <AlertDialog open={open} onOpenChange={setOpen}>
-      <AlertDialogTrigger asChild>
-        {children}
-      </AlertDialogTrigger>
+    <AlertDialog open={open} onOpenChange={onOpenChange}>
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>Confirmer la suppression</AlertDialogTitle>
