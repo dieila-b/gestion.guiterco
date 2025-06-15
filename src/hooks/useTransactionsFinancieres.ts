@@ -37,7 +37,12 @@ export function useTransactionsFinancieres(type?: 'income' | 'expense', year?: n
       }
       
       if (source) {
-        query = query.eq('source', source);
+        if (source === 'Entrée manuelle') {
+          // Affiche les entrées manuelles (nouvelles avec source, et anciennes où la source est nulle)
+          query = query.or('source.eq.Entrée manuelle,source.is.null');
+        } else {
+          query = query.eq('source', source);
+        }
       }
       
       if (year && month) {
