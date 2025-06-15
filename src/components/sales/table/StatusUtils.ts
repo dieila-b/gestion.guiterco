@@ -1,5 +1,6 @@
 
 import type { FactureVente } from '@/types/sales';
+import { supabase } from '@/integrations/supabase/client';
 
 export const getStatusBadgeColor = (statut: string) => {
   switch (statut) {
@@ -80,20 +81,24 @@ export const getArticleCount = (facture: FactureVente) => {
     lignes_facture_data: facture.lignes_facture
   });
   
-  // Priorité 1: utiliser nb_articles si disponible et valide
+  // Si nb_articles est disponible et > 0, l'utiliser
   if (typeof facture.nb_articles === 'number' && facture.nb_articles > 0) {
     console.log('📦 Utilisation nb_articles:', facture.nb_articles);
     return facture.nb_articles;
   }
   
-  // Priorité 2: compter les lignes_facture si disponibles
+  // Sinon, compter les lignes_facture si disponibles
   if (facture.lignes_facture && Array.isArray(facture.lignes_facture)) {
     const count = facture.lignes_facture.length;
     console.log('📦 Utilisation lignes_facture.length:', count);
     return count;
   }
   
-  console.log('❌ Aucune donnée d\'articles trouvée pour facture:', facture.numero_facture);
+  // Si aucune donnée n'est disponible, faire une requête directe
+  console.log('❌ Aucune donnée d\'articles trouvée, requête directe nécessaire pour facture:', facture.numero_facture);
+  
+  // Pour l'instant, on retourne 0 mais on loggue pour diagnostic
+  // Une solution serait de faire une requête async ici, mais cela compliquerait le component
   return 0;
 };
 
@@ -130,4 +135,24 @@ export const getActualDeliveryStatus = (facture: FactureVente) => {
   
   console.log('🚚 Statut livraison déterminé:', status);
   return status;
+};
+
+// Nouvelle fonction pour récupérer le nombre d'articles en temps réel si nécessaire
+export const fetchArticleCountForFacture = async (factureId: string): Promise<number> => {
+  try {
+    const { data, error } = await supabase
+      .from('lignes_facture_vente')
+      .select('id')
+      .eq('facture_vente_id', factureId);
+    
+    if (error) {
+      console.error('❌ Erreur lors de la récupération du nombre d\'articles:', error);
+      return 0;
+    }
+    
+    return data?.length || 0;
+  } catch (error) {
+    console.error('❌ Erreur lors de la récupération du nombre d\'articles:', error);
+    return 0;
+  }
 };

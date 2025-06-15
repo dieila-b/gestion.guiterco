@@ -10,6 +10,26 @@ export const useFacturesVenteQuery = () => {
     queryFn: async () => {
       console.log('🔄 Récupération des factures via la fonction SQL...');
       
+      // D'abord, vérifions s'il y a des données dans lignes_facture_vente
+      const { data: lignesTest, error: lignesError } = await supabase
+        .from('lignes_facture_vente')
+        .select('*')
+        .limit(5);
+      
+      console.log('🔍 Test direct lignes_facture_vente:', { lignesTest, lignesError });
+      
+      // Testons aussi la relation
+      const { data: facturesTest, error: facturesError } = await supabase
+        .from('factures_vente')
+        .select(`
+          id,
+          numero_facture,
+          lignes_facture:lignes_facture_vente(*)
+        `)
+        .limit(3);
+      
+      console.log('🔍 Test relation factures -> lignes:', { facturesTest, facturesError });
+      
       const { data: functionResult, error: functionError } = await supabase
         .rpc('get_factures_vente_with_details');
       

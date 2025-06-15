@@ -7,8 +7,8 @@ import { formatCurrency } from '@/lib/currency';
 import FacturesVenteActions from '../FacturesVenteActions';
 import PaymentStatusBadge from './PaymentStatusBadge';
 import DeliveryStatusBadge from './DeliveryStatusBadge';
+import ArticleCountCell from './ArticleCountCell';
 import {
-  getArticleCount,
   getActualPaymentStatus,
   calculatePaidAmount,
   calculateRemainingAmount
@@ -20,7 +20,6 @@ interface FactureVenteTableRowProps {
 }
 
 const FactureVenteTableRow = ({ facture }: FactureVenteTableRowProps) => {
-  const articleCount = getArticleCount(facture);
   const actualPaymentStatus = getActualPaymentStatus(facture);
   const paidAmount = calculatePaidAmount(facture);
   const remainingAmount = calculateRemainingAmount(facture);
@@ -48,7 +47,7 @@ const FactureVenteTableRow = ({ facture }: FactureVenteTableRowProps) => {
         {facture.client ? facture.client.nom : 'Client non spécifié'}
       </TableCell>
       <TableCell className="text-center">
-        <span className="font-medium text-lg text-blue-600">{articleCount}</span>
+        <ArticleCountCell facture={facture} />
       </TableCell>
       <TableCell className="text-right font-medium">
         {formatCurrency(facture.montant_ttc)}
