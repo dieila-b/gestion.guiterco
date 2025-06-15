@@ -24,10 +24,13 @@ export const useCreateVersement = () => {
   
   return useMutation({
     mutationFn: async (versement: CreateVersementInput) => {
+      console.log('🏦 Début création versement:', versement);
+      
       // Générer un numéro de versement unique
       const numeroVersement = `VER-${Date.now()}`;
       
       // Créer le versement
+      console.log('💳 Création du versement dans versements_clients...');
       const { data: versementData, error: versementError } = await supabase
         .from('versements_clients')
         .insert({
@@ -38,28 +41,42 @@ export const useCreateVersement = () => {
         .select()
         .single();
       
-      if (versementError) throw versementError;
+      if (versementError) {
+        console.error('❌ Erreur création versement:', versementError);
+        throw versementError;
+      }
+      
+      console.log('✅ Versement créé:', versementData);
 
-      // Récupérer les informations de la facture pour déterminer le type de paiement
+      // Récupérer les informations de la facture
+      console.log('🔍 Récupération des informations de la facture...');
       const { data: facture, error: factureError } = await supabase
         .from('factures_vente')
         .select('numero_facture, montant_ttc')
         .eq('id', versement.facture_id)
         .single();
       
-      if (factureError) throw factureError;
+      if (factureError) {
+        console.error('❌ Erreur récupération facture:', factureError);
+        throw factureError;
+      }
+      
+      console.log('📄 Facture trouvée:', facture);
 
       // Récupérer la première caisse disponible
+      console.log('🏦 Récupération de la caisse...');
       const { data: cashRegister, error: cashRegisterError } = await supabase
         .from('cash_registers')
         .select('id')
         .limit(1)
         .single();
 
-      if (cashRegisterError) {
+      if (cashRegisterError || !cashRegister) {
         console.error('❌ Erreur récupération caisse:', cashRegisterError);
         throw new Error('Caisse non disponible');
       }
+      
+      console.log('🏦 Caisse trouvée:', cashRegister);
 
       // Mapper le mode de paiement
       let paymentMethod: 'cash' | 'card' | 'transfer' | 'check' = 'cash';
@@ -79,29 +96,39 @@ export const useCreateVersement = () => {
       }
 
       // Créer automatiquement une transaction de caisse
-      const { error: transactionError } = await supabase
+      console.log('💰 Création de la transaction de caisse...');
+      const transactionData = {
+        type: 'income' as const,
+        amount: versement.montant,
+        montant: versement.montant,
+        description: `Règlement facture ${facture.numero_facture}`,
+        commentaire: versement.observations || `Paiement facture ${facture.numero_facture}`,
+        category: 'sales' as const,
+        payment_method: paymentMethod,
+        cash_register_id: cashRegister.id,
+        date_operation: new Date().toISOString(),
+        source: 'Paiement d\'un impayé'
+      };
+      
+      console.log('💰 Données transaction à insérer:', transactionData);
+      
+      const { data: transactionResult, error: transactionError } = await supabase
         .from('transactions')
-        .insert({
-          type: 'income',
-          amount: versement.montant,
-          montant: versement.montant,
-          description: `Règlement facture ${facture.numero_facture}`,
-          commentaire: versement.observations || `Paiement facture ${facture.numero_facture}`,
-          category: 'sales',
-          payment_method: paymentMethod,
-          cash_register_id: cashRegister.id,
-          date_operation: new Date().toISOString(),
-          source: 'Paiement d\'un impayé'
-        });
+        .insert(transactionData)
+        .select()
+        .single();
 
       if (transactionError) {
         console.error('❌ Erreur création transaction:', transactionError);
-        // On ne fait pas échouer la mutation, mais on log l'erreur
+        throw new Error(`Erreur transaction: ${transactionError.message}`);
       }
+      
+      console.log('✅ Transaction créée:', transactionResult);
 
       return versementData;
     },
     onSuccess: () => {
+      console.log('🔄 Invalidation des queries...');
       // Invalider toutes les queries nécessaires
       queryClient.invalidateQueries({ queryKey: ['factures_vente'] });
       queryClient.invalidateQueries({ queryKey: ['versements_clients'] });
@@ -120,7 +147,7 @@ export const useCreateVersement = () => {
       console.error('❌ Erreur création versement:', error);
       toast({
         title: "Erreur",
-        description: "Impossible d'enregistrer le paiement.",
+        description: `Impossible d'enregistrer le paiement: ${error.message}`,
         variant: "destructive",
       });
     }
@@ -133,6 +160,8 @@ export const useUpdateFactureStatut = () => {
   
   return useMutation({
     mutationFn: async ({ factureId, ...updates }: UpdateFactureStatutInput) => {
+      console.log('🔄 Mise à jour statut facture:', factureId, updates);
+      
       const { data, error } = await supabase
         .from('factures_vente')
         .update(updates)
@@ -140,7 +169,12 @@ export const useUpdateFactureStatut = () => {
         .select()
         .single();
       
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Erreur mise à jour statut:', error);
+        throw error;
+      }
+      
+      console.log('✅ Statut facture mis à jour:', data);
       return data;
     },
     onSuccess: () => {

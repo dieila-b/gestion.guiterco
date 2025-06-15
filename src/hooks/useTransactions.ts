@@ -94,6 +94,8 @@ export const useAllFinancialTransactions = () => {
       const tomorrow = new Date(today);
       tomorrow.setDate(tomorrow.getDate() + 1);
 
+      console.log('💰 Récupération des transactions financières...');
+
       // Récupérer les transactions de la table transactions
       const { data: transactions, error: transError } = await supabase
         .from('transactions')
@@ -101,7 +103,12 @@ export const useAllFinancialTransactions = () => {
         .gte('date_operation', today.toISOString())
         .lt('date_operation', tomorrow.toISOString());
 
-      if (transError) throw transError;
+      if (transError) {
+        console.error('❌ Erreur transactions:', transError);
+        throw transError;
+      }
+      
+      console.log('💰 Transactions trouvées:', transactions?.length || 0);
 
       // Récupérer les opérations de caisse
       const { data: cashOps, error: cashError } = await supabase
@@ -110,7 +117,12 @@ export const useAllFinancialTransactions = () => {
         .gte('created_at', today.toISOString())
         .lt('created_at', tomorrow.toISOString());
 
-      if (cashError) throw cashError;
+      if (cashError) {
+        console.error('❌ Erreur cash_operations:', cashError);
+        throw cashError;
+      }
+      
+      console.log('💰 Cash operations trouvées:', cashOps?.length || 0);
 
       // Récupérer les sorties financières
       const { data: expenses, error: expError } = await supabase
@@ -119,19 +131,33 @@ export const useAllFinancialTransactions = () => {
         .gte('date_sortie', today.toISOString())
         .lt('date_sortie', tomorrow.toISOString());
 
-      if (expError) throw expError;
+      if (expError) {
+        console.error('❌ Erreur sorties_financieres:', expError);
+        throw expError;
+      }
+      
+      console.log('💰 Sorties financières trouvées:', expenses?.length || 0);
 
       // Normaliser toutes les données
       const normalizedTransactions = (transactions || [])
         .filter((t): t is Transaction & { type: 'income' | 'expense' } => t.type === 'income' || t.type === 'expense')
-        .map(t => ({
-        id: t.id,
-        type: t.type,
-        amount: t.amount || t.montant || 0,
-        description: t.description || '',
-        date: t.date_operation || t.created_at,
-        source: t.source || 'transactions'
-      }));
+        .map(t => {
+          console.log('💰 Transaction normalisée:', {
+            id: t.id,
+            type: t.type,
+            amount: t.amount || t.montant || 0,
+            description: t.description,
+            source: t.source
+          });
+          return {
+            id: t.id,
+            type: t.type,
+            amount: t.amount || t.montant || 0,
+            description: t.description || '',
+            date: t.date_operation || t.created_at,
+            source: t.source || 'transactions'
+          };
+        });
 
       const normalizedCashOps = (cashOps || []).map(c => ({
         id: c.id,
@@ -161,6 +187,7 @@ export const useAllFinancialTransactions = () => {
         return dateB - dateA;
       });
       
+      console.log('💰 Total transactions financières normalisées:', result.length);
       return result;
     }
   });
@@ -176,7 +203,7 @@ export const useCashRegisterBalance = () => {
       // Récupérer toutes les transactions
       const { data: transactions, error: transError } = await supabase
         .from('transactions')
-        .select('type, amount, montant');
+        .select('type, amount, montant, description, source, created_at');
 
       if (transError) {
         console.error('❌ Erreur transactions:', transError);
@@ -211,8 +238,10 @@ export const useCashRegisterBalance = () => {
         const montant = t.amount || t.montant || 0;
         if (t.type === 'income') {
           solde += montant;
+          console.log('💰 +', montant, '(', t.description, ')');
         } else if (t.type === 'expense') {
           solde -= montant;
+          console.log('💰 -', montant, '(', t.description, ')');
         }
       });
 
@@ -221,8 +250,10 @@ export const useCashRegisterBalance = () => {
         const montant = c.montant || 0;
         if (c.type === 'depot') {
           solde += montant;
+          console.log('💰 + depot', montant);
         } else {
           solde -= montant;
+          console.log('💰 - retrait', montant);
         }
       });
 
@@ -230,6 +261,7 @@ export const useCashRegisterBalance = () => {
       (expenses || []).forEach(e => {
         const montant = e.montant || 0;
         solde -= montant;
+        console.log('💰 - sortie', montant);
       });
 
       console.log('💰 Solde calculé:', {

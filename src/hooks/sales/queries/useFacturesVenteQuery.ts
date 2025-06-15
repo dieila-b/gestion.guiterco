@@ -28,14 +28,17 @@ export const useFacturesVenteQuery = () => {
       
       console.log('✅ Factures récupérées:', facturesData.length);
       
-      // Log détaillé pour debug
-      facturesData.forEach((facture: any) => {
-        console.log('📊 Facture:', facture.numero_facture, {
+      // Log détaillé pour chaque facture
+      facturesData.forEach((facture: any, index: number) => {
+        console.log(`📊 Facture ${index + 1}:`, facture.numero_facture, {
           nb_articles: facture.nb_articles,
           lignes_count: facture.lignes_facture?.length || 0,
           versements_count: facture.versements?.length || 0,
           statut_livraison: facture.statut_livraison,
-          statut_paiement: facture.statut_paiement
+          statut_paiement: facture.statut_paiement,
+          montant_ttc: facture.montant_ttc,
+          lignes_facture_detail: facture.lignes_facture,
+          versements_detail: facture.versements
         });
       });
       
