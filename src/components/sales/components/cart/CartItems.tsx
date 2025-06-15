@@ -4,14 +4,7 @@ import { Button } from '@/components/ui/button';
 import { ShoppingCart, X } from 'lucide-react';
 import { formatCurrency } from '@/lib/currency';
 import StepperInput from './StepperInput';
-
-interface CartItem {
-  id: string;
-  nom: string;
-  prix_vente: number;
-  quantite: number;
-  remise: number;
-}
+import type { CartItem } from '@/hooks/useVenteComptoir/types';
 
 interface CartItemsProps {
   cart: CartItem[];
@@ -55,7 +48,8 @@ const CartItems: React.FC<CartItemsProps> = ({
         </thead>
         <tbody>
           {cart.map((item) => {
-            const prixApresRemise = Math.max(0, item.prix_vente - item.remise);
+            const prixUnitaire = item.prix_vente || item.prix_unitaire || 0;
+            const prixApresRemise = Math.max(0, prixUnitaire - (item.remise || 0));
             const totalLigne = prixApresRemise * item.quantite;
             
             return (
@@ -80,7 +74,7 @@ const CartItems: React.FC<CartItemsProps> = ({
                     type="text"
                     inputMode="numeric"
                     pattern="[0-9]*"
-                    value={item.remise}
+                    value={item.remise || 0}
                     onChange={(e) => {
                       const value = e.target.value;
                       if (value === '' || /^\d*\.?\d*$/.test(value)) {
