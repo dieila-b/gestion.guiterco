@@ -12,12 +12,14 @@ const getTransactionTypeDetails = (source: string | null, type: 'income' | 'expe
   switch (source) {
     case 'Vente':
     case 'Vente réglée':
+    case 'Vente encaissée':
       return { label: 'Vente', className: 'bg-green-50 text-green-700' };
     case 'Paiement d’un impayé':
       return { label: 'Règlement Impayés', className: 'bg-orange-50 text-orange-700' };
     case 'Entrée manuelle':
        return { label: 'Entrée', className: 'bg-blue-50 text-blue-700' };
     case 'Sortie':
+    case 'Sortie manuelle':
        return { label: 'Sortie', className: 'bg-red-50 text-red-700' };
     default:
       if (type === 'expense') {
