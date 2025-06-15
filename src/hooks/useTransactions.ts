@@ -123,7 +123,7 @@ export const useAllFinancialTransactions = () => {
 
       // Normaliser toutes les données
       const normalizedTransactions = (transactions || [])
-        .filter(t => t.type) // Safely handle possible null types
+        .filter(t => t.type === 'income' || t.type === 'expense') // More specific filter
         .map(t => ({
         id: t.id,
         type: t.type as 'income' | 'expense',
