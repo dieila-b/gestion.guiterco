@@ -10,7 +10,7 @@ interface CartItem {
   nom: string;
   prix_vente?: number; // Rendu optionnel pour correspondre au type du hook
   quantite: number;
-  remise: number;
+  remise?: number; // Rendu optionnel pour correspondre au type du hook
 }
 
 interface CartItemsProps {
@@ -56,7 +56,8 @@ const CartItems: React.FC<CartItemsProps> = ({
         <tbody>
           {cart.map((item) => {
             const prixVente = item.prix_vente || 0; // Valeur par défaut si undefined
-            const prixApresRemise = Math.max(0, prixVente - item.remise);
+            const remise = item.remise || 0; // Valeur par défaut si undefined
+            const prixApresRemise = Math.max(0, prixVente - remise);
             const totalLigne = prixApresRemise * item.quantite;
             
             return (
@@ -81,7 +82,7 @@ const CartItems: React.FC<CartItemsProps> = ({
                     type="text"
                     inputMode="numeric"
                     pattern="[0-9]*"
-                    value={item.remise}
+                    value={remise}
                     onChange={(e) => {
                       const value = e.target.value;
                       if (value === '' || /^\d*\.?\d*$/.test(value)) {
