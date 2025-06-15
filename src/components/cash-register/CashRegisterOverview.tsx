@@ -7,6 +7,7 @@ import { fr } from 'date-fns/locale/fr';
 import { useCashRegisters } from "@/hooks/useCashRegisters";
 import { useTodayTransactions } from "@/hooks/useTransactions";
 import { useExpenses } from "@/hooks/useExpenses";
+import { useTransactionsFinancieresAujourdhui } from "@/hooks/useTransactionsFinancieresAujourdhui";
 import { formatCurrency } from "@/lib/currency";
 import TransactionsOverviewTable from "./TransactionsOverviewTable";
 
@@ -38,6 +39,9 @@ const CashRegisterOverview: React.FC = () => {
     [cashRegisters]
   );
 
+  // Transactions financières du jour (nouvelles données)
+  const { data: transactionsFinancieresAujourdhui = [], isLoading: isLoadingTransactionsFinancieres } = useTransactionsFinancieresAujourdhui();
+
   // Transactions du jour (entrées/sorties)
   const { data: todayTransactions = [], isLoading: isLoadingTransactions } = useTodayTransactions(principalRegister?.id);
   // Dépenses autres (sorties_financieres)
@@ -49,10 +53,15 @@ const CashRegisterOverview: React.FC = () => {
     [allExpenses]
   );
 
-  // Entrées/sorties du jour
-  const todayIncomes = todayTransactions.filter(t => isTransaction(t) && t.type === "income");
+  // Entrées/sorties du jour (nouvelles données financières en priorité)
+  const todayIncomes = [
+    ...todayTransactions.filter(t => isTransaction(t) && t.type === "income"),
+    ...transactionsFinancieresAujourdhui.filter(t => t.type === "income")
+  ];
+  
   const todayExpenses = [
     ...todayTransactions.filter(t => isTransaction(t) && t.type === "expense"),
+    ...transactionsFinancieresAujourdhui.filter(t => t.type === "expense"),
     ...todaysExtraExpenses
   ];
 
@@ -60,6 +69,9 @@ const CashRegisterOverview: React.FC = () => {
   function getMontant(tx: any): number {
     if (isTransaction(tx)) return Number(tx.amount);
     if (isExpense(tx)) return Number(tx.montant);
+    // Pour les nouvelles transactions financières
+    if (tx.montant !== undefined) return Number(tx.montant);
+    if (tx.amount !== undefined) return Number(tx.amount);
     return 0;
   }
 
@@ -73,7 +85,7 @@ const CashRegisterOverview: React.FC = () => {
   // Nb txs
   const nbIncome = todayIncomes.length;
   const nbExpense = todayExpenses.length;
-  const nbTotal = todayTransactions.length + todaysExtraExpenses.length;
+  const nbTotal = todayIncomes.length + todayExpenses.length;
 
   // Formattage de la date
   const lastUpdate = principalRegister?.updated_at
