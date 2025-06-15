@@ -1,129 +1,195 @@
 
-import React from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from '@/components/ui/button';
-import { format } from 'date-fns';
-import { fr } from 'date-fns/locale/fr';
-import { CashRegister, Transaction } from './types';
+import React from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from "@/components/ui/select";
+import { Printer } from "lucide-react";
+import { useCashOperations } from "@/hooks/useCashOperations";
+import { formatCurrency } from "@/lib/currency";
 
-interface CashRegisterOverviewProps {
-  activeRegister: CashRegister | undefined;
-  mockTransactions: Transaction[];
+interface Props {
+  activeRegister: any;
+  mockTransactions?: any[]; // deprecated
   handleOpenRegister: () => void;
   handleCloseRegister: () => void;
-  handlePrint: () => void;
-  formatCurrency: (amount: number) => string;
+  handlePrint?: () => void;
+  formatCurrency: (n: number) => string;
 }
 
-const CashRegisterOverview: React.FC<CashRegisterOverviewProps> = ({
+const getFondDeCaisse = (ops: any[]) => {
+  let total = 0;
+  ops
+    .slice()
+    .reverse()
+    .forEach((op) => {
+      if (op.type === "depot") total += op.montant;
+      else if (op.type === "retrait") total -= op.montant;
+      // TODO: adapter si mouvements internes
+    });
+  return total;
+};
+
+const getEncaissementDuJour = (ops: any[]) => {
+  const today = new Date();
+  return ops
+    .filter(
+      (op) =>
+        new Date(op.created_at).toDateString() === today.toDateString() &&
+        op.type === "depot"
+    )
+    .reduce((sum, op) => sum + op.montant, 0);
+};
+
+const CashRegisterOverview: React.FC<Props> = ({
   activeRegister,
-  mockTransactions,
   handleOpenRegister,
   handleCloseRegister,
   handlePrint,
-  formatCurrency
+  formatCurrency,
 }) => {
-  return (
-    <>
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
-        <Card>
-          <CardHeader>
-            <CardTitle>Solde actif</CardTitle>
-            <CardDescription>Caisse principale</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p className="text-3xl font-bold">{formatCurrency(activeRegister?.balance || 0)}</p>
-            <p className="text-sm text-muted-foreground mt-1">
-              Dernière mise à jour: {activeRegister?.updated_at ? format(new Date(activeRegister.updated_at), 'dd/MM/yyyy HH:mm') : 'N/A'}
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle>Entrées du jour</CardTitle>
-            <CardDescription>Total des recettes</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p className="text-3xl font-bold text-green-600">{formatCurrency(203.75)}</p>
-            <p className="text-sm text-muted-foreground mt-1">3 transactions</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle>Dépenses du jour</CardTitle>
-            <CardDescription>Total des sorties</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p className="text-3xl font-bold text-red-600">{formatCurrency(80.50)}</p>
-            <p className="text-sm text-muted-foreground mt-1">2 transactions</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle>Balance du jour</CardTitle>
-            <CardDescription>Entrées - Sorties</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p className="text-3xl font-bold text-blue-600">{formatCurrency(123.25)}</p>
-            <p className="text-sm text-muted-foreground mt-1">5 transactions</p>
-          </CardContent>
-        </Card>
-      </div>
+  // Filtres Année/Mois
+  const today = new Date();
+  const [year, setYear] = React.useState(today.getFullYear());
+  const [month, setMonth] = React.useState(today.getMonth() + 1);
+  const { data: ops = [], isLoading } = useCashOperations(year, month);
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <Card className="lg:col-span-2">
-          <CardHeader>
-            <CardTitle>Dernières transactions</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {mockTransactions.slice(0, 4).map((transaction) => (
-                <div key={transaction.id} className="flex items-center justify-between p-2 border-b">
-                  <div>
-                    <p className="font-medium">{transaction.description}</p>
-                    <p className="text-sm text-muted-foreground">{format(new Date(transaction.created_at), 'dd/MM/yyyy HH:mm')}</p>
-                  </div>
-                  <div className="text-right">
-                    <p className={`font-medium ${transaction.type === 'income' ? 'text-green-600' : 'text-red-600'}`}>
-                      {transaction.type === 'income' ? '+' : '-'}{formatCurrency(transaction.amount)}
-                    </p>
-                    <span className="text-xs text-muted-foreground">
-                      {transaction.payment_method === 'cash' ? 'Espèces' : 'Carte'}
-                    </span>
-                  </div>
-                </div>
-              ))}
+  // Calculs (si besoin dans d'autres encadrés)
+  const fondDeCaisse = getFondDeCaisse(ops);
+  const encaissementJour = getEncaissementDuJour(ops);
+
+  // Années/Mois pour filtres
+  const years = Array.from({ length: 5 }, (_, i) => today.getFullYear() - i);
+  const months = [
+    "Jan", "Fév", "Mar", "Avr", "Mai", "Juin",
+    "Juil", "Août", "Sep", "Oct", "Nov", "Déc"
+  ];
+
+  return (
+    <div className="space-y-6">
+      {/* Résumé encadrés solde actuel / encaissement */}
+      <div className="flex flex-col md:flex-row gap-4">
+        <Card className="flex-1 bg-blue-50 border-blue-400">
+          <CardContent className="py-6 flex flex-col items-center">
+            <div className="text-md font-medium text-blue-800 mb-2">
+              Fond de caisse actuel
+            </div>
+            <div className="text-3xl font-bold text-blue-600">
+              {formatCurrency(fondDeCaisse)}
             </div>
           </CardContent>
         </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Actions</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            {activeRegister?.status === 'open' ? (
-              <Button variant="outline" className="w-full" onClick={handleCloseRegister}>
-                Fermer la caisse
-              </Button>
-            ) : (
-              <Button className="w-full" onClick={handleOpenRegister}>
-                Ouvrir la caisse
-              </Button>
-            )}
-            <Button variant="outline" className="w-full" onClick={handlePrint}>
-              Imprimer état de caisse
-            </Button>
-            <Button variant="outline" className="w-full">
-              Effectuer un comptage
-            </Button>
-            <Button variant="outline" className="w-full">
-              Exporter les transactions
-            </Button>
+        <Card className="flex-1 bg-orange-50 border-orange-400">
+          <CardContent className="py-6 flex flex-col items-center">
+            <div className="text-md font-medium text-orange-800 mb-2">
+              Encaissement du jour
+            </div>
+            <div className="text-3xl font-bold text-orange-600">
+              {formatCurrency(encaissementJour)}
+            </div>
           </CardContent>
         </Card>
       </div>
-    </>
+
+      {/* Nouvelle section : Historique des transactions */}
+      <Card className="bg-background border shadow-sm">
+        <CardHeader className="mb-2">
+          <CardTitle className="font-semibold text-lg">
+            Historique des transactions
+          </CardTitle>
+        </CardHeader>
+        {/* Filtres Année / Mois + Imprimer */}
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 px-6">
+          <div className="flex gap-2 mb-2 md:mb-0">
+            <Select value={String(year)} onValueChange={(y) => setYear(Number(y))}>
+              <SelectTrigger className="w-24"><SelectValue>Année</SelectValue></SelectTrigger>
+              <SelectContent>
+                {years.map((y) => (
+                  <SelectItem key={y} value={String(y)}>{y}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select value={String(month)} onValueChange={m => setMonth(Number(m))}>
+              <SelectTrigger className="w-32"><SelectValue>Mois</SelectValue></SelectTrigger>
+              <SelectContent>
+                {months.map((nom, idx) => (
+                  <SelectItem key={idx + 1} value={String(idx + 1)}>{nom}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="flex gap-2">
+            <Button variant="outline" className="flex items-center rounded-md" onClick={handlePrint}>
+              <Printer className="mr-2" />
+              Imprimer
+            </Button>
+          </div>
+        </div>
+        {/* Tableau transactions */}
+        <div className="overflow-x-auto px-6 pb-6">
+          <table className="min-w-full text-sm">
+            <thead>
+              <tr>
+                <th className="py-2 px-3 text-left">Date</th>
+                <th className="py-2 px-3">Type</th>
+                <th className="py-2 px-3">Montant</th>
+                <th className="py-2 px-3">Commentaire</th>
+                <th className="py-2 px-3">Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {!isLoading && ops.length === 0 && (
+                <tr>
+                  <td colSpan={5} className="py-6 text-center text-zinc-400">
+                    Aucune opération ce mois.
+                  </td>
+                </tr>
+              )}
+              {ops.map((op) => (
+                <tr key={op.id} className="border-b last:border-b-0">
+                  <td className="py-2 px-3">
+                    {op.created_at
+                      ? new Date(op.created_at).toLocaleString("fr-FR")
+                      : ""}
+                  </td>
+                  <td className="py-2 px-3">
+                    <span className={
+                      op.type === "depot"
+                        ? "bg-green-100 text-green-700 px-2 py-0.5 rounded"
+                        : op.type === "retrait"
+                          ? "bg-orange-100 text-orange-700 px-2 py-0.5 rounded"
+                          : "bg-zinc-100 text-gray-700 px-2 py-0.5 rounded"
+                    }>
+                      {op.type === "depot"
+                        ? "Dépôt"
+                        : op.type === "retrait"
+                          ? "Retrait"
+                          : "Mouvement"} {/* adapter si nouveaux types */}
+                    </span>
+                  </td>
+                  <td className="py-2 px-3 font-bold">{formatCurrency(op.montant)}</td>
+                  <td className="py-2 px-3">{op.commentaire ?? <span className="opacity-60 italic">—</span>}</td>
+                  <td className="py-2 px-3">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="rounded bg-blue-50 text-blue-600 border border-blue-200 hover:bg-blue-100"
+                    >
+                      Valider
+                    </Button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </Card>
+    </div>
   );
 };
 
