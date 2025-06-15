@@ -1,67 +1,57 @@
 
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import type { VenteComptoirData } from './types';
-import { validateVenteData } from './utils/validationUtils';
-import { createVenteEntries } from './services/venteService';
-import { createCashTransaction } from './services/transactionService';
-import { updateStockPDV } from './services/stockService';
+import type { CartItem, VenteComptoirData } from './types';
+import { useCreateFactureVente } from '../sales/mutations/useFactureVenteMutations';
 
-export const useVenteMutation = (pointsDeVente?: any[], selectedPDV?: string, setCart?: (cart: any[]) => void) => {
-  const queryClient = useQueryClient();
+export const useVenteMutation = (
+  pointsDeVente: any[],
+  selectedPDV: string | undefined,
+  setCart: (cart: CartItem[]) => void
+) => {
+  const createFactureVente = useCreateFactureVente();
 
-  // Mutation pour créer une vente avec gestion des paiements et livraisons
-  const createVente = useMutation({
+  const mutation = useMutation({
     mutationFn: async (venteData: VenteComptoirData) => {
-      console.log('Données de vente reçues:', venteData);
+      console.log('🔄 Début création vente comptoir:', venteData);
 
-      // Validation des données critiques
-      validateVenteData(venteData);
+      // Validation des données
+      if (!venteData.client_id) {
+        throw new Error('Client non sélectionné');
+      }
 
-      const pdvSelected = pointsDeVente?.find(pdv => pdv.nom === selectedPDV);
-      if (!pdvSelected) throw new Error('Point de vente non trouvé');
+      if (!venteData.cart || venteData.cart.length === 0) {
+        throw new Error('Panier vide');
+      }
 
-      // Créer toutes les entrées de vente (commande, facture, versements)
-      const result = await createVenteEntries(venteData, pdvSelected);
+      // Utiliser la mutation de création de facture
+      const result = await createFactureVente.mutateAsync({
+        client_id: venteData.client_id,
+        cart: venteData.cart,
+        montant_ht: venteData.montant_ht,
+        tva: venteData.tva,
+        montant_ttc: venteData.montant_ttc,
+        mode_paiement: venteData.mode_paiement,
+        point_vente_id: selectedPDV
+      });
 
-      // Créer une transaction de caisse uniquement si il y a un paiement effectif
-      await createCashTransaction(venteData, result.numeroFacture);
-
-      // Mettre à jour le stock PDV
-      await updateStockPDV(venteData, pdvSelected);
-
+      console.log('✅ Vente comptoir créée avec succès:', result);
       return result;
     },
-    onSuccess: (result) => {
-      queryClient.invalidateQueries({ queryKey: ['commandes_clients'] });
-      queryClient.invalidateQueries({ queryKey: ['factures_vente'] });
-      queryClient.invalidateQueries({ queryKey: ['stock_pdv'] });
-      // Invalider aussi les données de caisse - CRUCIAL pour voir les ventes
-      queryClient.invalidateQueries({ queryKey: ['transactions'] });
-      queryClient.invalidateQueries({ queryKey: ['today-transactions'] });
-      queryClient.invalidateQueries({ queryKey: ['cash-registers'] });
-      queryClient.invalidateQueries({ queryKey: ['vue_solde_caisse'] });
-      queryClient.invalidateQueries({ queryKey: ['all-financial-transactions'] });
-      queryClient.invalidateQueries({ queryKey: ['cash-register-balance'] });
-      
-      setCart?.([]);
-      
-      if (result.statutPaiement === 'paye') {
-        toast.success('Vente enregistrée avec succès - Paiement complet');
-      } else if (result.statutPaiement === 'partiel') {
-        toast.success(`Vente enregistrée avec succès - Paiement partiel (Reste: ${result.montantRestant.toLocaleString()} GNF)`);
-      } else {
-        toast.success('Vente enregistrée avec succès - En attente de paiement');
-      }
+    onSuccess: () => {
+      console.log('✅ Vente comptoir terminée avec succès');
+      setCart([]);
+      toast.success('Vente enregistrée avec succès');
     },
-    onError: (error) => {
-      console.error('Erreur lors de la vente:', error);
-      toast.error(`Erreur lors de l'enregistrement de la vente: ${error.message}`);
+    onError: (error: Error) => {
+      console.error('❌ Erreur lors de la vente:', error);
+      toast.error(error.message || 'Erreur lors de la vente');
     }
   });
 
   return {
-    createVente,
-    isLoading: createVente.isPending
+    createVente: mutation.mutateAsync,
+    isLoading: mutation.isPending || createFactureVente.isPending
   };
 };

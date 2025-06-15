@@ -1,21 +1,30 @@
 
 export interface CartItem {
-  id: string;
+  article_id: string;
   nom: string;
-  prix_vente: number;
+  reference: string;
+  prix_unitaire: number;
   quantite: number;
-  remise: number; // Remise en montant fixe
+  remise?: number;
+  prix_final: number;
   stock_disponible?: number;
 }
 
 export interface VenteComptoirData {
   client_id: string;
-  point_vente: string;
-  articles: CartItem[];
-  montant_total: number;
-  montant_paye: number;
-  mode_paiement: string;
-  statut_livraison: string;
-  quantite_livree?: { [key: string]: number };
-  notes?: string;
+  cart: CartItem[];
+  montant_ht: number;
+  tva: number;
+  montant_ttc: number;
+  mode_paiement?: string;
+  point_vente_id?: string;
+}
+
+export interface Client {
+  id: string;
+  nom: string;
+  nom_entreprise?: string;
+  email?: string;
+  telephone?: string;
+  type_client?: string;
 }
