@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Input } from '@/components/ui/input';
@@ -22,31 +21,61 @@ interface TransactionsHistoryProps {
 const getTransactionTypeDetails = (source: string | null, type: 'income' | 'expense') => {
   // Normaliser la source pour éviter les problèmes de casse et d'espaces
   const normalizedSource = source?.trim().toLowerCase();
-  
+
+  // Par défaut : tout paramètre absent = fallback cohérent
+  if (!normalizedSource || normalizedSource === "transactions") {
+    if (type === "income") {
+      return {
+        label: "Vente",
+        className: "bg-green-50 text-green-700",
+        textColor: "text-green-700"
+      };
+    } else {
+      return {
+        label: "Sortie",
+        className: "bg-red-50 text-red-700",
+        textColor: "text-red-700"
+      };
+    }
+  }
+
   switch (normalizedSource) {
     case 'vente':
-    case 'vente réglée':
     case 'vente encaissée':
-      return { label: 'Vente', className: 'bg-green-50 text-green-700' };
-    case 'paiement d\'un impayé':
+    case 'vente réglée':
+      return {
+        label: 'Vente',
+        className: 'bg-green-50 text-green-700',
+        textColor: "text-green-700"
+      };
+    case "paiement d'un impayé":
     case 'règlement impayés':
     case 'paiement impayé':
-      return { label: 'Règlement Impayés', className: 'bg-orange-50 text-orange-700' };
+    case 'règlement facture':
+      return {
+        label: "Règlement Impayés",
+        className: "bg-orange-50 text-orange-700",
+        textColor: "text-orange-700"
+      };
     case 'entrée manuelle':
-      return { label: 'Entrée', className: 'bg-blue-50 text-blue-700' };
+      return {
+        label: 'Entrée',
+        className: 'bg-blue-50 text-blue-700',
+        textColor: "text-blue-700"
+      };
     case 'sortie':
     case 'sortie manuelle':
-      return { label: 'Sortie', className: 'bg-red-50 text-red-700' };
+      return {
+        label: 'Sortie',
+        className: 'bg-red-50 text-red-700',
+        textColor: "text-red-700"
+      };
     default:
-      // Fallback logic améliorée
-      if (type === 'expense') {
-        return { label: 'Sortie', className: 'bg-red-50 text-red-700' };
+      // Logique de fallback : income bleu, expense rouge, mais on garde badge bleu pour income inconnu
+      if (type === 'income') {
+        return { label: 'Entrée', className: 'bg-blue-50 text-blue-700', textColor: "text-blue-700" };
       }
-      // Pour les transactions income sans source claire, on essaie de deviner depuis la source originale
-      if (source === 'transactions' || !source) {
-        return { label: 'Vente', className: 'bg-green-50 text-green-700' };
-      }
-      return { label: 'Entrée', className: 'bg-blue-50 text-blue-700' };
+      return { label: 'Sortie', className: 'bg-red-50 text-red-700', textColor: "text-red-700" };
   }
 };
 
@@ -106,7 +135,7 @@ const TransactionsHistory: React.FC<TransactionsHistoryProps> = ({
             </div>
             <div className="divide-y">
               {transactions.map((transaction) => {
-                const { label, className } = getTransactionTypeDetails(transaction.source, transaction.type);
+                const { label, className, textColor } = getTransactionTypeDetails(transaction.source, transaction.type);
                 return (
                   <div key={transaction.id} className="grid grid-cols-4 gap-4 p-4 items-center">
                     <div>
@@ -114,15 +143,16 @@ const TransactionsHistory: React.FC<TransactionsHistoryProps> = ({
                       <p className="text-xs text-muted-foreground">{transaction.category}</p>
                     </div>
                     <div>
-                      <span className={`px-2 py-0.5 rounded text-xs ${className}`}>
+                      <span className={`px-2 py-0.5 rounded text-xs font-semibold ${className} ${textColor}`}>
                         {label}
                       </span>
                     </div>
                     <div>
                       {format(new Date(transaction.created_at), 'dd/MM/yyyy HH:mm')}
                     </div>
-                    <div className={`text-right font-medium ${transaction.type === 'income' ? 'text-green-600' : 'text-red-600'}`}>
-                      {transaction.type === 'income' ? '+' : '-'}{formatCurrency(transaction.amount)}
+                    <div className={`text-right font-medium ${textColor}`}>
+                      {transaction.type === 'income' ? '+' : '-'}
+                      {formatCurrency(transaction.amount)}
                     </div>
                   </div>
                 );
