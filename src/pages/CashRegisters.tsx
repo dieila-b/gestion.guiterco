@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -10,7 +11,7 @@ import { useCashRegisters } from '@/hooks/useCashRegisters';
 import { useTransactions, useTodayTransactions } from '@/hooks/useTransactions';
 import { formatCurrency } from '@/lib/currency';
 import ExpensesTab from '@/components/cash-register/ExpensesTab';
-import CaissesTab from "@/components/cash-register/CaissesTab";
+// Suppression de l'import CaissesTab
 
 const CashRegisters: React.FC = () => {
   const { toast } = useToast();
@@ -88,7 +89,7 @@ const CashRegisters: React.FC = () => {
         <div className="flex justify-between items-center">
           <TabsList>
             <TabsTrigger value="overview">Aperçu</TabsTrigger>
-            <TabsTrigger value="caisses">Caisses</TabsTrigger>
+            {/* Suppression de l'onglet Caisses */}
             <TabsTrigger value="expenses">Dépenses</TabsTrigger>
           </TabsList>
           <div className="space-x-2">
@@ -116,9 +117,7 @@ const CashRegisters: React.FC = () => {
           />
         </TabsContent>
 
-        <TabsContent value="caisses" className="space-y-4">
-          <CaissesTab />
-        </TabsContent>
+        {/* Suppression de TabsContent value="caisses" */}
 
         <TabsContent value="expenses" className="space-y-4">
           <ExpensesTab />
@@ -129,3 +128,4 @@ const CashRegisters: React.FC = () => {
 };
 
 export default CashRegisters;
+
