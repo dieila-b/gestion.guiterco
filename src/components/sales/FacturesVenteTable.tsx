@@ -49,18 +49,32 @@ const FacturesVenteTable = ({ factures, isLoading }: FacturesVenteTableProps) =>
   };
 
   const getArticleCount = (facture: FactureVente) => {
-    // Privilégie la valeur du champ renvoyé par le backend
-    if (typeof facture.nb_articles === 'number') {
+    // Debug logs pour identifier le problème
+    console.log(`Facture ${facture.numero_facture}:`, {
+      nb_articles: facture.nb_articles,
+      lignes_facture_length: facture.lignes_facture?.length,
+      facture_complete: facture
+    });
+
+    // Priorité 1: Utiliser nb_articles si disponible et valide
+    if (typeof facture.nb_articles === 'number' && facture.nb_articles >= 0) {
       return facture.nb_articles;
     }
-    // Fallback sécurisé
-    if (facture.lignes_facture) {
+    
+    // Priorité 2: Compter les lignes de facture
+    if (facture.lignes_facture && Array.isArray(facture.lignes_facture)) {
       return facture.lignes_facture.length;
     }
+    
+    // Fallback: retourner 0 avec un warning
     console.warn(
-      'Aucun champ nb_articles ni lignes_facture pour la facture :',
-      facture.numero_facture,
-      facture
+      `Impossible de déterminer le nombre d'articles pour la facture ${facture.numero_facture}:`,
+      {
+        nb_articles: facture.nb_articles,
+        lignes_facture: facture.lignes_facture,
+        type_nb_articles: typeof facture.nb_articles,
+        is_array_lignes: Array.isArray(facture.lignes_facture)
+      }
     );
     return 0;
   };
@@ -123,7 +137,6 @@ const FacturesVenteTable = ({ factures, isLoading }: FacturesVenteTableProps) =>
           {factures && factures.length > 0 ? (
             factures.map((facture) => {
               const articleCount = getArticleCount(facture);
-              console.log(`Facture ${facture.numero_facture} - Articles count:`, articleCount);
               return (
                 <TableRow key={facture.id} className="hover:bg-muted/30">
                   <TableCell className="font-medium text-blue-600">
