@@ -119,7 +119,7 @@ export const useAllFinancialTransactions = () => {
         amount: t.amount || t.montant || 0,
         description: t.description || '',
         date: t.date_operation || t.created_at,
-        source: 'transactions'
+        source: t.source || 'transactions'
       }));
 
       const normalizedCashOps = (cashOps || []).map(c => ({
@@ -128,7 +128,7 @@ export const useAllFinancialTransactions = () => {
         amount: c.montant || 0,
         description: c.commentaire || 'Opération de caisse',
         date: c.created_at,
-        source: 'cash_operations'
+        source: c.type === 'depot' ? 'Entrée manuelle' : 'Sortie'
       }));
 
       const normalizedExpenses = (expenses || []).map(e => ({
@@ -137,7 +137,7 @@ export const useAllFinancialTransactions = () => {
         amount: e.montant || 0,
         description: e.description || '',
         date: e.date_sortie,
-        source: 'sorties_financieres'
+        source: 'Sortie'
       }));
 
       return [

@@ -13,11 +13,31 @@ import { fr } from 'date-fns/locale/fr';
 import { Transaction } from './types';
 
 interface TransactionsHistoryProps {
-  transactions: Transaction[];
+  transactions: (Transaction & { source?: string | null })[];
   date: Date | undefined;
   setDate: (date: Date | undefined) => void;
   formatCurrency: (amount: number) => string;
 }
+
+const getTransactionTypeDetails = (source: string | null, type: 'income' | 'expense') => {
+  switch (source) {
+    case 'Vente':
+    case 'Vente réglée':
+      return { label: 'Vente', className: 'bg-green-50 text-green-700' };
+    case 'Paiement d’un impayé':
+      return { label: 'Règlement Impayés', className: 'bg-orange-50 text-orange-700' };
+    case 'Entrée manuelle':
+       return { label: 'Entrée', className: 'bg-blue-50 text-blue-700' };
+    case 'Sortie':
+       return { label: 'Sortie', className: 'bg-red-50 text-red-700' };
+    default:
+      if (type === 'expense') {
+        return { label: 'Dépense', className: 'bg-red-50 text-red-700' };
+      }
+      return { label: 'Entrée', className: 'bg-green-50 text-green-700' };
+  }
+};
+
 
 const TransactionsHistory: React.FC<TransactionsHistoryProps> = ({
   transactions,
@@ -74,25 +94,28 @@ const TransactionsHistory: React.FC<TransactionsHistoryProps> = ({
               <div className="text-right">Montant</div>
             </div>
             <div className="divide-y">
-              {transactions.map((transaction) => (
-                <div key={transaction.id} className="grid grid-cols-4 gap-4 p-4 items-center">
-                  <div>
-                    <p className="font-medium">{transaction.description}</p>
-                    <p className="text-xs text-muted-foreground">{transaction.category}</p>
+              {transactions.map((transaction) => {
+                const { label, className } = getTransactionTypeDetails(transaction.source, transaction.type);
+                return (
+                  <div key={transaction.id} className="grid grid-cols-4 gap-4 p-4 items-center">
+                    <div>
+                      <p className="font-medium">{transaction.description}</p>
+                      <p className="text-xs text-muted-foreground">{transaction.category}</p>
+                    </div>
+                    <div>
+                      <span className={`px-2 py-0.5 rounded text-xs ${className}`}>
+                        {label}
+                      </span>
+                    </div>
+                    <div>
+                      {format(new Date(transaction.created_at), 'dd/MM/yyyy HH:mm')}
+                    </div>
+                    <div className={`text-right font-medium ${transaction.type === 'income' ? 'text-green-600' : 'text-red-600'}`}>
+                      {transaction.type === 'income' ? '+' : '-'}{formatCurrency(transaction.amount)}
+                    </div>
                   </div>
-                  <div>
-                    <span className={`status-badge ${transaction.type === 'income' ? 'completed' : 'cancelled'}`}>
-                      {transaction.type === 'income' ? 'Entrée' : 'Dépense'}
-                    </span>
-                  </div>
-                  <div>
-                    {format(new Date(transaction.created_at), 'dd/MM/yyyy HH:mm')}
-                  </div>
-                  <div className={`text-right font-medium ${transaction.type === 'income' ? 'text-green-600' : 'text-red-600'}`}>
-                    {transaction.type === 'income' ? '+' : '-'}{formatCurrency(transaction.amount)}
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         </div>

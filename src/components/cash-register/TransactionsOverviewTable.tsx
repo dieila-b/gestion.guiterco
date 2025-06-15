@@ -8,6 +8,29 @@ import { format } from "date-fns";
 import { useAllFinancialTransactions } from "@/hooks/useTransactions";
 import { formatCurrency } from "@/lib/currency";
 
+const getTransactionTypeDetails = (source: string | null, type: 'income' | 'expense') => {
+  switch (source) {
+    case 'Vente':
+    case 'Vente réglée':
+      return { label: 'Vente', className: 'bg-green-50 text-green-700' };
+    case 'Paiement d’un impayé':
+      return { label: 'Règlement Impayés', className: 'bg-orange-50 text-orange-700' };
+    case 'Entrée manuelle':
+       return { label: 'Entrée', className: 'bg-blue-50 text-blue-700' };
+    case 'Sortie':
+       return { label: 'Sortie', className: 'bg-red-50 text-red-700' };
+    default:
+      if (type === 'expense') {
+        return { label: 'Sortie', className: 'bg-red-50 text-red-700' };
+      }
+      // Pour les transactions "income" sans source spécifique, on les affiche comme Vente par défaut
+      if (source === 'transactions' && type === 'income') {
+        return { label: 'Vente', className: 'bg-green-50 text-green-700' };
+      }
+      return { label: 'Entrée', className: 'bg-blue-50 text-blue-700' };
+  }
+};
+
 const TransactionsOverviewTable: React.FC = () => {
   const today = new Date();
   const [year, setYear] = React.useState(today.getFullYear());
@@ -87,29 +110,28 @@ const TransactionsOverviewTable: React.FC = () => {
                       </td>
                     </tr>
                   ) : (
-                    filteredTransactions.map(transaction => (
-                      <tr key={`${transaction.source}-${transaction.id}`} className="border-b last:border-b-0">
-                        <td className="py-2 px-3">{format(new Date(transaction.date), "dd/MM/yyyy HH:mm")}</td>
-                        <td className="py-2 px-3 font-medium">
-                          <span className={`px-2 py-0.5 rounded ${
-                            transaction.type === 'income' 
-                              ? 'bg-green-50 text-green-700' 
-                              : 'bg-red-50 text-red-700'
+                    filteredTransactions.map(transaction => {
+                      const { label, className } = getTransactionTypeDetails(transaction.source, transaction.type);
+                      return (
+                        <tr key={`${transaction.source}-${transaction.id}`} className="border-b last:border-b-0">
+                          <td className="py-2 px-3">{format(new Date(transaction.date), "dd/MM/yyyy HH:mm")}</td>
+                          <td className="py-2 px-3 font-medium">
+                            <span className={`px-2 py-0.5 rounded ${className}`}>
+                              {label}
+                            </span>
+                          </td>
+                          <td className={`py-2 px-3 font-bold ${
+                            transaction.type === "expense" ? "text-red-600" : "text-green-600"
                           }`}>
-                            {transaction.type === 'income' ? 'Entrée' : 'Sortie'}
-                          </span>
-                        </td>
-                        <td className={`py-2 px-3 font-bold ${
-                          transaction.type === "expense" ? "text-red-600" : "text-green-600"
-                        }`}>
-                          {transaction.type === "expense" ? "-" : "+"}{formatCurrency(transaction.amount)}
-                        </td>
-                        <td className="py-2 px-3">{transaction.description}</td>
-                        <td className="py-2 px-1 w-16 text-center text-xs text-gray-500">
-                          {transaction.source}
-                        </td>
-                      </tr>
-                    ))
+                            {transaction.type === "expense" ? "-" : "+"}{formatCurrency(transaction.amount)}
+                          </td>
+                          <td className="py-2 px-3">{transaction.description}</td>
+                          <td className="py-2 px-1 w-16 text-center text-xs text-gray-500">
+                            {transaction.source}
+                          </td>
+                        </tr>
+                      );
+                    })
                   )
                 )}
               </tbody>
