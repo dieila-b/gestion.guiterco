@@ -97,6 +97,7 @@ export function useCreateTransactionFinanciere() {
       queryClient.invalidateQueries({ queryKey: ["all-financial-transactions"] });
       queryClient.invalidateQueries({ queryKey: ["cash-registers"] });
       queryClient.invalidateQueries({ queryKey: ["vue_solde_caisse"] });
+      queryClient.invalidateQueries({ queryKey: ["cash-register-balance"] });
     },
   });
 }

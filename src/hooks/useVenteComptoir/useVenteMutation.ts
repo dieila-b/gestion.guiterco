@@ -140,6 +140,40 @@ export const useVenteMutation = (pointsDeVente?: any[], selectedPDV?: string, se
         }
       }
 
+      // NOUVEAU: Créer une transaction de caisse pour chaque vente avec paiement
+      if (venteData.montant_paye > 0) {
+        // Récupérer la première caisse disponible
+        const { data: cashRegister } = await supabase
+          .from('cash_registers')
+          .select('id')
+          .limit(1)
+          .single();
+
+        if (cashRegister) {
+          const { error: transactionError } = await supabase
+            .from('transactions')
+            .insert({
+              type: 'income',
+              amount: venteData.montant_paye,
+              montant: venteData.montant_paye,
+              description: `Vente ${numeroFacture} - Client: ${venteData.client_id}`,
+              commentaire: venteData.notes || `Paiement vente ${numeroFacture}`,
+              category: 'sales',
+              payment_method: venteData.mode_paiement === 'especes' ? 'cash' : 
+                            venteData.mode_paiement === 'carte' ? 'card' : 'other',
+              cash_register_id: cashRegister.id,
+              date_operation: new Date().toISOString()
+            });
+
+          if (transactionError) {
+            console.error('Erreur création transaction de caisse:', transactionError);
+            // Ne pas faire échouer toute la vente pour ça, juste logger
+          } else {
+            console.log('Transaction de caisse créée pour la vente:', venteData.montant_paye);
+          }
+        }
+      }
+
       // Mettre à jour le stock PDV
       for (const article of venteData.articles) {
         // Récupérer d'abord la quantité actuelle
@@ -184,6 +218,13 @@ export const useVenteMutation = (pointsDeVente?: any[], selectedPDV?: string, se
       queryClient.invalidateQueries({ queryKey: ['commandes_clients'] });
       queryClient.invalidateQueries({ queryKey: ['factures_vente'] });
       queryClient.invalidateQueries({ queryKey: ['stock_pdv'] });
+      // NOUVEAU: Invalider aussi les données de caisse
+      queryClient.invalidateQueries({ queryKey: ['transactions'] });
+      queryClient.invalidateQueries({ queryKey: ['today-transactions'] });
+      queryClient.invalidateQueries({ queryKey: ['cash-registers'] });
+      queryClient.invalidateQueries({ queryKey: ['vue_solde_caisse'] });
+      queryClient.invalidateQueries({ queryKey: ['all-financial-transactions'] });
+      
       setCart?.([]);
       
       if (result.statutPaiement === 'paye') {

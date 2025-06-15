@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale/fr';
 import { useCashRegisters } from "@/hooks/useCashRegisters";
-import { useAllFinancialTransactions } from "@/hooks/useTransactions";
+import { useAllFinancialTransactions, useCashRegisterBalance } from "@/hooks/useTransactions";
 import { formatCurrency } from "@/lib/currency";
 import TransactionsOverviewTable from "./TransactionsOverviewTable";
 
@@ -16,6 +16,9 @@ const CashRegisterOverview: React.FC = () => {
     () => cashRegisters?.[0],
     [cashRegisters]
   );
+
+  // Solde actif calculé depuis toutes les sources
+  const { data: balanceData, isLoading: isLoadingBalance } = useCashRegisterBalance();
 
   // Toutes les transactions financières du jour
   const { data: allTransactions = [], isLoading: isLoadingTransactions } = useAllFinancialTransactions();
@@ -41,13 +44,24 @@ const CashRegisterOverview: React.FC = () => {
     : 'N/A';
 
   // Gestion du loading
-  if (isLoadingRegisters || isLoadingTransactions) {
+  if (isLoadingRegisters || isLoadingTransactions || isLoadingBalance) {
     return (
       <div className="flex items-center justify-center h-64">
         <p>Chargement des données financières...</p>
       </div>
     );
   }
+
+  // Utiliser le solde calculé ou le solde de la caisse comme fallback
+  const soldeActif = balanceData?.balance ?? Number(principalRegister?.balance) ?? 0;
+
+  console.log('🏦 Affichage Aperçu:', {
+    soldeActif,
+    entrées: totals.income,
+    sorties: totals.expense,
+    balance: totalBalance,
+    nbTransactions: nbTotal
+  });
 
   return (
     <>
@@ -59,7 +73,7 @@ const CashRegisterOverview: React.FC = () => {
             <CardDescription>Caisse principale</CardDescription>
           </CardHeader>
           <CardContent>
-            <p className="text-3xl font-bold">{formatCurrency(Number(principalRegister?.balance) || 0)}</p>
+            <p className="text-3xl font-bold">{formatCurrency(soldeActif)}</p>
             <p className="text-sm text-muted-foreground mt-1">
               Dernière mise à jour: {lastUpdate}
             </p>
