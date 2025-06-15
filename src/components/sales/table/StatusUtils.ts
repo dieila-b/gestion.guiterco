@@ -61,15 +61,20 @@ export const getActualPaymentStatus = (facture: FactureVente) => {
   console.log('🔄 Montant payé:', paidAmount, 'Montant total:', totalAmount);
   
   let status;
-  if (paidAmount === 0) {
+  
+  // Arrondir les montants pour éviter les problèmes de précision
+  const paidRounded = Math.round(paidAmount * 100) / 100;
+  const totalRounded = Math.round(totalAmount * 100) / 100;
+  
+  if (paidRounded === 0) {
     status = 'en_attente';
-  } else if (paidAmount >= totalAmount) {
+  } else if (paidRounded >= totalRounded) {
     status = 'payee';
   } else {
     status = 'partiellement_payee';
   }
   
-  console.log('🔄 Statut paiement déterminé:', status);
+  console.log('🔄 Statut paiement déterminé:', status, '(Payé arrondi:', paidRounded, ', Total arrondi:', totalRounded, ')');
   return status;
 };
 
@@ -94,11 +99,7 @@ export const getArticleCount = (facture: FactureVente) => {
     return count;
   }
   
-  // Si aucune donnée n'est disponible, faire une requête directe
   console.log('❌ Aucune donnée d\'articles trouvée, requête directe nécessaire pour facture:', facture.numero_facture);
-  
-  // Pour l'instant, on retourne 0 mais on loggue pour diagnostic
-  // Une solution serait de faire une requête async ici, mais cela compliquerait le component
   return 0;
 };
 
@@ -107,34 +108,37 @@ export const getActualDeliveryStatus = (facture: FactureVente) => {
   console.log('🚚 Statut livraison facture:', facture.statut_livraison);
   console.log('🚚 Lignes facture:', facture.lignes_facture);
   
-  // Si statut_livraison est défini au niveau facture, l'utiliser
-  if (facture.statut_livraison) {
-    console.log('🚚 Utilisation statut_livraison de la facture:', facture.statut_livraison);
+  // Si statut_livraison est défini au niveau facture et n'est pas celui par défaut, l'utiliser
+  if (facture.statut_livraison && facture.statut_livraison !== 'livree') {
+    console.log('🚚 Utilisation statut_livraison explicite de la facture:', facture.statut_livraison);
     return facture.statut_livraison;
   }
   
-  // Sinon calculer à partir des lignes
-  if (!facture.lignes_facture || !Array.isArray(facture.lignes_facture) || facture.lignes_facture.length === 0) {
-    console.log('🚚 Pas de lignes, considéré comme livré');
-    return 'livree';
+  // Calculer à partir des lignes si disponibles
+  if (facture.lignes_facture && Array.isArray(facture.lignes_facture) && facture.lignes_facture.length > 0) {
+    const totalLignes = facture.lignes_facture.length;
+    const lignesLivrees = facture.lignes_facture.filter((ligne: any) => 
+      ligne.statut_livraison === 'livree' || ligne.statut_livraison === 'livre'
+    ).length;
+    
+    console.log('🚚 Lignes livrées:', lignesLivrees, '/', totalLignes);
+    
+    let status;
+    if (lignesLivrees === 0) {
+      status = 'en_attente';
+    } else if (lignesLivrees === totalLignes) {
+      status = 'livree';
+    } else {
+      status = 'partiellement_livree';
+    }
+    
+    console.log('🚚 Statut livraison calculé à partir des lignes:', status);
+    return status;
   }
   
-  const totalLignes = facture.lignes_facture.length;
-  const lignesLivrees = facture.lignes_facture.filter((ligne: any) => ligne.statut_livraison === 'livree').length;
-  
-  console.log('🚚 Lignes livrées:', lignesLivrees, '/', totalLignes);
-  
-  let status;
-  if (lignesLivrees === 0) {
-    status = 'en_attente';
-  } else if (lignesLivrees === totalLignes) {
-    status = 'livree';
-  } else {
-    status = 'partiellement_livree';
-  }
-  
-  console.log('🚚 Statut livraison déterminé:', status);
-  return status;
+  // Pour les ventes comptoir sans lignes détaillées, considérer comme livré par défaut
+  console.log('🚚 Pas de lignes détaillées, utilisation du statut par défaut livré (vente comptoir)');
+  return 'livree';
 };
 
 // Nouvelle fonction pour récupérer le nombre d'articles en temps réel si nécessaire
