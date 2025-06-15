@@ -46,10 +46,10 @@ const CashRegisters: React.FC = () => {
 
   return (
     <AppLayout title="Gestion des finances">
-      <Tabs defaultValue="caisses" className="space-y-4">
+      <Tabs defaultValue="overview" className="space-y-4">
         <div className="flex justify-between items-center">
           <TabsList>
-            <TabsTrigger value="caisses">Caisses</TabsTrigger>
+            <TabsTrigger value="overview">Aperçu</TabsTrigger>
             <TabsTrigger value="expenses">Dépenses</TabsTrigger>
           </TabsList>
           <div className="space-x-2">
@@ -57,7 +57,7 @@ const CashRegisters: React.FC = () => {
           </div>
         </div>
 
-        <TabsContent value="caisses" className="space-y-4">
+        <TabsContent value="overview" className="space-y-4">
           <CashRegisterOverview />
         </TabsContent>
 

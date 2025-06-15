@@ -2091,15 +2091,7 @@ export type Database = {
       }
     }
     Views: {
-      vue_solde_caisse: {
-        Row: {
-          cash_register_id: string | null
-          derniere_operation: string | null
-          nombre_operations: number | null
-          solde_actif: number | null
-        }
-        Relationships: []
-      }
+      [_ in never]: never
     }
     Functions: {
       generate_bon_commande_number: {

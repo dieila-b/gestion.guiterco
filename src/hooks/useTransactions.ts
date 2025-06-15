@@ -50,14 +50,12 @@ export const useTodayTransactions = (cashRegisterId?: string) => {
     queryKey: ['today-transactions', cashRegisterId],
     queryFn: async () => {
       const today = new Date();
-      const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 0, 0, 0, 0);
-      const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59, 999);
+      today.setHours(0, 0, 0, 0);
       
       let query = supabase
         .from('transactions')
         .select('*')
-        .gte('date_operation', startOfDay.toISOString())
-        .lte('date_operation', endOfDay.toISOString());
+        .gte('created_at', today.toISOString());
       
       if (cashRegisterId) {
         query = query.eq('cash_register_id', cashRegisterId);

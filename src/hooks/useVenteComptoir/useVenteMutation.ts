@@ -109,8 +109,7 @@ export const useVenteMutation = (pointsDeVente?: any[], selectedPDV?: string, se
           montant_ht: venteData.montant_total / 1.2,
           tva: venteData.montant_total - (venteData.montant_total / 1.2),
           statut_paiement: statutPaiement,
-          mode_paiement: venteData.mode_paiement,
-          statut_livraison: venteData.statut_livraison
+          mode_paiement: venteData.mode_paiement
         })
         .select()
         .single();
@@ -121,64 +120,6 @@ export const useVenteMutation = (pointsDeVente?: any[], selectedPDV?: string, se
       }
 
       console.log('Facture créée:', facture);
-
-      // Créer les lignes de facture
-      const lignesFacture = venteData.articles.map(article => {
-        const prixApresRemise = Math.max(0, article.prix_vente - article.remise);
-        return {
-          facture_vente_id: facture.id,
-          article_id: article.id,
-          quantite: article.quantite,
-          prix_unitaire: prixApresRemise,
-          montant_ligne: prixApresRemise * article.quantite
-        };
-      });
-
-      const { error: lignesFactureError } = await supabase
-        .from('lignes_facture_vente')
-        .insert(lignesFacture);
-
-      if (lignesFactureError) {
-        console.error('Erreur création lignes facture:', lignesFactureError);
-        throw lignesFactureError;
-      }
-
-      // Si un paiement a été effectué, une transaction doit être enregistrée
-      if (venteData.montant_paye > 0) {
-        // Récupérer la première caisse disponible pour les transactions
-        const { data: cashRegisters } = await supabase
-          .from('cash_registers')
-          .select('id')
-          .limit(1);
-
-        const cashRegisterId = cashRegisters?.[0]?.id;
-        
-        if (!cashRegisterId) {
-          throw new Error("Aucune caisse n'est configurée. Impossible d'enregistrer la transaction.");
-        }
-
-        // Créer une transaction pour la vente (entrée de caisse)
-        const { error: transactionError } = await supabase
-          .from('transactions')
-          .insert({
-            cash_register_id: cashRegisterId,
-            type: 'income',
-            amount: venteData.montant_paye,
-            category: 'sales',
-            payment_method: venteData.mode_paiement === 'especes' ? 'cash' : 
-                           venteData.mode_paiement === 'carte' ? 'card' :
-                           venteData.mode_paiement === 'virement' ? 'transfer' :
-                           venteData.mode_paiement === 'cheque' ? 'check' : 'cash',
-            description: `Vente ${numeroFacture} - ${venteData.articles.length} article(s)`,
-            commentaire: venteData.notes || `Paiement ${statutPaiement === 'paye' ? 'complet' : 'partiel'} pour facture ${numeroFacture}`,
-            date_operation: new Date().toISOString()
-          });
-
-        if (transactionError) {
-          console.error('Erreur création transaction:', transactionError);
-          throw transactionError; // On propage l'erreur pour que la mutation échoue
-        }
-      }
 
       // Enregistrer le versement si paiement effectué
       if (venteData.montant_paye > 0) {
@@ -243,11 +184,6 @@ export const useVenteMutation = (pointsDeVente?: any[], selectedPDV?: string, se
       queryClient.invalidateQueries({ queryKey: ['commandes_clients'] });
       queryClient.invalidateQueries({ queryKey: ['factures_vente'] });
       queryClient.invalidateQueries({ queryKey: ['stock_pdv'] });
-      queryClient.invalidateQueries({ queryKey: ['transactions'] });
-      queryClient.invalidateQueries({ queryKey: ['today-transactions'] });
-      queryClient.invalidateQueries({ queryKey: ['cash-registers'] });
-      queryClient.invalidateQueries({ queryKey: ['transactions-financieres'] });
-      queryClient.invalidateQueries({ queryKey: ['transactions-financieres-aujourdhui'] });
       setCart?.([]);
       
       if (result.statutPaiement === 'paye') {
