@@ -113,7 +113,9 @@ export const useAllFinancialTransactions = () => {
       if (expError) throw expError;
 
       // Normaliser toutes les données
-      const normalizedTransactions = (transactions || []).map(t => ({
+      const normalizedTransactions = (transactions || [])
+        .filter(t => t.type) // Safely handle possible null types
+        .map(t => ({
         id: t.id,
         type: t.type as 'income' | 'expense',
         amount: t.amount || t.montant || 0,
@@ -127,13 +129,13 @@ export const useAllFinancialTransactions = () => {
         type: c.type === 'depot' ? 'income' : 'expense',
         amount: c.montant || 0,
         description: c.commentaire || 'Opération de caisse',
-        date: c.created_at,
+        date: c.created_at || new Date().toISOString(),
         source: c.type === 'depot' ? 'Entrée manuelle' : 'Sortie'
       }));
 
       const normalizedExpenses = (expenses || []).map(e => ({
         id: e.id,
-        type: 'expense',
+        type: 'expense' as const,
         amount: e.montant || 0,
         description: e.description || '',
         date: e.date_sortie,
