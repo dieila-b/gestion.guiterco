@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from '@/components/ui/button';
@@ -71,32 +70,9 @@ const CashRegisterOverview: React.FC<CashRegisterOverviewProps> = ({
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <Card className="lg:col-span-2">
-          <CardHeader>
-            <CardTitle>Dernières transactions</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {mockTransactions.slice(0, 4).map((transaction) => (
-                <div key={transaction.id} className="flex items-center justify-between p-2 border-b">
-                  <div>
-                    <p className="font-medium">{transaction.description}</p>
-                    <p className="text-sm text-muted-foreground">{format(new Date(transaction.created_at), 'dd/MM/yyyy HH:mm')}</p>
-                  </div>
-                  <div className="text-right">
-                    <p className={`font-medium ${transaction.type === 'income' ? 'text-green-600' : 'text-red-600'}`}>
-                      {transaction.type === 'income' ? '+' : '-'}{formatCurrency(transaction.amount)}
-                    </p>
-                    <span className="text-xs text-muted-foreground">
-                      {transaction.payment_method === 'cash' ? 'Espèces' : 'Carte'}
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-
+        <div className="lg:col-span-2 flex flex-col">
+          <TransactionsOverviewTable />
+        </div>
         <Card>
           <CardHeader>
             <CardTitle>Actions</CardTitle>
@@ -127,4 +103,5 @@ const CashRegisterOverview: React.FC<CashRegisterOverviewProps> = ({
   );
 };
 
+import TransactionsOverviewTable from "./TransactionsOverviewTable";
 export default CashRegisterOverview;
