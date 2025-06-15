@@ -5,7 +5,14 @@ import ClientSection from './cart/ClientSection';
 import CartItems from './cart/CartItems';
 import CartFooter from './cart/CartFooter';
 import NewClientDialog from './cart/NewClientDialog';
-import type { CartItem } from '@/hooks/useVenteComptoir/types';
+
+interface CartItem {
+  id: string;
+  nom: string;
+  prix_vente: number;
+  quantite: number;
+  remise: number;
+}
 
 interface CartTotals {
   sousTotal: number;

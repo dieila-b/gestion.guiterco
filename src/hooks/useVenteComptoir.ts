@@ -8,7 +8,7 @@ export const useVenteComptoir = (selectedPDV?: string) => {
   const { pointsDeVente, stockPDV } = useStockQueries(selectedPDV);
   const { checkStock, getStockColor } = useStockUtils(stockPDV);
   const { cart, setCart, addToCart, updateQuantity, updateRemise, removeFromCart, clearCart } = useCartManagement(checkStock);
-  const createVente = useVenteMutation();
+  const { createVente, isLoading } = useVenteMutation(pointsDeVente, selectedPDV, setCart);
 
   return {
     cart,
@@ -22,7 +22,7 @@ export const useVenteComptoir = (selectedPDV?: string) => {
     createVente,
     checkStock,
     getStockColor,
-    isLoading: createVente.isPending
+    isLoading
   };
 };
 

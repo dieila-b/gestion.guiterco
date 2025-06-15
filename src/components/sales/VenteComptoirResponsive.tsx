@@ -107,20 +107,18 @@ const VenteComptoirResponsive = () => {
   const handlePaymentConfirm = async (paymentData: any) => {
     try {
       const result = await createVente.mutateAsync({
-        cartItems: cart,
-        saleData: {
-          client_id: selectedClient,
-          montant_total: cartTotals.total,
-          montant_paye: paymentData.montant_paye,
-          mode_paiement: paymentData.mode_paiement,
-          statut_livraison: paymentData.statut_livraison,
-          quantite_livree: paymentData.quantite_livree,
-          notes: paymentData.notes
-        }
+        client_id: selectedClient,
+        point_vente: selectedPDV,
+        articles: cart,
+        montant_total: cartTotals.total,
+        montant_paye: paymentData.montant_paye,
+        mode_paiement: paymentData.mode_paiement,
+        statut_livraison: paymentData.statut_livraison,
+        quantite_livree: paymentData.quantite_livree,
+        notes: paymentData.notes
       });
       
-      setLastFacture(result);
-      clearCart();
+      setLastFacture(result.facture);
       setShowPaymentModal(false);
       setShowPostPaymentActions(true);
     } catch (error) {

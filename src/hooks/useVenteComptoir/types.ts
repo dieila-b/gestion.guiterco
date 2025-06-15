@@ -5,8 +5,7 @@ export interface CartItem {
   prix_vente: number;
   quantite: number;
   remise: number; // Remise en montant fixe
-  prix_total: number; // Prix total après remise
-  stock_disponible: number; // Maintenant requis
+  stock_disponible?: number;
 }
 
 export interface VenteComptoirData {

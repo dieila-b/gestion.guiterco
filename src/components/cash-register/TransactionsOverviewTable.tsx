@@ -30,7 +30,7 @@ const TransactionsOverviewTable: React.FC = () => {
   const [year, setYear] = React.useState(today.getFullYear());
   const [month, setMonth] = React.useState(today.getMonth() + 1);
 
-  // Transactions financières du mois sélectionné (incluant les ventes)
+  // Transactions financières du mois sélectionné
   const { data: transactionsFinancieres = [], isLoading: loadingTransactions } = useTransactionsFinancieres(undefined, year, month);
   
   // Entrées/sorties manuelles
@@ -51,7 +51,7 @@ const TransactionsOverviewTable: React.FC = () => {
   const allRows: AllTx[] = React.useMemo(() => {
     const rows: AllTx[] = [];
     
-    // Ajouter les transactions financières (incluant maintenant les ventes)
+    // Ajouter les transactions financières
     transactionsFinancieres.forEach((tf: any) => {
       rows.push({
         id: tf.id,
@@ -86,13 +86,6 @@ const TransactionsOverviewTable: React.FC = () => {
     
     return rows.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   }, [transactionsFinancieres, cashOps, filteredExpenses]);
-
-  // Calculer les totaux pour le mois sélectionné
-  const totals = React.useMemo(() => {
-    const income = allRows.filter(row => row.type === 'income').reduce((sum, row) => sum + row.montant, 0);
-    const expense = allRows.filter(row => row.type === 'expense').reduce((sum, row) => sum + row.montant, 0);
-    return { income, expense, balance: income - expense };
-  }, [allRows]);
 
   const years = Array.from({ length: 5 }, (_, i) => today.getFullYear() - i);
   const months = [
@@ -136,25 +129,6 @@ const TransactionsOverviewTable: React.FC = () => {
               </Button>
             </div>
           </div>
-
-          {/* Résumé des totaux du mois */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4 p-4 bg-muted/20 rounded-lg">
-            <div className="text-center">
-              <p className="text-sm text-muted-foreground">Entrées totales</p>
-              <p className="text-lg font-bold text-green-600">{formatCurrency(totals.income)}</p>
-            </div>
-            <div className="text-center">
-              <p className="text-sm text-muted-foreground">Sorties totales</p>
-              <p className="text-lg font-bold text-red-600">{formatCurrency(totals.expense)}</p>
-            </div>
-            <div className="text-center">
-              <p className="text-sm text-muted-foreground">Balance nette</p>
-              <p className={`text-lg font-bold ${totals.balance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                {formatCurrency(totals.balance)}
-              </p>
-            </div>
-          </div>
-
           <div className="mt-2 overflow-x-auto rounded-lg border bg-background min-h-[180px]">
             <table className="min-w-full text-sm">
               <thead>
