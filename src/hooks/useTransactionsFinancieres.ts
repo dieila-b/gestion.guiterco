@@ -64,9 +64,21 @@ export function useCreateTransactionFinanciere() {
       commentaire?: string;
       description: string;
     }) => {
+      // Récupérer la première caisse disponible comme valeur par défaut
+      const { data: cashRegisters } = await supabase
+        .from("cash_registers")
+        .select("id")
+        .limit(1)
+        .single();
+
       const { data, error } = await supabase
         .from("transactions")
-        .insert(transaction)
+        .insert({
+          ...transaction,
+          cash_register_id: cashRegisters?.id || crypto.randomUUID(), // Valeur par défaut si pas de caisse
+          category: 'other' as const, // Valeur par défaut pour category
+          payment_method: 'cash' as const // Valeur par défaut pour payment_method
+        })
         .select()
         .single();
       
