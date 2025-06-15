@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
@@ -10,12 +11,9 @@ import type { FactureVente } from '@/types/sales';
 interface FacturesVenteTableProps {
   factures: FactureVente[];
   isLoading: boolean;
-  sortBy: 'date_facture' | 'numero_facture' | 'client' | 'montant' | 'paiement' | 'livraison';
-  sortDir: 'asc' | 'desc';
-  onSort: (column: FacturesVenteTableProps['sortBy']) => void;
 }
 
-const FacturesVenteTable = ({ factures, isLoading, sortBy, sortDir, onSort }: FacturesVenteTableProps) => {
+const FacturesVenteTable = ({ factures, isLoading }: FacturesVenteTableProps) => {
   const getStatusBadgeColor = (statut: string) => {
     switch (statut) {
       case 'en_attente': return 'bg-orange-100 text-orange-800 border-orange-300';
@@ -94,13 +92,6 @@ const FacturesVenteTable = ({ factures, isLoading, sortBy, sortDir, onSort }: Fa
     }
   };
 
-  // Rendu dynamique du caret (icône de tri)
-  const renderSortCaret = (col: FacturesVenteTableProps['sortBy']) => (
-    <span className={`inline-block transition ml-1 ${sortBy === col ? "text-blue-600" : "text-gray-400"}`}>
-      {sortBy === col ? (sortDir === 'asc' ? "▲" : "▼") : "↕"}
-    </span>
-  );
-
   if (isLoading) {
     return (
       <div className="rounded-md border">
@@ -116,27 +107,15 @@ const FacturesVenteTable = ({ factures, isLoading, sortBy, sortDir, onSort }: Fa
       <Table>
         <TableHeader>
           <TableRow className="bg-muted/50">
-            <TableHead className="font-semibold text-left cursor-pointer select-none" onClick={() => onSort('numero_facture')}>
-              N° Facture {renderSortCaret('numero_facture')}
-            </TableHead>
-            <TableHead className="font-semibold text-left cursor-pointer select-none" onClick={() => onSort('date_facture')}>
-              Date {renderSortCaret('date_facture')}
-            </TableHead>
-            <TableHead className="font-semibold text-left cursor-pointer select-none" onClick={() => onSort('client')}>
-              Client {renderSortCaret('client')}
-            </TableHead>
+            <TableHead className="font-semibold text-left">N° Facture</TableHead>
+            <TableHead className="font-semibold text-left">Date</TableHead>
+            <TableHead className="font-semibold text-left">Client</TableHead>
             <TableHead className="font-semibold text-center">Articles</TableHead>
-            <TableHead className="font-semibold text-right cursor-pointer select-none" onClick={() => onSort('montant')}>
-              Total {renderSortCaret('montant')}
-            </TableHead>
+            <TableHead className="font-semibold text-right">Total</TableHead>
             <TableHead className="font-semibold text-right">Payé</TableHead>
             <TableHead className="font-semibold text-right">Restant</TableHead>
-            <TableHead className="font-semibold text-center cursor-pointer select-none" onClick={() => onSort('paiement')}>
-              Paiement {renderSortCaret('paiement')}
-            </TableHead>
-            <TableHead className="font-semibold text-center cursor-pointer select-none" onClick={() => onSort('livraison')}>
-              Livraison {renderSortCaret('livraison')}
-            </TableHead>
+            <TableHead className="font-semibold text-center">Paiement</TableHead>
+            <TableHead className="font-semibold text-center">Livraison</TableHead>
             <TableHead className="font-semibold text-center">Actions</TableHead>
           </TableRow>
         </TableHeader>
@@ -157,7 +136,7 @@ const FacturesVenteTable = ({ factures, isLoading, sortBy, sortDir, onSort }: Fa
                     {facture.client ? facture.client.nom : 'Client non spécifié'}
                   </TableCell>
                   <TableCell className="text-center">
-                    <span className="font-medium">{getArticleCount(facture)}</span>
+                    <span className="font-medium">{articleCount}</span>
                   </TableCell>
                   <TableCell className="text-right font-medium">
                     {formatCurrency(facture.montant_ttc)}

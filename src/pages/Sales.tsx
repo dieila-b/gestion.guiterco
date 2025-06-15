@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -11,8 +12,6 @@ import RetoursClients from '@/components/sales/RetoursClients';
 
 const Sales = () => {
   const [activeTab, setActiveTab] = useState("vente-comptoir");
-  // Fonction de rappel pour navigation depuis "Nouvelle facture"
-  const handleSwitchTab = (tab: string) => setActiveTab(tab);
 
   return (
     <AppLayout title="Vente & Facturation">
@@ -38,7 +37,7 @@ const Sales = () => {
           </TabsContent>
 
           <TabsContent value="factures-vente" className="mt-6">
-            <FacturesVente onSwitchTab={handleSwitchTab} />
+            <FacturesVente />
           </TabsContent>
 
           <TabsContent value="precommandes" className="mt-6">
