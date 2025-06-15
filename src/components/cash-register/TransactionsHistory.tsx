@@ -19,6 +19,40 @@ interface TransactionsHistoryProps {
   formatCurrency: (amount: number) => string;
 }
 
+const getTransactionTypeLabel = (transaction: Transaction) => {
+  if (transaction.type === 'expense') {
+    return 'Sortie';
+  }
+  
+  // Pour les entrées, différencier selon la source
+  switch (transaction.source) {
+    case 'vente':
+      return 'Vente';
+    case 'reglement':
+    case 'paiement_facture':
+      return 'Règlement impayés';
+    default:
+      return 'Entrée manuelle';
+  }
+};
+
+const getTransactionTypeColor = (transaction: Transaction) => {
+  if (transaction.type === 'expense') {
+    return 'bg-red-50 text-red-700 border-red-200';
+  }
+  
+  // Pour les entrées, différencier selon la source
+  switch (transaction.source) {
+    case 'vente':
+      return 'bg-green-50 text-green-700 border-green-200';
+    case 'reglement':
+    case 'paiement_facture':
+      return 'bg-orange-50 text-orange-700 border-orange-200';
+    default:
+      return 'bg-blue-50 text-blue-700 border-blue-200';
+  }
+};
+
 const TransactionsHistory: React.FC<TransactionsHistoryProps> = ({
   transactions,
   date,
@@ -45,7 +79,9 @@ const TransactionsHistory: React.FC<TransactionsHistoryProps> = ({
               <SelectContent>
                 <SelectItem value="all">Toutes les transactions</SelectItem>
                 <SelectItem value="income">Entrées</SelectItem>
-                <SelectItem value="expense">Dépenses</SelectItem>
+                <SelectItem value="expense">Sorties</SelectItem>
+                <SelectItem value="vente">Ventes</SelectItem>
+                <SelectItem value="reglement">Règlements</SelectItem>
               </SelectContent>
             </Select>
             <Popover>
@@ -81,8 +117,8 @@ const TransactionsHistory: React.FC<TransactionsHistoryProps> = ({
                     <p className="text-xs text-muted-foreground">{transaction.category}</p>
                   </div>
                   <div>
-                    <span className={`status-badge ${transaction.type === 'income' ? 'completed' : 'cancelled'}`}>
-                      {transaction.type === 'income' ? 'Entrée' : 'Dépense'}
+                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getTransactionTypeColor(transaction)}`}>
+                      {getTransactionTypeLabel(transaction)}
                     </span>
                   </div>
                   <div>
