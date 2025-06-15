@@ -8,7 +8,7 @@ import StepperInput from './StepperInput';
 interface CartItem {
   id: string;
   nom: string;
-  prix_vente: number;
+  prix_vente?: number; // Rendu optionnel pour correspondre au type du hook
   quantite: number;
   remise: number;
 }
@@ -55,7 +55,8 @@ const CartItems: React.FC<CartItemsProps> = ({
         </thead>
         <tbody>
           {cart.map((item) => {
-            const prixApresRemise = Math.max(0, item.prix_vente - item.remise);
+            const prixVente = item.prix_vente || 0; // Valeur par défaut si undefined
+            const prixApresRemise = Math.max(0, prixVente - item.remise);
             const totalLigne = prixApresRemise * item.quantite;
             
             return (
