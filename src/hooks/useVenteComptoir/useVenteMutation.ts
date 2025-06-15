@@ -1,34 +1,15 @@
+
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
-interface Vente {
+interface CartItem {
   id: string;
-  created_at?: string;
-  client_id?: string | null;
-  montant_ht?: number | null;
-  tva?: number | null;
-  montant_ttc?: number | null;
-  statut_paiement?: string | null;
-  mode_paiement?: string | null;
-  date_echeance?: string | null;
-  observations?: string | null;
-}
-
-interface DetailVente {
-  id: string;
-  vente_id: string;
-  produit_id: string;
+  nom: string;
+  prix_vente: number;
   quantite: number;
-  prix_unitaire: number;
   prix_total: number;
-}
-
-interface Stock {
-  id: string;
-  produit_id: string;
-  quantite_en_stock: number;
-  // Ajoutez d'autres propriétés si nécessaire
+  stock_disponible: number;
 }
 
 interface SaleData {
@@ -41,50 +22,43 @@ interface SaleData {
   quantite_livree?: { [key: string]: number };
 }
 
-interface CartItem {
-  id: string;
-  nom: string;
-  prix_vente: number;
-  quantite: number;
-  prix_total: number;
-  stock_disponible: number;
-}
-
 export const useVenteMutation = () => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
-  // Fonction pour mettre à jour le stock après une vente
-  const updateStockForDeliveredItem = async (productId: string, quantitySold: number) => {
+  // Fonction pour mettre à jour le stock PDV après une vente
+  const updateStockPDV = async (productId: string, quantitySold: number) => {
     try {
-      // Récupérer le stock actuel du produit
+      // Récupérer le stock actuel du produit depuis stock_pdv
       const { data: currentStockData, error: currentStockError } = await supabase
-        .from('stock')
-        .select('quantite_en_stock')
-        .eq('produit_id', productId)
+        .from('stock_pdv')
+        .select('quantite_disponible')
+        .eq('article_id', productId)
         .single();
 
-      if (currentStockError) throw currentStockError;
+      if (currentStockError && currentStockError.code !== 'PGRST116') {
+        throw currentStockError;
+      }
 
-      const currentStock = currentStockData?.quantite_en_stock || 0;
+      const currentStock = currentStockData?.quantite_disponible || 0;
       const newStock = Math.max(0, currentStock - quantitySold);
 
       // Mettre à jour le stock avec la nouvelle quantité
       const { error: updateError } = await supabase
-        .from('stock')
-        .update({ quantite_en_stock: newStock })
-        .eq('produit_id', productId);
+        .from('stock_pdv')
+        .update({ quantite_disponible: newStock })
+        .eq('article_id', productId);
 
       if (updateError) throw updateError;
 
-      console.log(`Stock mis à jour pour le produit ${productId}. Nouvelle quantité: ${newStock}`);
+      console.log(`Stock PDV mis à jour pour le produit ${productId}. Nouvelle quantité: ${newStock}`);
     } catch (error) {
-      console.error('Erreur lors de la mise à jour du stock:', error);
+      console.error('Erreur lors de la mise à jour du stock PDV:', error);
       throw error;
     }
   };
 
-  const createSaleTransaction = async (saleData: SaleData, saleId: string) => {
+  const createSaleTransaction = async (saleData: SaleData, factureId: string) => {
     try {
       // Récupérer la caisse principale
       const { data: cashRegisters } = await supabase
@@ -98,11 +72,11 @@ export const useVenteMutation = () => {
       }
 
       // Mapper les modes de paiement pour correspondre aux types de la base
-      const paymentMethodMap: { [key: string]: string } = {
+      const paymentMethodMap: { [key: string]: 'cash' | 'card' | 'transfer' | 'check' } = {
         'especes': 'cash',
         'carte': 'card',
         'virement': 'transfer',
-        'mobile_money': 'transfer', // Mobile money mappé vers transfer
+        'mobile_money': 'transfer',
         'cash': 'cash',
         'card': 'card',
         'transfer': 'transfer',
@@ -120,11 +94,11 @@ export const useVenteMutation = () => {
           category: 'sales',
           cash_register_id: cashRegisters[0].id,
           payment_method: mappedPaymentMethod,
-          commentaire: `Vente #${saleId} - ${saleData.notes || 'Vente au comptoir'}`,
+          commentaire: `Vente #${factureId} - ${saleData.notes || 'Vente au comptoir'}`,
           date_operation: new Date().toISOString()
         });
 
-      console.log('Transaction créée pour la vente', saleId);
+      console.log('Transaction créée pour la vente', factureId);
     } catch (error) {
       console.error('Erreur lors de la création de la transaction:', error);
     }
@@ -135,55 +109,57 @@ export const useVenteMutation = () => {
       console.log('Début de la création de vente...', { cartItems, saleData });
 
       try {
-        // Créer la vente
-        const { data: sale, error: saleError } = await supabase
-          .from('ventes')
+        // Créer la facture de vente
+        const { data: facture, error: factureError } = await supabase
+          .from('factures_vente')
           .insert({
-            client_id: saleData.client_id,
-            montant_total: saleData.montant_total,
-            montant_paye: saleData.montant_paye,
+            client_id: saleData.client_id!,
+            montant_ttc: saleData.montant_total,
+            montant_ht: saleData.montant_total / 1.2, // Supposons 20% de TVA
+            tva: saleData.montant_total - (saleData.montant_total / 1.2),
+            statut_paiement: saleData.montant_paye >= saleData.montant_total ? 'paye' : 'partiel',
             mode_paiement: saleData.mode_paiement,
             statut_livraison: saleData.statut_livraison,
-            notes: saleData.notes
+            observations: saleData.notes
           })
           .select()
           .single();
 
-        if (saleError) throw saleError;
+        if (factureError) throw factureError;
 
-        console.log('Vente créée:', sale);
+        console.log('Facture créée:', facture);
 
-        // Créer les détails de vente et gérer le stock
+        // Créer les lignes de facture et gérer le stock
         for (const item of cartItems) {
-          // Créer détail de vente
-          const { error: detailError } = await supabase
-            .from('details_vente')
+          // Créer ligne de facture
+          const { error: ligneError } = await supabase
+            .from('lignes_facture_vente')
             .insert({
-              vente_id: sale.id,
-              produit_id: item.id,
+              facture_vente_id: facture.id,
+              article_id: item.id,
               quantite: item.quantite,
               prix_unitaire: item.prix_vente,
-              prix_total: item.prix_total
+              montant_ligne: item.prix_total
             });
 
-          if (detailError) throw detailError;
+          if (ligneError) throw ligneError;
 
           // Gérer les stocks selon le statut de livraison
-          if (saleData.statut_livraison === 'livre') {
-            await updateStockForDeliveredItem(item.id, item.quantite);
+          if (saleData.statut_livraison === 'livree') {
+            await updateStockPDV(item.id, item.quantite);
           } else if (saleData.statut_livraison === 'partiel' && saleData.quantite_livree) {
             const quantitePartielle = saleData.quantite_livree[item.id] || 0;
             if (quantitePartielle > 0) {
-              await updateStockForDeliveredItem(item.id, quantitePartielle);
+              await updateStockPDV(item.id, quantitePartielle);
             }
           }
         }
 
         // Créer la transaction financière
-        await createSaleTransaction(saleData, sale.id);
+        await createSaleTransaction(saleData, facture.id);
 
-        console.log('Vente créée avec succès:', sale.id);
-        return sale;
+        console.log('Vente créée avec succès:', facture.id);
+        return facture;
 
       } catch (error) {
         console.error('Erreur lors de la création de vente:', error);
@@ -191,8 +167,8 @@ export const useVenteMutation = () => {
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['ventes'] });
-      queryClient.invalidateQueries({ queryKey: ['stock'] });
+      queryClient.invalidateQueries({ queryKey: ['factures_vente'] });
+      queryClient.invalidateQueries({ queryKey: ['stock_pdv'] });
       queryClient.invalidateQueries({ queryKey: ['transactions'] });
       queryClient.invalidateQueries({ queryKey: ['cash-register-balance'] });
       queryClient.invalidateQueries({ queryKey: ['transactions-financieres-aujourdhui'] });
