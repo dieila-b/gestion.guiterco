@@ -94,6 +94,7 @@ export const useVenteMutation = () => {
           category: 'sales',
           cash_register_id: cashRegisters[0].id,
           payment_method: mappedPaymentMethod,
+          description: `Vente #${factureId}`,
           commentaire: `Vente #${factureId} - ${saleData.notes || 'Vente au comptoir'}`,
           date_operation: new Date().toISOString()
         });
@@ -109,7 +110,7 @@ export const useVenteMutation = () => {
       console.log('Début de la création de vente...', { cartItems, saleData });
 
       try {
-        // Créer la facture de vente
+        // Créer la facture de vente - le numero_facture sera généré automatiquement par le trigger
         const { data: facture, error: factureError } = await supabase
           .from('factures_vente')
           .insert({

@@ -28,17 +28,23 @@ export const useCartManagement = (checkStock: (articleId: string, quantiteDemand
         
         return prevCart.map(item =>
           item.id === article.id
-            ? { ...item, quantite: nouvelleQuantite }
+            ? { 
+                ...item, 
+                quantite: nouvelleQuantite,
+                prix_total: (item.prix_vente - item.remise) * nouvelleQuantite
+              }
             : item
         );
       }
       
+      const prixApresRemise = article.prix_vente || 0;
       return [...prevCart, {
         id: article.id,
         nom: article.nom,
         prix_vente: article.prix_vente || 0,
         quantite: 1,
         remise: 0,
+        prix_total: prixApresRemise,
         stock_disponible: stockCheck.quantiteDisponible
       }];
     });
@@ -60,7 +66,11 @@ export const useCartManagement = (checkStock: (articleId: string, quantiteDemand
     setCart(prevCart => 
       prevCart.map(item =>
         item.id === productId
-          ? { ...item, quantite: newQuantity }
+          ? { 
+              ...item, 
+              quantite: newQuantity,
+              prix_total: (item.prix_vente - item.remise) * newQuantity
+            }
           : item
       )
     );
@@ -70,7 +80,11 @@ export const useCartManagement = (checkStock: (articleId: string, quantiteDemand
     setCart(prevCart => 
       prevCart.map(item =>
         item.id === productId
-          ? { ...item, remise: Math.max(0, remise) }
+          ? { 
+              ...item, 
+              remise: Math.max(0, remise),
+              prix_total: (item.prix_vente - Math.max(0, remise)) * item.quantite
+            }
           : item
       )
     );
