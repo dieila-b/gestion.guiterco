@@ -5,33 +5,11 @@ import { Button } from '@/components/ui/button';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale/fr';
 import { useCashRegisters } from "@/hooks/useCashRegisters";
-import { useTodayTransactions } from "@/hooks/useTransactions";
-import { useExpenses } from "@/hooks/useExpenses";
 import { useTransactionsFinancieresAujourdhui } from "@/hooks/useTransactionsFinancieresAujourdhui";
 import { useCashRegisterBalance } from "@/hooks/useCashRegisterBalance";
 import { formatCurrency } from "@/lib/currency";
 import { useToast } from "@/hooks/use-toast";
 import TransactionsOverviewTable from "./TransactionsOverviewTable";
-
-// Type guard pour transaction
-function isTransaction(t: any): t is { amount: number } {
-  return typeof t.amount === "number";
-}
-
-// Type guard pour dépenses
-function isExpense(t: any): t is { montant: number } {
-  return typeof t.montant === "number";
-}
-
-// Utilitaire pour filtrer la date du jour
-function isToday(d: Date) {
-  const now = new Date();
-  return (
-    d.getFullYear() === now.getFullYear() &&
-    d.getMonth() === now.getMonth() &&
-    d.getDate() === now.getDate()
-  );
-}
 
 const CashRegisterOverview: React.FC = () => {
   const { toast } = useToast();
@@ -46,53 +24,26 @@ const CashRegisterOverview: React.FC = () => {
   // Solde calculé automatiquement
   const { data: calculatedBalance = 0 } = useCashRegisterBalance(principalRegister?.id);
 
-  // Transactions financières du jour (nouvelles données)
-  const { data: transactionsFinancieresAujourdhui = [], isLoading: isLoadingTransactionsFinancieres } = useTransactionsFinancieresAujourdhui();
+  // Transactions financières du jour (incluant maintenant les ventes)
+  const { data: transactionsFinancieresAujourdhui = [] } = useTransactionsFinancieresAujourdhui();
 
-  // Transactions du jour (entrées/sorties)
-  const { data: todayTransactions = [], isLoading: isLoadingTransactions } = useTodayTransactions(principalRegister?.id);
-  // Dépenses autres (sorties_financieres)
-  const { data: allExpenses = [], isLoading: isLoadingExpenses } = useExpenses();
-  const todaysExtraExpenses = React.useMemo(() =>
-    allExpenses.filter((e: any) =>
-      isToday(new Date(e.date_sortie))
-    ),
-    [allExpenses]
-  );
+  // Calculer les totaux du jour à partir des nouvelles données
+  const totals = React.useMemo(() => {
+    const income = transactionsFinancieresAujourdhui
+      .filter(t => t.type === "income")
+      .reduce((sum, t) => sum + (t.montant || t.amount || 0), 0);
+    
+    const expense = transactionsFinancieresAujourdhui
+      .filter(t => t.type === "expense")
+      .reduce((sum, t) => sum + (t.montant || t.amount || 0), 0);
 
-  // Entrées/sorties du jour (nouvelles données financières en priorité)
-  const todayIncomes = [
-    ...todayTransactions.filter(t => isTransaction(t) && t.type === "income"),
-    ...transactionsFinancieresAujourdhui.filter(t => t.type === "income")
-  ];
-  
-  const todayExpenses = [
-    ...todayTransactions.filter(t => isTransaction(t) && t.type === "expense"),
-    ...transactionsFinancieresAujourdhui.filter(t => t.type === "expense"),
-    ...todaysExtraExpenses
-  ];
+    return { income, expense, balance: income - expense };
+  }, [transactionsFinancieresAujourdhui]);
 
-  // Fonctions helpers pour obtenir le montant
-  function getMontant(tx: any): number {
-    if (isTransaction(tx)) return Number(tx.amount);
-    if (isExpense(tx)) return Number(tx.montant);
-    // Pour les nouvelles transactions financières
-    if (tx.montant !== undefined) return Number(tx.montant);
-    if (tx.amount !== undefined) return Number(tx.amount);
-    return 0;
-  }
-
-  // Calcul des totaux
-  const totals = {
-    income: todayIncomes.reduce((sum, t) => sum + getMontant(t), 0),
-    expense: todayExpenses.reduce((sum, t) => sum + getMontant(t), 0)
-  };
-  const totalBalance = totals.income - totals.expense;
-
-  // Nb txs
-  const nbIncome = todayIncomes.length;
-  const nbExpense = todayExpenses.length;
-  const nbTotal = todayIncomes.length + todayExpenses.length;
+  // Nb transactions
+  const nbIncome = transactionsFinancieresAujourdhui.filter(t => t.type === "income").length;
+  const nbExpense = transactionsFinancieresAujourdhui.filter(t => t.type === "expense").length;
+  const nbTotal = transactionsFinancieresAujourdhui.length;
 
   // Formattage de la date
   const lastUpdate = principalRegister?.updated_at
@@ -148,7 +99,7 @@ const CashRegisterOverview: React.FC = () => {
         <Card>
           <CardHeader>
             <CardTitle>Entrées du jour</CardTitle>
-            <CardDescription>Total des recettes</CardDescription>
+            <CardDescription>Total des recettes (ventes incluses)</CardDescription>
           </CardHeader>
           <CardContent>
             <p className="text-3xl font-bold text-green-600">{formatCurrency(totals.income)}</p>
@@ -173,7 +124,9 @@ const CashRegisterOverview: React.FC = () => {
             <CardDescription>Entrées - Sorties</CardDescription>
           </CardHeader>
           <CardContent>
-            <p className="text-3xl font-bold text-blue-600">{formatCurrency(totalBalance)}</p>
+            <p className={`text-3xl font-bold ${totals.balance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+              {formatCurrency(totals.balance)}
+            </p>
             <p className="text-sm text-muted-foreground mt-1">{nbTotal} transaction{nbTotal > 1 ? "s" : ""}</p>
           </CardContent>
         </Card>

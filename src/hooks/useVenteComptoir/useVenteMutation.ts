@@ -38,6 +38,17 @@ export const useVenteMutation = (pointsDeVente?: any[], selectedPDV?: string, se
       const pdvSelected = pointsDeVente?.find(pdv => pdv.nom === selectedPDV);
       if (!pdvSelected) throw new Error('Point de vente non trouvé');
 
+      // Récupérer la première caisse enregistreuse disponible
+      const { data: cashRegisters } = await supabase
+        .from("cash_registers")
+        .select("id")
+        .limit(1)
+        .single();
+
+      if (!cashRegisters) {
+        throw new Error('Aucune caisse enregistreuse disponible');
+      }
+
       // Déterminer le statut de paiement
       const montantRestant = venteData.montant_total - venteData.montant_paye;
       let statutPaiement = 'en_attente';
@@ -121,6 +132,31 @@ export const useVenteMutation = (pointsDeVente?: any[], selectedPDV?: string, se
 
       console.log('Facture créée:', facture);
 
+      // **NOUVEAU : Créer une transaction financière pour la vente**
+      if (venteData.montant_paye > 0) {
+        const { error: transactionError } = await supabase
+          .from('transactions')
+          .insert({
+            type: 'income',
+            amount: venteData.montant_paye,
+            montant: venteData.montant_paye,
+            date_operation: new Date().toISOString(),
+            description: `Vente ${numeroFacture} - ${venteData.articles.map(a => a.nom).join(', ')}`,
+            commentaire: venteData.notes || `Vente comptoir ${numeroFacture}`,
+            cash_register_id: cashRegisters.id,
+            category: 'sales',
+            payment_method: venteData.mode_paiement === 'especes' ? 'cash' : 
+                           venteData.mode_paiement === 'carte' ? 'card' : 'other'
+          });
+
+        if (transactionError) {
+          console.error('Erreur création transaction financière:', transactionError);
+          // Ne pas faire échouer la vente pour autant, mais signaler l'erreur
+        } else {
+          console.log('Transaction financière créée pour la vente');
+        }
+      }
+
       // Enregistrer le versement si paiement effectué
       if (venteData.montant_paye > 0) {
         const { error: versementError } = await supabase
@@ -184,6 +220,9 @@ export const useVenteMutation = (pointsDeVente?: any[], selectedPDV?: string, se
       queryClient.invalidateQueries({ queryKey: ['commandes_clients'] });
       queryClient.invalidateQueries({ queryKey: ['factures_vente'] });
       queryClient.invalidateQueries({ queryKey: ['stock_pdv'] });
+      queryClient.invalidateQueries({ queryKey: ['transactions-financieres'] });
+      queryClient.invalidateQueries({ queryKey: ['transactions-financieres-aujourdhui'] });
+      queryClient.invalidateQueries({ queryKey: ['cash-register-balance'] });
       setCart?.([]);
       
       if (result.statutPaiement === 'paye') {
