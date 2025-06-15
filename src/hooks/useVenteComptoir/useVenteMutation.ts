@@ -114,6 +114,7 @@ export const useVenteMutation = () => {
         const { data: facture, error: factureError } = await supabase
           .from('factures_vente')
           .insert({
+            numero_facture: '', // Sera remplacé par le trigger
             client_id: saleData.client_id!,
             montant_ttc: saleData.montant_total,
             montant_ht: saleData.montant_total / 1.2, // Supposons 20% de TVA
