@@ -69,8 +69,8 @@ const CashRegisterOverview: React.FC<CashRegisterOverviewProps> = ({
         </Card>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 flex flex-col">
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        <div className="lg:col-span-3 flex flex-col">
           <TransactionsOverviewTable />
         </div>
         <Card>

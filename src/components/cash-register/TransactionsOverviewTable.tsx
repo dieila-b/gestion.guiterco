@@ -147,7 +147,7 @@ const TransactionsOverviewTable: React.FC = () => {
                   <th className="py-2 px-3">Type</th>
                   <th className="py-2 px-3">Montant</th>
                   <th className="py-2 px-3">Commentaire</th>
-                  <th className="py-2 px-3">Action</th>
+                  <th className="py-2 px-1 w-16 text-center">Action</th>
                 </tr>
               </thead>
               <tbody>
@@ -173,7 +173,7 @@ const TransactionsOverviewTable: React.FC = () => {
                           {row.type === "expense" ? "-" : "+"}{formatCurrency(row.montant)}
                         </td>
                         <td className="py-2 px-3">{row.commentaire}</td>
-                        <td className="py-2 px-3">
+                        <td className="py-2 px-1 w-16 text-center">
                           {/* Placeholder pour action future */}
                         </td>
                       </tr>
