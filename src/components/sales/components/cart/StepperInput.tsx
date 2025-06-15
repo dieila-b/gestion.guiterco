@@ -28,6 +28,21 @@ const StepperInput: React.FC<StepperInputProps> = ({
     onChange(newValue);
   };
 
+  const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    let val = event.target.value;
+    // Permettre suppression complète pour retaper un nombre
+    if (val === '') {
+      onChange(min);
+      return;
+    }
+    let parsed = parseInt(val, 10);
+    if (isNaN(parsed)) {
+      return;
+    }
+    parsed = Math.max(min, Math.min(max, parsed));
+    onChange(parsed);
+  };
+
   return (
     <div className={`flex items-center ${className}`}>
       <Button
@@ -40,11 +55,21 @@ const StepperInput: React.FC<StepperInputProps> = ({
       >
         <Minus className="h-3 w-3" />
       </Button>
-      
-      <div className="h-7 w-8 flex items-center justify-center text-xs font-medium border-t border-b border-gray-300 bg-white">
-        {value}
-      </div>
-      
+
+      <input
+        type="number"
+        value={value}
+        min={min}
+        max={max}
+        step={1}
+        onChange={handleInputChange}
+        className="h-7 w-12 text-xs text-center font-medium border-t border-b border-gray-300 bg-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+        style={{
+          MozAppearance: 'textfield',
+          WebkitAppearance: 'none'
+        }}
+      />
+
       <Button
         type="button"
         variant="outline"
