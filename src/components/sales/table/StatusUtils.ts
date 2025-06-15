@@ -93,9 +93,6 @@ export const getArticleCount = (facture: FactureVente) => {
     return count;
   }
   
-  // Priorité 3: essayer de récupérer depuis une requête directe pour debug
-  console.log('📦 Tentative de récupération directe des lignes facture pour:', facture.id);
-  
   console.log('❌ Aucune donnée d\'articles trouvée pour facture:', facture.numero_facture);
   return 0;
 };
