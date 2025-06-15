@@ -20,9 +20,9 @@ export interface TransactionFinanciere {
   };
 }
 
-export function useTransactionsFinancieres(type?: 'income' | 'expense', year?: number, month?: number) {
+export function useTransactionsFinancieres(type?: 'income' | 'expense', year?: number, month?: number, source?: string) {
   return useQuery({
-    queryKey: ["transactions-financieres", type, year, month],
+    queryKey: ["transactions-financieres", type, year, month, source],
     queryFn: async () => {
       let query = supabase
         .from("transactions")
@@ -34,6 +34,10 @@ export function useTransactionsFinancieres(type?: 'income' | 'expense', year?: n
       
       if (type) {
         query = query.eq("type", type);
+      }
+      
+      if (source) {
+        query = query.eq('source', source);
       }
       
       if (year && month) {
@@ -75,14 +79,17 @@ export function useCreateTransactionFinanciere() {
         throw new Error("Aucune caisse disponible");
       }
 
+      const transactionToInsert = {
+        ...transaction,
+        cash_register_id: cashRegisters.id,
+        category: 'other' as const,
+        payment_method: 'cash' as const,
+        source: transaction.type === 'income' ? 'Entrée manuelle' : 'Sortie manuelle',
+      };
+
       const { data, error } = await supabase
         .from("transactions")
-        .insert({
-          ...transaction,
-          cash_register_id: cashRegisters.id,
-          category: 'other' as const,
-          payment_method: 'cash' as const
-        })
+        .insert(transactionToInsert)
         .select()
         .single();
       

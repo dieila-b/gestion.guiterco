@@ -25,7 +25,7 @@ const ExpensesTab: React.FC = () => {
   
   // Charger les données selon l'onglet actif
   const { data: sorties = [], isLoading: isLoadingSorties } = useTransactionsFinancieres('expense');
-  const { data: entrees = [], isLoading: isLoadingEntrees } = useTransactionsFinancieres('income');
+  const { data: entrees = [], isLoading: isLoadingEntrees } = useTransactionsFinancieres('income', undefined, undefined, 'Entrée manuelle');
   const { data: categories = [], isLoading: isLoadingCategories } = useCategoriesFinancieres();
 
   const handlePrint = () => {
