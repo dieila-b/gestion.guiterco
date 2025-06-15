@@ -25,13 +25,24 @@ const FactureVenteTableRow = ({ facture }: FactureVenteTableRowProps) => {
   const paidAmount = calculatePaidAmount(facture);
   const remainingAmount = calculateRemainingAmount(facture);
 
+  // Formater la date avec l'heure
+  const formatDateWithTime = (dateString: string) => {
+    try {
+      const date = new Date(dateString);
+      return format(date, 'dd/MM/yyyy HH:mm', { locale: fr });
+    } catch (error) {
+      console.error('Error formatting date:', error);
+      return format(new Date(dateString), 'dd/MM/yyyy', { locale: fr });
+    }
+  };
+
   return (
     <TableRow className="hover:bg-muted/30">
       <TableCell className="font-medium text-blue-600">
         {facture.numero_facture}
       </TableCell>
       <TableCell>
-        {format(new Date(facture.date_facture), 'dd/MM/yyyy', { locale: fr })}
+        {formatDateWithTime(facture.date_facture)}
       </TableCell>
       <TableCell className="font-medium">
         {facture.client ? facture.client.nom : 'Client non spécifié'}

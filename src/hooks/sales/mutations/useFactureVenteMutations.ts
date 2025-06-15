@@ -72,7 +72,7 @@ export const useCreateVersement = () => {
       console.log('🔍 Récupération informations facture...');
       const { data: facture, error: factureError } = await supabase
         .from('factures_vente')
-        .select('numero_facture, montant_ttc, client_id')
+        .select('numero_facture, montant_ttc, client_id, statut_paiement')
         .eq('id', versement.facture_id)
         .single();
       
@@ -84,7 +84,8 @@ export const useCreateVersement = () => {
       console.log('📄 Facture trouvée:', {
         numero: facture.numero_facture,
         montant_ttc: facture.montant_ttc,
-        client_id: facture.client_id
+        client_id: facture.client_id,
+        statut_actuel: facture.statut_paiement
       });
 
       // Récupérer la première caisse disponible
@@ -162,6 +163,46 @@ export const useCreateVersement = () => {
         amount: transactionResult.amount,
         description: transactionResult.description
       });
+
+      // Calculer le nouveau statut de paiement
+      console.log('🔄 Calcul du nouveau statut de paiement...');
+      
+      // Récupérer tous les versements de cette facture
+      const { data: allVersements, error: versementsError } = await supabase
+        .from('versements_clients')
+        .select('montant')
+        .eq('facture_id', versement.facture_id);
+        
+      if (versementsError) {
+        console.error('❌ Erreur récupération versements:', versementsError);
+      } else {
+        const totalPaye = allVersements?.reduce((sum, v) => sum + (v.montant || 0), 0) || 0;
+        console.log('💰 Total payé:', totalPaye, 'sur', facture.montant_ttc);
+        
+        let nouveauStatut = 'en_attente';
+        if (totalPaye >= facture.montant_ttc) {
+          nouveauStatut = 'payee';
+        } else if (totalPaye > 0) {
+          nouveauStatut = 'partiellement_payee';
+        }
+        
+        console.log('🔄 Nouveau statut calculé:', nouveauStatut);
+        
+        // Mettre à jour le statut de la facture
+        const { error: updateError } = await supabase
+          .from('factures_vente')
+          .update({ 
+            statut_paiement: nouveauStatut,
+            date_paiement: nouveauStatut === 'payee' ? new Date().toISOString() : null
+          })
+          .eq('id', versement.facture_id);
+          
+        if (updateError) {
+          console.error('❌ Erreur mise à jour statut facture:', updateError);
+        } else {
+          console.log('✅ Statut facture mis à jour:', nouveauStatut);
+        }
+      }
 
       console.log('🎉 SUCCÈS COMPLET - Versement et transaction créés');
       return versementData;
