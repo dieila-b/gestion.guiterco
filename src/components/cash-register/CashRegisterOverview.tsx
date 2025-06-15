@@ -37,14 +37,31 @@ const CashRegisterOverview: React.FC = () => {
   const { toast } = useToast();
   
   // Caisse principale
-  const { data: cashRegisters } = useCashRegisters();
+  const { data: cashRegisters, isLoading: isLoadingRegisters } = useCashRegisters();
   const principalRegister = React.useMemo(
     () => cashRegisters?.[0],
     [cashRegisters]
   );
 
+  // Debug: Afficher les informations de la caisse
+  React.useEffect(() => {
+    if (principalRegister) {
+      console.log("Caisse principale trouvée:", principalRegister);
+    } else if (!isLoadingRegisters) {
+      console.log("Aucune caisse trouvée, caisses disponibles:", cashRegisters);
+    }
+  }, [principalRegister, cashRegisters, isLoadingRegisters]);
+
   // Solde calculé automatiquement
-  const { data: calculatedBalance = 0 } = useCashRegisterBalance(principalRegister?.id);
+  const { data: calculatedBalance = 0, isLoading: isLoadingBalance, error: balanceError } = useCashRegisterBalance(principalRegister?.id);
+
+  // Debug: Afficher les informations du solde
+  React.useEffect(() => {
+    console.log("Solde calculé:", calculatedBalance);
+    if (balanceError) {
+      console.error("Erreur lors du calcul du solde:", balanceError);
+    }
+  }, [calculatedBalance, balanceError]);
 
   // Transactions financières du jour (nouvelles données)
   const { data: transactionsFinancieresAujourdhui = [], isLoading: isLoadingTransactionsFinancieres } = useTransactionsFinancieresAujourdhui();
@@ -128,6 +145,26 @@ const CashRegisterOverview: React.FC = () => {
     });
   };
 
+  // Affichage de l'état de chargement
+  if (isLoadingRegisters) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <p>Chargement des caisses...</p>
+      </div>
+    );
+  }
+
+  if (!principalRegister) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <p className="text-lg font-medium text-muted-foreground">Aucune caisse configurée</p>
+          <p className="text-sm text-muted-foreground">Veuillez créer une caisse pour commencer</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <>
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
@@ -135,13 +172,23 @@ const CashRegisterOverview: React.FC = () => {
         <Card>
           <CardHeader>
             <CardTitle>Solde actif</CardTitle>
-            <CardDescription>Caisse principale</CardDescription>
+            <CardDescription>
+              {principalRegister.name || 'Caisse principale'}
+              {isLoadingBalance && " (Chargement...)"}
+            </CardDescription>
           </CardHeader>
           <CardContent>
-            <p className="text-3xl font-bold">{formatCurrency(calculatedBalance)}</p>
+            <p className={`text-3xl font-bold ${calculatedBalance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+              {formatCurrency(calculatedBalance)}
+            </p>
             <p className="text-sm text-muted-foreground mt-1">
               Dernière mise à jour: {lastUpdate}
             </p>
+            {balanceError && (
+              <p className="text-xs text-red-500 mt-1">
+                Erreur de calcul
+              </p>
+            )}
           </CardContent>
         </Card>
         {/* Entrées du jour */}
@@ -173,7 +220,9 @@ const CashRegisterOverview: React.FC = () => {
             <CardDescription>Entrées - Sorties</CardDescription>
           </CardHeader>
           <CardContent>
-            <p className="text-3xl font-bold text-blue-600">{formatCurrency(totalBalance)}</p>
+            <p className={`text-3xl font-bold ${totalBalance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+              {formatCurrency(totalBalance)}
+            </p>
             <p className="text-sm text-muted-foreground mt-1">{nbTotal} transaction{nbTotal > 1 ? "s" : ""}</p>
           </CardContent>
         </Card>
