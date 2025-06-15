@@ -1,4 +1,3 @@
-
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -171,7 +170,9 @@ export const useVenteMutation = (pointsDeVente?: any[], selectedPDV?: string, se
               category: 'sales',
               payment_method: paymentMethod,
               cash_register_id: cashRegister.id,
-              date_operation: new Date().toISOString()
+              date_operation: new Date().toISOString(),
+              // Champ ajouté pour l'identification claire
+              source: 'vente'
             });
 
           if (transactionError) {

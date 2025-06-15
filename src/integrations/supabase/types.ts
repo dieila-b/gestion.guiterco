@@ -1853,6 +1853,7 @@ export type Database = {
           id: string
           montant: number | null
           payment_method: Database["public"]["Enums"]["payment_method"]
+          source: string | null
           type: Database["public"]["Enums"]["transaction_type"]
         }
         Insert: {
@@ -1867,6 +1868,7 @@ export type Database = {
           id?: string
           montant?: number | null
           payment_method: Database["public"]["Enums"]["payment_method"]
+          source?: string | null
           type: Database["public"]["Enums"]["transaction_type"]
         }
         Update: {
@@ -1881,6 +1883,7 @@ export type Database = {
           id?: string
           montant?: number | null
           payment_method?: Database["public"]["Enums"]["payment_method"]
+          source?: string | null
           type?: Database["public"]["Enums"]["transaction_type"]
         }
         Relationships: [
