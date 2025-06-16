@@ -7,7 +7,7 @@ import { fr } from 'date-fns/locale';
 import PaymentStatusBadge from './PaymentStatusBadge';
 import DeliveryStatusBadge from './DeliveryStatusBadge';
 import ArticleCountCell from './ArticleCountCell';
-import { ActionButtons } from '../actions/ActionButtons';
+import ActionButtons from '../actions/ActionButtons';
 import { calculatePaidAmount, calculateRemainingAmount } from './StatusUtils';
 import type { FactureVente } from '@/types/sales';
 
@@ -39,7 +39,7 @@ const FactureVenteTableRow = ({ facture }: FactureVenteTableRowProps) => {
       
       <TableCell className="text-gray-800">
         {facture.client?.nom || 'Client non défini'}
-        {facture.client?.prenom && ` ${facture.client.prenom}`}
+        {facture.client?.nom_entreprise && ` (${facture.client.nom_entreprise})`}
       </TableCell>
       
       <ArticleCountCell facture={facture} />

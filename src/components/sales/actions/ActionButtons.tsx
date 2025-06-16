@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { Trash, Printer, Ticket, Pencil } from 'lucide-react';
+import { Trash, Printer, Ticket } from 'lucide-react';
 import { printFacture, printTicket } from './printUtils';
 import EditFactureDialog from './EditFactureDialog';
 import type { FactureVente } from '@/types/sales';
@@ -9,12 +9,9 @@ import { calculatePaidAmount, getActualDeliveryStatus } from '../table/StatusUti
 
 interface ActionButtonsProps {
   facture: FactureVente;
-  onEdit: () => void;
-  onDelete: () => void;
-  isArchived?: boolean;
 }
 
-const ActionButtons = ({ facture, onEdit, onDelete, isArchived }: ActionButtonsProps) => {
+const ActionButtons = ({ facture }: ActionButtonsProps) => {
   const handlePrint = () => {
     printFacture(facture);
   };
@@ -23,10 +20,20 @@ const ActionButtons = ({ facture, onEdit, onDelete, isArchived }: ActionButtonsP
     printTicket(facture);
   };
 
+  const handleDelete = () => {
+    // TODO: Implement delete functionality
+    console.log('Delete facture:', facture.id);
+  };
+
   // Nouvelle règle suppression :
   // => Afficher le bouton supprimer UNIQUEMENT si aucun paiement ET aucune livraison effectuée
   const isDeletable =
     calculatePaidAmount(facture) === 0 && getActualDeliveryStatus(facture) === 'en_attente';
+
+  // Facture = archivée si payée ET livrée
+  const isArchived =
+    calculatePaidAmount(facture) >= facture.montant_ttc &&
+    getActualDeliveryStatus(facture) === 'livree';
 
   return (
     <div className="flex justify-center space-x-1">
@@ -39,7 +46,7 @@ const ActionButtons = ({ facture, onEdit, onDelete, isArchived }: ActionButtonsP
         <Button
           variant="ghost"
           size="sm"
-          onClick={onDelete}
+          onClick={handleDelete}
           className="h-8 w-8 p-0 hover:bg-red-100"
           title="Supprimer"
         >
@@ -69,4 +76,3 @@ const ActionButtons = ({ facture, onEdit, onDelete, isArchived }: ActionButtonsP
 };
 
 export default ActionButtons;
-
