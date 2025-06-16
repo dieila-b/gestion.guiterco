@@ -1,4 +1,3 @@
-
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -94,13 +93,36 @@ export const useCreateFactureVente = () => {
 
       // 4. Mettre à jour le stock PDV si spécifié
       if (data.point_vente_id) {
+        // D'abord récupérer l'ID du point de vente si c'est un nom
+        let pointVenteId = data.point_vente_id;
+        
+        // Vérifier si c'est déjà un UUID valide
+        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+        if (!uuidRegex.test(data.point_vente_id)) {
+          console.log('🔍 Recherche ID du point de vente pour nom:', data.point_vente_id);
+          
+          const { data: pdvData, error: pdvError } = await supabase
+            .from('points_de_vente')
+            .select('id')
+            .eq('nom', data.point_vente_id)
+            .single();
+          
+          if (pdvError) {
+            console.error('❌ Erreur récupération point de vente:', pdvError);
+            // Ne pas faire échouer la transaction pour un problème de stock
+          } else {
+            pointVenteId = pdvData.id;
+            console.log('✅ ID point de vente trouvé:', pointVenteId);
+          }
+        }
+
         for (const item of data.cart) {
           // Récupérer la quantité actuelle pour la mise à jour
           const { data: stockActuel, error: stockSelectError } = await supabase
             .from('stock_pdv')
             .select('quantite_disponible')
             .eq('article_id', item.article_id)
-            .eq('point_vente_id', data.point_vente_id)
+            .eq('point_vente_id', pointVenteId)
             .single();
 
           if (stockSelectError) {
@@ -116,7 +138,7 @@ export const useCreateFactureVente = () => {
               quantite_disponible: nouvelleQuantite
             })
             .eq('article_id', item.article_id)
-            .eq('point_vente_id', data.point_vente_id);
+            .eq('point_vente_id', pointVenteId);
 
           if (stockError) {
             console.error('❌ Erreur mise à jour stock PDV:', stockError);

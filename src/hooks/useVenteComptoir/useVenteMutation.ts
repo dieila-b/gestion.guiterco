@@ -24,6 +24,16 @@ export const useVenteMutation = (
         throw new Error('Panier vide');
       }
 
+      // Récupérer l'ID du point de vente sélectionné
+      let pointVenteId = selectedPDV;
+      if (selectedPDV && pointsDeVente) {
+        const pdvSelected = pointsDeVente.find(pdv => pdv.nom === selectedPDV);
+        if (pdvSelected) {
+          pointVenteId = pdvSelected.id;
+          console.log('🔍 ID du point de vente:', pointVenteId, 'pour nom:', selectedPDV);
+        }
+      }
+
       // Utiliser la mutation de création de facture
       const result = await createFactureVente.mutateAsync({
         client_id: venteData.client_id,
@@ -32,7 +42,7 @@ export const useVenteMutation = (
         tva: venteData.tva,
         montant_ttc: venteData.montant_ttc,
         mode_paiement: venteData.mode_paiement,
-        point_vente_id: selectedPDV
+        point_vente_id: pointVenteId
       });
 
       console.log('✅ Vente comptoir créée avec succès:', result);
