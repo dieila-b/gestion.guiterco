@@ -15,7 +15,7 @@ const DeliveryStatusBadge = ({ facture }: DeliveryStatusBadgeProps) => {
     case 'en_attente':
       return (
         <Badge variant="outline" className="bg-orange-100 text-orange-800 border-orange-300">
-          En attente
+          Non livrée
         </Badge>
       );
     case 'partiellement_livree':

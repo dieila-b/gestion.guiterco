@@ -61,9 +61,13 @@ export const getActualPaymentStatus = (facture: FactureVente) => {
   console.log('🔄 Montant payé:', paidAmount, 'Montant total:', totalAmount);
   
   let status;
+  
+  // Tolérance de 1 GNF pour gérer les arrondis
+  const tolerance = 1;
+  
   if (paidAmount === 0) {
     status = 'en_attente';
-  } else if (paidAmount >= totalAmount) {
+  } else if (paidAmount >= (totalAmount - tolerance)) {
     status = 'payee';
   } else {
     status = 'partiellement_payee';
@@ -94,11 +98,7 @@ export const getArticleCount = (facture: FactureVente) => {
     return count;
   }
   
-  // Si aucune donnée n'est disponible, faire une requête directe
-  console.log('❌ Aucune donnée d\'articles trouvée, requête directe nécessaire pour facture:', facture.numero_facture);
-  
-  // Pour l'instant, on retourne 0 mais on loggue pour diagnostic
-  // Une solution serait de faire une requête async ici, mais cela compliquerait le component
+  console.log('❌ Aucune donnée d\'articles trouvée pour facture:', facture.numero_facture);
   return 0;
 };
 
@@ -107,9 +107,10 @@ export const getActualDeliveryStatus = (facture: FactureVente) => {
   console.log('🚚 Statut livraison facture:', facture.statut_livraison);
   console.log('🚚 Lignes facture:', facture.lignes_facture);
   
-  // Si statut_livraison est défini au niveau facture, l'utiliser
-  if (facture.statut_livraison) {
-    console.log('🚚 Utilisation statut_livraison de la facture:', facture.statut_livraison);
+  // Si statut_livraison est calculé par la fonction SQL, l'utiliser
+  if (facture.statut_livraison && 
+      ['en_attente', 'partiellement_livree', 'livree'].includes(facture.statut_livraison)) {
+    console.log('🚚 Utilisation statut_livraison calculé:', facture.statut_livraison);
     return facture.statut_livraison;
   }
   
@@ -120,7 +121,9 @@ export const getActualDeliveryStatus = (facture: FactureVente) => {
   }
   
   const totalLignes = facture.lignes_facture.length;
-  const lignesLivrees = facture.lignes_facture.filter((ligne: any) => ligne.statut_livraison === 'livree').length;
+  const lignesLivrees = facture.lignes_facture.filter((ligne: any) => 
+    ligne.statut_livraison === 'livree'
+  ).length;
   
   console.log('🚚 Lignes livrées:', lignesLivrees, '/', totalLignes);
   
