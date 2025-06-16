@@ -1,19 +1,23 @@
 
 import React from 'react';
 import { Badge } from '@/components/ui/badge';
-import { getStatusBadgeColor, getStatusLabel } from './StatusUtils';
+import { getStatusBadgeColor, getStatusLabel, getActualPaymentStatus } from './StatusUtils';
+import type { FactureVente } from '@/types/sales';
 
 interface PaymentStatusBadgeProps {
-  status: string;
+  facture: FactureVente;
 }
 
-const PaymentStatusBadge = ({ status }: PaymentStatusBadgeProps) => {
+const PaymentStatusBadge = ({ facture }: PaymentStatusBadgeProps) => {
+  // Calculer le statut réel basé sur les versements
+  const actualStatus = getActualPaymentStatus(facture);
+  
   return (
     <Badge 
       variant="outline" 
-      className={`${getStatusBadgeColor(status)} font-medium`}
+      className={`${getStatusBadgeColor(actualStatus)} font-medium`}
     >
-      {getStatusLabel(status)}
+      {getStatusLabel(actualStatus)}
     </Badge>
   );
 };

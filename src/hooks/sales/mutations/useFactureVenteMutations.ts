@@ -1,3 +1,4 @@
+
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -110,42 +111,107 @@ export const useCreateFactureVente = () => {
           if (pdvError) {
             console.error('❌ Erreur récupération point de vente:', pdvError);
             // Ne pas faire échouer la transaction pour un problème de stock
+            console.log('⚠️ Continuing without stock update');
+            return { facture, lignes: lignesCreees };
           } else {
             pointVenteId = pdvData.id;
             console.log('✅ ID point de vente trouvé:', pointVenteId);
           }
         }
 
+        // Mettre à jour le stock pour chaque article
         for (const item of data.cart) {
-          // Récupérer la quantité actuelle pour la mise à jour
-          const { data: stockActuel, error: stockSelectError } = await supabase
+          console.log(`🔄 Mise à jour stock pour article ${item.article_id}, quantité: ${item.quantite}`);
+          
+          // Vérifier si le stock existe
+          const { data: stockExistant, error: stockCheckError } = await supabase
             .from('stock_pdv')
-            .select('quantite_disponible')
+            .select('id, quantite_disponible')
             .eq('article_id', item.article_id)
             .eq('point_vente_id', pointVenteId)
-            .single();
+            .maybeSingle();
 
-          if (stockSelectError) {
-            console.error('❌ Erreur lecture stock PDV:', stockSelectError);
+          if (stockCheckError) {
+            console.error('❌ Erreur vérification stock:', stockCheckError);
             continue;
           }
 
-          const nouvelleQuantite = Math.max(0, stockActuel.quantite_disponible - item.quantite);
+          if (stockExistant) {
+            // Mettre à jour le stock existant
+            const nouvelleQuantite = Math.max(0, stockExistant.quantite_disponible - item.quantite);
+            console.log(`📦 Stock actuel: ${stockExistant.quantite_disponible}, après vente: ${nouvelleQuantite}`);
 
-          const { error: stockError } = await supabase
-            .from('stock_pdv')
-            .update({
-              quantite_disponible: nouvelleQuantite
-            })
-            .eq('article_id', item.article_id)
-            .eq('point_vente_id', pointVenteId);
+            const { error: updateError } = await supabase
+              .from('stock_pdv')
+              .update({
+                quantite_disponible: nouvelleQuantite,
+                updated_at: new Date().toISOString()
+              })
+              .eq('id', stockExistant.id);
 
-          if (stockError) {
-            console.error('❌ Erreur mise à jour stock PDV:', stockError);
-            // Ne pas faire échouer la transaction pour un problème de stock
+            if (updateError) {
+              console.error('❌ Erreur mise à jour stock:', updateError);
+            } else {
+              console.log(`✅ Stock mis à jour pour article ${item.article_id}`);
+            }
+          } else {
+            console.log(`⚠️ Aucun stock trouvé pour l'article ${item.article_id} au PDV ${pointVenteId}`);
           }
         }
-        console.log('✅ Stock PDV mis à jour');
+      }
+
+      // 5. Créer une transaction financière pour la caisse
+      if (data.mode_paiement) {
+        console.log('💰 Création transaction financière:', data.montant_ttc);
+        
+        // Récupérer la première caisse disponible
+        const { data: cashRegister, error: cashRegisterError } = await supabase
+          .from('cash_registers')
+          .select('id')
+          .limit(1)
+          .maybeSingle();
+
+        if (cashRegisterError) {
+          console.error('❌ Erreur récupération caisse:', cashRegisterError);
+        } else if (cashRegister) {
+          // Mapper le mode de paiement
+          let paymentMethod: 'cash' | 'card' | 'transfer' | 'check' = 'cash';
+          
+          switch(data.mode_paiement) {
+            case 'carte':
+              paymentMethod = 'card';
+              break;
+            case 'virement':
+              paymentMethod = 'transfer';
+              break;
+            case 'cheque':
+              paymentMethod = 'check';
+              break;
+            case 'especes':
+            default:
+              paymentMethod = 'cash';
+              break;
+          }
+
+          const { error: transactionError } = await supabase
+            .from('transactions')
+            .insert({
+              type: 'income',
+              amount: data.montant_ttc,
+              description: `Vente ${numeroFacture}`,
+              category: 'sales',
+              payment_method: paymentMethod,
+              cash_register_id: cashRegister.id,
+              date_operation: new Date().toISOString(),
+              source: 'vente'
+            });
+
+          if (transactionError) {
+            console.error('❌ Erreur création transaction financière:', transactionError);
+          } else {
+            console.log('✅ Transaction financière créée');
+          }
+        }
       }
 
       return { facture, lignes: lignesCreees };
@@ -153,6 +219,9 @@ export const useCreateFactureVente = () => {
     onSuccess: () => {
       console.log('✅ Facture de vente créée avec succès');
       queryClient.invalidateQueries({ queryKey: ['factures_vente'] });
+      queryClient.invalidateQueries({ queryKey: ['stock-pdv'] });
+      queryClient.invalidateQueries({ queryKey: ['transactions'] });
+      queryClient.invalidateQueries({ queryKey: ['cash_registers'] });
       toast.success('Facture créée avec succès');
     },
     onError: (error: Error) => {

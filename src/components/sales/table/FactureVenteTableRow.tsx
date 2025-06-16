@@ -1,18 +1,14 @@
 
 import React from 'react';
 import { TableCell, TableRow } from '@/components/ui/table';
+import { formatCurrency } from '@/lib/currency';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import { formatCurrency } from '@/lib/currency';
-import FacturesVenteActions from '../FacturesVenteActions';
 import PaymentStatusBadge from './PaymentStatusBadge';
 import DeliveryStatusBadge from './DeliveryStatusBadge';
 import ArticleCountCell from './ArticleCountCell';
-import {
-  getActualPaymentStatus,
-  calculatePaidAmount,
-  calculateRemainingAmount
-} from './StatusUtils';
+import { ActionButtons } from '../actions/ActionButtons';
+import { calculatePaidAmount, calculateRemainingAmount } from './StatusUtils';
 import type { FactureVente } from '@/types/sales';
 
 interface FactureVenteTableRowProps {
@@ -20,52 +16,56 @@ interface FactureVenteTableRowProps {
 }
 
 const FactureVenteTableRow = ({ facture }: FactureVenteTableRowProps) => {
-  const actualPaymentStatus = getActualPaymentStatus(facture);
   const paidAmount = calculatePaidAmount(facture);
   const remainingAmount = calculateRemainingAmount(facture);
-
-  // Formater la date avec l'heure
-  const formatDateWithTime = (dateString: string) => {
-    try {
-      const date = new Date(dateString);
-      return format(date, 'dd/MM/yyyy HH:mm', { locale: fr });
-    } catch (error) {
-      console.error('Error formatting date:', error);
-      return format(new Date(dateString), 'dd/MM/yyyy', { locale: fr });
-    }
-  };
+  
+  console.log('🔍 Rendu ligne facture:', {
+    numero: facture.numero_facture,
+    montant_ttc: facture.montant_ttc,
+    paye: paidAmount,
+    restant: remainingAmount,
+    versements: facture.versements
+  });
 
   return (
-    <TableRow className="hover:bg-muted/30">
-      <TableCell className="font-medium text-blue-600">
+    <TableRow className="hover:bg-gray-50/50">
+      <TableCell className="font-medium text-gray-900">
         {facture.numero_facture}
       </TableCell>
-      <TableCell>
-        {formatDateWithTime(facture.date_facture)}
+      
+      <TableCell className="text-gray-600">
+        {format(new Date(facture.date_facture), 'dd/MM/yyyy', { locale: fr })}
       </TableCell>
-      <TableCell className="font-medium">
-        {facture.client ? facture.client.nom : 'Client non spécifié'}
+      
+      <TableCell className="text-gray-800">
+        {facture.client?.nom || 'Client non défini'}
+        {facture.client?.prenom && ` ${facture.client.prenom}`}
       </TableCell>
-      <TableCell className="text-center">
-        <ArticleCountCell facture={facture} />
-      </TableCell>
-      <TableCell className="text-right font-medium">
+      
+      <ArticleCountCell facture={facture} />
+      
+      <TableCell className="text-right font-medium text-gray-900">
         {formatCurrency(facture.montant_ttc)}
       </TableCell>
-      <TableCell className="text-right">
+      
+      <TableCell className="text-right text-green-600 font-medium">
         {formatCurrency(paidAmount)}
       </TableCell>
-      <TableCell className="text-right font-medium">
+      
+      <TableCell className="text-right text-orange-600 font-medium">
         {formatCurrency(remainingAmount)}
       </TableCell>
+      
       <TableCell className="text-center">
-        <PaymentStatusBadge status={actualPaymentStatus} />
+        <PaymentStatusBadge facture={facture} />
       </TableCell>
+      
       <TableCell className="text-center">
         <DeliveryStatusBadge facture={facture} />
       </TableCell>
+      
       <TableCell className="text-center">
-        <FacturesVenteActions facture={facture} />
+        <ActionButtons facture={facture} />
       </TableCell>
     </TableRow>
   );

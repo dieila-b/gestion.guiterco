@@ -1,4 +1,3 @@
-
 import type { FactureVente } from '@/types/sales';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -74,6 +73,29 @@ export const getActualPaymentStatus = (facture: FactureVente) => {
   }
   
   console.log('🔄 Statut paiement déterminé:', status);
+  
+  // IMPORTANT: Forcer la mise à jour du statut en base si différent
+  if (facture.statut_paiement !== status) {
+    console.log('⚠️ Statut incohérent détecté, mise à jour nécessaire:', {
+      facture_id: facture.id,
+      ancien_statut: facture.statut_paiement,
+      nouveau_statut: status
+    });
+    
+    // Mise à jour asynchrone du statut en base
+    supabase
+      .from('factures_vente')
+      .update({ statut_paiement: status })
+      .eq('id', facture.id)
+      .then(({ error }) => {
+        if (error) {
+          console.error('❌ Erreur mise à jour statut:', error);
+        } else {
+          console.log('✅ Statut paiement mis à jour en base');
+        }
+      });
+  }
+  
   return status;
 };
 
@@ -104,19 +126,11 @@ export const getArticleCount = (facture: FactureVente) => {
 
 export const getActualDeliveryStatus = (facture: FactureVente) => {
   console.log('🚚 getActualDeliveryStatus - Facture:', facture.numero_facture);
-  console.log('🚚 Statut livraison facture:', facture.statut_livraison);
-  console.log('🚚 Lignes facture:', facture.lignes_facture);
+  console.log('🚚 Lignes facture pour calcul:', facture.lignes_facture);
   
-  // Si statut_livraison est calculé par la fonction SQL, l'utiliser
-  if (facture.statut_livraison && 
-      ['en_attente', 'partiellement_livree', 'livree'].includes(facture.statut_livraison)) {
-    console.log('🚚 Utilisation statut_livraison calculé:', facture.statut_livraison);
-    return facture.statut_livraison;
-  }
-  
-  // Sinon calculer à partir des lignes
+  // Pour les ventes comptoir, vérifier d'abord les lignes
   if (!facture.lignes_facture || !Array.isArray(facture.lignes_facture) || facture.lignes_facture.length === 0) {
-    console.log('🚚 Pas de lignes, considéré comme livré');
+    console.log('🚚 Pas de lignes, considéré comme livré (vente comptoir)');
     return 'livree';
   }
   
@@ -137,6 +151,29 @@ export const getActualDeliveryStatus = (facture: FactureVente) => {
   }
   
   console.log('🚚 Statut livraison déterminé:', status);
+  
+  // IMPORTANT: Forcer la mise à jour du statut en base si différent
+  if (facture.statut_livraison !== status) {
+    console.log('⚠️ Statut livraison incohérent détecté, mise à jour nécessaire:', {
+      facture_id: facture.id,
+      ancien_statut: facture.statut_livraison,
+      nouveau_statut: status
+    });
+    
+    // Mise à jour asynchrone du statut en base
+    supabase
+      .from('factures_vente')
+      .update({ statut_livraison: status })
+      .eq('id', facture.id)
+      .then(({ error }) => {
+        if (error) {
+          console.error('❌ Erreur mise à jour statut livraison:', error);
+        } else {
+          console.log('✅ Statut livraison mis à jour en base');
+        }
+      });
+  }
+  
   return status;
 };
 
