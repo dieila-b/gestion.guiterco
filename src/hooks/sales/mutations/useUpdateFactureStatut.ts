@@ -8,19 +8,59 @@ export const useUpdateFactureStatut = () => {
   
   return useMutation({
     mutationFn: async ({ factureId, statut_livraison }: { factureId: string, statut_livraison: string }) => {
-      const { data, error } = await supabase
+      console.log('🚚 Mise à jour statut livraison pour facture:', factureId, 'vers:', statut_livraison);
+
+      // Mettre à jour le statut de la facture principale
+      const { data: facture, error: factureError } = await supabase
         .from('factures_vente')
         .update({ statut_livraison })
         .eq('id', factureId)
         .select()
         .single();
 
-      if (error) throw error;
-      return data;
+      if (factureError) {
+        console.error('❌ Erreur mise à jour facture:', factureError);
+        throw factureError;
+      }
+
+      // CRUCIAL: Mettre à jour toutes les lignes de facture avec le nouveau statut
+      let nouveauStatutLigne;
+      switch (statut_livraison) {
+        case 'livree':
+          nouveauStatutLigne = 'livree';
+          break;
+        case 'partiellement_livree':
+          nouveauStatutLigne = 'partiellement_livree';
+          break;
+        case 'en_attente':
+        default:
+          nouveauStatutLigne = 'en_attente';
+          break;
+      }
+
+      console.log('📦 Mise à jour des lignes de facture vers statut:', nouveauStatutLigne);
+
+      // Mettre à jour toutes les lignes de facture associées
+      const { error: lignesError } = await supabase
+        .from('lignes_facture_vente')
+        .update({ statut_livraison: nouveauStatutLigne })
+        .eq('facture_vente_id', factureId);
+
+      if (lignesError) {
+        console.error('❌ Erreur mise à jour lignes facture:', lignesError);
+        throw lignesError;
+      }
+
+      console.log('✅ Statut livraison mis à jour avec succès pour facture et lignes');
+      return facture;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['factures_vente'] });
-      toast.success('Statut mis à jour');
+      toast.success('Statut de livraison mis à jour');
+    },
+    onError: (error: Error) => {
+      console.error('❌ Erreur lors de la mise à jour du statut:', error);
+      toast.error('Erreur lors de la mise à jour du statut');
     }
   });
 };

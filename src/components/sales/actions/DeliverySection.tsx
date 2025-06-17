@@ -18,13 +18,27 @@ const DeliverySection = ({ facture }: DeliverySectionProps) => {
   
   const updateFactureStatut = useUpdateFactureStatut();
 
-  const handleUpdateDeliveryStatus = () => {
-    if (statutLivraison === currentStatus) return;
+  const handleUpdateDeliveryStatus = async () => {
+    if (statutLivraison === currentStatus) {
+      console.log('⚠️ Aucun changement de statut nécessaire');
+      return;
+    }
 
-    updateFactureStatut.mutate({
+    console.log('🔄 Mise à jour statut de livraison:', {
       factureId: facture.id,
-      statut_livraison: statutLivraison
+      currentStatus,
+      newStatus: statutLivraison
     });
+
+    try {
+      await updateFactureStatut.mutateAsync({
+        factureId: facture.id,
+        statut_livraison: statutLivraison
+      });
+      console.log('✅ Statut livraison mis à jour avec succès');
+    } catch (error) {
+      console.error('❌ Erreur mise à jour statut:', error);
+    }
   };
 
   const getStatusLabel = (status: string) => {
@@ -44,6 +58,8 @@ const DeliverySection = ({ facture }: DeliverySectionProps) => {
       default: return 'text-gray-600';
     }
   };
+
+  const hasChanges = statutLivraison !== currentStatus;
 
   return (
     <Card>
@@ -72,12 +88,23 @@ const DeliverySection = ({ facture }: DeliverySectionProps) => {
 
         <Button 
           onClick={handleUpdateDeliveryStatus}
-          disabled={updateFactureStatut.isPending || statutLivraison === currentStatus}
-          className="w-full"
-          variant={statutLivraison !== currentStatus ? "default" : "outline"}
+          disabled={updateFactureStatut.isPending || !hasChanges}
+          className={`w-full ${hasChanges ? 'bg-blue-600 hover:bg-blue-700' : ''}`}
+          variant={hasChanges ? "default" : "outline"}
         >
-          {updateFactureStatut.isPending ? 'Mise à jour...' : 'Mettre à jour le statut'}
+          {updateFactureStatut.isPending 
+            ? 'Mise à jour...' 
+            : hasChanges 
+              ? 'Mettre à jour le statut' 
+              : 'Aucun changement'
+          }
         </Button>
+
+        {hasChanges && (
+          <p className="text-sm text-blue-600 text-center">
+            Changement : {getStatusLabel(currentStatus)} → {getStatusLabel(statutLivraison)}
+          </p>
+        )}
       </CardContent>
     </Card>
   );
