@@ -20,10 +20,11 @@ export const useCreateFactureVente = () => {
     mutationFn: async (data: CreateFactureVenteData) => {
       console.log('🔄 Création facture vente avec données:', data);
       
-      // 1. Créer la facture SANS numero_facture (pour utiliser l'auto-génération)
+      // 1. Créer la facture avec numero_facture temporaire (sera remplacé par le trigger)
       const { data: facture, error: factureError } = await supabase
         .from('factures_vente')
         .insert({
+          numero_facture: 'TEMP', // Valeur temporaire, sera remplacée par le trigger
           client_id: data.client_id,
           date_facture: new Date().toISOString(),
           montant_ht: data.montant_ht,
