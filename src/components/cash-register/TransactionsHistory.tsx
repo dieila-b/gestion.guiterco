@@ -20,8 +20,11 @@ interface TransactionsHistoryProps {
 }
 
 const getTransactionTypeDetails = (source: string | null, type: 'income' | 'expense') => {
+  console.log('🔍 getTransactionTypeDetails appelée avec:', { source, type });
+  
   // Logique conditionnelle exacte demandée par l'utilisateur
   if (source === "facture") {
+    console.log('✅ Règlement de facture détecté !');
     return {
       label: "Règlement",
       className: "bg-orange-50 text-orange-700",
@@ -32,6 +35,7 @@ const getTransactionTypeDetails = (source: string | null, type: 'income' | 'expe
 
   // Pour toutes les autres transactions, c'est une vente (si income) ou autre
   if (type === 'income') {
+    console.log('✅ Vente détectée');
     return {
       label: "Vente",
       className: "bg-green-50 text-green-700",

@@ -1,4 +1,3 @@
-
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Transaction, TransactionInsert } from '@/components/cash-register/types';
@@ -9,7 +8,7 @@ export type NormalizedFinancialTransaction = {
   amount: number;
   description: string;
   date: string;
-  source: string;
+  source: string | null;
 };
 
 export const useTransactions = (cashRegisterId?: string) => {
@@ -96,10 +95,10 @@ export const useAllFinancialTransactions = () => {
 
       console.log('💰 Récupération des transactions financières...');
 
-      // Récupérer les transactions de la table transactions
+      // Récupérer les transactions de la table transactions avec TOUS les champs nécessaires
       const { data: transactions, error: transError } = await supabase
         .from('transactions')
-        .select('*')
+        .select('id, type, amount, montant, description, date_operation, created_at, source')
         .gte('date_operation', today.toISOString())
         .lt('date_operation', tomorrow.toISOString());
 
@@ -109,6 +108,7 @@ export const useAllFinancialTransactions = () => {
       }
       
       console.log('💰 Transactions trouvées:', transactions?.length || 0);
+      console.log('💰 Première transaction exemple:', transactions?.[0]);
 
       // Récupérer les opérations de caisse
       const { data: cashOps, error: cashError } = await supabase
@@ -138,25 +138,29 @@ export const useAllFinancialTransactions = () => {
       
       console.log('💰 Sorties financières trouvées:', expenses?.length || 0);
 
-      // Normaliser toutes les données
+      // Normaliser toutes les données en préservant exactement le champ source
       const normalizedTransactions = (transactions || [])
         .filter((t): t is Transaction & { type: 'income' | 'expense' } => t.type === 'income' || t.type === 'expense')
         .map(t => {
-          console.log('💰 Transaction normalisée:', {
-            id: t.id,
-            type: t.type,
-            amount: t.amount || t.montant || 0,
-            description: t.description,
-            source: t.source
-          });
-          return {
+          const normalizedTrans = {
             id: t.id,
             type: t.type,
             amount: t.amount || t.montant || 0,
             description: t.description || '',
             date: t.date_operation || t.created_at,
-            source: t.source || 'transactions'
+            source: t.source // Préserver exactement la valeur source de la DB
           };
+          
+          console.log('💰 Transaction normalisée:', {
+            id: normalizedTrans.id,
+            type: normalizedTrans.type,
+            amount: normalizedTrans.amount,
+            description: normalizedTrans.description,
+            source: normalizedTrans.source,
+            isFacturePayment: normalizedTrans.source === "facture"
+          });
+          
+          return normalizedTrans;
         });
 
       const normalizedCashOps = (cashOps || []).map(c => ({
@@ -188,6 +192,8 @@ export const useAllFinancialTransactions = () => {
       });
       
       console.log('💰 Total transactions financières normalisées:', result.length);
+      console.log('💰 Règlements de factures trouvés:', result.filter(r => r.source === "facture").length);
+      
       return result;
     }
   });
