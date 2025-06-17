@@ -12,16 +12,33 @@ const getTransactionTypeDetails = (source: string | null, type: 'income' | 'expe
   // Normaliser la source pour éviter les problèmes de casse et d'espaces
   const normalizedSource = source?.trim().toLowerCase();
   
+  // Détecter spécifiquement les règlements de factures
+  if (normalizedSource === "paiement d'un impayé" || 
+      normalizedSource === "règlement impayés" || 
+      normalizedSource === "paiement impayé" || 
+      normalizedSource === "règlement facture") {
+    return { 
+      label: 'Règlement', 
+      className: 'bg-orange-50 text-orange-700', 
+      textColor: 'text-orange-600' 
+    };
+  }
+
+  // Détecter les ventes
+  if (normalizedSource === 'vente' || 
+      normalizedSource === 'vente réglée' || 
+      normalizedSource === 'vente encaissée' ||
+      normalizedSource === 'transactions' || 
+      !normalizedSource) {
+    return { 
+      label: 'Vente', 
+      className: 'bg-green-50 text-green-700', 
+      textColor: 'text-green-600' 
+    };
+  }
+
+  // Autres cas
   switch (normalizedSource) {
-    case 'vente':
-    case 'vente réglée':
-    case 'vente encaissée':
-      return { label: 'Vente', className: 'bg-green-50 text-green-700', textColor: 'text-green-600' };
-    case 'paiement d\'un impayé':
-    case 'règlement impayés':
-    case 'paiement impayé':
-    case 'règlement facture':
-      return { label: 'Règlement', className: 'bg-orange-50 text-orange-700', textColor: 'text-orange-600' };
     case 'entrée manuelle':
       return { label: 'Entrée', className: 'bg-blue-50 text-blue-700', textColor: 'text-blue-600' };
     case 'sortie':
@@ -31,10 +48,6 @@ const getTransactionTypeDetails = (source: string | null, type: 'income' | 'expe
       // Fallback logic améliorée
       if (type === 'expense') {
         return { label: 'Sortie', className: 'bg-red-50 text-red-700', textColor: 'text-red-600' };
-      }
-      // Pour les transactions income sans source claire, on essaie de deviner depuis la source originale
-      if (source === 'transactions' || !source) {
-        return { label: 'Vente', className: 'bg-green-50 text-green-700', textColor: 'text-green-600' };
       }
       return { label: 'Entrée', className: 'bg-blue-50 text-blue-700', textColor: 'text-blue-600' };
   }

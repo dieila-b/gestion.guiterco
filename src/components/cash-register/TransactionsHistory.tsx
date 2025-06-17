@@ -23,41 +23,33 @@ const getTransactionTypeDetails = (source: string | null, type: 'income' | 'expe
   // Normaliser la source pour éviter les problèmes de casse et d'espaces
   const normalizedSource = source?.trim().toLowerCase();
 
-  // Par défaut : tout paramètre absent = fallback cohérent
-  if (!normalizedSource || normalizedSource === "transactions") {
-    if (type === "income") {
-      return {
-        label: "Vente",
-        className: "bg-green-50 text-green-700",
-        textColor: "text-green-700"
-      };
-    } else {
-      return {
-        label: "Sortie",
-        className: "bg-red-50 text-red-700",
-        textColor: "text-red-700"
-      };
-    }
+  // Détecter spécifiquement les règlements de factures
+  if (normalizedSource === "paiement d'un impayé" || 
+      normalizedSource === "règlement impayés" || 
+      normalizedSource === "paiement impayé" || 
+      normalizedSource === "règlement facture") {
+    return {
+      label: "Règlement",
+      className: "bg-orange-50 text-orange-700",
+      textColor: "text-orange-700"
+    };
   }
 
+  // Détecter les ventes
+  if (normalizedSource === 'vente' || 
+      normalizedSource === 'vente encaissée' || 
+      normalizedSource === 'vente réglée' ||
+      normalizedSource === "transactions" || 
+      !normalizedSource) {
+    return {
+      label: "Vente",
+      className: "bg-green-50 text-green-700",
+      textColor: "text-green-700"
+    };
+  }
+
+  // Autres cas
   switch (normalizedSource) {
-    case 'vente':
-    case 'vente encaissée':
-    case 'vente réglée':
-      return {
-        label: 'Vente',
-        className: 'bg-green-50 text-green-700',
-        textColor: "text-green-700"
-      };
-    case "paiement d'un impayé":
-    case 'règlement impayés':
-    case 'paiement impayé':
-    case 'règlement facture':
-      return {
-        label: "Règlement",
-        className: "bg-orange-50 text-orange-700",
-        textColor: "text-orange-700"
-      };
     case 'entrée manuelle':
       return {
         label: 'Entrée',
@@ -72,7 +64,7 @@ const getTransactionTypeDetails = (source: string | null, type: 'income' | 'expe
         textColor: "text-red-700"
       };
     default:
-      // Logique de fallback : income bleu, expense rouge, mais on garde badge bleu pour income inconnu
+      // Logique de fallback : income bleu, expense rouge
       if (type === 'income') {
         return { label: 'Entrée', className: 'bg-blue-50 text-blue-700', textColor: "text-blue-700" };
       }
