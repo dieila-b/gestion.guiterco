@@ -20,55 +20,61 @@ interface TransactionsHistoryProps {
 }
 
 const getTransactionTypeDetails = (source: string | null, type: 'income' | 'expense') => {
-  // Normaliser la source pour éviter les problèmes de casse et d'espaces
-  const normalizedSource = source?.trim().toLowerCase();
-
-  // Détecter spécifiquement les règlements de factures
-  if (normalizedSource === "paiement d'un impayé" || 
-      normalizedSource === "règlement impayés" || 
-      normalizedSource === "paiement impayé" || 
-      normalizedSource === "règlement facture") {
+  // Logique conditionnelle exacte demandée par l'utilisateur
+  if (source === "facture") {
     return {
       label: "Règlement",
       className: "bg-orange-50 text-orange-700",
-      textColor: "text-orange-700"
+      textColor: "text-orange-700",
+      sourceDisplay: "Règlement facture"
     };
   }
 
-  // Détecter les ventes
-  if (normalizedSource === 'vente' || 
-      normalizedSource === 'vente encaissée' || 
-      normalizedSource === 'vente réglée' ||
-      normalizedSource === "transactions" || 
-      !normalizedSource) {
+  // Pour toutes les autres transactions, c'est une vente (si income) ou autre
+  if (type === 'income') {
     return {
       label: "Vente",
       className: "bg-green-50 text-green-700",
-      textColor: "text-green-700"
+      textColor: "text-green-700",
+      sourceDisplay: "vente"
     };
   }
 
-  // Autres cas
+  // Gestion des autres types (entrées manuelles, sorties, etc.)
+  const normalizedSource = source?.trim().toLowerCase();
+  
   switch (normalizedSource) {
     case 'entrée manuelle':
       return {
         label: 'Entrée',
         className: 'bg-blue-50 text-blue-700',
-        textColor: "text-blue-700"
+        textColor: "text-blue-700",
+        sourceDisplay: source
       };
     case 'sortie':
     case 'sortie manuelle':
       return {
         label: 'Sortie',
         className: 'bg-red-50 text-red-700',
-        textColor: "text-red-700"
+        textColor: "text-red-700",
+        sourceDisplay: source
       };
     default:
-      // Logique de fallback : income bleu, expense rouge
-      if (type === 'income') {
-        return { label: 'Entrée', className: 'bg-blue-50 text-blue-700', textColor: "text-blue-700" };
+      // Logique de fallback
+      if (type === 'expense') {
+        return { 
+          label: 'Sortie', 
+          className: 'bg-red-50 text-red-700', 
+          textColor: "text-red-700",
+          sourceDisplay: source 
+        };
       }
-      return { label: 'Sortie', className: 'bg-red-50 text-red-700', textColor: "text-red-700" };
+      return { 
+        label: 'Entrée', 
+        className: 'bg-blue-50 text-blue-700', 
+        textColor: "text-blue-700",
+        sourceDisplay: source 
+      };
   }
 };
 
