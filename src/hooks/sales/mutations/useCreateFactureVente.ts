@@ -11,7 +11,7 @@ export const useCreateFactureVente = () => {
     mutationFn: async (data: CreateFactureVenteData) => {
       console.log('🔄 Création facture vente avec données:', data);
       
-      // 1. Créer la facture avec des statuts initiaux corrects
+      // 1. Créer la facture TOUJOURS avec des statuts initiaux en_attente
       const { data: facture, error: factureError } = await supabase
         .from('factures_vente')
         .insert({
@@ -33,21 +33,20 @@ export const useCreateFactureVente = () => {
         throw factureError;
       }
 
-      console.log('✅ Facture créée avec statuts initiaux corrects:', facture);
+      console.log('✅ Facture créée avec statuts initiaux en_attente:', facture);
 
-      // 2. Créer les lignes de facture avec statut de livraison approprié
+      // 2. Créer les lignes de facture TOUJOURS avec statut en_attente initialement
       const lignesFacture = data.cart.map(item => ({
         facture_vente_id: facture.id,
         article_id: item.article_id,
         quantite: item.quantite,
         prix_unitaire: item.prix_unitaire,
         montant_ligne: item.quantite * item.prix_unitaire,
-        // Pour vente comptoir, on peut marquer comme livré directement
-        // Pour d'autres types de vente, garder en_attente
-        statut_livraison: data.point_vente_id ? 'livree' : 'en_attente'
+        // TOUJOURS commencer en_attente, sera mis à jour seulement si livraison confirmée
+        statut_livraison: 'en_attente'
       }));
 
-      console.log('🔄 Création lignes facture:', lignesFacture);
+      console.log('🔄 Création lignes facture avec statut en_attente:', lignesFacture);
 
       const { data: lignesCreees, error: lignesError } = await supabase
         .from('lignes_facture_vente')
@@ -59,90 +58,30 @@ export const useCreateFactureVente = () => {
         throw lignesError;
       }
 
-      console.log('✅ Lignes facture créées:', lignesCreees);
+      console.log('✅ Lignes facture créées avec statut en_attente:', lignesCreees);
 
-      // 3. Calculer le statut de livraison réel basé sur les lignes créées
-      let statutLivraisonFinal = 'en_attente';
-      if (lignesCreees && lignesCreees.length > 0) {
-        const lignesLivrees = lignesCreees.filter(ligne => ligne.statut_livraison === 'livree').length;
-        const totalLignes = lignesCreees.length;
-        
-        if (lignesLivrees === 0) {
-          statutLivraisonFinal = 'en_attente';
-        } else if (lignesLivrees === totalLignes) {
-          statutLivraisonFinal = 'livree';
-        } else {
-          statutLivraisonFinal = 'partiellement_livree';
-        }
-        
-        console.log('🚚 Statut livraison calculé:', {
-          lignesLivrees,
-          totalLignes,
-          statutFinal: statutLivraisonFinal
-        });
-        
-        // Mettre à jour le statut de livraison de la facture
-        const { error: updateLivraisonError } = await supabase
-          .from('factures_vente')
-          .update({ statut_livraison: statutLivraisonFinal })
-          .eq('id', facture.id);
-          
-        if (updateLivraisonError) {
-          console.error('❌ Erreur mise à jour statut livraison:', updateLivraisonError);
-        } else {
-          console.log('✅ Statut livraison mis à jour:', statutLivraisonFinal);
-        }
-      }
+      // 3. SEULEMENT créer un versement si le paiement est confirmé
+      // Pour une vente au comptoir, on ne crée PAS automatiquement le versement
+      // Le versement sera créé seulement quand le paiement est confirmé via l'interface
+      console.log('⏸️ Pas de paiement automatique - facture reste en_attente');
 
-      // 4. Créer le versement ET mettre à jour le statut de paiement si paiement immédiat
-      let statutPaiementFinal = 'en_attente';
-      if (data.mode_paiement && data.montant_ttc > 0) {
-        const { error: versementError } = await supabase
-          .from('versements_clients')
-          .insert({
-            client_id: data.client_id,
-            facture_id: facture.id,
-            montant: data.montant_ttc,
-            mode_paiement: data.mode_paiement,
-            date_versement: new Date().toISOString(),
-            numero_versement: `V-${facture.numero_facture}`
-          });
+      // 4. SEULEMENT mettre à jour le statut de livraison si livraison confirmée
+      // Pour une vente au comptoir, on ne marque PAS automatiquement comme livré
+      console.log('⏸️ Pas de livraison automatique - facture reste en_attente');
 
-        if (versementError) {
-          console.error('❌ Erreur création versement:', versementError);
-          throw versementError;
-        }
-
-        console.log('✅ Versement créé pour montant:', data.montant_ttc);
-
-        // Mettre à jour le statut de paiement à "payee" si paiement complet
-        statutPaiementFinal = 'payee';
-        const { error: updatePaiementError } = await supabase
-          .from('factures_vente')
-          .update({ statut_paiement: statutPaiementFinal })
-          .eq('id', facture.id);
-
-        if (updatePaiementError) {
-          console.error('❌ Erreur mise à jour statut paiement:', updatePaiementError);
-        } else {
-          console.log('✅ Statut paiement mis à jour:', statutPaiementFinal);
-        }
-      }
-
-      // 5. Mettre à jour le stock PDV si spécifié - CRITIQUE POUR LE STOCK
+      // 5. Mettre à jour le stock PDV seulement si spécifié ET confirmé
       if (data.point_vente_id) {
         await updateStockPDV(data, facture);
       }
 
-      // 6. Créer une transaction financière pour la caisse
-      if (data.mode_paiement && data.montant_ttc > 0) {
-        await createFinancialTransaction(data, facture);
-      }
+      // 6. NE PAS créer de transaction financière automatiquement
+      // La transaction sera créée seulement quand le paiement est confirmé
+      console.log('⏸️ Pas de transaction automatique - sera créée au paiement');
 
       return { facture, lignes: lignesCreees };
     },
     onSuccess: () => {
-      console.log('✅ Facture de vente créée avec succès');
+      console.log('✅ Facture de vente créée avec statuts corrects (en_attente)');
       queryClient.invalidateQueries({ queryKey: ['factures_vente'] });
       queryClient.invalidateQueries({ queryKey: ['stock-pdv'] });
       queryClient.invalidateQueries({ queryKey: ['transactions'] });
@@ -156,7 +95,7 @@ export const useCreateFactureVente = () => {
   });
 };
 
-// Helper function to update stock PDV - CORRIGÉE POUR ASSURER LA MISE À JOUR
+// Helper function to update stock PDV
 async function updateStockPDV(data: CreateFactureVenteData, facture: any) {
   let pointVenteId = data.point_vente_id!;
   
@@ -182,7 +121,7 @@ async function updateStockPDV(data: CreateFactureVenteData, facture: any) {
     }
   }
 
-  // Mettre à jour le stock pour chaque article - AVEC VÉRIFICATION OBLIGATOIRE
+  // Mettre à jour le stock pour chaque article
   for (const item of data.cart) {
     console.log(`🔄 Mise à jour stock pour article ${item.article_id}, quantité à déduire: ${item.quantite}`);
     
@@ -203,7 +142,6 @@ async function updateStockPDV(data: CreateFactureVenteData, facture: any) {
       const nouvelleQuantite = Math.max(0, stockExistant.quantite_disponible - item.quantite);
       console.log(`📦 Stock avant: ${stockExistant.quantite_disponible}, après vente: ${nouvelleQuantite}`);
 
-      // Mise à jour critique du stock
       const { error: updateError } = await supabase
         .from('stock_pdv')
         .update({
@@ -220,62 +158,9 @@ async function updateStockPDV(data: CreateFactureVenteData, facture: any) {
       }
     } else {
       console.log(`⚠️ ATTENTION - Aucun stock trouvé pour l'article ${item.article_id} au PDV ${pointVenteId}`);
-      // On pourrait créer une entrée avec stock négatif ou lever une erreur
       throw new Error(`Stock non trouvé pour l'article ${item.article_id} au point de vente`);
     }
   }
   
   console.log('✅ Mise à jour stock PDV terminée avec succès');
-}
-
-// Helper function to create financial transaction
-async function createFinancialTransaction(data: CreateFactureVenteData, facture: any) {
-  console.log('💰 Création transaction financière pour montant exact:', data.montant_ttc);
-  
-  const { data: cashRegister, error: cashRegisterError } = await supabase
-    .from('cash_registers')
-    .select('id')
-    .limit(1)
-    .maybeSingle();
-
-  if (cashRegisterError) {
-    console.error('❌ Erreur récupération caisse:', cashRegisterError);
-  } else if (cashRegister) {
-    let paymentMethod: 'cash' | 'card' | 'transfer' | 'check' = 'cash';
-    
-    switch(data.mode_paiement) {
-      case 'carte':
-        paymentMethod = 'card';
-        break;
-      case 'virement':
-        paymentMethod = 'transfer';
-        break;
-      case 'cheque':
-        paymentMethod = 'check';
-        break;
-      case 'especes':
-      default:
-        paymentMethod = 'cash';
-        break;
-    }
-
-    const { error: transactionError } = await supabase
-      .from('transactions')
-      .insert({
-        type: 'income',
-        amount: data.montant_ttc,
-        description: `Vente ${facture.numero_facture}`,
-        category: 'sales',
-        payment_method: paymentMethod,
-        cash_register_id: cashRegister.id,
-        date_operation: new Date().toISOString(),
-        source: 'vente'
-      });
-
-    if (transactionError) {
-      console.error('❌ Erreur création transaction financière:', transactionError);
-    } else {
-      console.log('✅ Transaction financière créée pour montant exact:', data.montant_ttc);
-    }
-  }
 }
