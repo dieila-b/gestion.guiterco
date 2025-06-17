@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -19,6 +19,21 @@ interface PartialDeliveryModalProps {
 const PartialDeliveryModal = ({ isOpen, onClose, facture, onConfirm, isLoading }: PartialDeliveryModalProps) => {
   const [quantitesLivrees, setQuantitesLivrees] = useState<Record<string, number>>({});
 
+  // CRUCIAL: Initialiser les quantités livrées avec les valeurs existantes
+  useEffect(() => {
+    if (facture.lignes_facture && facture.lignes_facture.length > 0) {
+      const quantitesInitiales: Record<string, number> = {};
+      facture.lignes_facture.forEach(ligne => {
+        if (ligne.article_id) {
+          // Utiliser quantite_livree existante ou 0 par défaut
+          quantitesInitiales[ligne.article_id] = ligne.quantite_livree || 0;
+        }
+      });
+      setQuantitesLivrees(quantitesInitiales);
+      console.log('📦 Quantités livrées initialisées:', quantitesInitiales);
+    }
+  }, [facture.lignes_facture]);
+
   const handleQuantiteChange = (articleId: string, quantite: string) => {
     const qty = parseInt(quantite) || 0;
     setQuantitesLivrees(prev => ({
@@ -28,6 +43,7 @@ const PartialDeliveryModal = ({ isOpen, onClose, facture, onConfirm, isLoading }
   };
 
   const handleConfirm = () => {
+    console.log('📦 Confirmation des quantités livrées:', quantitesLivrees);
     onConfirm(quantitesLivrees);
   };
 
@@ -73,7 +89,7 @@ const PartialDeliveryModal = ({ isOpen, onClose, facture, onConfirm, isLoading }
           <div className="space-y-3">
             {facture.lignes_facture?.map((ligne) => (
               <Card key={ligne.id} className="p-4">
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-center">
+                <div className="grid grid-cols-1 md:grid-cols-5 gap-4 items-center">
                   <div className="space-y-1">
                     <p className="font-medium text-sm">{ligne.article?.nom || 'Article inconnu'}</p>
                     <p className="text-xs text-muted-foreground">
@@ -84,6 +100,11 @@ const PartialDeliveryModal = ({ isOpen, onClose, facture, onConfirm, isLoading }
                   <div className="text-sm">
                     <p><span className="font-medium">Commandé:</span> {ligne.quantite}</p>
                     <p><span className="font-medium">Prix:</span> {formatCurrency(ligne.prix_unitaire)}</p>
+                  </div>
+
+                  <div className="text-sm">
+                    <p><span className="font-medium">Déjà livré:</span> {ligne.quantite_livree || 0}</p>
+                    <p><span className="font-medium">Restant:</span> {ligne.quantite - (ligne.quantite_livree || 0)}</p>
                   </div>
 
                   <div className="space-y-2">
@@ -104,7 +125,7 @@ const PartialDeliveryModal = ({ isOpen, onClose, facture, onConfirm, isLoading }
 
                   <div className="text-sm text-right">
                     <p className="text-muted-foreground">
-                      Statut actuel: {getStatutLabel(ligne.statut_livraison)}
+                      Statut: {getStatutLabel(ligne.statut_livraison)}
                     </p>
                   </div>
                 </div>

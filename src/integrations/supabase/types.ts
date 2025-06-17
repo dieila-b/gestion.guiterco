@@ -1280,6 +1280,7 @@ export type Database = {
           montant_ligne: number
           prix_unitaire: number
           quantite: number
+          quantite_livree: number | null
           statut_livraison: string | null
         }
         Insert: {
@@ -1290,6 +1291,7 @@ export type Database = {
           montant_ligne?: number
           prix_unitaire?: number
           quantite?: number
+          quantite_livree?: number | null
           statut_livraison?: string | null
         }
         Update: {
@@ -1300,6 +1302,7 @@ export type Database = {
           montant_ligne?: number
           prix_unitaire?: number
           quantite?: number
+          quantite_livree?: number | null
           statut_livraison?: string | null
         }
         Relationships: [

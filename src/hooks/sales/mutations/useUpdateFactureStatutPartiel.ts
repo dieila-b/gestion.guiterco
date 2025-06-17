@@ -35,7 +35,7 @@ export const useUpdateFactureStatutPartiel = () => {
 
       console.log('📦 Lignes facture récupérées:', lignesFacture.length);
 
-      // Mettre à jour chaque ligne selon les quantités livrées
+      // Mettre à jour chaque ligne avec les quantités livrées ET le statut
       const updates = [];
       for (const ligne of lignesFacture) {
         const quantiteLivree = quantitesLivrees[ligne.article_id] || 0;
@@ -47,9 +47,13 @@ export const useUpdateFactureStatutPartiel = () => {
 
         console.log(`📦 Ligne ${ligne.id}: ${quantiteLivree}/${ligne.quantite} → ${nouveauStatut}`);
 
+        // CRUCIAL: Mettre à jour à la fois quantite_livree ET statut_livraison
         const { error: updateError } = await supabase
           .from('lignes_facture_vente')
-          .update({ statut_livraison: nouveauStatut })
+          .update({ 
+            quantite_livree: quantiteLivree,
+            statut_livraison: nouveauStatut 
+          })
           .eq('id', ligne.id);
 
         if (updateError) {
@@ -57,10 +61,10 @@ export const useUpdateFactureStatutPartiel = () => {
           throw updateError;
         }
 
-        updates.push({ ligne: ligne.id, statut: nouveauStatut });
+        updates.push({ ligne: ligne.id, quantite_livree: quantiteLivree, statut: nouveauStatut });
       }
 
-      // Calculer le statut global de la facture basé sur les statuts des lignes
+      // Calculer le statut global de la facture basé sur les quantités réellement livrées
       const totalLignes = lignesFacture.length;
       const lignesAvecQuantite = Object.values(quantitesLivrees).filter(qty => qty > 0).length;
       const lignesCompletes = lignesFacture.filter(ligne => {
