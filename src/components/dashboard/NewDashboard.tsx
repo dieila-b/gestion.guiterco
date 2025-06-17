@@ -1,12 +1,20 @@
-
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { useAdvancedDashboardStats } from '@/hooks/useAdvancedDashboardStats';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Star, Mail, CreditCard, Users, Package } from 'lucide-react';
+import VentesDuJourModal from './modals/VentesDuJourModal';
+import MargeDuJourModal from './modals/MargeDuJourModal';
+import FacturesImpayeesModal from './modals/FacturesImpayeesModal';
+import DepensesDuMoisModal from './modals/DepensesDuMoisModal';
 
 const NewDashboard = () => {
   const { data: stats, isLoading, error } = useAdvancedDashboardStats();
+  
+  const [ventesModalOpen, setVentesModalOpen] = useState(false);
+  const [margeModalOpen, setMargeModalOpen] = useState(false);
+  const [facturesModalOpen, setFacturesModalOpen] = useState(false);
+  const [depensesModalOpen, setDepensesModalOpen] = useState(false);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('fr-FR', {
@@ -35,11 +43,14 @@ const NewDashboard = () => {
       {/* Ligne du haut - 4 cartes principales */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Vente du jour */}
-        <Card className="relative overflow-hidden bg-gradient-to-br from-cyan-400 to-cyan-600 text-white border-0">
+        <Card 
+          className="relative overflow-hidden bg-gradient-to-br from-cyan-400 to-cyan-600 text-white border-0 cursor-pointer hover:shadow-lg transition-shadow"
+          onClick={() => setVentesModalOpen(true)}
+        >
           <CardContent className="p-6">
             <div className="flex justify-between items-start mb-4">
               <div className="text-4xl font-bold">
-                {isLoading ? <Skeleton className="h-10 w-8 bg-white/20" /> : "0"}
+                {isLoading ? <Skeleton className="h-10 w-8 bg-white/20" /> : formatCurrency(stats?.ventesJour || 0)}
               </div>
             </div>
             <div className="text-white/90 text-sm mb-2">Vente du jour</div>
@@ -53,11 +64,14 @@ const NewDashboard = () => {
         </Card>
 
         {/* Marge du jour */}
-        <Card className="relative overflow-hidden bg-gradient-to-br from-green-400 to-green-600 text-white border-0">
+        <Card 
+          className="relative overflow-hidden bg-gradient-to-br from-green-400 to-green-600 text-white border-0 cursor-pointer hover:shadow-lg transition-shadow"
+          onClick={() => setMargeModalOpen(true)}
+        >
           <CardContent className="p-6">
             <div className="flex justify-between items-start mb-4">
               <div className="text-4xl font-bold">
-                {isLoading ? <Skeleton className="h-10 w-8 bg-white/20" /> : "0"}
+                {isLoading ? <Skeleton className="h-10 w-8 bg-white/20" /> : formatCurrency(stats?.margeJour || 0)}
               </div>
             </div>
             <div className="text-white/90 text-sm mb-2">Marge du jour</div>
@@ -71,11 +85,14 @@ const NewDashboard = () => {
         </Card>
 
         {/* Facture impayée du jour */}
-        <Card className="relative overflow-hidden bg-gradient-to-br from-yellow-400 to-yellow-600 text-white border-0">
+        <Card 
+          className="relative overflow-hidden bg-gradient-to-br from-yellow-400 to-yellow-600 text-white border-0 cursor-pointer hover:shadow-lg transition-shadow"
+          onClick={() => setFacturesModalOpen(true)}
+        >
           <CardContent className="p-6">
             <div className="flex justify-between items-start mb-4">
               <div className="text-4xl font-bold">
-                {isLoading ? <Skeleton className="h-10 w-8 bg-white/20" /> : "0"}
+                {isLoading ? <Skeleton className="h-10 w-8 bg-white/20" /> : formatCurrency(stats?.facturesImpayeesJour || 0)}
               </div>
             </div>
             <div className="text-white/90 text-sm mb-2">Facture impayée du jour</div>
@@ -89,11 +106,14 @@ const NewDashboard = () => {
         </Card>
 
         {/* Dépense du mois */}
-        <Card className="relative overflow-hidden bg-gradient-to-br from-red-400 to-red-600 text-white border-0">
+        <Card 
+          className="relative overflow-hidden bg-gradient-to-br from-red-400 to-red-600 text-white border-0 cursor-pointer hover:shadow-lg transition-shadow"
+          onClick={() => setDepensesModalOpen(true)}
+        >
           <CardContent className="p-6">
             <div className="flex justify-between items-start mb-4">
               <div className="text-4xl font-bold">
-                {isLoading ? <Skeleton className="h-10 w-8 bg-white/20" /> : "0"}
+                {isLoading ? <Skeleton className="h-10 w-8 bg-white/20" /> : formatCurrency(stats?.depensesMois || 0)}
               </div>
             </div>
             <div className="text-white/90 text-sm mb-2">Dépense du mois</div>
@@ -251,6 +271,24 @@ const NewDashboard = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* Modals */}
+      <VentesDuJourModal 
+        isOpen={ventesModalOpen} 
+        onClose={() => setVentesModalOpen(false)} 
+      />
+      <MargeDuJourModal 
+        isOpen={margeModalOpen} 
+        onClose={() => setMargeModalOpen(false)} 
+      />
+      <FacturesImpayeesModal 
+        isOpen={facturesModalOpen} 
+        onClose={() => setFacturesModalOpen(false)} 
+      />
+      <DepensesDuMoisModal 
+        isOpen={depensesModalOpen} 
+        onClose={() => setDepensesModalOpen(false)} 
+      />
     </div>
   );
 };
