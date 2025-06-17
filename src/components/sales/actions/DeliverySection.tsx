@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { useUpdateFactureStatut } from '@/hooks/sales/mutations/useFactureVenteMutations';
+import { useUpdateFactureStatut } from '@/hooks/sales/mutations';
 import { getActualDeliveryStatus } from '../table/StatusUtils';
 import type { FactureVente } from '@/types/sales';
 

@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { formatCurrency } from '@/lib/currency';
-import { useCreateVersement } from '@/hooks/sales/mutations/useFactureVenteMutations';
+import { useCreateVersement } from '@/hooks/sales/mutations';
 import type { FactureVente } from '@/types/sales';
 
 interface PaymentSectionProps {
