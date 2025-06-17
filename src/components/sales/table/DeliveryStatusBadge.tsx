@@ -9,12 +9,13 @@ interface DeliveryStatusBadgeProps {
 }
 
 const DeliveryStatusBadge = ({ facture }: DeliveryStatusBadgeProps) => {
-  // TOUJOURS calculer le statut réel basé sur les lignes de facture dans Supabase
+  // Calculer le statut réel basé sur les données actuelles
   const statut = getActualDeliveryStatus(facture);
   
-  console.log('🚚 DeliveryStatusBadge - Facture:', facture.numero_facture);
-  console.log('🚚 Statut BDD:', facture.statut_livraison, 'vs Statut calculé:', statut);
-  console.log('🚚 Lignes facture:', facture.lignes_facture);
+  console.log('🚚 DeliveryStatusBadge - Rendu pour facture:', facture.numero_facture);
+  console.log('🚚 Statut BDD facture:', facture.statut_livraison);
+  console.log('🚚 Statut calculé final:', statut);
+  console.log('🚚 Nombre de lignes:', facture.lignes_facture?.length || 0);
   
   switch (statut) {
     case 'en_attente':

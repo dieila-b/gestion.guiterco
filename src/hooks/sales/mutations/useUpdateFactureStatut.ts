@@ -54,9 +54,19 @@ export const useUpdateFactureStatut = () => {
       console.log('✅ Statut livraison mis à jour avec succès pour facture et lignes');
       return facture;
     },
-    onSuccess: () => {
+    onSuccess: (facture) => {
+      // Invalider toutes les queries liées aux factures pour forcer le rechargement
       queryClient.invalidateQueries({ queryKey: ['factures_vente'] });
+      
+      // Invalider aussi les queries spécifiques si elles existent
+      queryClient.invalidateQueries({ queryKey: ['facture', facture.id] });
+      
+      // Forcer le refetch immédiat
+      queryClient.refetchQueries({ queryKey: ['factures_vente'] });
+      
       toast.success('Statut de livraison mis à jour');
+      
+      console.log('✅ Queries invalidées et rafraîchies après mise à jour statut');
     },
     onError: (error: Error) => {
       console.error('❌ Erreur lors de la mise à jour du statut:', error);

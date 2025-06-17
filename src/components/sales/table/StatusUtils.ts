@@ -105,38 +105,84 @@ export const getArticleCount = (facture: FactureVente) => {
 };
 
 export const getActualDeliveryStatus = (facture: FactureVente) => {
-  console.log('🚚 getActualDeliveryStatus RÉEL - Facture:', facture.numero_facture);
-  console.log('🚚 Lignes facture pour calcul:', facture.lignes_facture);
+  console.log('🚚 getActualDeliveryStatus - Facture:', facture.numero_facture);
+  console.log('🚚 Statut BDD facture:', facture.statut_livraison);
+  console.log('🚚 Lignes facture disponibles:', facture.lignes_facture);
   
-  // Si pas de lignes de facture, considérer comme en attente
-  if (!facture.lignes_facture || !Array.isArray(facture.lignes_facture) || facture.lignes_facture.length === 0) {
-    console.log('🚚 Pas de lignes facture - statut: en_attente');
-    return 'en_attente';
+  // IMPORTANT: Utiliser d'abord le statut de la facture s'il existe et est cohérent
+  if (facture.statut_livraison && facture.statut_livraison !== 'livree' && 
+      facture.lignes_facture && facture.lignes_facture.length > 0) {
+    
+    // Vérifier si le statut de la facture est cohérent avec les lignes
+    const totalLignes = facture.lignes_facture.length;
+    const lignesLivrees = facture.lignes_facture.filter((ligne: any) => 
+      ligne.statut_livraison === 'livree'
+    ).length;
+    const lignesPartielles = facture.lignes_facture.filter((ligne: any) => 
+      ligne.statut_livraison === 'partiellement_livree'
+    ).length;
+    
+    console.log('🚚 Analyse cohérence:', {
+      totalLignes,
+      lignesLivrees,
+      lignesPartielles,
+      statutFacture: facture.statut_livraison
+    });
+    
+    // Calculer le statut réel basé sur les lignes
+    let statutCalcule;
+    if (lignesLivrees === totalLignes) {
+      statutCalcule = 'livree';
+    } else if (lignesLivrees > 0 || lignesPartielles > 0) {
+      statutCalcule = 'partiellement_livree';
+    } else {
+      statutCalcule = 'en_attente';
+    }
+    
+    // Si le statut de la facture correspond au statut calculé, l'utiliser
+    if (facture.statut_livraison === statutCalcule) {
+      console.log('🚚 Statut facture cohérent avec lignes:', facture.statut_livraison);
+      return facture.statut_livraison;
+    }
+    
+    // Sinon, utiliser le statut calculé
+    console.log('🚚 Incohérence détectée, utilisation statut calculé:', statutCalcule);
+    return statutCalcule;
   }
   
+  // Si pas de lignes de facture, utiliser le statut de la facture par défaut
+  if (!facture.lignes_facture || !Array.isArray(facture.lignes_facture) || facture.lignes_facture.length === 0) {
+    console.log('🚚 Pas de lignes facture - utilisation statut facture:', facture.statut_livraison || 'en_attente');
+    return facture.statut_livraison || 'en_attente';
+  }
+  
+  // Calcul basé sur les lignes uniquement
   const totalLignes = facture.lignes_facture.length;
   const lignesLivrees = facture.lignes_facture.filter((ligne: any) => 
     ligne.statut_livraison === 'livree'
   ).length;
+  const lignesPartielles = facture.lignes_facture.filter((ligne: any) => 
+    ligne.statut_livraison === 'partiellement_livree'
+  ).length;
   
-  console.log('🚚 Analyse livraison RÉELLE:', {
+  console.log('🚚 Calcul final basé sur lignes:', {
     totalLignes,
     lignesLivrees,
-    pourcentage: totalLignes > 0 ? Math.round((lignesLivrees / totalLignes) * 100) : 0
+    lignesPartielles
   });
   
   let status;
-  if (lignesLivrees === 0) {
-    status = 'en_attente';
-    console.log('🚚 Aucune ligne livrée');
-  } else if (lignesLivrees === totalLignes) {
+  if (lignesLivrees === totalLignes) {
     status = 'livree';
     console.log('🚚 Toutes les lignes livrées');
-  } else {
+  } else if (lignesLivrees > 0 || lignesPartielles > 0) {
     status = 'partiellement_livree';
     console.log('🚚 Livraison partielle détectée');
+  } else {
+    status = 'en_attente';
+    console.log('🚚 Aucune ligne livrée');
   }
   
-  console.log('🚚 Statut livraison RÉEL calculé final:', status);
+  console.log('🚚 Statut livraison final:', status);
   return status;
 };
