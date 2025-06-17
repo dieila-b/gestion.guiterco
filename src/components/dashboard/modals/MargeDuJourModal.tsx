@@ -28,19 +28,24 @@ const MargeDuJourModal: React.FC<MargeDuJourModalProps> = ({ isOpen, onClose }) 
             prix_achat,
             prix_unitaire
           ),
-          facture:facture_id(
+          facture:facture_vente_id(
             numero_facture,
             date_facture,
             statut_paiement
           )
         `)
-        .gte('facture.date_facture', `${today} 00:00:00`)
-        .lte('facture.date_facture', `${today} 23:59:59`)
-        .eq('facture.statut_paiement', 'paye');
+        .eq('facture.statut_paiement', 'payee');
 
       if (error) throw error;
 
-      return (data || []).map(ligne => {
+      // Filtrer par date du jour
+      const filteredData = (data || []).filter(ligne => {
+        if (!ligne.facture?.date_facture) return false;
+        const factureDate = format(new Date(ligne.facture.date_facture), 'yyyy-MM-dd');
+        return factureDate === today;
+      });
+
+      return filteredData.map(ligne => {
         const prixAchat = ligne.article?.prix_achat || ligne.article?.prix_unitaire || 0;
         const prixVente = ligne.prix_unitaire;
         const quantite = ligne.quantite;

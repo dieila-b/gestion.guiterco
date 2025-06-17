@@ -26,21 +26,27 @@ const FacturesImpayeesModal: React.FC<FacturesImpayeesModalProps> = ({ isOpen, o
           numero_facture,
           date_facture,
           montant_ttc,
-          montant_paye,
           statut_paiement,
-          client:client_id(nom, prenom)
+          client:client_id(nom, prenom),
+          versements:versements_clients(montant)
         `)
         .gte('date_facture', `${today} 00:00:00`)
         .lte('date_facture', `${today} 23:59:59`)
-        .neq('statut_paiement', 'paye')
+        .neq('statut_paiement', 'payee')
         .order('date_facture', { ascending: false });
 
       if (error) throw error;
 
-      return (data || []).map(facture => ({
-        ...facture,
-        montantRestant: facture.montant_ttc - (facture.montant_paye || 0)
-      }));
+      return (data || []).map(facture => {
+        const montantPaye = facture.versements?.reduce((sum, v) => sum + (v.montant || 0), 0) || 0;
+        const montantRestant = facture.montant_ttc - montantPaye;
+        
+        return {
+          ...facture,
+          montantPaye,
+          montantRestant
+        };
+      });
     },
     enabled: isOpen
   });
@@ -93,13 +99,13 @@ const FacturesImpayeesModal: React.FC<FacturesImpayeesModalProps> = ({ isOpen, o
                     </TableCell>
                     <TableCell>{format(new Date(facture.date_facture), 'HH:mm')}</TableCell>
                     <TableCell className="text-right">{formatCurrency(facture.montant_ttc)}</TableCell>
-                    <TableCell className="text-right">{formatCurrency(facture.montant_paye || 0)}</TableCell>
+                    <TableCell className="text-right">{formatCurrency(facture.montantPaye)}</TableCell>
                     <TableCell className="text-right font-bold text-red-600">
                       {formatCurrency(facture.montantRestant)}
                     </TableCell>
                     <TableCell className="text-center">
                       <Badge className="bg-red-100 text-red-800">
-                        {facture.statut_paiement === 'partiel' ? 'Partiel' : 'Impayé'}
+                        {facture.statut_paiement === 'partiellement_payee' ? 'Partiel' : 'Impayé'}
                       </Badge>
                     </TableCell>
                   </TableRow>

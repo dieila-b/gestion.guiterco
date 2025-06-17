@@ -1,19 +1,20 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { useAdvancedDashboardStats } from '@/hooks/useAdvancedDashboardStats';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Star, Mail, CreditCard, Users, Package } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import VentesDuJourModal from './modals/VentesDuJourModal';
 import MargeDuJourModal from './modals/MargeDuJourModal';
-import FacturesImpayeesModal from './modals/FacturesImpayeesModal';
 import DepensesDuMoisModal from './modals/DepensesDuMoisModal';
 
 const NewDashboard = () => {
   const { data: stats, isLoading, error } = useAdvancedDashboardStats();
+  const navigate = useNavigate();
   
   const [ventesModalOpen, setVentesModalOpen] = useState(false);
   const [margeModalOpen, setMargeModalOpen] = useState(false);
-  const [facturesModalOpen, setFacturesModalOpen] = useState(false);
   const [depensesModalOpen, setDepensesModalOpen] = useState(false);
 
   const formatCurrency = (amount: number) => {
@@ -25,6 +26,10 @@ const NewDashboard = () => {
 
   const formatNumber = (num: number) => {
     return new Intl.NumberFormat('fr-FR').format(num);
+  };
+
+  const handleFacturesImpayeesClick = () => {
+    navigate('/cash-registers?tab=reports&subtab=unpaid-invoices');
   };
 
   if (error) {
@@ -87,7 +92,7 @@ const NewDashboard = () => {
         {/* Facture impayée du jour */}
         <Card 
           className="relative overflow-hidden bg-gradient-to-br from-yellow-400 to-yellow-600 text-white border-0 cursor-pointer hover:shadow-lg transition-shadow"
-          onClick={() => setFacturesModalOpen(true)}
+          onClick={handleFacturesImpayeesClick}
         >
           <CardContent className="p-6">
             <div className="flex justify-between items-start mb-4">
@@ -280,10 +285,6 @@ const NewDashboard = () => {
       <MargeDuJourModal 
         isOpen={margeModalOpen} 
         onClose={() => setMargeModalOpen(false)} 
-      />
-      <FacturesImpayeesModal 
-        isOpen={facturesModalOpen} 
-        onClose={() => setFacturesModalOpen(false)} 
       />
       <DepensesDuMoisModal 
         isOpen={depensesModalOpen} 
