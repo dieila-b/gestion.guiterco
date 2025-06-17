@@ -1,3 +1,4 @@
+
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -10,7 +11,7 @@ export const useCreateFactureVente = () => {
     mutationFn: async (data: CreateFactureVenteData) => {
       console.log('🔄 Création facture vente avec données:', data);
       
-      // 1. Créer la facture avec les montants exacts
+      // 1. Créer la facture avec les montants exacts calculés depuis le panier
       const { data: facture, error: factureError } = await supabase
         .from('factures_vente')
         .insert({
@@ -21,8 +22,8 @@ export const useCreateFactureVente = () => {
           tva: data.tva,
           montant_ttc: data.montant_ttc,
           mode_paiement: data.mode_paiement,
-          statut_paiement: data.mode_paiement ? 'payee' : 'en_attente',
-          statut_livraison: 'livree' // Vente comptoir = directement livrée
+          statut_paiement: data.mode_paiement && data.montant_ttc > 0 ? 'payee' : 'en_attente',
+          statut_livraison: 'en_attente' // Par défaut en attente, sera mis à jour selon les lignes
         })
         .select()
         .single();
@@ -34,13 +35,13 @@ export const useCreateFactureVente = () => {
 
       console.log('✅ Facture créée:', facture);
 
-      // 2. Créer les lignes de facture avec les prix exacts - CORRECTION: utiliser montant_ligne au lieu de mont
+      // 2. Créer les lignes de facture avec les prix exacts
       const lignesFacture = data.cart.map(item => ({
         facture_vente_id: facture.id,
         article_id: item.article_id,
         quantite: item.quantite,
         prix_unitaire: item.prix_unitaire,
-        montant_ligne: item.quantite * item.prix_unitaire, // CORRIGÉ: mont -> montant_ligne
+        montant_ligne: item.quantite * item.prix_unitaire,
         statut_livraison: 'livree' // Vente comptoir = directement livrée
       }));
 
@@ -58,14 +59,27 @@ export const useCreateFactureVente = () => {
 
       console.log('✅ Lignes facture créées:', lignesCreees);
 
-      // 3. Créer le versement avec le montant exact si un mode de paiement est spécifié
+      // 3. Mettre à jour le statut de livraison de la facture basé sur les lignes créées
+      if (lignesCreees && lignesCreees.length > 0) {
+        const toutesLivrees = lignesCreees.every(ligne => ligne.statut_livraison === 'livree');
+        const statutLivraison = toutesLivrees ? 'livree' : 'en_attente';
+        
+        await supabase
+          .from('factures_vente')
+          .update({ statut_livraison: statutLivraison })
+          .eq('id', facture.id);
+          
+        console.log('✅ Statut livraison mis à jour:', statutLivraison);
+      }
+
+      // 4. Créer le versement UNIQUEMENT si un mode de paiement est spécifié ET montant > 0
       if (data.mode_paiement && data.montant_ttc > 0) {
         const { error: versementError } = await supabase
           .from('versements_clients')
           .insert({
             client_id: data.client_id,
             facture_id: facture.id,
-            montant: data.montant_ttc, // Utiliser le montant exact de la facture
+            montant: data.montant_ttc, // Montant exact de la facture
             mode_paiement: data.mode_paiement,
             date_versement: new Date().toISOString(),
             numero_versement: `V-${facture.numero_facture}`
@@ -76,15 +90,15 @@ export const useCreateFactureVente = () => {
           throw versementError;
         }
 
-        console.log('✅ Versement créé pour montant exact:', data.montant_ttc);
+        console.log('✅ Versement créé pour montant:', data.montant_ttc);
       }
 
-      // 4. Mettre à jour le stock PDV si spécifié
+      // 5. Mettre à jour le stock PDV si spécifié
       if (data.point_vente_id) {
         await updateStockPDV(data, facture);
       }
 
-      // 5. Créer une transaction financière pour la caisse
+      // 6. Créer une transaction financière pour la caisse
       if (data.mode_paiement && data.montant_ttc > 0) {
         await createFinancialTransaction(data, facture);
       }
@@ -204,7 +218,7 @@ async function createFinancialTransaction(data: CreateFactureVenteData, facture:
       .from('transactions')
       .insert({
         type: 'income',
-        amount: data.montant_ttc, // Utiliser le montant exact
+        amount: data.montant_ttc, // Montant exact
         description: `Vente ${facture.numero_facture}`,
         category: 'sales',
         payment_method: paymentMethod,

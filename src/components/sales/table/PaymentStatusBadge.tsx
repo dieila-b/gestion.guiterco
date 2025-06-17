@@ -9,8 +9,10 @@ interface PaymentStatusBadgeProps {
 }
 
 const PaymentStatusBadge = ({ facture }: PaymentStatusBadgeProps) => {
-  // Calculer le statut réel basé sur les versements SANS forcer la mise à jour en base
+  // Calculer le statut réel basé sur les versements
   const actualStatus = getActualPaymentStatus(facture);
+  
+  console.log('🏷️ PaymentStatusBadge - Facture:', facture.numero_facture, 'Statut calculé:', actualStatus);
   
   return (
     <Badge 

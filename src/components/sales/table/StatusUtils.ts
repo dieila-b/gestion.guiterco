@@ -63,17 +63,17 @@ export const getActualPaymentStatus = (facture: FactureVente) => {
   const tolerance = 1;
   
   let status;
-  if (paidAmount === 0) {
+  if (paidAmount <= 0) {
     status = 'en_attente';
   } else if (paidAmount >= (totalAmount - tolerance)) {
     status = 'payee';
-  } else {
+  } else if (paidAmount > 0 && paidAmount < totalAmount) {
     status = 'partiellement_payee';
+  } else {
+    status = 'en_attente';
   }
   
-  console.log('🔄 Statut paiement déterminé:', status);
-  
-  // IMPORTANT: NE PAS forcer la mise à jour en base - utiliser seulement le statut calculé
+  console.log('🔄 Statut paiement calculé final:', status);
   return status;
 };
 
@@ -106,10 +106,10 @@ export const getActualDeliveryStatus = (facture: FactureVente) => {
   console.log('🚚 getActualDeliveryStatus - Facture:', facture.numero_facture);
   console.log('🚚 Lignes facture pour calcul:', facture.lignes_facture);
   
-  // Pour les ventes comptoir, vérifier d'abord les lignes
+  // Si pas de lignes de facture, considérer comme en attente
   if (!facture.lignes_facture || !Array.isArray(facture.lignes_facture) || facture.lignes_facture.length === 0) {
-    console.log('🚚 Pas de lignes, considéré comme livré (vente comptoir)');
-    return 'livree';
+    console.log('🚚 Pas de lignes facture - statut par défaut: en_attente');
+    return 'en_attente';
   }
   
   const totalLignes = facture.lignes_facture.length;
@@ -117,19 +117,23 @@ export const getActualDeliveryStatus = (facture: FactureVente) => {
     ligne.statut_livraison === 'livree'
   ).length;
   
-  console.log('🚚 Lignes livrées:', lignesLivrees, '/', totalLignes);
+  console.log('🚚 Analyse livraison:', {
+    totalLignes,
+    lignesLivrees,
+    pourcentage: Math.round((lignesLivrees / totalLignes) * 100)
+  });
   
   let status;
   if (lignesLivrees === 0) {
     status = 'en_attente';
   } else if (lignesLivrees === totalLignes) {
     status = 'livree';
-  } else {
+  } else if (lignesLivrees > 0 && lignesLivrees < totalLignes) {
     status = 'partiellement_livree';
+  } else {
+    status = 'en_attente';
   }
   
-  console.log('🚚 Statut livraison déterminé:', status);
-  
-  // IMPORTANT: NE PAS forcer la mise à jour en base - utiliser seulement le statut calculé
+  console.log('🚚 Statut livraison calculé final:', status);
   return status;
 };
