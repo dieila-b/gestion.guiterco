@@ -5,8 +5,8 @@ export * from './useSalesMutations';
 export * from './useSalesOptimized';
 export type * from '@/types/sales-mutations';
 
-// Ajouter les nouvelles mutations
-export * from './sales/mutations/useFactureVenteMutations';
+// Ajouter les nouvelles mutations refactorisées
+export * from './sales/mutations';
 
 // Re-export des queries spécifiques
 export * from './sales/queries/useFacturesVenteQuery';

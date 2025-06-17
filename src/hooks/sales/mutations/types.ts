@@ -13,3 +13,19 @@ export interface UpdateFactureStatutInput {
   statut_livraison?: string;
   statut_paiement?: string;
 }
+
+export interface CreateFactureVenteData {
+  client_id: string;
+  cart: CartItem[];
+  montant_ht: number;
+  tva: number;
+  montant_ttc: number;
+  mode_paiement?: string;
+  point_vente_id?: string;
+}
+
+export interface CartItem {
+  article_id: string;
+  quantite: number;
+  prix_unitaire: number;
+}
