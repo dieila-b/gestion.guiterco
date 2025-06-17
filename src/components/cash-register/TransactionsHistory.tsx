@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Input } from '@/components/ui/input';
@@ -53,7 +54,7 @@ const getTransactionTypeDetails = (source: string | null, type: 'income' | 'expe
     case 'paiement impayé':
     case 'règlement facture':
       return {
-        label: "Règlement Impayés",
+        label: "Règlement Facture",
         className: "bg-orange-50 text-orange-700",
         textColor: "text-orange-700"
       };
@@ -143,7 +144,7 @@ const TransactionsHistory: React.FC<TransactionsHistoryProps> = ({
                       <p className="text-xs text-muted-foreground">{transaction.category}</p>
                     </div>
                     <div>
-                      <span className={`px-2 py-0.5 rounded text-xs font-semibold ${className} ${textColor}`}>
+                      <span className={`px-2 py-0.5 rounded text-xs font-semibold ${className}`}>
                         {label}
                       </span>
                     </div>
