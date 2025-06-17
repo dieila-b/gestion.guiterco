@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Edit } from 'lucide-react';
 import { format } from 'date-fns';
 import PaymentSection from './PaymentSection';
@@ -45,38 +46,47 @@ const EditFactureDialog = ({ facture }: EditFactureDialogProps) => {
         </DialogHeader>
 
         <div className="grid gap-4">
-          {/* Affichage d'informations de base, non modifiables */}
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base">Informations générales</CardTitle>
-            </CardHeader>
-            <CardContent className="flex flex-col gap-2">
-              <div>
-                <Label>Numéro de facture</Label>
-                <Input value={facture.numero_facture} readOnly />
-              </div>
-              <div className="flex gap-2">
-                <div className="w-full">
-                  <Label>Date de facture</Label>
-                  <Input value={dateFacture} readOnly type="date" />
+          {/* Section informations générales repliable */}
+          <Accordion type="single" collapsible className="w-full">
+            <AccordionItem value="general-info" className="border rounded-lg">
+              <AccordionTrigger className="px-4 py-3 hover:no-underline">
+                <div className="flex items-center gap-2">
+                  <span className="font-medium">Informations générales</span>
+                  <span className="text-sm text-muted-foreground">
+                    ({facture.numero_facture} - {formatCurrency(facture.montant_ttc)})
+                  </span>
                 </div>
-                <div className="w-full">
-                  <Label>Échéance</Label>
-                  <Input value={dateEcheance || '--'} readOnly type="date" />
+              </AccordionTrigger>
+              <AccordionContent className="px-4 pb-4">
+                <div className="flex flex-col gap-3">
+                  <div>
+                    <Label>Numéro de facture</Label>
+                    <Input value={facture.numero_facture} readOnly />
+                  </div>
+                  <div className="flex gap-2">
+                    <div className="w-full">
+                      <Label>Date de facture</Label>
+                      <Input value={dateFacture} readOnly type="date" />
+                    </div>
+                    <div className="w-full">
+                      <Label>Échéance</Label>
+                      <Input value={dateEcheance || '--'} readOnly type="date" />
+                    </div>
+                  </div>
+                  <div>
+                    <Label>Client</Label>
+                    <Input value={facture.client?.nom || facture.client_id} readOnly />
+                  </div>
+                  <div>
+                    <Label>Montant total TTC</Label>
+                    <Input value={formatCurrency(facture.montant_ttc)} readOnly />
+                  </div>
                 </div>
-              </div>
-              <div>
-                <Label>Client</Label>
-                <Input value={facture.client?.nom || facture.client_id} readOnly />
-              </div>
-              <div>
-                <Label>Montant total TTC</Label>
-                <Input value={formatCurrency(facture.montant_ttc)} readOnly />
-              </div>
-            </CardContent>
-          </Card>
+              </AccordionContent>
+            </AccordionItem>
+          </Accordion>
           
-          {/* Section paiements et livraison fusionnées */}
+          {/* Section paiements et livraison - toujours visibles */}
           <div className="grid md:grid-cols-2 gap-4">
             <PaymentSection facture={facture} remainingAmount={remainingAmount} />
             <DeliverySection facture={facture} />
