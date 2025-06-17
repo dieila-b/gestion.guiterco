@@ -11,7 +11,11 @@ export const useCreateFactureVente = () => {
     mutationFn: async (data: CreateFactureVenteData) => {
       console.log('🔄 Création facture vente avec données:', data);
       
-      // 1. Créer la facture avec les montants exacts calculés depuis le panier
+      // 1. Déterminer les statuts corrects dès la création
+      const statutPaiement = data.mode_paiement && data.montant_ttc > 0 ? 'payee' : 'en_attente';
+      console.log('💰 Statut paiement déterminé:', statutPaiement);
+      
+      // 2. Créer la facture avec les montants exacts calculés depuis le panier
       const { data: facture, error: factureError } = await supabase
         .from('factures_vente')
         .insert({
@@ -22,8 +26,8 @@ export const useCreateFactureVente = () => {
           tva: data.tva,
           montant_ttc: data.montant_ttc,
           mode_paiement: data.mode_paiement,
-          statut_paiement: data.mode_paiement && data.montant_ttc > 0 ? 'payee' : 'en_attente',
-          statut_livraison: 'en_attente' // Par défaut en attente, sera mis à jour selon les lignes
+          statut_paiement: statutPaiement,
+          statut_livraison: 'en_attente' // Toujours en attente au début
         })
         .select()
         .single();
@@ -33,9 +37,9 @@ export const useCreateFactureVente = () => {
         throw factureError;
       }
 
-      console.log('✅ Facture créée:', facture);
+      console.log('✅ Facture créée avec statuts corrects:', facture);
 
-      // 2. Créer les lignes de facture avec les prix exacts
+      // 3. Créer les lignes de facture avec les prix exacts
       const lignesFacture = data.cart.map(item => ({
         facture_vente_id: facture.id,
         article_id: item.article_id,
@@ -59,20 +63,31 @@ export const useCreateFactureVente = () => {
 
       console.log('✅ Lignes facture créées:', lignesCreees);
 
-      // 3. Mettre à jour le statut de livraison de la facture basé sur les lignes créées
+      // 4. Calculer le statut de livraison réel basé sur les lignes créées
+      let statutLivraisonFinal = 'en_attente';
       if (lignesCreees && lignesCreees.length > 0) {
         const toutesLivrees = lignesCreees.every(ligne => ligne.statut_livraison === 'livree');
-        const statutLivraison = toutesLivrees ? 'livree' : 'en_attente';
+        const aucuneLivree = lignesCreees.every(ligne => ligne.statut_livraison === 'en_attente');
+        
+        if (toutesLivrees) {
+          statutLivraisonFinal = 'livree';
+        } else if (!aucuneLivree) {
+          statutLivraisonFinal = 'partiellement_livree';
+        } else {
+          statutLivraisonFinal = 'en_attente';
+        }
+        
+        console.log('🚚 Statut livraison final calculé:', statutLivraisonFinal);
         
         await supabase
           .from('factures_vente')
-          .update({ statut_livraison: statutLivraison })
+          .update({ statut_livraison: statutLivraisonFinal })
           .eq('id', facture.id);
           
-        console.log('✅ Statut livraison mis à jour:', statutLivraison);
+        console.log('✅ Statut livraison mis à jour:', statutLivraisonFinal);
       }
 
-      // 4. Créer le versement UNIQUEMENT si un mode de paiement est spécifié ET montant > 0
+      // 5. Créer le versement UNIQUEMENT si un mode de paiement est spécifié ET montant > 0
       if (data.mode_paiement && data.montant_ttc > 0) {
         const { error: versementError } = await supabase
           .from('versements_clients')
@@ -90,15 +105,15 @@ export const useCreateFactureVente = () => {
           throw versementError;
         }
 
-        console.log('✅ Versement créé pour montant:', data.montant_ttc);
+        console.log('✅ Versement créé pour montant exact:', data.montant_ttc);
       }
 
-      // 5. Mettre à jour le stock PDV si spécifié
+      // 6. Mettre à jour le stock PDV si spécifié
       if (data.point_vente_id) {
         await updateStockPDV(data, facture);
       }
 
-      // 6. Créer une transaction financière pour la caisse
+      // 7. Créer une transaction financière pour la caisse
       if (data.mode_paiement && data.montant_ttc > 0) {
         await createFinancialTransaction(data, facture);
       }
@@ -185,7 +200,7 @@ async function updateStockPDV(data: CreateFactureVenteData, facture: any) {
 
 // Helper function to create financial transaction
 async function createFinancialTransaction(data: CreateFactureVenteData, facture: any) {
-  console.log('💰 Création transaction financière pour montant:', data.montant_ttc);
+  console.log('💰 Création transaction financière pour montant exact:', data.montant_ttc);
   
   const { data: cashRegister, error: cashRegisterError } = await supabase
     .from('cash_registers')
@@ -230,7 +245,7 @@ async function createFinancialTransaction(data: CreateFactureVenteData, facture:
     if (transactionError) {
       console.error('❌ Erreur création transaction financière:', transactionError);
     } else {
-      console.log('✅ Transaction financière créée pour montant:', data.montant_ttc);
+      console.log('✅ Transaction financière créée pour montant exact:', data.montant_ttc);
     }
   }
 }

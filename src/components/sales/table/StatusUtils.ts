@@ -56,7 +56,7 @@ export const getActualPaymentStatus = (facture: FactureVente) => {
   const paidAmount = calculatePaidAmount(facture);
   const totalAmount = facture.montant_ttc;
   
-  console.log('🔄 Calcul statut paiement - Facture:', facture.numero_facture);
+  console.log('🔄 Calcul statut paiement RÉEL - Facture:', facture.numero_facture);
   console.log('🔄 Montant payé:', paidAmount, 'Montant total:', totalAmount);
   
   // Tolérance de 1 GNF pour gérer les arrondis
@@ -73,7 +73,7 @@ export const getActualPaymentStatus = (facture: FactureVente) => {
     status = 'en_attente';
   }
   
-  console.log('🔄 Statut paiement calculé final:', status);
+  console.log('🔄 Statut paiement RÉEL calculé final:', status);
   return status;
 };
 
@@ -103,7 +103,7 @@ export const getArticleCount = (facture: FactureVente) => {
 };
 
 export const getActualDeliveryStatus = (facture: FactureVente) => {
-  console.log('🚚 getActualDeliveryStatus - Facture:', facture.numero_facture);
+  console.log('🚚 getActualDeliveryStatus RÉEL - Facture:', facture.numero_facture);
   console.log('🚚 Lignes facture pour calcul:', facture.lignes_facture);
   
   // Si pas de lignes de facture, considérer comme en attente
@@ -117,7 +117,7 @@ export const getActualDeliveryStatus = (facture: FactureVente) => {
     ligne.statut_livraison === 'livree'
   ).length;
   
-  console.log('🚚 Analyse livraison:', {
+  console.log('🚚 Analyse livraison RÉELLE:', {
     totalLignes,
     lignesLivrees,
     pourcentage: Math.round((lignesLivrees / totalLignes) * 100)
@@ -134,6 +134,6 @@ export const getActualDeliveryStatus = (facture: FactureVente) => {
     status = 'en_attente';
   }
   
-  console.log('🚚 Statut livraison calculé final:', status);
+  console.log('🚚 Statut livraison RÉEL calculé final:', status);
   return status;
 };
