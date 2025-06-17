@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,26 +9,7 @@ import { formatCurrency } from '@/lib/currency';
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/table';
 import ArticleCountCell from '@/components/sales/table/ArticleCountCell';
 import { printFacture, printTicket } from '@/components/sales/actions/printUtils';
-
-interface FactureVente {
-  id: string;
-  numero_facture?: string;
-  date_facture: string;
-  montant_ttc?: number;
-  statut_paiement?: string;
-  statut_livraison?: string;
-  client?: {
-    nom?: string;
-  };
-  versements?: Array<{
-    montant?: number;
-  }>;
-  lignes_facture?: Array<{
-    id: string;
-    quantite: number;
-  }>;
-  nb_articles?: number;
-}
+import type { FactureVente } from '@/types/sales';
 
 interface UnpaidInvoicesTableProps {
   filteredFactures: FactureVente[];
