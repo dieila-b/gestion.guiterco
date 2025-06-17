@@ -4,13 +4,27 @@ import { generateFactureNumber, determineStatutPaiement } from '../utils/formatU
 
 // Service for creating sales-related database entries
 export const createVenteEntries = async (venteData: any, pdvSelected: any) => {
-  const { statutPaiement, montantRestant } = determineStatutPaiement(
-    venteData.montant_total,
-    venteData.montant_paye
-  );
+  const montantTotal = Number(venteData.montant_total);
+  const montantPaye = Number(venteData.montant_paye || 0);
+  
+  // Calculer le statut de paiement correct
+  let statutPaiement = 'en_attente';
+  if (montantPaye === 0) {
+    statutPaiement = 'en_attente';
+  } else if (montantPaye >= montantTotal) {
+    statutPaiement = 'payee';
+  } else if (montantPaye > 0) {
+    statutPaiement = 'partiellement_payee';
+  }
 
-  console.log('Statut de paiement calculé:', statutPaiement);
-  console.log('Montant restant:', montantRestant);
+  const montantRestant = Math.max(0, montantTotal - montantPaye);
+
+  console.log('📊 Calcul statut vente:', {
+    montantTotal,
+    montantPaye,
+    montantRestant,
+    statutPaiement
+  });
 
   // Créer la commande client
   const numeroCommande = `CMD-${Date.now()}`;
@@ -19,9 +33,9 @@ export const createVenteEntries = async (venteData: any, pdvSelected: any) => {
     .insert({
       numero_commande: numeroCommande,
       client_id: venteData.client_id,
-      montant_ttc: venteData.montant_total,
-      montant_ht: venteData.montant_total / 1.2,
-      tva: venteData.montant_total - (venteData.montant_total / 1.2),
+      montant_ttc: montantTotal,
+      montant_ht: montantTotal / 1.2,
+      tva: montantTotal - (montantTotal / 1.2),
       statut: 'confirmee',
       mode_paiement: venteData.mode_paiement,
       observations: venteData.notes
@@ -57,7 +71,7 @@ export const createVenteEntries = async (venteData: any, pdvSelected: any) => {
     throw lignesError;
   }
 
-  // Créer la facture avec le bon format de numéro
+  // Créer la facture avec le statut de paiement correct
   const numeroFacture = generateFactureNumber();
   
   const { data: facture, error: factureError } = await supabase
@@ -66,9 +80,9 @@ export const createVenteEntries = async (venteData: any, pdvSelected: any) => {
       numero_facture: numeroFacture,
       commande_id: commande.id,
       client_id: venteData.client_id,
-      montant_ttc: venteData.montant_total,
-      montant_ht: venteData.montant_total / 1.2,
-      tva: venteData.montant_total - (venteData.montant_total / 1.2),
+      montant_ttc: montantTotal,
+      montant_ht: montantTotal / 1.2,
+      tva: montantTotal - (montantTotal / 1.2),
       statut_paiement: statutPaiement,
       mode_paiement: venteData.mode_paiement
     })
@@ -80,32 +94,34 @@ export const createVenteEntries = async (venteData: any, pdvSelected: any) => {
     throw factureError;
   }
 
-  console.log('Facture créée:', facture);
+  console.log('Facture créée avec statut:', statutPaiement);
 
-  // Enregistrer le versement si paiement effectué
-  if (venteData.montant_paye > 0) {
+  // Enregistrer le versement SEULEMENT si paiement effectué
+  if (montantPaye > 0) {
     const { error: versementError } = await supabase
       .from('versements_clients')
       .insert({
         numero_versement: `VER-${Date.now()}`,
         client_id: venteData.client_id,
         facture_id: facture.id,
-        montant: venteData.montant_paye,
+        montant: montantPaye,
         mode_paiement: venteData.mode_paiement,
-        observations: venteData.notes || `Versement ${statutPaiement === 'paye' ? 'complet' : 'partiel'} pour facture ${numeroFacture}`
+        observations: venteData.notes || `Versement ${statutPaiement === 'payee' ? 'complet' : 'partiel'} pour facture ${numeroFacture}`
       });
 
     if (versementError) {
       console.error('Erreur création versement:', versementError);
       throw versementError;
     }
+
+    console.log('✅ Versement créé pour montant:', montantPaye);
   }
 
   return { 
     commande, 
     facture, 
     statutPaiement, 
-    montantRestant: Math.max(0, montantRestant),
+    montantRestant,
     numeroFacture
   };
 };

@@ -13,11 +13,21 @@ export const determineStatutPaiement = (montantTotal: number, montantPaye: numbe
   const montantRestant = montantTotal - montantPaye;
   let statutPaiement = 'en_attente';
   
-  if (montantPaye >= montantTotal) {
-    statutPaiement = 'paye';
-  } else if (montantPaye > 0) {
-    statutPaiement = 'partiel';
+  // Logique précise pour les statuts de paiement
+  if (montantPaye === 0) {
+    statutPaiement = 'en_attente';
+  } else if (montantPaye >= montantTotal) {
+    statutPaiement = 'payee';
+  } else if (montantPaye > 0 && montantPaye < montantTotal) {
+    statutPaiement = 'partiellement_payee';
   }
+
+  console.log('🔍 Détermination statut:', {
+    montantTotal,
+    montantPaye,
+    montantRestant,
+    statutPaiement
+  });
 
   return { statutPaiement, montantRestant };
 };

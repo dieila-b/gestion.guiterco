@@ -1,3 +1,4 @@
+
 import { useMutation } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import type { CartItem, VenteComptoirData } from './types';
@@ -33,7 +34,7 @@ export const useVenteMutation = (
         }
       }
 
-      // Utiliser la mutation de création de facture
+      // Utiliser la mutation de création de facture avec les données de paiement
       const result = await createFactureVente.mutateAsync({
         client_id: venteData.client_id,
         cart: venteData.cart,
@@ -41,7 +42,8 @@ export const useVenteMutation = (
         tva: venteData.tva,
         montant_ttc: venteData.montant_ttc,
         mode_paiement: venteData.mode_paiement,
-        point_vente_id: pointVenteId
+        point_vente_id: pointVenteId,
+        payment_data: venteData.payment_data // CRUCIAL: passer les données de paiement
       });
 
       console.log('✅ Vente comptoir créée avec succès:', result);

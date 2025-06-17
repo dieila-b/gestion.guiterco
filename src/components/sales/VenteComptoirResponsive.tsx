@@ -115,18 +115,23 @@ const VenteComptoirResponsive = () => {
         montant_ttc: cartTotals.total,
         mode_paiement: paymentData.mode_paiement,
         point_vente_id: selectedPDV,
-        payment_data: paymentData // Passer les données de paiement
+        payment_data: {
+          montant_paye: paymentData.montant_paye || 0,
+          mode_paiement: paymentData.mode_paiement,
+          notes: paymentData.notes
+        }
       });
       
       setLastFacture(result.facture);
       setShowPaymentModal(false);
       setShowPostPaymentActions(true);
       
-      // Message de succès adaptatif
-      if (paymentData.montant_paye === 0) {
+      // Message de succès adaptatif selon le montant payé
+      const montantPaye = paymentData.montant_paye || 0;
+      if (montantPaye === 0) {
         toast.success('Facture créée - Aucun paiement enregistré');
-      } else if (paymentData.montant_paye < cartTotals.total) {
-        toast.success('Facture créée - Paiement partiel enregistré');
+      } else if (montantPaye < cartTotals.total) {
+        toast.success(`Facture créée - Paiement partiel de ${montantPaye}€ enregistré`);
       } else {
         toast.success('Facture créée - Paiement complet reçu');
       }
