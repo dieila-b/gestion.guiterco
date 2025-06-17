@@ -60,7 +60,7 @@ export const useCreateFactureVente = () => {
       console.log('✅ Lignes facture créées avec statut en_attente:', lignesCreees);
 
       // 3. Traiter le paiement SEULEMENT s'il y en a un
-      if (data.payment_data && data.payment_data.montant_paye > 0) {
+      if (data.payment_data && typeof data.payment_data.montant_paye === 'number' && data.payment_data.montant_paye > 0) {
         console.log('💰 Traitement paiement pour montant:', data.payment_data.montant_paye);
         
         // Créer le versement
@@ -85,9 +85,12 @@ export const useCreateFactureVente = () => {
 
         // Mettre à jour le statut de paiement selon le montant
         let nouveauStatutPaiement = 'en_attente';
-        if (data.payment_data.montant_paye >= facture.montant_ttc) {
+        const montantPaye = Number(data.payment_data.montant_paye);
+        const montantTotal = Number(facture.montant_ttc);
+        
+        if (montantPaye >= montantTotal) {
           nouveauStatutPaiement = 'payee';
-        } else if (data.payment_data.montant_paye > 0) {
+        } else if (montantPaye > 0) {
           nouveauStatutPaiement = 'partiellement_payee';
         }
 
@@ -122,7 +125,7 @@ export const useCreateFactureVente = () => {
           // Traitement livraison partielle
           for (const [itemId, quantiteLivree] of Object.entries(data.payment_data.quantite_livree || {})) {
             const ligne = lignesCreees?.find(l => l.article_id === itemId);
-            if (ligne && quantiteLivree > 0) {
+            if (ligne && typeof quantiteLivree === 'number' && quantiteLivree > 0) {
               await supabase
                 .from('lignes_facture_vente')
                 .update({ statut_livraison: quantiteLivree >= ligne.quantite ? 'livree' : 'partiellement_livree' })
