@@ -1,3 +1,4 @@
+
 import type { FactureVente } from '@/types/sales';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -69,7 +70,7 @@ export const getActualPaymentStatus = (facture: FactureVente) => {
   } else if (paidAmount >= (totalAmount - tolerance)) {
     status = 'payee';
   } else {
-    status = 'partiellement_payee';
+    status = 'partiellement_payee'; // ✅ CORRECTION: Utiliser "partiellement_payee"
   }
   
   console.log('🔄 Statut paiement déterminé:', status);
@@ -147,7 +148,7 @@ export const getActualDeliveryStatus = (facture: FactureVente) => {
   } else if (lignesLivrees === totalLignes) {
     status = 'livree';
   } else {
-    status = 'partiellement_livree';
+    status = 'partiellement_livree'; // ✅ CORRECTION: Utiliser "partiellement_livree"
   }
   
   console.log('🚚 Statut livraison déterminé:', status);

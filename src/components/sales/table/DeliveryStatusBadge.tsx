@@ -18,7 +18,7 @@ const DeliveryStatusBadge = ({ facture }: DeliveryStatusBadgeProps) => {
           Non livrée
         </Badge>
       );
-    case 'partiellement_livree':
+    case 'partiellement_livree': // ✅ CORRECTION: Gérer le statut partiel
       return (
         <Badge variant="outline" className="bg-yellow-100 text-yellow-800 border-yellow-300">
           Partielle

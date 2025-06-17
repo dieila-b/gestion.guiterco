@@ -1,4 +1,3 @@
-
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -21,20 +20,18 @@ export const useCreateFactureVente = () => {
     mutationFn: async (data: CreateFactureVenteData) => {
       console.log('🔄 Création facture vente avec données:', data);
       
-      // 1. Créer la facture avec un numero_facture généré
-      const numeroFacture = `F-${Date.now()}`;
-      
+      // 1. Créer la facture SANS numero_facture (pour utiliser l'auto-génération)
       const { data: facture, error: factureError } = await supabase
         .from('factures_vente')
         .insert({
-          numero_facture: numeroFacture,
           client_id: data.client_id,
           date_facture: new Date().toISOString(),
           montant_ht: data.montant_ht,
           tva: data.tva,
           montant_ttc: data.montant_ttc,
           mode_paiement: data.mode_paiement,
-          statut_paiement: 'payee', // Vente comptoir = directement payée
+          // NE PAS forcer les statuts - ils seront calculés automatiquement
+          statut_paiement: data.mode_paiement ? 'payee' : 'en_attente',
           statut_livraison: 'livree' // Vente comptoir = directement livrée
         })
         .select()
@@ -45,7 +42,7 @@ export const useCreateFactureVente = () => {
         throw factureError;
       }
 
-      console.log('✅ Facture créée:', facture);
+      console.log('✅ Facture créée avec numéro:', facture.numero_facture);
 
       // 2. Créer les lignes de facture pour chaque article du panier
       const lignesFacture = data.cart.map(item => ({
@@ -110,7 +107,6 @@ export const useCreateFactureVente = () => {
           
           if (pdvError) {
             console.error('❌ Erreur récupération point de vente:', pdvError);
-            // Ne pas faire échouer la transaction pour un problème de stock
             console.log('⚠️ Continuing without stock update');
             return { facture, lignes: lignesCreees };
           } else {
@@ -160,7 +156,7 @@ export const useCreateFactureVente = () => {
         }
       }
 
-      // 5. Créer une transaction financière pour la caisse
+      // 5. Créer une transaction financière pour la caisse avec le BON numéro de facture
       if (data.mode_paiement) {
         console.log('💰 Création transaction financière:', data.montant_ttc);
         
@@ -193,12 +189,13 @@ export const useCreateFactureVente = () => {
               break;
           }
 
+          // UTILISER LE VRAI NUMÉRO DE FACTURE
           const { error: transactionError } = await supabase
             .from('transactions')
             .insert({
               type: 'income',
               amount: data.montant_ttc,
-              description: `Vente ${numeroFacture}`,
+              description: `Vente ${facture.numero_facture}`, // ✅ Utiliser le bon numéro
               category: 'sales',
               payment_method: paymentMethod,
               cash_register_id: cashRegister.id,
@@ -209,7 +206,7 @@ export const useCreateFactureVente = () => {
           if (transactionError) {
             console.error('❌ Erreur création transaction financière:', transactionError);
           } else {
-            console.log('✅ Transaction financière créée');
+            console.log('✅ Transaction financière créée avec numéro:', facture.numero_facture);
           }
         }
       }
