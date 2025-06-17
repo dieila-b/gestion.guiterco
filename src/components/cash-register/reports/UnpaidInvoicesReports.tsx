@@ -36,7 +36,10 @@ const UnpaidInvoicesReports: React.FC = () => {
       res = res.filter(f => new Date(f.date_facture) <= dateRange.end!);
     }
     if (searchFacture) {
-      res = res.filter(f => f.numero_facture?.toLowerCase().includes(searchFacture.toLowerCase()));
+      res = res.filter(f => 
+        f.numero_facture?.toLowerCase().includes(searchFacture.toLowerCase()) ||
+        f.client?.nom?.toLowerCase().includes(searchFacture.toLowerCase())
+      );
     }
     return res;
   }, [factures, selectedClientId, dateRange, searchFacture]);
@@ -58,8 +61,18 @@ const UnpaidInvoicesReports: React.FC = () => {
     alert('Export PDF non implémenté');
   };
 
+  if (isLoading) {
+    return (
+      <div className="max-w-5xl mx-auto py-8">
+        <div className="flex items-center justify-center h-64">
+          <p>Chargement des factures...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="max-w-5xl mx-auto py-8">
+    <div className="max-w-7xl mx-auto py-8 px-4">
       <UnpaidInvoicesHeader 
         onPrint={handlePrint}
         onExportPDF={handleExportPDF}
