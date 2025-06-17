@@ -16,27 +16,27 @@ const getTransactionTypeDetails = (source: string | null, type: 'income' | 'expe
     case 'vente':
     case 'vente réglée':
     case 'vente encaissée':
-      return { label: 'Vente', className: 'bg-green-50 text-green-700' };
+      return { label: 'Vente', className: 'bg-green-50 text-green-700', textColor: 'text-green-600' };
     case 'paiement d\'un impayé':
     case 'règlement impayés':
     case 'paiement impayé':
     case 'règlement facture':
-      return { label: 'Règlement', className: 'bg-orange-50 text-orange-700' };
+      return { label: 'Règlement', className: 'bg-orange-50 text-orange-700', textColor: 'text-orange-600' };
     case 'entrée manuelle':
-      return { label: 'Entrée', className: 'bg-blue-50 text-blue-700' };
+      return { label: 'Entrée', className: 'bg-blue-50 text-blue-700', textColor: 'text-blue-600' };
     case 'sortie':
     case 'sortie manuelle':
-      return { label: 'Sortie', className: 'bg-red-50 text-red-700' };
+      return { label: 'Sortie', className: 'bg-red-50 text-red-700', textColor: 'text-red-600' };
     default:
       // Fallback logic améliorée
       if (type === 'expense') {
-        return { label: 'Sortie', className: 'bg-red-50 text-red-700' };
+        return { label: 'Sortie', className: 'bg-red-50 text-red-700', textColor: 'text-red-600' };
       }
       // Pour les transactions income sans source claire, on essaie de deviner depuis la source originale
       if (source === 'transactions' || !source) {
-        return { label: 'Vente', className: 'bg-green-50 text-green-700' };
+        return { label: 'Vente', className: 'bg-green-50 text-green-700', textColor: 'text-green-600' };
       }
-      return { label: 'Entrée', className: 'bg-blue-50 text-blue-700' };
+      return { label: 'Entrée', className: 'bg-blue-50 text-blue-700', textColor: 'text-blue-600' };
   }
 };
 
@@ -157,9 +157,7 @@ const TransactionsOverviewTable: React.FC = () => {
                     </tr>
                   ) : (
                     filteredTransactions.map(transaction => {
-                      const { label, className } = getTransactionTypeDetails(transaction.source, transaction.type);
-                      const isReglement = label === "Règlement";
-                      const isVente = label === "Vente";
+                      const { label, className, textColor } = getTransactionTypeDetails(transaction.source, transaction.type);
                       
                       return (
                         <tr key={`${transaction.source}-${transaction.id}`} className="border-b last:border-b-0">
@@ -169,12 +167,9 @@ const TransactionsOverviewTable: React.FC = () => {
                               {label}
                             </span>
                           </td>
-                          <td className={`py-2 px-3 font-bold ${
-                            transaction.type === "expense" ? "text-red-600" : 
-                            isReglement ? "text-orange-600" : 
-                            isVente ? "text-green-600" : "text-blue-600"
-                          }`}>
-                            {transaction.type === "expense" ? "-" : "+"}{formatCurrency(transaction.amount)}
+                          <td className={`py-2 px-3 font-bold ${textColor}`}>
+                            {transaction.type === "expense" ? "-" : "+"}
+                            {formatCurrency(transaction.amount)}
                           </td>
                           <td className="py-2 px-3">{transaction.description}</td>
                           <td className="py-2 px-1 w-16 text-center text-xs text-gray-500">

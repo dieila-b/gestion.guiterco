@@ -190,7 +190,7 @@ const TransactionsHistory: React.FC<TransactionsHistoryProps> = ({
                         <p className="text-xs text-muted-foreground">{transaction.category}</p>
                       </div>
                       <div>
-                        <span className={`px-2 py-0.5 rounded text-xs font-semibold ${className} ${textColor}`}>
+                        <span className={`px-2 py-0.5 rounded text-xs font-semibold ${className}`}>
                           {label}
                         </span>
                       </div>
