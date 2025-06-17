@@ -28,7 +28,17 @@ const TransactionsTable: React.FC<TransactionsTableProps> = ({
           </div>
         ) : (
           transactions.map((transaction) => {
-            const { label, className, textColor } = getTransactionTypeDetails(transaction.source, transaction.type);
+            const { label, className, textColor } = getTransactionTypeDetails(transaction.source, transaction.type, transaction.description);
+            
+            console.log('🎯 Transaction affichée:', {
+              id: transaction.id,
+              description: transaction.description,
+              source: transaction.source,
+              type: transaction.type,
+              label: label,
+              isReglement: label === "Règlement"
+            });
+            
             return (
               <div key={transaction.id} className="grid grid-cols-4 gap-4 p-4 items-center">
                 <div>

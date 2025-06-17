@@ -17,7 +17,7 @@ export const useTransactionFilters = (transactions: (Transaction & { source?: st
         return matchesSearch;
       }
 
-      const { label } = getTransactionTypeDetails(transaction.source, transaction.type);
+      const { label } = getTransactionTypeDetails(transaction.source, transaction.type, transaction.description);
       
       if (typeFilter === "ventes") {
         return matchesSearch && label === "Vente";

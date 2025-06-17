@@ -7,65 +7,7 @@ import { Printer } from "lucide-react";
 import { format } from "date-fns";
 import { useAllFinancialTransactions } from "@/hooks/useTransactions";
 import { formatCurrency } from "@/lib/currency";
-
-const getTransactionTypeDetails = (source: string | null, type: 'income' | 'expense') => {
-  // Logique conditionnelle exacte demandée par l'utilisateur
-  if (source === "facture") {
-    return { 
-      label: 'Règlement', 
-      className: 'bg-orange-50 text-orange-700', 
-      textColor: 'text-orange-600',
-      sourceDisplay: 'Règlement facture'
-    };
-  }
-
-  // Pour toutes les autres transactions, c'est une vente (si income) ou autre
-  if (type === 'income') {
-    return { 
-      label: 'Vente', 
-      className: 'bg-green-50 text-green-700', 
-      textColor: 'text-green-600',
-      sourceDisplay: 'vente'
-    };
-  }
-
-  // Gestion des autres types (entrées manuelles, sorties, etc.)
-  const normalizedSource = source?.trim().toLowerCase();
-  
-  switch (normalizedSource) {
-    case 'entrée manuelle':
-      return { 
-        label: 'Entrée', 
-        className: 'bg-blue-50 text-blue-700', 
-        textColor: 'text-blue-600',
-        sourceDisplay: source 
-      };
-    case 'sortie':
-    case 'sortie manuelle':
-      return { 
-        label: 'Sortie', 
-        className: 'bg-red-50 text-red-700', 
-        textColor: 'text-red-600',
-        sourceDisplay: source 
-      };
-    default:
-      // Fallback logic
-      if (type === 'expense') {
-        return { 
-          label: 'Sortie', 
-          className: 'bg-red-50 text-red-700', 
-          textColor: 'text-red-600',
-          sourceDisplay: source 
-        };
-      }
-      return { 
-        label: 'Entrée', 
-        className: 'bg-blue-50 text-blue-700', 
-        textColor: 'text-blue-600',
-        sourceDisplay: source 
-      };
-  }
-};
+import { getTransactionTypeDetails } from "./utils/transactionTypeUtils";
 
 const TransactionsOverviewTable: React.FC = () => {
   const today = new Date();
@@ -90,7 +32,7 @@ const TransactionsOverviewTable: React.FC = () => {
     }
 
     return allTransactions.filter(transaction => {
-      const { label } = getTransactionTypeDetails(transaction.source, transaction.type);
+      const { label } = getTransactionTypeDetails(transaction.source, transaction.type, transaction.description);
       
       if (typeFilter === "ventes") {
         return label === "Vente";
@@ -184,7 +126,16 @@ const TransactionsOverviewTable: React.FC = () => {
                     </tr>
                   ) : (
                     filteredTransactions.map(transaction => {
-                      const { label, className, textColor, sourceDisplay } = getTransactionTypeDetails(transaction.source, transaction.type);
+                      const { label, className, textColor, sourceDisplay } = getTransactionTypeDetails(transaction.source, transaction.type, transaction.description);
+                      
+                      console.log('🎯 Transaction overview affichée:', {
+                        id: transaction.id,
+                        description: transaction.description,
+                        source: transaction.source,
+                        type: transaction.type,
+                        label: label,
+                        isReglement: label === "Règlement"
+                      });
                       
                       return (
                         <tr key={`${transaction.source}-${transaction.id}`} className="border-b last:border-b-0">

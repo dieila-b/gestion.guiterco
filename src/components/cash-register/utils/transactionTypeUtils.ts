@@ -1,12 +1,12 @@
 
 import { Transaction } from '../types';
 
-export const getTransactionTypeDetails = (source: string | null, type: 'income' | 'expense') => {
-  console.log('🔍 getTransactionTypeDetails appelée avec:', { source, type });
+export const getTransactionTypeDetails = (source: string | null, type: 'income' | 'expense', description?: string) => {
+  console.log('🔍 getTransactionTypeDetails appelée avec:', { source, type, description });
   
-  // Logique conditionnelle exacte demandée par l'utilisateur
+  // Première vérification : si source est explicitement "facture"
   if (source === "facture") {
-    console.log('✅ Règlement de facture détecté !');
+    console.log('✅ Règlement de facture détecté via source !');
     return {
       label: "Règlement",
       className: "bg-orange-50 text-orange-700",
@@ -15,7 +15,18 @@ export const getTransactionTypeDetails = (source: string | null, type: 'income' 
     };
   }
 
-  // Pour toutes les autres transactions, c'est une vente (si income) ou autre
+  // Deuxième vérification : détection par la description (fallback)
+  if (description && description.toLowerCase().includes("règlement")) {
+    console.log('✅ Règlement de facture détecté via description !', description);
+    return {
+      label: "Règlement",
+      className: "bg-orange-50 text-orange-700",
+      textColor: "text-orange-700",
+      sourceDisplay: "Règlement facture"
+    };
+  }
+
+  // Pour les revenus qui ne sont pas des règlements, c'est une vente
   if (type === 'income') {
     console.log('✅ Vente détectée');
     return {
