@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { useAdvancedDashboardStats } from '@/hooks/useAdvancedDashboardStats';
@@ -29,7 +28,7 @@ const NewDashboard = () => {
   };
 
   const handleFacturesImpayeesClick = () => {
-    navigate('/cash-registers?tab=reports&subtab=unpaid-invoices');
+    navigate('/reports?tab=unpaid');
   };
 
   if (error) {

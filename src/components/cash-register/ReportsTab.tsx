@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Label } from '@/components/ui/label';
@@ -19,7 +20,11 @@ import { toast } from "@/components/ui/use-toast";
 import { useFacturesVenteQuery } from '@/hooks/useSales';
 import { generateDailyReportPDF, generateMonthlyReportPDF, generateYearlyReportPDF } from "./reports/pdfUtils";
 
-const ReportsTab: React.FC = () => {
+interface ReportsTabProps {
+  defaultTab?: string;
+}
+
+const ReportsTab: React.FC<ReportsTabProps> = ({ defaultTab = "daily-report" }) => {
   const [startDate, setStartDate] = useState<Date>();
   const [endDate, setEndDate] = useState<Date>();
 
@@ -241,7 +246,7 @@ const ReportsTab: React.FC = () => {
           <CardDescription>Générez des rapports détaillés selon vos critères</CardDescription>
         </CardHeader>
         <CardContent>
-          <Tabs defaultValue="daily-report" className="w-full">
+          <Tabs defaultValue={defaultTab} className="w-full">
             <TabsList className="grid w-full grid-cols-4">
               <TabsTrigger value="daily-report">Rapport Quotidien</TabsTrigger>
               <TabsTrigger value="date-range">Date à Date</TabsTrigger>
