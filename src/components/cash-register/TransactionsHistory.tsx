@@ -1,4 +1,5 @@
-import React from 'react';
+
+import React, { useState } from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -53,7 +54,7 @@ const getTransactionTypeDetails = (source: string | null, type: 'income' | 'expe
     case 'paiement impayé':
     case 'règlement facture':
       return {
-        label: "Règlement Impayés",
+        label: "Règlement",
         className: "bg-orange-50 text-orange-700",
         textColor: "text-orange-700"
       };
@@ -85,6 +86,40 @@ const TransactionsHistory: React.FC<TransactionsHistoryProps> = ({
   setDate,
   formatCurrency
 }) => {
+  const [typeFilter, setTypeFilter] = useState<string>("all");
+  const [searchTerm, setSearchTerm] = useState<string>("");
+
+  // Filtrer les transactions selon le type sélectionné et le terme de recherche
+  const filteredTransactions = transactions.filter(transaction => {
+    const matchesSearch = searchTerm === "" || 
+      transaction.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      transaction.category?.toLowerCase().includes(searchTerm.toLowerCase());
+
+    if (typeFilter === "all") {
+      return matchesSearch;
+    }
+
+    const { label } = getTransactionTypeDetails(transaction.source, transaction.type);
+    
+    if (typeFilter === "ventes") {
+      return matchesSearch && label === "Vente";
+    }
+    
+    if (typeFilter === "reglements") {
+      return matchesSearch && label === "Règlement";
+    }
+    
+    if (typeFilter === "income") {
+      return matchesSearch && transaction.type === "income";
+    }
+    
+    if (typeFilter === "expense") {
+      return matchesSearch && transaction.type === "expense";
+    }
+
+    return matchesSearch;
+  });
+
   return (
     <Card>
       <CardHeader>
@@ -96,16 +131,23 @@ const TransactionsHistory: React.FC<TransactionsHistoryProps> = ({
           <div className="flex justify-between items-center space-x-2">
             <div className="flex-1">
               <Label htmlFor="search" className="sr-only">Recherche</Label>
-              <Input id="search" placeholder="Rechercher une transaction..." />
+              <Input 
+                id="search" 
+                placeholder="Rechercher une transaction..." 
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
             </div>
-            <Select defaultValue="all">
+            <Select value={typeFilter} onValueChange={setTypeFilter}>
               <SelectTrigger className="w-[180px]">
                 <SelectValue placeholder="Type" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Toutes les transactions</SelectItem>
-                <SelectItem value="income">Entrées</SelectItem>
-                <SelectItem value="expense">Dépenses</SelectItem>
+                <SelectItem value="ventes">Ventes uniquement</SelectItem>
+                <SelectItem value="reglements">Règlements uniquement</SelectItem>
+                <SelectItem value="income">Toutes les entrées</SelectItem>
+                <SelectItem value="expense">Toutes les sorties</SelectItem>
               </SelectContent>
             </Select>
             <Popover>
@@ -134,29 +176,35 @@ const TransactionsHistory: React.FC<TransactionsHistoryProps> = ({
               <div className="text-right">Montant</div>
             </div>
             <div className="divide-y">
-              {transactions.map((transaction) => {
-                const { label, className, textColor } = getTransactionTypeDetails(transaction.source, transaction.type);
-                return (
-                  <div key={transaction.id} className="grid grid-cols-4 gap-4 p-4 items-center">
-                    <div>
-                      <p className="font-medium">{transaction.description}</p>
-                      <p className="text-xs text-muted-foreground">{transaction.category}</p>
+              {filteredTransactions.length === 0 ? (
+                <div className="p-8 text-center text-muted-foreground">
+                  Aucune transaction trouvée pour les critères sélectionnés
+                </div>
+              ) : (
+                filteredTransactions.map((transaction) => {
+                  const { label, className, textColor } = getTransactionTypeDetails(transaction.source, transaction.type);
+                  return (
+                    <div key={transaction.id} className="grid grid-cols-4 gap-4 p-4 items-center">
+                      <div>
+                        <p className="font-medium">{transaction.description}</p>
+                        <p className="text-xs text-muted-foreground">{transaction.category}</p>
+                      </div>
+                      <div>
+                        <span className={`px-2 py-0.5 rounded text-xs font-semibold ${className} ${textColor}`}>
+                          {label}
+                        </span>
+                      </div>
+                      <div>
+                        {format(new Date(transaction.created_at), 'dd/MM/yyyy HH:mm')}
+                      </div>
+                      <div className={`text-right font-medium ${textColor}`}>
+                        {transaction.type === 'income' ? '+' : '-'}
+                        {formatCurrency(transaction.amount)}
+                      </div>
                     </div>
-                    <div>
-                      <span className={`px-2 py-0.5 rounded text-xs font-semibold ${className} ${textColor}`}>
-                        {label}
-                      </span>
-                    </div>
-                    <div>
-                      {format(new Date(transaction.created_at), 'dd/MM/yyyy HH:mm')}
-                    </div>
-                    <div className={`text-right font-medium ${textColor}`}>
-                      {transaction.type === 'income' ? '+' : '-'}
-                      {formatCurrency(transaction.amount)}
-                    </div>
-                  </div>
-                );
-              })}
+                  );
+                })
+              )}
             </div>
           </div>
         </div>
