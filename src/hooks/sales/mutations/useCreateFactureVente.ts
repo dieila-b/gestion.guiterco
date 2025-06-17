@@ -11,18 +11,17 @@ export const useCreateFactureVente = () => {
     mutationFn: async (data: CreateFactureVenteData) => {
       console.log('🔄 Création facture vente avec données:', data);
       
-      // 1. Créer la facture avec numero_facture temporaire (sera remplacé par le trigger)
+      // 1. Créer la facture avec les montants exacts
       const { data: facture, error: factureError } = await supabase
         .from('factures_vente')
         .insert({
-          numero_facture: 'TEMP', // Valeur temporaire, sera remplacée par le trigger
+          numero_facture: 'TEMP', // Sera remplacé par le trigger
           client_id: data.client_id,
           date_facture: new Date().toISOString(),
           montant_ht: data.montant_ht,
           tva: data.tva,
           montant_ttc: data.montant_ttc,
           mode_paiement: data.mode_paiement,
-          // NE PAS forcer les statuts - ils seront calculés automatiquement
           statut_paiement: data.mode_paiement ? 'payee' : 'en_attente',
           statut_livraison: 'livree' // Vente comptoir = directement livrée
         })
@@ -34,15 +33,15 @@ export const useCreateFactureVente = () => {
         throw factureError;
       }
 
-      console.log('✅ Facture créée avec numéro:', facture.numero_facture);
+      console.log('✅ Facture créée:', facture);
 
-      // 2. Créer les lignes de facture pour chaque article du panier
+      // 2. Créer les lignes de facture avec les prix exacts
       const lignesFacture = data.cart.map(item => ({
         facture_vente_id: facture.id,
         article_id: item.article_id,
         quantite: item.quantite,
         prix_unitaire: item.prix_unitaire,
-        montant_ligne: item.quantite * item.prix_unitaire,
+        mont: item.quantite * item.prix_unitaire,
         statut_livraison: 'livree' // Vente comptoir = directement livrée
       }));
 
@@ -60,14 +59,14 @@ export const useCreateFactureVente = () => {
 
       console.log('✅ Lignes facture créées:', lignesCreees);
 
-      // 3. Créer le versement si un mode de paiement est spécifié
-      if (data.mode_paiement) {
+      // 3. Créer le versement avec le montant exact si un mode de paiement est spécifié
+      if (data.mode_paiement && data.montant_ttc > 0) {
         const { error: versementError } = await supabase
           .from('versements_clients')
           .insert({
             client_id: data.client_id,
             facture_id: facture.id,
-            montant: data.montant_ttc,
+            montant: data.montant_ttc, // Utiliser le montant exact de la facture
             mode_paiement: data.mode_paiement,
             date_versement: new Date().toISOString(),
             numero_versement: `V-${facture.numero_facture}`
@@ -78,7 +77,7 @@ export const useCreateFactureVente = () => {
           throw versementError;
         }
 
-        console.log('✅ Versement créé pour facture:', facture.numero_facture);
+        console.log('✅ Versement créé pour montant exact:', data.montant_ttc);
       }
 
       // 4. Mettre à jour le stock PDV si spécifié
@@ -86,8 +85,8 @@ export const useCreateFactureVente = () => {
         await updateStockPDV(data, facture);
       }
 
-      // 5. Créer une transaction financière pour la caisse avec le BON numéro de facture
-      if (data.mode_paiement) {
+      // 5. Créer une transaction financière pour la caisse
+      if (data.mode_paiement && data.montant_ttc > 0) {
         await createFinancialTransaction(data, facture);
       }
 
@@ -125,7 +124,6 @@ async function updateStockPDV(data: CreateFactureVenteData, facture: any) {
     
     if (pdvError) {
       console.error('❌ Erreur récupération point de vente:', pdvError);
-      console.log('⚠️ Continuing without stock update');
       return;
     } else {
       pointVenteId = pdvData.id;
@@ -137,7 +135,6 @@ async function updateStockPDV(data: CreateFactureVenteData, facture: any) {
   for (const item of data.cart) {
     console.log(`🔄 Mise à jour stock pour article ${item.article_id}, quantité: ${item.quantite}`);
     
-    // Vérifier si le stock existe
     const { data: stockExistant, error: stockCheckError } = await supabase
       .from('stock_pdv')
       .select('id, quantite_disponible')
@@ -151,7 +148,6 @@ async function updateStockPDV(data: CreateFactureVenteData, facture: any) {
     }
 
     if (stockExistant) {
-      // Mettre à jour le stock existant
       const nouvelleQuantite = Math.max(0, stockExistant.quantite_disponible - item.quantite);
       console.log(`📦 Stock actuel: ${stockExistant.quantite_disponible}, après vente: ${nouvelleQuantite}`);
 
@@ -176,9 +172,8 @@ async function updateStockPDV(data: CreateFactureVenteData, facture: any) {
 
 // Helper function to create financial transaction
 async function createFinancialTransaction(data: CreateFactureVenteData, facture: any) {
-  console.log('💰 Création transaction financière:', data.montant_ttc);
+  console.log('💰 Création transaction financière pour montant:', data.montant_ttc);
   
-  // Récupérer la première caisse disponible
   const { data: cashRegister, error: cashRegisterError } = await supabase
     .from('cash_registers')
     .select('id')
@@ -188,7 +183,6 @@ async function createFinancialTransaction(data: CreateFactureVenteData, facture:
   if (cashRegisterError) {
     console.error('❌ Erreur récupération caisse:', cashRegisterError);
   } else if (cashRegister) {
-    // Mapper le mode de paiement
     let paymentMethod: 'cash' | 'card' | 'transfer' | 'check' = 'cash';
     
     switch(data.mode_paiement) {
@@ -207,13 +201,12 @@ async function createFinancialTransaction(data: CreateFactureVenteData, facture:
         break;
     }
 
-    // UTILISER LE VRAI NUMÉRO DE FACTURE
     const { error: transactionError } = await supabase
       .from('transactions')
       .insert({
         type: 'income',
-        amount: data.montant_ttc,
-        description: `Vente ${facture.numero_facture}`, // ✅ Utiliser le bon numéro
+        amount: data.montant_ttc, // Utiliser le montant exact
+        description: `Vente ${facture.numero_facture}`,
         category: 'sales',
         payment_method: paymentMethod,
         cash_register_id: cashRegister.id,
@@ -224,7 +217,7 @@ async function createFinancialTransaction(data: CreateFactureVenteData, facture:
     if (transactionError) {
       console.error('❌ Erreur création transaction financière:', transactionError);
     } else {
-      console.log('✅ Transaction financière créée avec numéro:', facture.numero_facture);
+      console.log('✅ Transaction financière créée pour montant:', data.montant_ttc);
     }
   }
 }

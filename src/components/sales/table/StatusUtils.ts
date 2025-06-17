@@ -1,6 +1,5 @@
 
 import type { FactureVente } from '@/types/sales';
-import { supabase } from '@/integrations/supabase/client';
 
 export const getStatusBadgeColor = (statut: string) => {
   switch (statut) {
@@ -24,7 +23,7 @@ export const getStatusLabel = (statut: string) => {
 
 export const calculatePaidAmount = (facture: FactureVente) => {
   console.log('🔍 calculatePaidAmount - Facture:', facture.numero_facture);
-  console.log('🔍 Versements disponibles:', facture.versements);
+  console.log('🔍 Versements bruts:', facture.versements);
   
   if (!facture.versements || !Array.isArray(facture.versements)) {
     console.log('❌ Aucun versement trouvé ou versements non-array pour facture:', facture.numero_facture);
@@ -33,7 +32,7 @@ export const calculatePaidAmount = (facture: FactureVente) => {
   
   const total = facture.versements.reduce((sum: number, versement: any) => {
     const montant = Number(versement.montant) || 0;
-    console.log('💰 Versement détecté:', {
+    console.log('💰 Versement:', {
       id: versement.id,
       montant: montant,
       mode_paiement: versement.mode_paiement,
@@ -60,43 +59,21 @@ export const getActualPaymentStatus = (facture: FactureVente) => {
   console.log('🔄 Calcul statut paiement - Facture:', facture.numero_facture);
   console.log('🔄 Montant payé:', paidAmount, 'Montant total:', totalAmount);
   
-  let status;
-  
   // Tolérance de 1 GNF pour gérer les arrondis
   const tolerance = 1;
   
+  let status;
   if (paidAmount === 0) {
     status = 'en_attente';
   } else if (paidAmount >= (totalAmount - tolerance)) {
     status = 'payee';
   } else {
-    status = 'partiellement_payee'; // ✅ CORRECTION: Utiliser "partiellement_payee"
+    status = 'partiellement_payee';
   }
   
   console.log('🔄 Statut paiement déterminé:', status);
   
-  // IMPORTANT: Forcer la mise à jour du statut en base si différent
-  if (facture.statut_paiement !== status) {
-    console.log('⚠️ Statut incohérent détecté, mise à jour nécessaire:', {
-      facture_id: facture.id,
-      ancien_statut: facture.statut_paiement,
-      nouveau_statut: status
-    });
-    
-    // Mise à jour asynchrone du statut en base
-    supabase
-      .from('factures_vente')
-      .update({ statut_paiement: status })
-      .eq('id', facture.id)
-      .then(({ error }) => {
-        if (error) {
-          console.error('❌ Erreur mise à jour statut:', error);
-        } else {
-          console.log('✅ Statut paiement mis à jour en base');
-        }
-      });
-  }
-  
+  // IMPORTANT: NE PAS forcer la mise à jour en base - utiliser seulement le statut calculé
   return status;
 };
 
@@ -148,52 +125,11 @@ export const getActualDeliveryStatus = (facture: FactureVente) => {
   } else if (lignesLivrees === totalLignes) {
     status = 'livree';
   } else {
-    status = 'partiellement_livree'; // ✅ CORRECTION: Utiliser "partiellement_livree"
+    status = 'partiellement_livree';
   }
   
   console.log('🚚 Statut livraison déterminé:', status);
   
-  // IMPORTANT: Forcer la mise à jour du statut en base si différent
-  if (facture.statut_livraison !== status) {
-    console.log('⚠️ Statut livraison incohérent détecté, mise à jour nécessaire:', {
-      facture_id: facture.id,
-      ancien_statut: facture.statut_livraison,
-      nouveau_statut: status
-    });
-    
-    // Mise à jour asynchrone du statut en base
-    supabase
-      .from('factures_vente')
-      .update({ statut_livraison: status })
-      .eq('id', facture.id)
-      .then(({ error }) => {
-        if (error) {
-          console.error('❌ Erreur mise à jour statut livraison:', error);
-        } else {
-          console.log('✅ Statut livraison mis à jour en base');
-        }
-      });
-  }
-  
+  // IMPORTANT: NE PAS forcer la mise à jour en base - utiliser seulement le statut calculé
   return status;
-};
-
-// Nouvelle fonction pour récupérer le nombre d'articles en temps réel si nécessaire
-export const fetchArticleCountForFacture = async (factureId: string): Promise<number> => {
-  try {
-    const { data, error } = await supabase
-      .from('lignes_facture_vente')
-      .select('id')
-      .eq('facture_vente_id', factureId);
-    
-    if (error) {
-      console.error('❌ Erreur lors de la récupération du nombre d\'articles:', error);
-      return 0;
-    }
-    
-    return data?.length || 0;
-  } catch (error) {
-    console.error('❌ Erreur lors de la récupération du nombre d\'articles:', error);
-    return 0;
-  }
 };

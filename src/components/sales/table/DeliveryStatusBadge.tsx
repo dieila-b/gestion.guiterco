@@ -9,6 +9,7 @@ interface DeliveryStatusBadgeProps {
 }
 
 const DeliveryStatusBadge = ({ facture }: DeliveryStatusBadgeProps) => {
+  // Calculer le statut réel SANS forcer la mise à jour en base
   const statut = getActualDeliveryStatus(facture);
   
   switch (statut) {
@@ -18,7 +19,7 @@ const DeliveryStatusBadge = ({ facture }: DeliveryStatusBadgeProps) => {
           Non livrée
         </Badge>
       );
-    case 'partiellement_livree': // ✅ CORRECTION: Gérer le statut partiel
+    case 'partiellement_livree':
       return (
         <Badge variant="outline" className="bg-yellow-100 text-yellow-800 border-yellow-300">
           Partielle
