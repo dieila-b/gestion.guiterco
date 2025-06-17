@@ -1,4 +1,3 @@
-
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -35,13 +34,13 @@ export const useCreateFactureVente = () => {
 
       console.log('✅ Facture créée:', facture);
 
-      // 2. Créer les lignes de facture avec les prix exacts
+      // 2. Créer les lignes de facture avec les prix exacts - CORRECTION: utiliser montant_ligne au lieu de mont
       const lignesFacture = data.cart.map(item => ({
         facture_vente_id: facture.id,
         article_id: item.article_id,
         quantite: item.quantite,
         prix_unitaire: item.prix_unitaire,
-        mont: item.quantite * item.prix_unitaire,
+        montant_ligne: item.quantite * item.prix_unitaire, // CORRIGÉ: mont -> montant_ligne
         statut_livraison: 'livree' // Vente comptoir = directement livrée
       }));
 
