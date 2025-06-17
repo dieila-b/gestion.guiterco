@@ -48,6 +48,7 @@ export interface LigneFactureVente {
   quantite: number;
   prix_unitaire: number;
   montant_ligne: number;
+  statut_livraison?: string;
   created_at: string;
   article?: {
     id: string;
@@ -77,8 +78,8 @@ export interface FactureVente {
   commande?: CommandeClient;
   lignes_facture?: LigneFactureVente[];
   versements?: VersementClient[];
-  nb_articles?: number; // Si renvoyé par backend
-  statut_livraison?: string; // <-- Statut livraison dynamique
+  nb_articles?: number;
+  statut_livraison?: string;
 }
 
 export interface Precommande {

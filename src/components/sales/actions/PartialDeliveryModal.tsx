@@ -44,6 +44,15 @@ const PartialDeliveryModal = ({ isOpen, onClose, facture, onConfirm, isLoading }
     return totalLivree > 0 && totalLivree <= getTotalQuantiteCommandee();
   };
 
+  const getStatutLabel = (statut?: string) => {
+    switch (statut) {
+      case 'livree': return 'Livrée';
+      case 'partiellement_livree': return 'Partielle';
+      case 'en_attente':
+      default: return 'En attente';
+    }
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
@@ -86,8 +95,8 @@ const PartialDeliveryModal = ({ isOpen, onClose, facture, onConfirm, isLoading }
                       type="number"
                       min="0"
                       max={ligne.quantite}
-                      value={quantitesLivrees[ligne.article_id] || ''}
-                      onChange={(e) => handleQuantiteChange(ligne.article_id, e.target.value)}
+                      value={quantitesLivrees[ligne.article_id || ''] || ''}
+                      onChange={(e) => handleQuantiteChange(ligne.article_id || '', e.target.value)}
                       placeholder="0"
                       className="w-full"
                     />
@@ -95,8 +104,7 @@ const PartialDeliveryModal = ({ isOpen, onClose, facture, onConfirm, isLoading }
 
                   <div className="text-sm text-right">
                     <p className="text-muted-foreground">
-                      Statut actuel: {ligne.statut_livraison === 'livree' ? 'Livrée' : 
-                                    ligne.statut_livraison === 'partiellement_livree' ? 'Partielle' : 'En attente'}
+                      Statut actuel: {getStatutLabel(ligne.statut_livraison)}
                     </p>
                   </div>
                 </div>
