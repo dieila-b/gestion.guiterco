@@ -15,7 +15,7 @@ export const useUpdateFactureStatutPartiel = () => {
       quantitesLivrees: Record<string, number> 
     }) => {
       console.log('🚚 Mise à jour livraison partielle pour facture:', factureId);
-      console.log('📦 Quantités livrées:', quantitesLivrees);
+      console.log('📦 Quantités livrées (nouvelles valeurs absolues):', quantitesLivrees);
 
       // Récupérer les lignes de facture pour traitement
       const { data: lignesFacture, error: lignesError } = await supabase
@@ -38,20 +38,21 @@ export const useUpdateFactureStatutPartiel = () => {
       // Mettre à jour chaque ligne avec les quantités livrées ET le statut
       const updates = [];
       for (const ligne of lignesFacture) {
-        const quantiteLivree = quantitesLivrees[ligne.article_id] || 0;
+        // IMPORTANT: Les quantités saisies sont les nouvelles valeurs absolues (pas des cumuls)
+        const nouvelleQuantiteLivree = quantitesLivrees[ligne.article_id] || 0;
         let nouveauStatut = 'en_attente';
         
-        if (quantiteLivree > 0) {
-          nouveauStatut = quantiteLivree >= ligne.quantite ? 'livree' : 'partiellement_livree';
+        if (nouvelleQuantiteLivree > 0) {
+          nouveauStatut = nouvelleQuantiteLivree >= ligne.quantite ? 'livree' : 'partiellement_livree';
         }
 
-        console.log(`📦 Ligne ${ligne.id}: ${quantiteLivree}/${ligne.quantite} → ${nouveauStatut}`);
+        console.log(`📦 Ligne ${ligne.id}: ${nouvelleQuantiteLivree}/${ligne.quantite} → ${nouveauStatut}`);
 
-        // CRUCIAL: Mettre à jour à la fois quantite_livree ET statut_livraison
+        // CRUCIAL: Remplacer (pas ajouter) la quantité livrée
         const { error: updateError } = await supabase
           .from('lignes_facture_vente')
           .update({ 
-            quantite_livree: quantiteLivree,
+            quantite_livree: nouvelleQuantiteLivree,
             statut_livraison: nouveauStatut 
           })
           .eq('id', ligne.id);
@@ -61,7 +62,7 @@ export const useUpdateFactureStatutPartiel = () => {
           throw updateError;
         }
 
-        updates.push({ ligne: ligne.id, quantite_livree: quantiteLivree, statut: nouveauStatut });
+        updates.push({ ligne: ligne.id, quantite_livree: nouvelleQuantiteLivree, statut: nouveauStatut });
       }
 
       // Calculer le statut global de la facture basé sur les quantités réellement livrées
@@ -123,7 +124,7 @@ export const useUpdateFactureStatutPartiel = () => {
       // Forcer le refetch immédiat
       queryClient.refetchQueries({ queryKey: ['factures_vente'] });
       
-      toast.success(`Livraison partielle enregistrée - ${result.lignesModifiees} ligne(s) mise(s) à jour`);
+      toast.success(`Livraison mise à jour - ${result.lignesModifiees} ligne(s) modifiée(s)`);
       
       console.log('✅ Queries invalidées et rafraîchies après livraison partielle');
     },

@@ -43,7 +43,7 @@ const PartialDeliveryModal = ({ isOpen, onClose, facture, onConfirm, isLoading }
   };
 
   const handleConfirm = () => {
-    console.log('📦 Confirmation des quantités livrées:', quantitesLivrees);
+    console.log('📦 Confirmation des quantités livrées (nouvelles valeurs absolues):', quantitesLivrees);
     onConfirm(quantitesLivrees);
   };
 
@@ -57,7 +57,9 @@ const PartialDeliveryModal = ({ isOpen, onClose, facture, onConfirm, isLoading }
 
   const canConfirm = () => {
     const totalLivree = getTotalQuantiteLivree();
-    return totalLivree > 0 && totalLivree <= getTotalQuantiteCommandee();
+    const totalCommandee = getTotalQuantiteCommandee();
+    // Permettre toute quantité entre 0 et le total commandé
+    return totalLivree >= 0 && totalLivree <= totalCommandee;
   };
 
   const getStatutLabel = (statut?: string) => {
@@ -69,20 +71,33 @@ const PartialDeliveryModal = ({ isOpen, onClose, facture, onConfirm, isLoading }
     }
   };
 
+  const getNextStatus = () => {
+    const totalLivree = getTotalQuantiteLivree();
+    const totalCommandee = getTotalQuantiteCommandee();
+    
+    if (totalLivree === 0) return 'En attente';
+    if (totalLivree >= totalCommandee) return 'Livrée';
+    return 'Partiellement livrée';
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Livraison partielle - Facture {facture.numero_facture}</DialogTitle>
+          <DialogTitle>Gestion des livraisons - Facture {facture.numero_facture}</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-4 mb-4">
+          <div className="grid grid-cols-3 gap-4 mb-4 p-3 bg-gray-50 rounded">
             <div className="text-sm">
               <span className="font-medium">Total commandé:</span> {getTotalQuantiteCommandee()} articles
             </div>
             <div className="text-sm">
-              <span className="font-medium">Total à livrer:</span> {getTotalQuantiteLivree()} articles
+              <span className="font-medium">Total saisi:</span> {getTotalQuantiteLivree()} articles
+            </div>
+            <div className="text-sm">
+              <span className="font-medium">Nouveau statut:</span> 
+              <span className="ml-1 font-bold text-blue-600">{getNextStatus()}</span>
             </div>
           </div>
 
@@ -103,13 +118,13 @@ const PartialDeliveryModal = ({ isOpen, onClose, facture, onConfirm, isLoading }
                   </div>
 
                   <div className="text-sm">
-                    <p><span className="font-medium">Déjà livré:</span> {ligne.quantite_livree || 0}</p>
-                    <p><span className="font-medium">Restant:</span> {ligne.quantite - (ligne.quantite_livree || 0)}</p>
+                    <p><span className="font-medium">Actuellement livré:</span> {ligne.quantite_livree || 0}</p>
+                    <p><span className="font-medium">Restant à livrer:</span> {ligne.quantite - (ligne.quantite_livree || 0)}</p>
                   </div>
 
                   <div className="space-y-2">
                     <Label htmlFor={`qty-${ligne.id}`} className="text-sm">
-                      Quantité livrée
+                      Nouvelle quantité livrée
                     </Label>
                     <Input
                       id={`qty-${ligne.id}`}
@@ -121,6 +136,9 @@ const PartialDeliveryModal = ({ isOpen, onClose, facture, onConfirm, isLoading }
                       placeholder="0"
                       className="w-full"
                     />
+                    <p className="text-xs text-muted-foreground">
+                      (Cette valeur remplace l'ancienne)
+                    </p>
                   </div>
 
                   <div className="text-sm text-right">
@@ -135,11 +153,7 @@ const PartialDeliveryModal = ({ isOpen, onClose, facture, onConfirm, isLoading }
 
           <div className="flex justify-between items-center pt-4 border-t">
             <div className="text-sm text-muted-foreground">
-              {getTotalQuantiteLivree() > 0 && (
-                <span>
-                  {getTotalQuantiteLivree()}/{getTotalQuantiteCommandee()} articles sélectionnés
-                </span>
-              )}
+              💡 Vous pouvez modifier les quantités autant de fois que nécessaire
             </div>
             
             <div className="flex gap-2">
@@ -150,7 +164,7 @@ const PartialDeliveryModal = ({ isOpen, onClose, facture, onConfirm, isLoading }
                 onClick={handleConfirm} 
                 disabled={!canConfirm() || isLoading}
               >
-                {isLoading ? 'Traitement...' : 'Confirmer la livraison'}
+                {isLoading ? 'Traitement...' : 'Enregistrer les modifications'}
               </Button>
             </div>
           </div>

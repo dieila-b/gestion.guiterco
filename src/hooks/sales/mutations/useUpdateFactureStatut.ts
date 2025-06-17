@@ -10,6 +10,74 @@ export const useUpdateFactureStatut = () => {
     mutationFn: async ({ factureId, statut_livraison }: { factureId: string, statut_livraison: string }) => {
       console.log('🚚 Mise à jour statut livraison pour facture:', factureId, 'vers:', statut_livraison);
 
+      // Récupérer les lignes de facture pour mise à jour cohérente
+      const { data: lignesFacture, error: lignesError } = await supabase
+        .from('lignes_facture_vente')
+        .select('*')
+        .eq('facture_vente_id', factureId);
+
+      if (lignesError) {
+        console.error('❌ Erreur récupération lignes facture:', lignesError);
+        throw lignesError;
+      }
+
+      // Déterminer les nouvelles valeurs selon le statut choisi
+      let nouveauStatutLigne;
+      let nouvelleQuantiteLivree = null; // null = ne pas modifier
+
+      switch (statut_livraison) {
+        case 'livree':
+          nouveauStatutLigne = 'livree';
+          // Mettre quantite_livree = quantite pour toutes les lignes
+          for (const ligne of lignesFacture || []) {
+            await supabase
+              .from('lignes_facture_vente')
+              .update({ 
+                statut_livraison: 'livree',
+                quantite_livree: ligne.quantite // Livraison complète
+              })
+              .eq('id', ligne.id);
+          }
+          break;
+          
+        case 'en_attente':
+          nouveauStatutLigne = 'en_attente';
+          // Remettre quantite_livree à 0 pour toutes les lignes
+          for (const ligne of lignesFacture || []) {
+            await supabase
+              .from('lignes_facture_vente')
+              .update({ 
+                statut_livraison: 'en_attente',
+                quantite_livree: 0 // Remise à zéro
+              })
+              .eq('id', ligne.id);
+          }
+          break;
+          
+        case 'partiellement_livree':
+          // Pour ce statut, on ouvre le modal de saisie détaillée
+          // Ne pas modifier les quantités ici
+          nouveauStatutLigne = 'partiellement_livree';
+          await supabase
+            .from('lignes_facture_vente')
+            .update({ statut_livraison: nouveauStatutLigne })
+            .eq('facture_vente_id', factureId);
+          break;
+          
+        default:
+          nouveauStatutLigne = 'en_attente';
+          await supabase
+            .from('lignes_facture_vente')
+            .update({ 
+              statut_livraison: nouveauStatutLigne,
+              quantite_livree: 0 
+            })
+            .eq('facture_vente_id', factureId);
+          break;
+      }
+
+      console.log('📦 Mise à jour des lignes de facture vers statut:', nouveauStatutLigne);
+
       // Mettre à jour le statut de la facture principale
       const { data: facture, error: factureError } = await supabase
         .from('factures_vente')
@@ -21,34 +89,6 @@ export const useUpdateFactureStatut = () => {
       if (factureError) {
         console.error('❌ Erreur mise à jour facture:', factureError);
         throw factureError;
-      }
-
-      // CRUCIAL: Mettre à jour toutes les lignes de facture avec le nouveau statut
-      let nouveauStatutLigne;
-      switch (statut_livraison) {
-        case 'livree':
-          nouveauStatutLigne = 'livree';
-          break;
-        case 'partiellement_livree':
-          nouveauStatutLigne = 'partiellement_livree';
-          break;
-        case 'en_attente':
-        default:
-          nouveauStatutLigne = 'en_attente';
-          break;
-      }
-
-      console.log('📦 Mise à jour des lignes de facture vers statut:', nouveauStatutLigne);
-
-      // Mettre à jour toutes les lignes de facture associées
-      const { error: lignesError } = await supabase
-        .from('lignes_facture_vente')
-        .update({ statut_livraison: nouveauStatutLigne })
-        .eq('facture_vente_id', factureId);
-
-      if (lignesError) {
-        console.error('❌ Erreur mise à jour lignes facture:', lignesError);
-        throw lignesError;
       }
 
       console.log('✅ Statut livraison mis à jour avec succès pour facture et lignes');
