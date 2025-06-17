@@ -3,11 +3,13 @@ import React, { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, Plus, ChevronDown, ChevronUp } from 'lucide-react';
+import { Search, Plus, ChevronDown, ChevronUp, Edit, Printer, Receipt } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { formatCurrency } from '@/lib/currency';
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/table';
+import ArticleCountCell from '@/components/sales/table/ArticleCountCell';
+import { printFacture, printTicket } from '@/components/sales/actions/printUtils';
 
 interface FactureVente {
   id: string;
@@ -129,6 +131,19 @@ const UnpaidInvoicesTable: React.FC<UnpaidInvoicesTableProps> = ({
     }
   };
 
+  const handleEditFacture = (facture: FactureVente) => {
+    // TODO: Implémenter l'édition de facture
+    console.log('Éditer facture:', facture.numero_facture);
+  };
+
+  const handlePrintFacture = (facture: FactureVente) => {
+    printFacture(facture);
+  };
+
+  const handlePrintTicket = (facture: FactureVente) => {
+    printTicket(facture);
+  };
+
   return (
     <Card className="mt-6">
       <CardHeader className="pb-4">
@@ -174,7 +189,6 @@ const UnpaidInvoicesTable: React.FC<UnpaidInvoicesTableProps> = ({
               {sortedFactures.length > 0 ? sortedFactures.map(facture => {
                 const montantPaye = (facture.versements ?? []).reduce((sum, v) => sum + (v.montant || 0), 0);
                 const montantRestant = (facture.montant_ttc || 0) - montantPaye;
-                const nbArticles = facture.nb_articles || (facture.lignes_facture?.reduce((sum, ligne) => sum + ligne.quantite, 0) || 0);
 
                 return (
                   <TableRow key={facture.id} className="hover:bg-muted/25">
@@ -188,9 +202,7 @@ const UnpaidInvoicesTable: React.FC<UnpaidInvoicesTableProps> = ({
                       {facture.client?.nom || 'Client non spécifié'}
                     </TableCell>
                     <TableCell>
-                      <span className="inline-flex items-center px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded-full">
-                        {nbArticles} article{nbArticles > 1 ? 's' : ''}
-                      </span>
+                      <ArticleCountCell facture={facture} />
                     </TableCell>
                     <TableCell className="text-right font-medium">
                       {formatCurrency(facture.montant_ttc || 0)}
@@ -208,9 +220,32 @@ const UnpaidInvoicesTable: React.FC<UnpaidInvoicesTableProps> = ({
                       {getDeliveryStatusBadge(facture.statut_livraison)}
                     </TableCell>
                     <TableCell>
-                      <Button variant="ghost" size="sm" className="text-blue-600 hover:text-blue-800">
-                        Voir détails
-                      </Button>
+                      <div className="flex items-center gap-1">
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          onClick={() => handleEditFacture(facture)}
+                          className="text-blue-600 hover:text-blue-800"
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          onClick={() => handlePrintFacture(facture)}
+                          className="text-green-600 hover:text-green-800"
+                        >
+                          <Printer className="h-4 w-4" />
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          onClick={() => handlePrintTicket(facture)}
+                          className="text-purple-600 hover:text-purple-800"
+                        >
+                          <Receipt className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 );
