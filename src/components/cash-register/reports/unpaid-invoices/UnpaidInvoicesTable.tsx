@@ -8,6 +8,7 @@ import { fr } from 'date-fns/locale';
 import { formatCurrency } from '@/lib/currency';
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/table';
 import ArticleCountCell from '@/components/sales/table/ArticleCountCell';
+import EditFactureDialog from '@/components/sales/actions/EditFactureDialog';
 import { printFacture, printTicket } from '@/components/sales/actions/printUtils';
 import type { FactureVente } from '@/types/sales';
 
@@ -111,11 +112,6 @@ const UnpaidInvoicesTable: React.FC<UnpaidInvoicesTableProps> = ({
     }
   };
 
-  const handleEditFacture = (facture: FactureVente) => {
-    // TODO: Implémenter l'édition de facture
-    console.log('Éditer facture:', facture.numero_facture);
-  };
-
   const handlePrintFacture = (facture: FactureVente) => {
     printFacture(facture);
   };
@@ -201,14 +197,7 @@ const UnpaidInvoicesTable: React.FC<UnpaidInvoicesTableProps> = ({
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-1">
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          onClick={() => handleEditFacture(facture)}
-                          className="text-blue-600 hover:text-blue-800"
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
+                        <EditFactureDialog facture={facture} />
                         <Button 
                           variant="ghost" 
                           size="sm" 
