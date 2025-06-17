@@ -26,7 +26,7 @@ export const calculatePaidAmount = (facture: FactureVente) => {
   console.log('🔍 Versements bruts:', facture.versements);
   
   if (!facture.versements || !Array.isArray(facture.versements)) {
-    console.log('❌ Aucun versement trouvé ou versements non-array pour facture:', facture.numero_facture);
+    console.log('❌ Aucun versement trouvé pour facture:', facture.numero_facture);
     return 0;
   }
   
@@ -63,14 +63,18 @@ export const getActualPaymentStatus = (facture: FactureVente) => {
   const tolerance = 1;
   
   let status;
-  if (paidAmount <= 0) {
+  if (paidAmount <= tolerance) {
     status = 'en_attente';
+    console.log('🔄 Aucun paiement détecté');
   } else if (paidAmount >= (totalAmount - tolerance)) {
     status = 'payee';
-  } else if (paidAmount > 0 && paidAmount < totalAmount) {
+    console.log('🔄 Facture entièrement payée');
+  } else if (paidAmount > tolerance && paidAmount < (totalAmount - tolerance)) {
     status = 'partiellement_payee';
+    console.log('🔄 Paiement partiel détecté');
   } else {
     status = 'en_attente';
+    console.log('🔄 Statut par défaut appliqué');
   }
   
   console.log('🔄 Statut paiement RÉEL calculé final:', status);
@@ -108,7 +112,7 @@ export const getActualDeliveryStatus = (facture: FactureVente) => {
   
   // Si pas de lignes de facture, considérer comme en attente
   if (!facture.lignes_facture || !Array.isArray(facture.lignes_facture) || facture.lignes_facture.length === 0) {
-    console.log('🚚 Pas de lignes facture - statut par défaut: en_attente');
+    console.log('🚚 Pas de lignes facture - statut: en_attente');
     return 'en_attente';
   }
   
@@ -120,18 +124,22 @@ export const getActualDeliveryStatus = (facture: FactureVente) => {
   console.log('🚚 Analyse livraison RÉELLE:', {
     totalLignes,
     lignesLivrees,
-    pourcentage: Math.round((lignesLivrees / totalLignes) * 100)
+    pourcentage: totalLignes > 0 ? Math.round((lignesLivrees / totalLignes) * 100) : 0
   });
   
   let status;
   if (lignesLivrees === 0) {
     status = 'en_attente';
+    console.log('🚚 Aucune ligne livrée');
   } else if (lignesLivrees === totalLignes) {
     status = 'livree';
+    console.log('🚚 Toutes les lignes livrées');
   } else if (lignesLivrees > 0 && lignesLivrees < totalLignes) {
     status = 'partiellement_livree';
+    console.log('🚚 Livraison partielle détectée');
   } else {
     status = 'en_attente';
+    console.log('🚚 Statut par défaut appliqué');
   }
   
   console.log('🚚 Statut livraison RÉEL calculé final:', status);

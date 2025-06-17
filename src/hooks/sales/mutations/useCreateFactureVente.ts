@@ -11,11 +11,7 @@ export const useCreateFactureVente = () => {
     mutationFn: async (data: CreateFactureVenteData) => {
       console.log('🔄 Création facture vente avec données:', data);
       
-      // 1. Déterminer les statuts corrects dès la création
-      const statutPaiement = data.mode_paiement && data.montant_ttc > 0 ? 'payee' : 'en_attente';
-      console.log('💰 Statut paiement déterminé:', statutPaiement);
-      
-      // 2. Créer la facture avec les montants exacts calculés depuis le panier
+      // 1. Créer la facture avec des statuts initiaux corrects
       const { data: facture, error: factureError } = await supabase
         .from('factures_vente')
         .insert({
@@ -26,8 +22,8 @@ export const useCreateFactureVente = () => {
           tva: data.tva,
           montant_ttc: data.montant_ttc,
           mode_paiement: data.mode_paiement,
-          statut_paiement: statutPaiement,
-          statut_livraison: 'en_attente' // Toujours en attente au début
+          statut_paiement: 'en_attente', // TOUJOURS en attente au début
+          statut_livraison: 'en_attente' // TOUJOURS en attente au début
         })
         .select()
         .single();
@@ -37,16 +33,18 @@ export const useCreateFactureVente = () => {
         throw factureError;
       }
 
-      console.log('✅ Facture créée avec statuts corrects:', facture);
+      console.log('✅ Facture créée avec statuts initiaux corrects:', facture);
 
-      // 3. Créer les lignes de facture avec les prix exacts
+      // 2. Créer les lignes de facture avec statut de livraison approprié
       const lignesFacture = data.cart.map(item => ({
         facture_vente_id: facture.id,
         article_id: item.article_id,
         quantite: item.quantite,
         prix_unitaire: item.prix_unitaire,
         montant_ligne: item.quantite * item.prix_unitaire,
-        statut_livraison: 'livree' // Vente comptoir = directement livrée
+        // Pour vente comptoir, on peut marquer comme livré directement
+        // Pour d'autres types de vente, garder en_attente
+        statut_livraison: data.point_vente_id ? 'livree' : 'en_attente'
       }));
 
       console.log('🔄 Création lignes facture:', lignesFacture);
@@ -63,21 +61,25 @@ export const useCreateFactureVente = () => {
 
       console.log('✅ Lignes facture créées:', lignesCreees);
 
-      // 4. Calculer le statut de livraison réel basé sur les lignes créées
+      // 3. Calculer le statut de livraison réel basé sur les lignes créées
       let statutLivraisonFinal = 'en_attente';
       if (lignesCreees && lignesCreees.length > 0) {
-        const toutesLivrees = lignesCreees.every(ligne => ligne.statut_livraison === 'livree');
-        const aucuneLivree = lignesCreees.every(ligne => ligne.statut_livraison === 'en_attente');
+        const lignesLivrees = lignesCreees.filter(ligne => ligne.statut_livraison === 'livree').length;
+        const totalLignes = lignesCreees.length;
         
-        if (toutesLivrees) {
-          statutLivraisonFinal = 'livree';
-        } else if (!aucuneLivree) {
-          statutLivraisonFinal = 'partiellement_livree';
-        } else {
+        if (lignesLivrees === 0) {
           statutLivraisonFinal = 'en_attente';
+        } else if (lignesLivrees === totalLignes) {
+          statutLivraisonFinal = 'livree';
+        } else {
+          statutLivraisonFinal = 'partiellement_livree';
         }
         
-        console.log('🚚 Statut livraison final calculé:', statutLivraisonFinal);
+        console.log('🚚 Statut livraison calculé:', {
+          lignesLivrees,
+          totalLignes,
+          statutFinal: statutLivraisonFinal
+        });
         
         await supabase
           .from('factures_vente')
@@ -87,14 +89,14 @@ export const useCreateFactureVente = () => {
         console.log('✅ Statut livraison mis à jour:', statutLivraisonFinal);
       }
 
-      // 5. Créer le versement UNIQUEMENT si un mode de paiement est spécifié ET montant > 0
+      // 4. Créer le versement ET mettre à jour le statut de paiement si paiement immédiat
       if (data.mode_paiement && data.montant_ttc > 0) {
         const { error: versementError } = await supabase
           .from('versements_clients')
           .insert({
             client_id: data.client_id,
             facture_id: facture.id,
-            montant: data.montant_ttc, // Montant exact de la facture
+            montant: data.montant_ttc,
             mode_paiement: data.mode_paiement,
             date_versement: new Date().toISOString(),
             numero_versement: `V-${facture.numero_facture}`
@@ -105,15 +107,23 @@ export const useCreateFactureVente = () => {
           throw versementError;
         }
 
-        console.log('✅ Versement créé pour montant exact:', data.montant_ttc);
+        console.log('✅ Versement créé pour montant:', data.montant_ttc);
+
+        // Mettre à jour le statut de paiement à "payee" si paiement complet
+        await supabase
+          .from('factures_vente')
+          .update({ statut_paiement: 'payee' })
+          .eq('id', facture.id);
+
+        console.log('✅ Statut paiement mis à jour: payee');
       }
 
-      // 6. Mettre à jour le stock PDV si spécifié
+      // 5. Mettre à jour le stock PDV si spécifié
       if (data.point_vente_id) {
         await updateStockPDV(data, facture);
       }
 
-      // 7. Créer une transaction financière pour la caisse
+      // 6. Créer une transaction financière pour la caisse
       if (data.mode_paiement && data.montant_ttc > 0) {
         await createFinancialTransaction(data, facture);
       }

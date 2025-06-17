@@ -9,10 +9,13 @@ interface PaymentStatusBadgeProps {
 }
 
 const PaymentStatusBadge = ({ facture }: PaymentStatusBadgeProps) => {
-  // Calculer le statut réel basé sur les versements
+  // TOUJOURS calculer le statut réel basé sur les versements dans Supabase
   const actualStatus = getActualPaymentStatus(facture);
   
-  console.log('🏷️ PaymentStatusBadge - Facture:', facture.numero_facture, 'Statut calculé:', actualStatus);
+  console.log('🏷️ PaymentStatusBadge - Facture:', facture.numero_facture);
+  console.log('🏷️ Statut BDD:', facture.statut_paiement, 'vs Statut calculé:', actualStatus);
+  console.log('🏷️ Versements:', facture.versements);
+  console.log('🏷️ Montant TTC:', facture.montant_ttc);
   
   return (
     <Badge 
