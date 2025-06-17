@@ -19,7 +19,7 @@ const FacturesImpayeesModal: React.FC<FacturesImpayeesModalProps> = ({ isOpen, o
   const { data: facturesImpayees, isLoading } = useQuery({
     queryKey: ['factures-impayees-jour', today],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data: factures, error } = await supabase
         .from('factures_vente')
         .select(`
           id,
@@ -27,8 +27,7 @@ const FacturesImpayeesModal: React.FC<FacturesImpayeesModalProps> = ({ isOpen, o
           date_facture,
           montant_ttc,
           statut_paiement,
-          client:client_id(nom, prenom),
-          versements:versements_clients(montant)
+          client:client_id(nom, prenom)
         `)
         .gte('date_facture', `${today} 00:00:00`)
         .lte('date_facture', `${today} 23:59:59`)
@@ -37,16 +36,27 @@ const FacturesImpayeesModal: React.FC<FacturesImpayeesModalProps> = ({ isOpen, o
 
       if (error) throw error;
 
-      return (data || []).map(facture => {
-        const montantPaye = facture.versements?.reduce((sum, v) => sum + (v.montant || 0), 0) || 0;
-        const montantRestant = facture.montant_ttc - montantPaye;
-        
-        return {
-          ...facture,
-          montantPaye,
-          montantRestant
-        };
-      });
+      // Récupérer les versements séparément pour chaque facture
+      const facturesWithVersements = await Promise.all(
+        (factures || []).map(async (facture) => {
+          const { data: versements } = await supabase
+            .from('versements_clients')
+            .select('montant')
+            .eq('facture_id', facture.id);
+
+          const montantPaye = versements?.reduce((sum, v) => sum + (v.montant || 0), 0) || 0;
+          const montantRestant = facture.montant_ttc - montantPaye;
+          
+          return {
+            ...facture,
+            montantPaye,
+            montantRestant
+          };
+        })
+      );
+
+      // Filtrer seulement les factures avec un montant restant > 0
+      return facturesWithVersements.filter(facture => facture.montantRestant > 0);
     },
     enabled: isOpen
   });
