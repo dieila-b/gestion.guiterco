@@ -3,6 +3,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import type { CreateFactureVenteData } from './types';
+import { createCashTransaction } from '../../../hooks/useVenteComptoir/services/transactionService';
 
 export const useCreateFactureVente = () => {
   const queryClient = useQueryClient();
@@ -83,6 +84,20 @@ export const useCreateFactureVente = () => {
 
         console.log('✅ Versement créé pour montant:', data.payment_data.montant_paye);
 
+        // CRUCIAL: Créer la transaction financière pour la caisse
+        try {
+          await createCashTransaction({
+            montant_paye: data.payment_data.montant_paye,
+            mode_paiement: data.payment_data.mode_paiement,
+            notes: data.payment_data.notes,
+            client_id: data.client_id
+          }, facture.numero_facture);
+          console.log('✅ Transaction financière créée pour montant:', data.payment_data.montant_paye);
+        } catch (transactionError) {
+          console.error('❌ Erreur création transaction financière:', transactionError);
+          // Ne pas faire échouer toute l'opération pour cette erreur
+        }
+
         // Mettre à jour le statut de paiement selon le montant
         let nouveauStatutPaiement = 'en_attente';
         const montantPaye = Number(data.payment_data.montant_paye);
@@ -157,6 +172,8 @@ export const useCreateFactureVente = () => {
       queryClient.invalidateQueries({ queryKey: ['stock-pdv'] });
       queryClient.invalidateQueries({ queryKey: ['transactions'] });
       queryClient.invalidateQueries({ queryKey: ['cash_registers'] });
+      queryClient.invalidateQueries({ queryKey: ['all-financial-transactions'] });
+      queryClient.invalidateQueries({ queryKey: ['cash-register-balance'] });
       toast.success('Facture créée avec succès');
     },
     onError: (error: Error) => {
