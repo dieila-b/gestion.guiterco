@@ -59,17 +59,15 @@ export const getActualPaymentStatus = (facture: FactureVente) => {
   console.log('🔄 Calcul statut paiement RÉEL - Facture:', facture.numero_facture);
   console.log('🔄 Montant payé:', paidAmount, 'Montant total:', totalAmount);
   
-  // Tolérance de 1 GNF pour gérer les arrondis
-  const tolerance = 1;
-  
+  // Logique stricte sans tolérance pour éviter les erreurs
   let status;
-  if (paidAmount <= tolerance) {
+  if (paidAmount === 0) {
     status = 'en_attente';
     console.log('🔄 Aucun paiement détecté');
-  } else if (paidAmount >= (totalAmount - tolerance)) {
+  } else if (paidAmount >= totalAmount) {
     status = 'payee';
     console.log('🔄 Facture entièrement payée');
-  } else if (paidAmount > tolerance && paidAmount < (totalAmount - tolerance)) {
+  } else if (paidAmount > 0 && paidAmount < totalAmount) {
     status = 'partiellement_payee';
     console.log('🔄 Paiement partiel détecté');
   } else {
@@ -89,17 +87,17 @@ export const getArticleCount = (facture: FactureVente) => {
     lignes_facture_data: facture.lignes_facture
   });
   
-  // Si nb_articles est disponible et > 0, l'utiliser
-  if (typeof facture.nb_articles === 'number' && facture.nb_articles > 0) {
-    console.log('📦 Utilisation nb_articles:', facture.nb_articles);
-    return facture.nb_articles;
-  }
-  
-  // Sinon, compter les lignes_facture si disponibles
+  // Priorité aux lignes_facture réelles
   if (facture.lignes_facture && Array.isArray(facture.lignes_facture)) {
     const count = facture.lignes_facture.length;
     console.log('📦 Utilisation lignes_facture.length:', count);
     return count;
+  }
+  
+  // Sinon, utiliser nb_articles si disponible
+  if (typeof facture.nb_articles === 'number' && facture.nb_articles > 0) {
+    console.log('📦 Utilisation nb_articles:', facture.nb_articles);
+    return facture.nb_articles;
   }
   
   console.log('❌ Aucune donnée d\'articles trouvée pour facture:', facture.numero_facture);
@@ -134,12 +132,9 @@ export const getActualDeliveryStatus = (facture: FactureVente) => {
   } else if (lignesLivrees === totalLignes) {
     status = 'livree';
     console.log('🚚 Toutes les lignes livrées');
-  } else if (lignesLivrees > 0 && lignesLivrees < totalLignes) {
+  } else {
     status = 'partiellement_livree';
     console.log('🚚 Livraison partielle détectée');
-  } else {
-    status = 'en_attente';
-    console.log('🚚 Statut par défaut appliqué');
   }
   
   console.log('🚚 Statut livraison RÉEL calculé final:', status);

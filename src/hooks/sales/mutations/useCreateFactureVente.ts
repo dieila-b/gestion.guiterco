@@ -81,15 +81,21 @@ export const useCreateFactureVente = () => {
           statutFinal: statutLivraisonFinal
         });
         
-        await supabase
+        // Mettre à jour le statut de livraison de la facture
+        const { error: updateLivraisonError } = await supabase
           .from('factures_vente')
           .update({ statut_livraison: statutLivraisonFinal })
           .eq('id', facture.id);
           
-        console.log('✅ Statut livraison mis à jour:', statutLivraisonFinal);
+        if (updateLivraisonError) {
+          console.error('❌ Erreur mise à jour statut livraison:', updateLivraisonError);
+        } else {
+          console.log('✅ Statut livraison mis à jour:', statutLivraisonFinal);
+        }
       }
 
       // 4. Créer le versement ET mettre à jour le statut de paiement si paiement immédiat
+      let statutPaiementFinal = 'en_attente';
       if (data.mode_paiement && data.montant_ttc > 0) {
         const { error: versementError } = await supabase
           .from('versements_clients')
@@ -110,15 +116,20 @@ export const useCreateFactureVente = () => {
         console.log('✅ Versement créé pour montant:', data.montant_ttc);
 
         // Mettre à jour le statut de paiement à "payee" si paiement complet
-        await supabase
+        statutPaiementFinal = 'payee';
+        const { error: updatePaiementError } = await supabase
           .from('factures_vente')
-          .update({ statut_paiement: 'payee' })
+          .update({ statut_paiement: statutPaiementFinal })
           .eq('id', facture.id);
 
-        console.log('✅ Statut paiement mis à jour: payee');
+        if (updatePaiementError) {
+          console.error('❌ Erreur mise à jour statut paiement:', updatePaiementError);
+        } else {
+          console.log('✅ Statut paiement mis à jour:', statutPaiementFinal);
+        }
       }
 
-      // 5. Mettre à jour le stock PDV si spécifié
+      // 5. Mettre à jour le stock PDV si spécifié - CRITIQUE POUR LE STOCK
       if (data.point_vente_id) {
         await updateStockPDV(data, facture);
       }
@@ -145,9 +156,11 @@ export const useCreateFactureVente = () => {
   });
 };
 
-// Helper function to update stock PDV
+// Helper function to update stock PDV - CORRIGÉE POUR ASSURER LA MISE À JOUR
 async function updateStockPDV(data: CreateFactureVenteData, facture: any) {
   let pointVenteId = data.point_vente_id!;
+  
+  console.log('📦 Début mise à jour stock PDV pour:', pointVenteId);
   
   // Vérifier si c'est déjà un UUID valide
   const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -169,10 +182,11 @@ async function updateStockPDV(data: CreateFactureVenteData, facture: any) {
     }
   }
 
-  // Mettre à jour le stock pour chaque article
+  // Mettre à jour le stock pour chaque article - AVEC VÉRIFICATION OBLIGATOIRE
   for (const item of data.cart) {
-    console.log(`🔄 Mise à jour stock pour article ${item.article_id}, quantité: ${item.quantite}`);
+    console.log(`🔄 Mise à jour stock pour article ${item.article_id}, quantité à déduire: ${item.quantite}`);
     
+    // Vérifier le stock actuel
     const { data: stockExistant, error: stockCheckError } = await supabase
       .from('stock_pdv')
       .select('id, quantite_disponible')
@@ -187,8 +201,9 @@ async function updateStockPDV(data: CreateFactureVenteData, facture: any) {
 
     if (stockExistant) {
       const nouvelleQuantite = Math.max(0, stockExistant.quantite_disponible - item.quantite);
-      console.log(`📦 Stock actuel: ${stockExistant.quantite_disponible}, après vente: ${nouvelleQuantite}`);
+      console.log(`📦 Stock avant: ${stockExistant.quantite_disponible}, après vente: ${nouvelleQuantite}`);
 
+      // Mise à jour critique du stock
       const { error: updateError } = await supabase
         .from('stock_pdv')
         .update({
@@ -198,14 +213,19 @@ async function updateStockPDV(data: CreateFactureVenteData, facture: any) {
         .eq('id', stockExistant.id);
 
       if (updateError) {
-        console.error('❌ Erreur mise à jour stock:', updateError);
+        console.error('❌ ERREUR CRITIQUE - Échec mise à jour stock:', updateError);
+        throw new Error(`Impossible de mettre à jour le stock pour l'article ${item.article_id}`);
       } else {
-        console.log(`✅ Stock mis à jour pour article ${item.article_id}`);
+        console.log(`✅ Stock mis à jour avec succès pour article ${item.article_id}: ${stockExistant.quantite_disponible} → ${nouvelleQuantite}`);
       }
     } else {
-      console.log(`⚠️ Aucun stock trouvé pour l'article ${item.article_id} au PDV ${pointVenteId}`);
+      console.log(`⚠️ ATTENTION - Aucun stock trouvé pour l'article ${item.article_id} au PDV ${pointVenteId}`);
+      // On pourrait créer une entrée avec stock négatif ou lever une erreur
+      throw new Error(`Stock non trouvé pour l'article ${item.article_id} au point de vente`);
     }
   }
+  
+  console.log('✅ Mise à jour stock PDV terminée avec succès');
 }
 
 // Helper function to create financial transaction
@@ -243,7 +263,7 @@ async function createFinancialTransaction(data: CreateFactureVenteData, facture:
       .from('transactions')
       .insert({
         type: 'income',
-        amount: data.montant_ttc, // Montant exact
+        amount: data.montant_ttc,
         description: `Vente ${facture.numero_facture}`,
         category: 'sales',
         payment_method: paymentMethod,
