@@ -116,39 +116,25 @@ export const getActualDeliveryStatus = (facture: FactureVente) => {
   }
   
   // Calcul basé sur les quantités réellement livrées (plus précis)
-  const totalLignes = facture.lignes_facture.length;
-  let lignesLivrees = 0;
-  let lignesPartielles = 0;
+  const totalQuantiteCommandee = facture.lignes_facture.reduce((sum, ligne) => sum + ligne.quantite, 0);
+  const totalQuantiteLivree = facture.lignes_facture.reduce((sum, ligne) => sum + (ligne.quantite_livree || 0), 0);
   
-  facture.lignes_facture.forEach((ligne: any) => {
-    const quantiteCommandee = ligne.quantite || 0;
-    const quantiteLivree = ligne.quantite_livree || 0;
-    
-    console.log(`🚚 Ligne ${ligne.id}: ${quantiteLivree}/${quantiteCommandee} (statut: ${ligne.statut_livraison})`);
-    
-    if (quantiteLivree >= quantiteCommandee && quantiteCommandee > 0) {
-      lignesLivrees++;
-    } else if (quantiteLivree > 0) {
-      lignesPartielles++;
-    }
+  console.log('🚚 Calcul basé sur quantités totales:', {
+    totalQuantiteCommandee,
+    totalQuantiteLivree
   });
   
-  console.log('🚚 Calcul basé sur quantités:', {
-    totalLignes,
-    lignesLivrees,
-    lignesPartielles
-  });
-  
+  // Logique simplifiée et plus fiable
   let status;
-  if (lignesLivrees === totalLignes && totalLignes > 0) {
-    status = 'livree';
-    console.log('🚚 Toutes les lignes complètement livrées');
-  } else if (lignesLivrees > 0 || lignesPartielles > 0) {
-    status = 'partiellement_livree';
-    console.log('🚚 Livraison partielle détectée');
-  } else {
+  if (totalQuantiteLivree === 0) {
     status = 'en_attente';
     console.log('🚚 Aucune livraison détectée');
+  } else if (totalQuantiteLivree >= totalQuantiteCommandee) {
+    status = 'livree';
+    console.log('🚚 Livraison complète');
+  } else {
+    status = 'partiellement_livree';
+    console.log('🚚 Livraison partielle détectée');
   }
   
   console.log('🚚 Statut livraison final:', status);

@@ -22,12 +22,24 @@ const DeliverySection = ({ facture }: DeliverySectionProps) => {
   const updateFactureStatut = useUpdateFactureStatut();
   const updateFactureStatutPartiel = useUpdateFactureStatutPartiel();
 
-  const handleUpdateDeliveryStatus = async () => {
-    if (statutLivraison === currentStatus) {
-      console.log('⚠️ Aucun changement de statut nécessaire');
-      return;
+  // Calculer les quantités actuelles pour détecter si des changements sont possibles
+  const getQuantitiesInfo = () => {
+    if (!facture.lignes_facture || facture.lignes_facture.length === 0) {
+      return { totalCommande: 0, totalLivree: 0, canModify: false };
     }
 
+    const totalCommande = facture.lignes_facture.reduce((sum, ligne) => sum + ligne.quantite, 0);
+    const totalLivree = facture.lignes_facture.reduce((sum, ligne) => sum + (ligne.quantite_livree || 0), 0);
+    
+    // On peut toujours modifier tant que la livraison n'est pas complète
+    const canModify = totalLivree < totalCommande;
+
+    return { totalCommande, totalLivree, canModify };
+  };
+
+  const { totalCommande, totalLivree, canModify } = getQuantitiesInfo();
+
+  const handleUpdateDeliveryStatus = async () => {
     // Si on choisit "partiellement_livree", ouvrir le modal de saisie détaillée
     if (statutLivraison === 'partiellement_livree') {
       setShowPartialModal(true);
@@ -37,7 +49,9 @@ const DeliverySection = ({ facture }: DeliverySectionProps) => {
     console.log('🔄 Mise à jour statut de livraison:', {
       factureId: facture.id,
       currentStatus,
-      newStatus: statutLivraison
+      newStatus: statutLivraison,
+      totalCommande,
+      totalLivree
     });
 
     try {
@@ -82,19 +96,30 @@ const DeliverySection = ({ facture }: DeliverySectionProps) => {
     }
   };
 
+  // Logique pour déterminer si des changements sont possibles
   const hasChanges = statutLivraison !== currentStatus;
   const isLoading = updateFactureStatut.isPending || updateFactureStatutPartiel.isPending;
+  
+  // Permettre les modifications si :
+  // 1. Le statut sélectionné est différent du statut actuel
+  // 2. OU on peut encore modifier les livraisons (pas encore complètement livré)
+  const canMakeChanges = hasChanges || canModify || currentStatus !== 'livree';
 
   return (
     <>
       <Card>
         <CardHeader>
           <CardTitle>Statut de livraison</CardTitle>
-          <p className="text-sm text-muted-foreground">
-            Statut actuel : <span className={`font-bold ${getStatusColor(currentStatus)}`}>
-              {getStatusLabel(currentStatus)}
-            </span>
-          </p>
+          <div className="space-y-1">
+            <p className="text-sm text-muted-foreground">
+              Statut actuel : <span className={`font-bold ${getStatusColor(currentStatus)}`}>
+                {getStatusLabel(currentStatus)}
+              </span>
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Quantités : {totalLivree}/{totalCommande} articles livrés
+            </p>
+          </div>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
@@ -113,15 +138,17 @@ const DeliverySection = ({ facture }: DeliverySectionProps) => {
 
           <Button 
             onClick={handleUpdateDeliveryStatus}
-            disabled={isLoading || !hasChanges}
-            className={`w-full ${hasChanges ? 'bg-blue-600 hover:bg-blue-700' : ''}`}
-            variant={hasChanges ? "default" : "outline"}
+            disabled={isLoading || !canMakeChanges}
+            className={`w-full ${canMakeChanges ? 'bg-blue-600 hover:bg-blue-700' : ''}`}
+            variant={canMakeChanges ? "default" : "outline"}
           >
             {isLoading 
               ? 'Mise à jour...' 
-              : hasChanges 
-                ? (statutLivraison === 'partiellement_livree' ? 'Saisir les quantités' : 'Mettre à jour le statut')
-                : 'Aucun changement'
+              : !canMakeChanges
+                ? 'Livraison terminée'
+                : statutLivraison === 'partiellement_livree' 
+                  ? 'Saisir les quantités' 
+                  : 'Mettre à jour le statut'
             }
           </Button>
 
@@ -129,6 +156,14 @@ const DeliverySection = ({ facture }: DeliverySectionProps) => {
             <p className="text-sm text-blue-600 text-center">
               Changement : {getStatusLabel(currentStatus)} → {getStatusLabel(statutLivraison)}
             </p>
+          )}
+
+          {canModify && currentStatus === 'partiellement_livree' && (
+            <div className="p-3 bg-yellow-50 border border-yellow-200 rounded">
+              <p className="text-sm text-yellow-800">
+                💡 Livraison incomplète : vous pouvez compléter ou modifier les quantités
+              </p>
+            </div>
           )}
         </CardContent>
       </Card>
