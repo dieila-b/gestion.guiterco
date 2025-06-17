@@ -60,11 +60,17 @@ const UnpaidInvoicesReports: React.FC = () => {
   // Datepicker logic
   const [open, setOpen] = useState(false);
 
-  // Only unpaid/partially paid filtered by client and period
+  // Filtered unpaid invoices with remaining amount > 0
   const filteredFactures = useMemo(() => {
-    let res = factures.filter(f =>
-      f.statut_paiement !== 'payee' // Only unpaid/partial
-    );
+    let res = factures.filter(f => {
+      // Calculer le montant payé pour chaque facture
+      const montantPaye = (f.versements ?? []).reduce((sum, v) => sum + (v.montant || 0), 0);
+      const montantRestant = (f.montant_ttc || 0) - montantPaye;
+      
+      // Ne garder que les factures avec un montant restant > 0
+      return montantRestant > 0;
+    });
+
     if (selectedClientId) {
       res = res.filter(f => f.client_id === selectedClientId);
     }
@@ -80,7 +86,7 @@ const UnpaidInvoicesReports: React.FC = () => {
     return res;
   }, [factures, selectedClientId, dateRange, searchFacture]);
 
-  // Stats
+  // Stats recalculées sur les factures filtrées uniquement
   const totalFacture = filteredFactures.reduce((sum, f) => sum + (f.montant_ttc || 0), 0);
   const totalPaye = filteredFactures.reduce(
     (sum, f) => sum + ((f.versements ?? []).reduce((sv, v) => sv + (v.montant || 0), 0)),
@@ -198,7 +204,6 @@ const UnpaidInvoicesReports: React.FC = () => {
                 />
               </div>
             </div>
-            {/* Place for possible additional filter actions */}
           </div>
           <div className="overflow-x-auto border border-zinc-800 rounded-lg bg-background shadow dark:bg-zinc-900">
             <Table>
@@ -230,7 +235,7 @@ const UnpaidInvoicesReports: React.FC = () => {
                       <TableCell>{f.numero_facture}</TableCell>
                       <TableCell>{formatCurrency(f.montant_ttc || 0)}</TableCell>
                       <TableCell>{formatCurrency(montantPaye)}</TableCell>
-                      <TableCell>{formatCurrency(reste)}</TableCell>
+                      <TableCell className="font-bold text-red-600">{formatCurrency(reste)}</TableCell>
                       <TableCell>
                         {f.statut_paiement === "en_attente"
                           ? <span className="font-semibold text-orange-500">En attente</span>
@@ -244,7 +249,7 @@ const UnpaidInvoicesReports: React.FC = () => {
                 }) : (
                   <TableRow>
                     <TableCell colSpan={7} className="text-center text-zinc-400 py-8">
-                      Aucun résultat trouvé
+                      Aucune facture impayée trouvée
                     </TableCell>
                   </TableRow>
                 )}
@@ -258,4 +263,3 @@ const UnpaidInvoicesReports: React.FC = () => {
 };
 
 export default UnpaidInvoicesReports;
-
