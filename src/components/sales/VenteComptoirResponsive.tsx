@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react';
 import { useCatalogueOptimized } from '@/hooks/useCatalogueOptimized';
 import { useDebounce } from '@/hooks/useDebounce';
@@ -106,19 +105,31 @@ const VenteComptoirResponsive = () => {
 
   const handlePaymentConfirm = async (paymentData: any) => {
     try {
+      console.log('🔄 Données paiement reçues:', paymentData);
+      
       const result = await createVente({
         client_id: selectedClient,
         cart: cart,
-        montant_ht: cartTotals.total / 1.2, // Estimation sans TVA
-        tva: cartTotals.total * 0.2 / 1.2, // Estimation TVA
+        montant_ht: cartTotals.total / 1.2,
+        tva: cartTotals.total * 0.2 / 1.2,
         montant_ttc: cartTotals.total,
         mode_paiement: paymentData.mode_paiement,
-        point_vente_id: selectedPDV
+        point_vente_id: selectedPDV,
+        payment_data: paymentData // Passer les données de paiement
       });
       
       setLastFacture(result.facture);
       setShowPaymentModal(false);
       setShowPostPaymentActions(true);
+      
+      // Message de succès adaptatif
+      if (paymentData.montant_paye === 0) {
+        toast.success('Facture créée - Aucun paiement enregistré');
+      } else if (paymentData.montant_paye < cartTotals.total) {
+        toast.success('Facture créée - Paiement partiel enregistré');
+      } else {
+        toast.success('Facture créée - Paiement complet reçu');
+      }
     } catch (error) {
       console.error('Erreur lors de la vente:', error);
     }

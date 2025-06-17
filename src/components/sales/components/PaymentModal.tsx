@@ -36,16 +36,19 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
 }) => {
   const [montantPaye, setMontantPaye] = useState(0);
   const [modePaiement, setModePaiement] = useState('especes');
-  const [statutLivraison, setStatutLivraison] = useState('livre');
+  // CORRECTION: Statut par défaut en_attente au lieu de livre
+  const [statutLivraison, setStatutLivraison] = useState('en_attente');
   const [notes, setNotes] = useState('');
   const [quantitesLivrees, setQuantitesLivrees] = useState<{ [key: string]: number }>({});
 
-  // Préremplir automatiquement le montant payé avec le montant total
+  // Préremplir le montant payé à 0 par défaut (pas le total)
   useEffect(() => {
-    if (isOpen && totalAmount > 0) {
-      setMontantPaye(totalAmount);
+    if (isOpen) {
+      setMontantPaye(0);
+      setStatutLivraison('en_attente');
+      setQuantitesLivrees({});
     }
-  }, [isOpen, totalAmount]);
+  }, [isOpen]);
 
   // Calcul dynamique du reste à payer
   const restePayer = Math.max(0, totalAmount - montantPaye);
@@ -81,7 +84,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
   const handleClose = () => {
     setMontantPaye(0);
     setModePaiement('especes');
-    setStatutLivraison('livre');
+    setStatutLivraison('en_attente');
     setNotes('');
     setQuantitesLivrees({});
     onClose();
@@ -91,9 +94,9 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
     <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Paiement</DialogTitle>
+          <DialogTitle>Finaliser la vente</DialogTitle>
           <DialogDescription>
-            Finaliser la vente et gérer le paiement
+            Gérer le paiement et la livraison de cette vente
           </DialogDescription>
         </DialogHeader>
 
@@ -110,6 +113,11 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
                 <span className="text-xl font-bold">{formatCurrency(totalAmount)}</span>
               </div>
               
+              <div className="flex justify-between items-center mb-2">
+                <span>Montant payé:</span>
+                <span className="font-bold text-green-400">{formatCurrency(montantPaye)}</span>
+              </div>
+              
               <div className="flex justify-between items-center">
                 <span className={`${restePayer > 0 ? 'text-yellow-400' : 'text-green-400'}`}>
                   Reste à payer:
@@ -119,16 +127,22 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
                 </span>
               </div>
               
-              {restePayer === 0 && (
+              {restePayer === 0 && montantPaye > 0 && (
                 <div className="mt-2 p-2 bg-green-600 rounded text-center text-sm">
                   ✓ Facture entièrement réglée
+                </div>
+              )}
+              
+              {montantPaye > 0 && restePayer > 0 && (
+                <div className="mt-2 p-2 bg-yellow-600 rounded text-center text-sm">
+                  ⚠️ Paiement partiel
                 </div>
               )}
             </div>
 
             <div className="space-y-4">
               <div>
-                <Label htmlFor="montant-paye">Montant payé</Label>
+                <Label htmlFor="montant-paye">Montant encaissé</Label>
                 <Input
                   id="montant-paye"
                   type="number"
@@ -141,7 +155,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
                   max={totalAmount}
                 />
                 <div className="text-sm text-gray-500 mt-1">
-                  Montant maximum: {formatCurrency(totalAmount)}
+                  Saisir 0 si aucun paiement reçu maintenant
                 </div>
               </div>
 
@@ -181,20 +195,27 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
           </TabsContent>
 
           <TabsContent value="livraison" className="space-y-4">
+            <div className="bg-blue-50 p-4 rounded-lg border">
+              <h4 className="font-medium text-blue-900 mb-2">État de la livraison</h4>
+              <p className="text-sm text-blue-700">
+                Choisissez le statut de livraison approprié selon la situation réelle.
+              </p>
+            </div>
+
             <div>
               <Label>Statut de livraison:</Label>
               <RadioGroup value={statutLivraison} onValueChange={setStatutLivraison} className="mt-2">
                 <div className="flex items-center space-x-2">
                   <RadioGroupItem value="en_attente" id="en_attente" />
-                  <Label htmlFor="en_attente">En attente</Label>
+                  <Label htmlFor="en_attente">En attente de livraison</Label>
                 </div>
                 <div className="flex items-center space-x-2">
                   <RadioGroupItem value="partiel" id="partiel" />
-                  <Label htmlFor="partiel">Partiel</Label>
+                  <Label htmlFor="partiel">Livraison partielle</Label>
                 </div>
                 <div className="flex items-center space-x-2">
                   <RadioGroupItem value="livre" id="livre" />
-                  <Label htmlFor="livre">Livré</Label>
+                  <Label htmlFor="livre">Livraison complète</Label>
                 </div>
               </RadioGroup>
             </div>
@@ -229,10 +250,10 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
           </Button>
           <Button 
             onClick={handleConfirm}
-            disabled={isLoading || montantPaye < 0}
+            disabled={isLoading}
             className="bg-purple-600 hover:bg-purple-700"
           >
-            {isLoading ? 'Traitement...' : 'Valider le paiement'}
+            {isLoading ? 'Traitement...' : 'Créer la facture'}
           </Button>
         </div>
       </DialogContent>

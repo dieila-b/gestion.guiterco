@@ -8,7 +8,7 @@ export const useCreateFactureVente = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (data: CreateFactureVenteData) => {
+    mutationFn: async (data: CreateFactureVenteData & { payment_data?: any }) => {
       console.log('🔄 Création facture vente avec données:', data);
       
       // 1. Créer la facture TOUJOURS avec des statuts initiaux en_attente
@@ -33,7 +33,7 @@ export const useCreateFactureVente = () => {
         throw factureError;
       }
 
-      console.log('✅ Facture créée avec statuts initiaux en_attente:', facture);
+      console.log('✅ Facture créée avec statuts en_attente:', facture);
 
       // 2. Créer les lignes de facture TOUJOURS avec statut en_attente initialement
       const lignesFacture = data.cart.map(item => ({
@@ -42,8 +42,7 @@ export const useCreateFactureVente = () => {
         quantite: item.quantite,
         prix_unitaire: item.prix_unitaire,
         montant_ligne: item.quantite * item.prix_unitaire,
-        // TOUJOURS commencer en_attente, sera mis à jour seulement si livraison confirmée
-        statut_livraison: 'en_attente'
+        statut_livraison: 'en_attente' // TOUJOURS en_attente au début
       }));
 
       console.log('🔄 Création lignes facture avec statut en_attente:', lignesFacture);
@@ -60,28 +59,97 @@ export const useCreateFactureVente = () => {
 
       console.log('✅ Lignes facture créées avec statut en_attente:', lignesCreees);
 
-      // 3. SEULEMENT créer un versement si le paiement est confirmé
-      // Pour une vente au comptoir, on ne crée PAS automatiquement le versement
-      // Le versement sera créé seulement quand le paiement est confirmé via l'interface
-      console.log('⏸️ Pas de paiement automatique - facture reste en_attente');
+      // 3. Traiter le paiement SEULEMENT s'il y en a un
+      if (data.payment_data && data.payment_data.montant_paye > 0) {
+        console.log('💰 Traitement paiement pour montant:', data.payment_data.montant_paye);
+        
+        // Créer le versement
+        const { error: versementError } = await supabase
+          .from('versements_clients')
+          .insert({
+            facture_id: facture.id,
+            client_id: facture.client_id,
+            montant: data.payment_data.montant_paye,
+            mode_paiement: data.payment_data.mode_paiement,
+            date_versement: new Date().toISOString(),
+            numero_versement: `VERS-${facture.numero_facture}-001`,
+            observations: data.payment_data.notes || null
+          });
 
-      // 4. SEULEMENT mettre à jour le statut de livraison si livraison confirmée
-      // Pour une vente au comptoir, on ne marque PAS automatiquement comme livré
-      console.log('⏸️ Pas de livraison automatique - facture reste en_attente');
+        if (versementError) {
+          console.error('❌ Erreur création versement:', versementError);
+          throw versementError;
+        }
 
-      // 5. Mettre à jour le stock PDV seulement si spécifié ET confirmé
+        console.log('✅ Versement créé pour montant:', data.payment_data.montant_paye);
+
+        // Mettre à jour le statut de paiement selon le montant
+        let nouveauStatutPaiement = 'en_attente';
+        if (data.payment_data.montant_paye >= facture.montant_ttc) {
+          nouveauStatutPaiement = 'payee';
+        } else if (data.payment_data.montant_paye > 0) {
+          nouveauStatutPaiement = 'partiellement_payee';
+        }
+
+        await supabase
+          .from('factures_vente')
+          .update({ statut_paiement: nouveauStatutPaiement })
+          .eq('id', facture.id);
+
+        console.log('✅ Statut paiement mis à jour:', nouveauStatutPaiement);
+      } else {
+        console.log('⚠️ Aucun paiement - facture reste en_attente');
+      }
+
+      // 4. Traiter la livraison SEULEMENT si confirmée
+      if (data.payment_data && data.payment_data.statut_livraison !== 'en_attente') {
+        console.log('📦 Traitement livraison:', data.payment_data.statut_livraison);
+        
+        if (data.payment_data.statut_livraison === 'livre') {
+          // Marquer toutes les lignes comme livrées
+          await supabase
+            .from('lignes_facture_vente')
+            .update({ statut_livraison: 'livree' })
+            .eq('facture_vente_id', facture.id);
+
+          await supabase
+            .from('factures_vente')
+            .update({ statut_livraison: 'livree' })
+            .eq('id', facture.id);
+
+          console.log('✅ Toutes les lignes marquées comme livrées');
+        } else if (data.payment_data.statut_livraison === 'partiel') {
+          // Traitement livraison partielle
+          for (const [itemId, quantiteLivree] of Object.entries(data.payment_data.quantite_livree || {})) {
+            const ligne = lignesCreees?.find(l => l.article_id === itemId);
+            if (ligne && quantiteLivree > 0) {
+              await supabase
+                .from('lignes_facture_vente')
+                .update({ statut_livraison: quantiteLivree >= ligne.quantite ? 'livree' : 'partiellement_livree' })
+                .eq('id', ligne.id);
+            }
+          }
+
+          await supabase
+            .from('factures_vente')
+            .update({ statut_livraison: 'partiellement_livree' })
+            .eq('id', facture.id);
+
+          console.log('✅ Livraison partielle traitée');
+        }
+      } else {
+        console.log('⚠️ Aucune livraison confirmée - facture reste en_attente');
+      }
+
+      // 5. Mettre à jour le stock PDV seulement si spécifié
       if (data.point_vente_id) {
         await updateStockPDV(data, facture);
       }
 
-      // 6. NE PAS créer de transaction financière automatiquement
-      // La transaction sera créée seulement quand le paiement est confirmé
-      console.log('⏸️ Pas de transaction automatique - sera créée au paiement');
-
       return { facture, lignes: lignesCreees };
     },
     onSuccess: () => {
-      console.log('✅ Facture de vente créée avec statuts corrects (en_attente)');
+      console.log('✅ Facture de vente créée avec statuts corrects');
       queryClient.invalidateQueries({ queryKey: ['factures_vente'] });
       queryClient.invalidateQueries({ queryKey: ['stock-pdv'] });
       queryClient.invalidateQueries({ queryKey: ['transactions'] });
