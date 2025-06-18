@@ -50,11 +50,11 @@ const StockEntrepot = () => {
   // Vérification de l'intégrité des données
   const { data: integrityData, isLoading: integrityLoading } = checkDataIntegrity;
   
-  // Calculer s'il y a vraiment des problèmes d'intégrité
+  // Calculer s'il y a vraiment des problèmes d'intégrité - correction du type
   const hasRealIntegrityIssues = integrityData && (
-    (integrityData.orphanedStock && integrityData.orphanedStock.length > 0) ||
-    (integrityData.inactiveWarehousesWithStock && integrityData.inactiveWarehousesWithStock.length > 0) ||
-    (integrityData.duplicateStock && integrityData.duplicateStock.length > 0)
+    (integrityData.orphanedStock && Array.isArray(integrityData.orphanedStock) && integrityData.orphanedStock.length > 0) ||
+    (integrityData.inactiveWarehousesWithStock && Array.isArray(integrityData.inactiveWarehousesWithStock) && integrityData.inactiveWarehousesWithStock.length > 0) ||
+    (integrityData.duplicateStock && Array.isArray(integrityData.duplicateStock) && integrityData.duplicateStock.length > 0)
   );
 
   // Afficher l'alerte seulement s'il y a de vrais problèmes

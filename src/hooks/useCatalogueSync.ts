@@ -116,12 +116,14 @@ export const useCatalogueSync = () => {
           console.error('Erreur lors de la vérification des entrepôts:', warehouseError);
         }
 
-        // Vérifier les doublons de stock (même article dans le même entrepôt)
+        // Vérifier les doublons de stock (même article dans le même entrepôt) - requête SQL directe
         const { data: duplicateStock, error: duplicateError } = await supabase
-          .rpc('check_duplicate_stock');
+          .from('stock_principal')
+          .select('article_id, entrepot_id, count(*)')
+          .gte('count', 2);
 
         if (duplicateError) {
-          console.warn('Fonction check_duplicate_stock non disponible:', duplicateError);
+          console.warn('Erreur lors de la vérification des doublons:', duplicateError);
         }
 
         const result = {
