@@ -239,22 +239,18 @@ const CreateUserForm = ({ onSuccess, onCancel }: CreateUserFormProps) => {
               <UserCheck className="h-4 w-4" />
               Rôle *
             </Label>
-            <Select onValueChange={(value) => setValue('role_id', value)}>
+            <Select onValueChange={(value) => setValue('role_id', value)} disabled={rolesLoading}>
               <SelectTrigger className={errors.role_id ? 'border-red-500' : ''}>
-                <SelectValue placeholder="Sélectionnez un rôle" />
+                <SelectValue placeholder={rolesLoading ? "Chargement..." : "Sélectionnez un rôle"} />
               </SelectTrigger>
               <SelectContent>
-                {rolesLoading ? (
-                  <SelectItem value="" disabled>Chargement...</SelectItem>
-                ) : (
-                  roles?.map((role) => (
-                    <SelectItem key={role.id} value={role.id}>
-                      {role.nom === 'employe' ? 'Employé' :
-                       role.nom === 'administrateur' ? 'Administrateur' :
-                       role.nom === 'manager' ? 'Manager' : role.nom}
-                    </SelectItem>
-                  ))
-                )}
+                {roles?.map((role) => (
+                  <SelectItem key={role.id} value={role.id}>
+                    {role.nom === 'employe' ? 'Employé' :
+                     role.nom === 'administrateur' ? 'Administrateur' :
+                     role.nom === 'manager' ? 'Manager' : role.nom}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
             {errors.role_id && (
