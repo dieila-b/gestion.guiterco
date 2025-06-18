@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -14,8 +14,16 @@ const LoginPage = () => {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const { signIn } = useAuth();
+  const { signIn, user, isInternalUser, loading: authLoading } = useAuth();
   const navigate = useNavigate();
+
+  // Rediriger si l'utilisateur est déjà connecté et autorisé
+  useEffect(() => {
+    if (!authLoading && user && isInternalUser) {
+      console.log('✅ Utilisateur déjà connecté et autorisé, redirection...');
+      navigate('/');
+    }
+  }, [user, isInternalUser, authLoading, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -23,26 +31,44 @@ const LoginPage = () => {
     setLoading(true);
 
     try {
+      console.log('🔑 Tentative de connexion depuis LoginPage pour:', email);
       const { error } = await signIn(email, password);
 
       if (error) {
+        console.log('❌ Erreur de connexion:', error.message);
+        
         if (error.message.includes('Invalid login credentials')) {
           setError('Email ou mot de passe incorrect');
         } else if (error.message.includes('Email not confirmed')) {
-          setError('Compte non autorisé ou désactivé');
+          setError('Votre compte doit être confirmé par email avant la première connexion');
+        } else if (error.message.includes('User not found')) {
+          setError('Aucun compte trouvé avec cet email');
         } else {
           setError('Erreur de connexion. Veuillez réessayer.');
         }
       } else {
-        // La redirection se fera automatiquement via AuthProvider
-        navigate('/');
+        console.log('✅ Connexion réussie depuis LoginPage');
+        // La redirection se fera automatiquement via useEffect quand l'état auth sera mis à jour
       }
     } catch (err) {
+      console.error('❌ Erreur inattendue lors de la connexion:', err);
       setError('Une erreur est survenue. Veuillez réessayer.');
     } finally {
       setLoading(false);
     }
   };
+
+  // Afficher un loader pendant que l'authentification se charge
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
+          <p className="text-gray-600">Vérification de l'authentification...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">

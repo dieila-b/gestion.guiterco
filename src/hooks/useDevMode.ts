@@ -26,8 +26,8 @@ export const useDevMode = (): DevModeConfig => {
     mockUser: {
       id: 'dev-user-123',
       email: 'dev@test.local',
-      prenom: 'Utilisateur',
-      nom: 'Test',
+      prenom: 'Admin',
+      nom: 'Développement',
       role: {
         nom: 'administrateur',
         description: 'Administrateur développement'
@@ -48,7 +48,7 @@ export const useDevMode = (): DevModeConfig => {
                   import.meta.env.DEV ||
                   import.meta.env.MODE === 'development';
 
-    console.log('🔍 Détection environnement:', {
+    console.log('🔍 Détection environnement dev:', {
       hostname,
       isDev,
       mode: import.meta.env.MODE,
@@ -59,8 +59,9 @@ export const useDevMode = (): DevModeConfig => {
     
     if (isDev) {
       const manualOverride = localStorage.getItem('dev_bypass_auth');
+      
+      // En mode développement, activer le bypass par défaut
       if (manualOverride === null) {
-        // Activer par défaut en dev
         bypassEnabled = true;
         localStorage.setItem('dev_bypass_auth', 'true');
         console.log('🚀 Bypass d\'authentification activé automatiquement en mode dev');
@@ -72,6 +73,12 @@ export const useDevMode = (): DevModeConfig => {
       if (import.meta.env.VITE_DEV_BYPASS_AUTH === 'true') {
         bypassEnabled = true;
       }
+      
+      console.log('🔧 Configuration bypass:', { 
+        manualOverride, 
+        bypassEnabled,
+        envVar: import.meta.env.VITE_DEV_BYPASS_AUTH 
+      });
     }
 
     setConfig(prevConfig => ({

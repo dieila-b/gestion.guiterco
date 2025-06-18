@@ -12,6 +12,16 @@ interface ProtectedRouteProps {
 const ProtectedRoute = ({ children, requireRole }: ProtectedRouteProps) => {
   const { user, utilisateurInterne, loading, isInternalUser } = useAuth();
 
+  console.log('🛡️ ProtectedRoute - État:', {
+    loading,
+    hasUser: !!user,
+    hasInternalUser: !!utilisateurInterne,
+    isInternalUser,
+    userEmail: user?.email,
+    internalUserRole: utilisateurInterne?.role?.nom,
+    requireRole
+  });
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -23,12 +33,21 @@ const ProtectedRoute = ({ children, requireRole }: ProtectedRouteProps) => {
     );
   }
 
+  // Si pas d'utilisateur ou utilisateur non autorisé, rediriger vers la page de connexion
   if (!user || !isInternalUser) {
+    console.log('❌ ProtectedRoute - Accès refusé, redirection vers /auth');
     return <Navigate to="/auth" replace />;
   }
 
+  // Vérification des rôles spécifiques si requis
   if (requireRole && utilisateurInterne) {
     const hasRequiredRole = requireRole.includes(utilisateurInterne.role.nom);
+    console.log('🔐 ProtectedRoute - Vérification du rôle:', {
+      requiredRoles: requireRole,
+      userRole: utilisateurInterne.role.nom,
+      hasRequiredRole
+    });
+    
     if (!hasRequiredRole) {
       return (
         <div className="min-h-screen flex items-center justify-center">
@@ -37,12 +56,16 @@ const ProtectedRoute = ({ children, requireRole }: ProtectedRouteProps) => {
             <p className="text-red-600">
               Vous n'avez pas les permissions nécessaires pour accéder à cette page.
             </p>
+            <p className="text-sm text-red-500 mt-2">
+              Rôle requis : {requireRole.join(', ')} | Votre rôle : {utilisateurInterne.role.nom}
+            </p>
           </div>
         </div>
       );
     }
   }
 
+  console.log('✅ ProtectedRoute - Accès autorisé');
   return <>{children}</>;
 };
 
