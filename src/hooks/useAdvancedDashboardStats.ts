@@ -1,3 +1,4 @@
+
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { format, startOfMonth, endOfMonth, startOfDay, endOfDay } from 'date-fns';
@@ -20,6 +21,15 @@ export interface AdvancedDashboardStats {
   caAnnuel: number;
   objectifMensuel: number;
   tauxRealisationObjectif: number;
+  // Nouvelles propriétés manquantes
+  nombreArticles: number;
+  reglementsFournisseurs: number;
+  nombreClients: number;
+  stockGlobalAchat: number;
+  stockGlobalVente: number;
+  soldeAvoir: number;
+  soldeDevoir: number;
+  situationNormale: number;
 }
 
 export const useAdvancedDashboardStats = () => {
@@ -93,23 +103,25 @@ export const useAdvancedDashboardStats = () => {
 
       console.log('📄 Factures impayées du jour:', facturesImpayeesJour);
 
-      // 4. Dépenses du mois (depuis la table sorties_financieres)
+      // 4. Dépenses du mois
       const { data: depensesMoisData, error: depensesError } = await supabase
-        .from('sorties_financieres')
-        .select('montant')
-        .gte('date_sortie', `${debutMois} 00:00:00`)
-        .lte('date_sortie', `${finMois} 23:59:59`);
+        .from('transactions')
+        .select('montant, amount')
+        .eq('type', 'expense')
+        .gte('date_operation', `${debutMois} 00:00:00`)
+        .lte('date_operation', `${finMois} 23:59:59`);
 
       if (depensesError) {
         console.error('❌ Erreur récupération dépenses du mois:', depensesError);
         throw depensesError;
       }
 
-      const depensesMois = depensesMoisData?.reduce((sum, depense) => sum + (depense.montant || 0), 0) || 0;
+      const depensesMois = depensesMoisData?.reduce((sum, depense) => {
+        return sum + (depense.montant || depense.amount || 0);
+      }, 0) || 0;
       console.log('💸 Dépenses du mois:', depensesMois);
 
-      
-      // Articles en Catalogue
+      // 5. Nombre d'articles dans le catalogue
       const { count: catalogueCount, error: catalogueError } = await supabase
         .from('catalogue')
         .select('*', { count: 'exact', head: true })
@@ -120,7 +132,21 @@ export const useAdvancedDashboardStats = () => {
         throw catalogueError;
       }
 
-      // Stock Global et calculs de valeur
+      const nombreArticles = catalogueCount || 0;
+
+      // 6. Nombre de clients
+      const { count: clientsCount, error: clientsError } = await supabase
+        .from('clients')
+        .select('*', { count: 'exact', head: true });
+      
+      if (clientsError) {
+        console.error('Error fetching clients count:', clientsError);
+        throw clientsError;
+      }
+
+      const nombreClients = clientsCount || 0;
+
+      // 7. Stock Global et calculs de valeur
       const { data: stockData, error: stockError } = await supabase
         .from('stock_principal')
         .select(`
@@ -167,26 +193,71 @@ export const useAdvancedDashboardStats = () => {
       const margeGlobaleStock = valeurStockVente - valeurStockAchat;
       const margePourcentage = valeurStockAchat > 0 ? ((margeGlobaleStock / valeurStockAchat) * 100) : 0;
 
+      // 8. Calculs financiers pour la situation
+      // Solde Avoir = Montant total que nous devons aux clients (remboursements, avoirs, etc.)
+      const { data: avoirData, error: avoirError } = await supabase
+        .from('versements_clients')
+        .select('montant')
+        .gte('date_versement', `${format(new Date(), 'yyyy')}-01-01`)
+        .lte('date_versement', `${format(new Date(), 'yyyy')}-12-31`);
+
+      const soldeAvoir = avoirData?.reduce((sum, avoir) => sum + (avoir.montant || 0), 0) || 0;
+
+      // Solde Devoir = Montant total des factures impayées
+      const { data: facturesImpayees, error: facturesImpayeesGlobalError } = await supabase
+        .from('factures_vente')
+        .select('id, montant_ttc')
+        .eq('statut_paiement', 'en_attente');
+
+      let soldeDevoir = 0;
+      if (facturesImpayees && !facturesImpayeesGlobalError) {
+        const factureIdsGlobal = facturesImpayees.map(f => f.id);
+        
+        if (factureIdsGlobal.length > 0) {
+          const { data: versementsGlobal, error: versementsGlobalError } = await supabase
+            .from('versements_clients')
+            .select('facture_id, montant')
+            .in('facture_id', factureIdsGlobal);
+
+          if (!versementsGlobalError) {
+            facturesImpayees.forEach(facture => {
+              const versementsFacture = versementsGlobal?.filter(v => v.facture_id === facture.id) || [];
+              const montantPaye = versementsFacture.reduce((sum, v) => sum + (v.montant || 0), 0);
+              const montantRestant = Math.max(0, (facture.montant_ttc || 0) - montantPaye);
+              soldeDevoir += montantRestant;
+            });
+          }
+        }
+      }
+
+      const situationNormale = soldeAvoir - soldeDevoir;
+
       // Valeurs par défaut pour les autres statistiques
       const articlesEnRupture = 0;
       const commandesPendantes = 0;
       const facturesEnRetard = 0;
-      const clientsActifs = 0;
+      const clientsActifs = nombreClients;
       const caAnnuel = 0;
       const objectifMensuel = 50000;
       const tauxRealisationObjectif = 0;
+      const reglementsFournisseurs = 0;
 
       console.log('✅ Statistiques calculées:', {
         ventesJour,
         margeJour,
         facturesImpayeesJour,
         depensesMois,
+        nombreArticles,
+        nombreClients,
         totalCatalogue,
         stockGlobal,
         valeurStockAchat,
         valeurStockVente,
         margeGlobaleStock,
-        margePourcentage
+        margePourcentage,
+        soldeAvoir,
+        soldeDevoir,
+        situationNormale
       });
 
       return {
@@ -206,7 +277,15 @@ export const useAdvancedDashboardStats = () => {
         clientsActifs,
         caAnnuel,
         objectifMensuel,
-        tauxRealisationObjectif
+        tauxRealisationObjectif,
+        nombreArticles,
+        reglementsFournisseurs,
+        nombreClients,
+        stockGlobalAchat: valeurStockAchat,
+        stockGlobalVente: valeurStockVente,
+        soldeAvoir,
+        soldeDevoir,
+        situationNormale
       };
     },
     refetchInterval: 30000,
