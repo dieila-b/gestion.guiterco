@@ -20,26 +20,55 @@ export interface DevModeConfig {
 }
 
 export const useDevMode = (): DevModeConfig => {
-  const [config, setConfig] = useState<DevModeConfig>({
-    isDevMode: false,
-    bypassAuth: false,
-    mockUser: {
-      id: 'dev-user-123',
-      email: 'dev@test.local',
-      prenom: 'Admin',
-      nom: 'Développement',
-      role: {
-        nom: 'administrateur',
-        description: 'Administrateur développement'
+  const [config, setConfig] = useState<DevModeConfig>(() => {
+    // Initialiser immédiatement le mode dev pour éviter les délais
+    const hostname = window.location.hostname;
+    const isDev = hostname === 'localhost' || 
+                  hostname.includes('lovableproject.com') || 
+                  hostname.includes('127.0.0.1') ||
+                  hostname.includes('.local') ||
+                  import.meta.env.DEV ||
+                  import.meta.env.MODE === 'development';
+
+    let bypassEnabled = false;
+    
+    if (isDev) {
+      const manualOverride = localStorage.getItem('dev_bypass_auth');
+      
+      // En mode développement, activer le bypass par défaut si pas de préférence
+      if (manualOverride === null) {
+        bypassEnabled = true;
+        localStorage.setItem('dev_bypass_auth', 'true');
+      } else {
+        bypassEnabled = manualOverride === 'true';
+      }
+      
+      // Vérifier aussi la variable d'environnement
+      if (import.meta.env.VITE_DEV_BYPASS_AUTH === 'true') {
+        bypassEnabled = true;
+      }
+    }
+
+    return {
+      isDevMode: isDev,
+      bypassAuth: bypassEnabled,
+      mockUser: {
+        id: 'dev-user-123',
+        email: 'dev@test.local',
+        prenom: 'Admin',
+        nom: 'Développement',
+        role: {
+          nom: 'administrateur',
+          description: 'Administrateur développement'
+        },
+        statut: 'actif',
+        type_compte: 'interne'
       },
-      statut: 'actif',
-      type_compte: 'interne'
-    },
-    toggleBypass: () => {}
+      toggleBypass: () => {}
+    };
   });
 
   const updateBypassState = () => {
-    // Détecter l'environnement de développement
     const hostname = window.location.hostname;
     const isDev = hostname === 'localhost' || 
                   hostname.includes('lovableproject.com') || 
@@ -103,6 +132,7 @@ export const useDevMode = (): DevModeConfig => {
   };
 
   useEffect(() => {
+    // Mettre à jour immédiatement
     updateBypassState();
     
     // Écouter les changements du localStorage
