@@ -21,6 +21,7 @@ const FacturesImpayeesModal: React.FC<FacturesImpayeesModalProps> = ({ isOpen, o
     queryFn: async () => {
       console.log('🔍 Récupération des factures impayées du jour...');
       
+      // 1. Récupérer toutes les factures du jour avec les informations client
       const { data: factures, error } = await supabase
         .from('factures_vente')
         .select(`
@@ -29,8 +30,7 @@ const FacturesImpayeesModal: React.FC<FacturesImpayeesModalProps> = ({ isOpen, o
           date_facture,
           montant_ttc,
           statut_paiement,
-          client:client_id(nom, prenom),
-          versements:versements_clients(montant)
+          client:client_id(nom, prenom)
         `)
         .gte('date_facture', `${today} 00:00:00`)
         .lte('date_facture', `${today} 23:59:59`)
@@ -43,16 +43,33 @@ const FacturesImpayeesModal: React.FC<FacturesImpayeesModalProps> = ({ isOpen, o
 
       console.log(`📊 ${factures?.length || 0} factures trouvées pour le ${today}`);
 
-      // Calculer les montants payés et restants pour chaque facture
-      const facturesWithCalculations = (factures || []).map(facture => {
-        const montantPaye = facture.versements?.reduce((sum: number, v: any) => sum + (v.montant || 0), 0) || 0;
+      if (!factures || factures.length === 0) {
+        return [];
+      }
+
+      // 2. Récupérer tous les versements pour ces factures
+      const factureIds = factures.map(f => f.id);
+      const { data: versements, error: versementsError } = await supabase
+        .from('versements_clients')
+        .select('facture_id, montant')
+        .in('facture_id', factureIds);
+
+      if (versementsError) {
+        console.error('❌ Erreur lors de la récupération des versements:', versementsError);
+        throw versementsError;
+      }
+
+      // 3. Calculer les montants payés et restants pour chaque facture
+      const facturesWithCalculations = factures.map(facture => {
+        const versementsFacture = versements?.filter(v => v.facture_id === facture.id) || [];
+        const montantPaye = versementsFacture.reduce((sum, v) => sum + (v.montant || 0), 0);
         const montantRestant = Math.max(0, (facture.montant_ttc || 0) - montantPaye);
         
         console.log(`💰 Facture ${facture.numero_facture}:`, {
           montant_ttc: facture.montant_ttc,
           montantPaye,
           montantRestant,
-          versements: facture.versements?.length || 0
+          versements: versementsFacture.length
         });
         
         return {
@@ -62,7 +79,7 @@ const FacturesImpayeesModal: React.FC<FacturesImpayeesModalProps> = ({ isOpen, o
         };
       });
 
-      // Filtrer seulement les factures avec un montant restant > 0
+      // 4. Filtrer seulement les factures avec un montant restant > 0
       const facturesAvecMontantRestant = facturesWithCalculations.filter(facture => facture.montantRestant > 0);
       
       console.log(`✅ ${facturesAvecMontantRestant.length} factures avec montant restant > 0`);

@@ -39,33 +39,42 @@ export const useAdvancedDashboardStats = () => {
       
       if (ventesError) throw ventesError;
 
-      // 2. Factures impayées du jour - calcul correct avec les versements
-      const { data: facturesAvecVersements, error: facturesError } = await supabase
+      // 2. Factures du jour pour calcul des impayés
+      const { data: facturesJour, error: facturesError } = await supabase
         .from('factures_vente')
-        .select(`
-          id,
-          montant_ttc,
-          versements:versements_clients(montant)
-        `)
+        .select('id, montant_ttc')
         .gte('date_facture', `${today} 00:00:00`)
         .lte('date_facture', `${today} 23:59:59`);
       
       if (facturesError) throw facturesError;
 
-      // Calculer le montant réellement impayé
+      // 3. Versements clients pour toutes les factures du jour
+      const factureIds = facturesJour?.map(f => f.id) || [];
       let facturesImpayeesTotal = 0;
-      facturesAvecVersements?.forEach(facture => {
-        const montantPaye = facture.versements?.reduce((sum: number, v: any) => sum + (v.montant || 0), 0) || 0;
-        const montantRestant = Math.max(0, (facture.montant_ttc || 0) - montantPaye);
-        facturesImpayeesTotal += montantRestant;
-      });
+      
+      if (factureIds.length > 0) {
+        const { data: versements, error: versementsError } = await supabase
+          .from('versements_clients')
+          .select('facture_id, montant')
+          .in('facture_id', factureIds);
+        
+        if (versementsError) throw versementsError;
+
+        // Calculer le montant réellement impayé pour chaque facture
+        facturesJour?.forEach(facture => {
+          const versementsFacture = versements?.filter(v => v.facture_id === facture.id) || [];
+          const montantPaye = versementsFacture.reduce((sum, v) => sum + (v.montant || 0), 0);
+          const montantRestant = Math.max(0, (facture.montant_ttc || 0) - montantPaye);
+          facturesImpayeesTotal += montantRestant;
+        });
+      }
 
       console.log('Calcul factures impayées:', {
-        nombreFactures: facturesAvecVersements?.length,
+        nombreFactures: facturesJour?.length,
         totalImpaye: facturesImpayeesTotal
       });
 
-      // 3. Dépenses du mois (factures d'achat payées)
+      // 4. Dépenses du mois (factures d'achat payées)
       const { data: depenses, error: depensesError } = await supabase
         .from('factures_achat')
         .select('montant_ttc')
@@ -74,7 +83,7 @@ export const useAdvancedDashboardStats = () => {
       
       if (depensesError) throw depensesError;
 
-      // 4. Nombre d'articles
+      // 5. Nombre d'articles
       const { count: articlesCount, error: articlesError } = await supabase
         .from('catalogue')
         .select('*', { count: 'exact', head: true })
@@ -82,7 +91,7 @@ export const useAdvancedDashboardStats = () => {
       
       if (articlesError) throw articlesError;
 
-      // 5. Règlements fournisseurs (du jour)
+      // 6. Règlements fournisseurs (du jour)
       const { data: reglements, error: reglementsError } = await supabase
         .from('factures_achat')
         .select('montant_ttc')
@@ -92,14 +101,14 @@ export const useAdvancedDashboardStats = () => {
       
       if (reglementsError) throw reglementsError;
 
-      // 6. Nombre de clients
+      // 7. Nombre de clients
       const { count: clientsCount, error: clientsError } = await supabase
         .from('clients')
         .select('*', { count: 'exact', head: true });
       
       if (clientsError) throw clientsError;
 
-      // 7. Stock global (données existantes)
+      // 8. Stock global (données existantes)
       const { data: stockPrincipal, error: stockError } = await supabase
         .from('stock_principal')
         .select(`
@@ -118,7 +127,7 @@ export const useAdvancedDashboardStats = () => {
       
       if (stockPDVError) throw stockPDVError;
 
-      // 8. Versements clients pour calculer les soldes
+      // 9. Versements clients pour calculer les soldes
       const { data: versements, error: versementsError } = await supabase
         .from('versements_clients')
         .select('montant');
@@ -190,7 +199,7 @@ export const useAdvancedDashboardStats = () => {
       return {
         ventesJour: ventesJourTotal,
         margeJour: margeJourValue,
-        facturesImpayeesJour: facturesImpayeesTotal, // Maintenant calcul correct
+        facturesImpayeesJour: facturesImpayeesTotal,
         depensesMois: depensesTotal,
         nombreArticles: articlesCount || 0,
         reglementsFournisseurs: reglementsTotal,
