@@ -9,6 +9,13 @@ import { formatCurrency } from '@/lib/currency';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 
+interface StatsGlobales {
+  totalClients: number;
+  totalDette: number;
+  totalFactures: number;
+  montantTotal: number;
+}
+
 const ClientsEndettes = () => {
   const { data: clientsEndettes = [], isLoading, error } = useClientsEndettes();
 
@@ -49,8 +56,8 @@ const ClientsEndettes = () => {
     return Object.values(grouped).sort((a: any, b: any) => b.totalDette - a.totalDette);
   }, [clientsEndettes]);
 
-  const statsGlobales = useMemo(() => {
-    return clientsGroupes.reduce((acc: any, client: any) => {
+  const statsGlobales = useMemo((): StatsGlobales => {
+    return clientsGroupes.reduce((acc: StatsGlobales, client: any) => {
       acc.totalClients = clientsGroupes.length;
       acc.totalDette += client.totalDette;
       acc.totalFactures += client.factures.length;
