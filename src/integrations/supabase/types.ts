@@ -2210,6 +2210,35 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: string
       }
+      get_client_statistics: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          client_id: string
+          client_nom: string
+          client_email: string
+          client_telephone: string
+          nombre_ventes: number
+          total_facture: number
+          total_paye: number
+          reste_a_payer: number
+        }[]
+      }
+      get_clients_endettes: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          client_id: string
+          client_nom: string
+          client_email: string
+          client_telephone: string
+          facture_id: string
+          numero_facture: string
+          date_facture: string
+          montant_total: number
+          montant_paye: number
+          reste_a_payer: number
+          statut_paiement: string
+        }[]
+      }
       get_factures_vente_with_details: {
         Args: Record<PropertyKey, never>
         Returns: Json
