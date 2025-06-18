@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -46,7 +47,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [utilisateurInterne, setUtilisateurInterne] = useState<UtilisateurInterne | null>(null);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
-  const { bypassAuth, mockUser } = useDevMode();
+  const { bypassAuth, mockUser, isDevMode } = useDevMode();
 
   const checkInternalUser = async (userId: string) => {
     try {
@@ -76,8 +77,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   useEffect(() => {
+    console.log('🔍 AuthProvider - État actuel:', { 
+      isDevMode, 
+      bypassAuth, 
+      loading 
+    });
+
     // Si le bypass est activé en mode développement
-    if (bypassAuth) {
+    if (isDevMode && bypassAuth) {
       console.log('🚀 Mode développement: Bypass d\'authentification activé');
       setUtilisateurInterne(mockUser);
       
@@ -107,55 +114,68 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       return;
     }
 
-    // Comportement normal en production
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+    // Si on était en mode bypass et qu'on le désactive, nettoyer l'état
+    if (isDevMode && !bypassAuth) {
+      console.log('🔒 Désactivation du bypass - retour à l\'authentification normale');
+      setUser(null);
+      setSession(null);
+      setUtilisateurInterne(null);
+    }
+
+    // Comportement normal en production ou si bypass désactivé
+    if (!bypassAuth) {
+      const { data: { subscription } } = supabase.auth.onAuthStateChange(
+        async (event, session) => {
+          console.log('🔐 Auth state change:', { event, session: !!session });
+          setSession(session);
+          setUser(session?.user ?? null);
+
+          if (session?.user) {
+            const internalUser = await checkInternalUser(session.user.id);
+            
+            if (internalUser && internalUser.type_compte === 'interne') {
+              setUtilisateurInterne(internalUser);
+            } else {
+              await supabase.auth.signOut();
+              setUtilisateurInterne(null);
+              toast({
+                title: "Accès refusé",
+                description: "Vous n'êtes pas autorisé à accéder à cette application",
+                variant: "destructive",
+              });
+            }
+          } else {
+            setUtilisateurInterne(null);
+          }
+          
+          setLoading(false);
+        }
+      );
+
+      supabase.auth.getSession().then(({ data: { session } }) => {
         setSession(session);
         setUser(session?.user ?? null);
-
-        if (session?.user) {
-          const internalUser = await checkInternalUser(session.user.id);
-          
-          if (internalUser && internalUser.type_compte === 'interne') {
-            setUtilisateurInterne(internalUser);
-          } else {
-            await supabase.auth.signOut();
-            setUtilisateurInterne(null);
-            toast({
-              title: "Accès refusé",
-              description: "Vous n'êtes pas autorisé à accéder à cette application",
-              variant: "destructive",
-            });
-          }
-        } else {
-          setUtilisateurInterne(null);
-        }
         
-        setLoading(false);
-      }
-    );
-
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      
-      if (session?.user) {
-        checkInternalUser(session.user.id).then((internalUser) => {
-          if (internalUser && internalUser.type_compte === 'interne') {
-            setUtilisateurInterne(internalUser);
-          } else {
-            supabase.auth.signOut();
-            setUtilisateurInterne(null);
-          }
+        if (session?.user) {
+          checkInternalUser(session.user.id).then((internalUser) => {
+            if (internalUser && internalUser.type_compte === 'interne') {
+              setUtilisateurInterne(internalUser);
+            } else {
+              supabase.auth.signOut();
+              setUtilisateurInterne(null);
+            }
+            setLoading(false);
+          });
+        } else {
           setLoading(false);
-        });
-      } else {
-        setLoading(false);
-      }
-    });
+        }
+      });
 
-    return () => subscription.unsubscribe();
-  }, [toast, bypassAuth, mockUser]);
+      return () => subscription.unsubscribe();
+    } else {
+      setLoading(false);
+    }
+  }, [toast, bypassAuth, mockUser, isDevMode]);
 
   const signIn = async (email: string, password: string) => {
     try {
@@ -175,8 +195,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   const signOut = async () => {
-    if (bypassAuth) {
-      // En mode bypass, on recharge simplement la page
+    if (bypassAuth && isDevMode) {
+      // En mode bypass, on nettoie l'état local et recharge
+      setUser(null);
+      setSession(null);
+      setUtilisateurInterne(null);
       window.location.reload();
       return;
     }

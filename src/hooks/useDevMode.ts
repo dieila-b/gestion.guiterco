@@ -16,6 +16,7 @@ export interface DevModeConfig {
     statut: string;
     type_compte: string;
   };
+  toggleBypass: () => void;
 }
 
 export const useDevMode = (): DevModeConfig => {
@@ -33,11 +34,12 @@ export const useDevMode = (): DevModeConfig => {
       },
       statut: 'actif',
       type_compte: 'interne'
-    }
+    },
+    toggleBypass: () => {}
   });
 
-  useEffect(() => {
-    // Détecter l'environnement de développement de manière plus robuste
+  const updateBypassState = () => {
+    // Détecter l'environnement de développement
     const hostname = window.location.hostname;
     const isDev = hostname === 'localhost' || 
                   hostname.includes('lovableproject.com') || 
@@ -53,19 +55,16 @@ export const useDevMode = (): DevModeConfig => {
       dev: import.meta.env.DEV
     });
 
-    // En mode dev, activer automatiquement le bypass par défaut
-    // Mais permettre la désactivation via localStorage
     let bypassEnabled = false;
     
     if (isDev) {
       const manualOverride = localStorage.getItem('dev_bypass_auth');
       if (manualOverride === null) {
-        // Pas de préférence stockée, activer par défaut en dev
+        // Activer par défaut en dev
         bypassEnabled = true;
         localStorage.setItem('dev_bypass_auth', 'true');
         console.log('🚀 Bypass d\'authentification activé automatiquement en mode dev');
       } else {
-        // Respecter la préférence utilisateur
         bypassEnabled = manualOverride === 'true';
       }
       
@@ -78,8 +77,37 @@ export const useDevMode = (): DevModeConfig => {
     setConfig(prevConfig => ({
       ...prevConfig,
       isDevMode: isDev,
-      bypassAuth: bypassEnabled
+      bypassAuth: bypassEnabled,
+      toggleBypass: () => {
+        const current = localStorage.getItem('dev_bypass_auth') === 'true';
+        const newValue = !current;
+        localStorage.setItem('dev_bypass_auth', newValue.toString());
+        console.log(`🔄 Bypass auth ${newValue ? 'activé' : 'désactivé'}`);
+        
+        // Forcer la mise à jour de l'état
+        updateBypassState();
+        
+        // Recharger la page pour appliquer les changements
+        setTimeout(() => {
+          window.location.reload();
+        }, 100);
+      }
     }));
+  };
+
+  useEffect(() => {
+    updateBypassState();
+    
+    // Écouter les changements du localStorage
+    const handleStorageChange = () => {
+      updateBypassState();
+    };
+    
+    window.addEventListener('storage', handleStorageChange);
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+    };
   }, []);
 
   return config;

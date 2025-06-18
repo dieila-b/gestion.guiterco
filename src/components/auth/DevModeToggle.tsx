@@ -6,16 +6,9 @@ import { Shield, ShieldOff, Info } from 'lucide-react';
 import { useDevMode } from '@/hooks/useDevMode';
 
 export const DevModeToggle = () => {
-  const { isDevMode, bypassAuth } = useDevMode();
+  const { isDevMode, bypassAuth, toggleBypass } = useDevMode();
   
   if (!isDevMode) return null;
-
-  const toggleBypass = () => {
-    const current = localStorage.getItem('dev_bypass_auth') === 'true';
-    localStorage.setItem('dev_bypass_auth', (!current).toString());
-    console.log(`🔄 Bypass auth ${!current ? 'activé' : 'désactivé'}`);
-    window.location.reload();
-  };
 
   return (
     <div className="fixed bottom-4 right-4 z-50">
