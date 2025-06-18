@@ -2214,6 +2214,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: Json
       }
+      get_user_role_for_rls: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
       is_internal_user_active: {
         Args: { user_id: string }
         Returns: boolean

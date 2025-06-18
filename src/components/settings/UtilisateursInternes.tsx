@@ -4,11 +4,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Edit, Trash2, UserCheck } from 'lucide-react';
+import { Edit, Trash2, UserCheck, AlertCircle } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import CreateUserDialog from './CreateUserDialog';
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface UtilisateurInterne {
   id: string;
@@ -32,9 +33,11 @@ const UtilisateursInternes = () => {
   const queryClient = useQueryClient();
 
   // Récupérer les utilisateurs internes
-  const { data: utilisateurs, isLoading } = useQuery({
+  const { data: utilisateurs, isLoading, error } = useQuery({
     queryKey: ['utilisateurs-internes'],
     queryFn: async () => {
+      console.log('🔍 Chargement des utilisateurs internes...');
+      
       const { data, error } = await supabase
         .from('utilisateurs_internes')
         .select(`
@@ -46,7 +49,12 @@ const UtilisateursInternes = () => {
         `)
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Erreur lors du chargement des utilisateurs:', error);
+        throw error;
+      }
+
+      console.log('✅ Utilisateurs chargés:', data?.length || 0, 'utilisateurs trouvés');
       return data as UtilisateurInterne[];
     }
   });
@@ -105,6 +113,39 @@ const UtilisateursInternes = () => {
     queryClient.invalidateQueries({ queryKey: ['utilisateurs-internes'] });
   };
 
+  // Afficher l'erreur s'il y en a une
+  if (error) {
+    return (
+      <div className="space-y-6">
+        <Card>
+          <CardHeader>
+            <div className="flex items-center space-x-2">
+              <UserCheck className="h-5 w-5" />
+              <div>
+                <CardTitle>Utilisateurs Internes</CardTitle>
+                <CardDescription>
+                  Gérez les utilisateurs et leurs droits d'accès
+                </CardDescription>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                Erreur lors du chargement des utilisateurs : {error.message}
+                <br />
+                <small className="text-xs opacity-75">
+                  Vérifiez les permissions et la configuration Supabase
+                </small>
+              </AlertDescription>
+            </Alert>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <Card>
@@ -124,82 +165,99 @@ const UtilisateursInternes = () => {
         </CardHeader>
         <CardContent>
           {isLoading ? (
-            <div className="text-center py-8">Chargement...</div>
+            <div className="text-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+              <p>Chargement des utilisateurs...</p>
+            </div>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Photo</TableHead>
-                  <TableHead>Nom complet</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Téléphone</TableHead>
-                  <TableHead>Rôle</TableHead>
-                  <TableHead>Statut</TableHead>
-                  <TableHead>Changer MDP</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {utilisateurs && utilisateurs.length > 0 ? (
-                  utilisateurs.map((utilisateur) => (
-                    <TableRow key={utilisateur.id}>
-                      <TableCell>
-                        {utilisateur.photo_url ? (
-                          <img 
-                            src={utilisateur.photo_url} 
-                            alt={`${utilisateur.prenom} ${utilisateur.nom}`}
-                            className="w-8 h-8 rounded-full object-cover"
-                          />
-                        ) : (
-                          <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center">
-                            <UserCheck className="h-4 w-4 text-gray-500" />
+            <>
+              {utilisateurs && utilisateurs.length > 0 && (
+                <div className="mb-4 text-sm text-muted-foreground">
+                  {utilisateurs.length} utilisateur{utilisateurs.length > 1 ? 's' : ''} trouvé{utilisateurs.length > 1 ? 's' : ''}
+                </div>
+              )}
+              
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Photo</TableHead>
+                    <TableHead>Nom complet</TableHead>
+                    <TableHead>Email</TableHead>
+                    <TableHead>Téléphone</TableHead>
+                    <TableHead>Rôle</TableHead>
+                    <TableHead>Statut</TableHead>
+                    <TableHead>Changer MDP</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {utilisateurs && utilisateurs.length > 0 ? (
+                    utilisateurs.map((utilisateur) => (
+                      <TableRow key={utilisateur.id}>
+                        <TableCell>
+                          {utilisateur.photo_url ? (
+                            <img 
+                              src={utilisateur.photo_url} 
+                              alt={`${utilisateur.prenom} ${utilisateur.nom}`}
+                              className="w-8 h-8 rounded-full object-cover"
+                            />
+                          ) : (
+                            <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center">
+                              <UserCheck className="h-4 w-4 text-gray-500" />
+                            </div>
+                          )}
+                        </TableCell>
+                        <TableCell className="font-medium">
+                          {utilisateur.prenom} {utilisateur.nom}
+                        </TableCell>
+                        <TableCell>{utilisateur.email}</TableCell>
+                        <TableCell>{utilisateur.telephone || '-'}</TableCell>
+                        <TableCell>{getRoleLabel(utilisateur.role)}</TableCell>
+                        <TableCell>{getStatutBadge(utilisateur.statut)}</TableCell>
+                        <TableCell>
+                          {utilisateur.doit_changer_mot_de_passe ? (
+                            <Badge variant="outline" className="text-orange-600 border-orange-600">
+                              Requis
+                            </Badge>
+                          ) : (
+                            <Badge variant="outline" className="text-green-600 border-green-600">
+                              Non requis
+                            </Badge>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end space-x-2">
+                            <Button variant="outline" size="sm">
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              onClick={() => handleDelete(utilisateur.id)}
+                              disabled={deleteUser.isPending}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
                           </div>
-                        )}
-                      </TableCell>
-                      <TableCell className="font-medium">
-                        {utilisateur.prenom} {utilisateur.nom}
-                      </TableCell>
-                      <TableCell>{utilisateur.email}</TableCell>
-                      <TableCell>{utilisateur.telephone || '-'}</TableCell>
-                      <TableCell>{getRoleLabel(utilisateur.role)}</TableCell>
-                      <TableCell>{getStatutBadge(utilisateur.statut)}</TableCell>
-                      <TableCell>
-                        {utilisateur.doit_changer_mot_de_passe ? (
-                          <Badge variant="outline" className="text-orange-600 border-orange-600">
-                            Requis
-                          </Badge>
-                        ) : (
-                          <Badge variant="outline" className="text-green-600 border-green-600">
-                            Non requis
-                          </Badge>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end space-x-2">
-                          <Button variant="outline" size="sm">
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button 
-                            variant="outline" 
-                            size="sm" 
-                            onClick={() => handleDelete(utilisateur.id)}
-                            disabled={deleteUser.isPending}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan={8} className="text-center py-8">
+                        <div className="flex flex-col items-center space-y-2">
+                          <UserCheck className="h-8 w-8 text-muted-foreground" />
+                          <p className="text-muted-foreground">Aucun utilisateur trouvé</p>
+                          <p className="text-sm text-muted-foreground">
+                            Commencez par créer votre premier utilisateur interne
+                          </p>
                         </div>
                       </TableCell>
                     </TableRow>
-                  ))
-                ) : (
-                  <TableRow>
-                    <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
-                      Aucun utilisateur trouvé
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
+                  )}
+                </TableBody>
+              </Table>
+            </>
           )}
         </CardContent>
       </Card>
