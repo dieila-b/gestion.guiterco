@@ -9,6 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import CreateUserDialog from './CreateUserDialog';
+import EditUserDialog from './EditUserDialog';
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface UtilisateurInterne {
@@ -22,6 +23,7 @@ interface UtilisateurInterne {
   statut: string;
   doit_changer_mot_de_passe: boolean;
   created_at: string;
+  role_id?: string;
   role: {
     nom: string;
     description: string;
@@ -105,11 +107,15 @@ const UtilisateursInternes = () => {
 
   const getStatutBadge = (statut: string) => {
     return statut === 'actif' ? 
-      <Badge className="bg-green-100 text-green-800">Actif</Badge> : 
-      <Badge variant="secondary">Inactif</Badge>;
+      <Badge className="bg-green-100 text-green-800 border-green-200">Actif</Badge> : 
+      <Badge className="bg-red-100 text-red-800 border-red-200">Inactif</Badge>;
   };
 
   const handleUserCreated = () => {
+    queryClient.invalidateQueries({ queryKey: ['utilisateurs-internes'] });
+  };
+
+  const handleUserUpdated = () => {
     queryClient.invalidateQueries({ queryKey: ['utilisateurs-internes'] });
   };
 
@@ -227,9 +233,13 @@ const UtilisateursInternes = () => {
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex justify-end space-x-2">
-                            <Button variant="outline" size="sm">
-                              <Edit className="h-4 w-4" />
-                            </Button>
+                            <EditUserDialog 
+                              user={{
+                                ...utilisateur,
+                                role_id: utilisateur.role_id
+                              }}
+                              onUserUpdated={handleUserUpdated}
+                            />
                             <Button 
                               variant="outline" 
                               size="sm" 
