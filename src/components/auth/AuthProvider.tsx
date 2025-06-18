@@ -9,6 +9,9 @@ interface UtilisateurInterne {
   prenom: string;
   nom: string;
   email: string;
+  telephone?: string;
+  adresse?: string;
+  photo_url?: string;
   statut: string;
   type_compte: string;
   role: {
