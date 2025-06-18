@@ -22,6 +22,11 @@ const NewDashboard = () => {
     navigate('/reports?tab=unpaid');
   };
 
+  const handleDepensesClick = () => {
+    // Rediriger vers l'onglet Sorties du module Finances
+    navigate('/cash-registers?tab=expenses&subtab=sorties');
+  };
+
   if (error) {
     console.error('Error loading dashboard stats:', error);
     return (
@@ -40,7 +45,7 @@ const NewDashboard = () => {
         onVentesClick={() => setVentesModalOpen(true)}
         onMargeClick={() => setMargeModalOpen(true)}
         onFacturesImpayeesClick={handleFacturesImpayeesClick}
-        onDepensesClick={() => setDepensesModalOpen(true)}
+        onDepensesClick={handleDepensesClick}
       />
 
       {/* Ligne du milieu - 4 cartes avec icônes */}

@@ -1,8 +1,9 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
+import { useSearchParams } from 'react-router-dom';
 import CashRegisterOverview from '@/components/cash-register/CashRegisterOverview';
 import AddCashRegisterDialog from '@/components/cash-register/AddCashRegisterDialog';
 import { useCashRegisters } from '@/hooks/useCashRegisters';
@@ -11,7 +12,15 @@ import ExpensesTab from '@/components/cash-register/ExpensesTab';
 
 const CashRegisters: React.FC = () => {
   const { toast } = useToast();
+  const [searchParams] = useSearchParams();
   const [selectedRegister, setSelectedRegister] = useState<string | null>(null);
+  
+  // Récupérer les paramètres d'URL
+  const tabParam = searchParams.get('tab');
+  const subtabParam = searchParams.get('subtab');
+  
+  // État pour l'onglet actif
+  const [activeTab, setActiveTab] = useState(tabParam || 'overview');
 
   // Fetch data from Supabase
   const { data: cashRegisters, isLoading: registersLoading } = useCashRegisters();
@@ -19,11 +28,18 @@ const CashRegisters: React.FC = () => {
   const { data: todayTransactions } = useTodayTransactions();
 
   // Set default selected register when data loads
-  React.useEffect(() => {
+  useEffect(() => {
     if (cashRegisters && cashRegisters.length > 0 && !selectedRegister) {
       setSelectedRegister(cashRegisters[0].id);
     }
   }, [cashRegisters, selectedRegister]);
+
+  // Mettre à jour l'onglet actif depuis l'URL
+  useEffect(() => {
+    if (tabParam) {
+      setActiveTab(tabParam);
+    }
+  }, [tabParam]);
 
   const handleRegisterCreated = () => {
     toast({
@@ -46,7 +62,7 @@ const CashRegisters: React.FC = () => {
 
   return (
     <AppLayout title="Gestion des finances">
-      <Tabs defaultValue="overview" className="space-y-4">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
         <div className="flex justify-between items-center">
           <TabsList>
             <TabsTrigger value="overview">Aperçu</TabsTrigger>
@@ -62,7 +78,7 @@ const CashRegisters: React.FC = () => {
         </TabsContent>
 
         <TabsContent value="expenses" className="space-y-4">
-          <ExpensesTab />
+          <ExpensesTab initialSubTab={subtabParam} />
         </TabsContent>
       </Tabs>
     </AppLayout>

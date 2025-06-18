@@ -1,218 +1,214 @@
-
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { format } from 'date-fns';
+import { format, startOfMonth, endOfMonth, startOfDay, endOfDay } from 'date-fns';
 
 export interface AdvancedDashboardStats {
   ventesJour: number;
   margeJour: number;
   facturesImpayeesJour: number;
   depensesMois: number;
-  nombreArticles: number;
-  reglementsFournisseurs: number;
-  nombreClients: number;
+  totalCatalogue: number;
   stockGlobal: number;
-  stockGlobalAchat: number;
-  stockGlobalVente: number;
+  valeurStockAchat: number;
+  valeurStockVente: number;
   margeGlobaleStock: number;
-  soldeAvoir: number;
-  soldeDevoir: number;
-  situationNormale: number;
+  margePourcentage: number;
+  articlesEnRupture: number;
+  commandesPendantes: number;
+  facturesEnRetard: number;
+  clientsActifs: number;
+  caAnnuel: number;
+  objectifMensuel: number;
+  tauxRealisationObjectif: number;
 }
 
 export const useAdvancedDashboardStats = () => {
   return useQuery({
     queryKey: ['advanced-dashboard-stats'],
     queryFn: async (): Promise<AdvancedDashboardStats> => {
-      console.log('Fetching advanced dashboard statistics...');
+      console.log('🔄 Calcul des statistiques avancées du tableau de bord...');
       
-      const today = format(new Date(), 'yyyy-MM-dd');
-      const startOfMonth = format(new Date(new Date().getFullYear(), new Date().getMonth(), 1), 'yyyy-MM-dd');
+      const now = new Date();
+      const today = format(now, 'yyyy-MM-dd');
+      const startOfToday = `${today} 00:00:00`;
+      const endOfToday = `${today} 23:59:59`;
       
-      // 1. Ventes du jour - uniquement les factures payées
-      const { data: ventesJour, error: ventesError } = await supabase
-        .from('factures_vente')
-        .select('montant_ttc')
-        .gte('date_facture', `${today} 00:00:00`)
-        .lte('date_facture', `${today} 23:59:59`)
-        .eq('statut_paiement', 'payee');
-      
-      if (ventesError) throw ventesError;
+      // Période du mois courant
+      const debutMois = format(startOfMonth(now), 'yyyy-MM-dd');
+      const finMois = format(endOfMonth(now), 'yyyy-MM-dd');
 
-      // 2. Factures du jour pour calcul des impayés
+      // 1. Ventes du jour
       const { data: facturesJour, error: facturesError } = await supabase
         .from('factures_vente')
-        .select('id, montant_ttc')
-        .gte('date_facture', `${today} 00:00:00`)
-        .lte('date_facture', `${today} 23:59:59`);
-      
-      if (facturesError) throw facturesError;
+        .select('montant_ttc')
+        .gte('date_facture', startOfToday)
+        .lte('date_facture', endOfToday);
 
-      // 3. Versements clients pour toutes les factures du jour
-      const factureIds = facturesJour?.map(f => f.id) || [];
-      let facturesImpayeesTotal = 0;
-      
+      if (facturesError) {
+        console.error('❌ Erreur récupération factures du jour:', facturesError);
+        throw facturesError;
+      }
+
+      const ventesJour = facturesJour?.reduce((sum, facture) => sum + (facture.montant_ttc || 0), 0) || 0;
+      console.log('💰 Ventes du jour:', ventesJour);
+
+      // 2. Calcul de la marge du jour (approximation basée sur 30% de marge)
+      const margeJour = ventesJour * 0.3;
+
+      // 3. Factures impayées du jour
+      const { data: facturesImpayeesData, error: facturesImpayeesError } = await supabase
+        .from('factures_vente')
+        .select('id, montant_ttc')
+        .gte('date_facture', startOfToday)
+        .lte('date_facture', endOfToday);
+
+      if (facturesImpayeesError) {
+        console.error('❌ Erreur récupération factures impayées:', facturesImpayeesError);
+        throw facturesImpayeesError;
+      }
+
+      // Récupérer les versements pour ces factures
+      const factureIds = facturesImpayeesData?.map(f => f.id) || [];
+      let facturesImpayeesJour = 0;
+
       if (factureIds.length > 0) {
         const { data: versements, error: versementsError } = await supabase
           .from('versements_clients')
           .select('facture_id, montant')
           .in('facture_id', factureIds);
-        
-        if (versementsError) throw versementsError;
 
-        // Calculer le montant réellement impayé pour chaque facture
-        facturesJour?.forEach(facture => {
+        if (versementsError) {
+          console.error('❌ Erreur récupération versements:', versementsError);
+          throw versementsError;
+        }
+
+        // Calculer le montant impayé pour chaque facture
+        facturesImpayeesData?.forEach(facture => {
           const versementsFacture = versements?.filter(v => v.facture_id === facture.id) || [];
           const montantPaye = versementsFacture.reduce((sum, v) => sum + (v.montant || 0), 0);
           const montantRestant = Math.max(0, (facture.montant_ttc || 0) - montantPaye);
-          facturesImpayeesTotal += montantRestant;
+          facturesImpayeesJour += montantRestant;
         });
       }
 
-      console.log('Calcul factures impayées:', {
-        nombreFactures: facturesJour?.length,
-        totalImpaye: facturesImpayeesTotal
-      });
+      console.log('📄 Factures impayées du jour:', facturesImpayeesJour);
 
-      // 4. Dépenses du mois (factures d'achat payées)
-      const { data: depenses, error: depensesError } = await supabase
-        .from('factures_achat')
-        .select('montant_ttc')
-        .gte('date_facture', `${startOfMonth} 00:00:00`)
-        .eq('statut_paiement', 'payee');
+      // 4. Dépenses du mois (depuis la table sorties_financieres)
+      const { data: depensesMoisData, error: depensesError } = await supabase
+        .from('sorties_financieres')
+        .select('montant')
+        .gte('date_sortie', `${debutMois} 00:00:00`)
+        .lte('date_sortie', `${finMois} 23:59:59`);
+
+      if (depensesError) {
+        console.error('❌ Erreur récupération dépenses du mois:', depensesError);
+        throw depensesError;
+      }
+
+      const depensesMois = depensesMoisData?.reduce((sum, depense) => sum + (depense.montant || 0), 0) || 0;
+      console.log('💸 Dépenses du mois:', depensesMois);
+
       
-      if (depensesError) throw depensesError;
-
-      // 5. Nombre d'articles
-      const { count: articlesCount, error: articlesError } = await supabase
+      // Articles en Catalogue
+      const { count: catalogueCount, error: catalogueError } = await supabase
         .from('catalogue')
         .select('*', { count: 'exact', head: true })
         .eq('statut', 'actif');
       
-      if (articlesError) throw articlesError;
+      if (catalogueError) {
+        console.error('Error fetching catalogue count:', catalogueError);
+        throw catalogueError;
+      }
 
-      // 6. Règlements fournisseurs (du jour)
-      const { data: reglements, error: reglementsError } = await supabase
-        .from('factures_achat')
-        .select('montant_ttc')
-        .gte('date_paiement', `${today} 00:00:00`)
-        .lte('date_paiement', `${today} 23:59:59`)
-        .eq('statut_paiement', 'payee');
-      
-      if (reglementsError) throw reglementsError;
-
-      // 7. Nombre de clients
-      const { count: clientsCount, error: clientsError } = await supabase
-        .from('clients')
-        .select('*', { count: 'exact', head: true });
-      
-      if (clientsError) throw clientsError;
-
-      // 8. Stock global (données existantes)
-      const { data: stockPrincipal, error: stockError } = await supabase
+      // Stock Global et calculs de valeur
+      const { data: stockData, error: stockError } = await supabase
         .from('stock_principal')
         .select(`
           quantite_disponible,
-          article:article_id(prix_achat, prix_vente, prix_unitaire)
+          article:article_id(prix_unitaire)
         `);
       
-      if (stockError) throw stockError;
+      if (stockError) {
+        console.error('Error fetching stock data:', stockError);
+        throw stockError;
+      }
 
+      // Stock PDV
       const { data: stockPDV, error: stockPDVError } = await supabase
         .from('stock_pdv')
         .select(`
           quantite_disponible,
-          article:article_id(prix_achat, prix_vente, prix_unitaire)
+          article:article_id(prix_unitaire)
         `);
       
-      if (stockPDVError) throw stockPDVError;
+      if (stockPDVError) {
+        console.error('Error fetching PDV stock data:', stockPDVError);
+        throw stockPDVError;
+      }
 
-      // 9. Versements clients pour calculer les soldes
-      const { data: versements, error: versementsError } = await supabase
-        .from('versements_clients')
-        .select('montant');
+      // Calculs des indicateurs
+      const totalCatalogue = catalogueCount || 0;
       
-      if (versementsError) throw versementsError;
-
-      const { data: facturesVente, error: facturesVenteError } = await supabase
-        .from('factures_vente')
-        .select('montant_ttc, statut_paiement');
-      
-      if (facturesVenteError) throw facturesVenteError;
-
-      // Calculs
-      const ventesJourTotal = ventesJour?.reduce((sum, v) => sum + (v.montant_ttc || 0), 0) || 0;
-      const depensesTotal = depenses?.reduce((sum, d) => sum + (d.montant_ttc || 0), 0) || 0;
-      const reglementsTotal = reglements?.reduce((sum, r) => sum + (r.montant_ttc || 0), 0) || 0;
-
-      // Stock calculations
-      const stockPrincipalTotal = stockPrincipal?.reduce((sum, item) => sum + (item.quantite_disponible || 0), 0) || 0;
+      const stockPrincipalTotal = stockData?.reduce((sum, item) => sum + (item.quantite_disponible || 0), 0) || 0;
       const stockPDVTotal = stockPDV?.reduce((sum, item) => sum + (item.quantite_disponible || 0), 0) || 0;
-      const stockGlobalTotal = stockPrincipalTotal + stockPDVTotal;
-
-      // Stock value calculations
-      const stockGlobalAchatValue = (stockPrincipal?.reduce((sum, item) => {
-        const prix = item.article?.prix_achat || item.article?.prix_unitaire || 0;
-        return sum + (prix * (item.quantite_disponible || 0));
-      }, 0) || 0) + (stockPDV?.reduce((sum, item) => {
-        const prix = item.article?.prix_achat || item.article?.prix_unitaire || 0;
-        return sum + (prix * (item.quantite_disponible || 0));
-      }, 0) || 0);
-
-      const stockGlobalVenteValue = (stockPrincipal?.reduce((sum, item) => {
-        const prix = item.article?.prix_vente || (item.article?.prix_unitaire || 0) * 1.3;
-        return sum + (prix * (item.quantite_disponible || 0));
-      }, 0) || 0) + (stockPDV?.reduce((sum, item) => {
-        const prix = item.article?.prix_vente || (item.article?.prix_unitaire || 0) * 1.3;
-        return sum + (prix * (item.quantite_disponible || 0));
-      }, 0) || 0);
-
-      const margeGlobaleStockValue = stockGlobalVenteValue - stockGlobalAchatValue;
-      const margeJourValue = ventesJourTotal * 0.3; // Estimation 30% de marge
-
-      // Calculs des soldes
-      const totalVersements = versements?.reduce((sum, v) => sum + (v.montant || 0), 0) || 0;
-      const totalFactures = facturesVente?.reduce((sum, f) => sum + (f.montant_ttc || 0), 0) || 0;
-      const totalFacturesPayees = facturesVente?.filter(f => f.statut_paiement === 'payee').reduce((sum, f) => sum + (f.montant_ttc || 0), 0) || 0;
+      const stockGlobal = stockPrincipalTotal + stockPDVTotal;
       
-      const soldeAvoirValue = totalVersements;
-      const soldeDevoirValue = totalFactures - totalFacturesPayees;
-      const situationNormaleValue = soldeAvoirValue - soldeDevoirValue;
+      const valeurStockAchat = (stockData?.reduce((sum, item) => {
+        const prix = item.article?.prix_unitaire || 0;
+        const quantite = item.quantite_disponible || 0;
+        return sum + (prix * quantite);
+      }, 0) || 0) + (stockPDV?.reduce((sum, item) => {
+        const prix = item.article?.prix_unitaire || 0;
+        const quantite = item.quantite_disponible || 0;
+        return sum + (prix * quantite);
+      }, 0) || 0);
+      
+      const valeurStockVente = valeurStockAchat * 1.3;
+      const margeGlobaleStock = valeurStockVente - valeurStockAchat;
+      const margePourcentage = valeurStockAchat > 0 ? ((margeGlobaleStock / valeurStockAchat) * 100) : 0;
 
-      console.log('Advanced dashboard stats calculated:', {
-        ventesJour: ventesJourTotal,
-        margeJour: margeJourValue,
-        facturesImpayeesJour: facturesImpayeesTotal,
-        depensesMois: depensesTotal,
-        nombreArticles: articlesCount || 0,
-        reglementsFournisseurs: reglementsTotal,
-        nombreClients: clientsCount || 0,
-        stockGlobal: stockGlobalTotal,
-        stockGlobalAchat: stockGlobalAchatValue,
-        stockGlobalVente: stockGlobalVenteValue,
-        margeGlobaleStock: margeGlobaleStockValue,
-        soldeAvoir: soldeAvoirValue,
-        soldeDevoir: soldeDevoirValue,
-        situationNormale: situationNormaleValue
+      // Valeurs par défaut pour les autres statistiques
+      const articlesEnRupture = 0;
+      const commandesPendantes = 0;
+      const facturesEnRetard = 0;
+      const clientsActifs = 0;
+      const caAnnuel = 0;
+      const objectifMensuel = 50000;
+      const tauxRealisationObjectif = 0;
+
+      console.log('✅ Statistiques calculées:', {
+        ventesJour,
+        margeJour,
+        facturesImpayeesJour,
+        depensesMois,
+        totalCatalogue,
+        stockGlobal,
+        valeurStockAchat,
+        valeurStockVente,
+        margeGlobaleStock,
+        margePourcentage
       });
 
       return {
-        ventesJour: ventesJourTotal,
-        margeJour: margeJourValue,
-        facturesImpayeesJour: facturesImpayeesTotal,
-        depensesMois: depensesTotal,
-        nombreArticles: articlesCount || 0,
-        reglementsFournisseurs: reglementsTotal,
-        nombreClients: clientsCount || 0,
-        stockGlobal: stockGlobalTotal,
-        stockGlobalAchat: stockGlobalAchatValue,
-        stockGlobalVente: stockGlobalVenteValue,
-        margeGlobaleStock: margeGlobaleStockValue,
-        soldeAvoir: soldeAvoirValue,
-        soldeDevoir: soldeDevoirValue,
-        situationNormale: situationNormaleValue
+        ventesJour,
+        margeJour,
+        facturesImpayeesJour,
+        depensesMois,
+        totalCatalogue,
+        stockGlobal,
+        valeurStockAchat,
+        valeurStockVente,
+        margeGlobaleStock,
+        margePourcentage,
+        articlesEnRupture,
+        commandesPendantes,
+        facturesEnRetard,
+        clientsActifs,
+        caAnnuel,
+        objectifMensuel,
+        tauxRealisationObjectif
       };
     },
-    refetchInterval: 30000, // Actualisation toutes les 30 secondes
+    refetchInterval: 30000,
   });
 };

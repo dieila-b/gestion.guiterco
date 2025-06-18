@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { Printer } from "lucide-react";
@@ -20,13 +19,24 @@ import CreateSortieDialog from "./dialogs/CreateSortieDialog";
 import CreateEntreeDialog from "./dialogs/CreateEntreeDialog";
 import CreateCategorieDialog from "./dialogs/CreateCategorieDialog";
 
-const ExpensesTab: React.FC = () => {
-  const [subTab, setSubTab] = React.useState("sorties");
+interface ExpensesTabProps {
+  initialSubTab?: string | null;
+}
+
+const ExpensesTab: React.FC<ExpensesTabProps> = ({ initialSubTab }) => {
+  const [subTab, setSubTab] = React.useState(initialSubTab || "sorties");
   
   // Charger les données selon l'onglet actif
   const { data: sorties = [], isLoading: isLoadingSorties } = useTransactionsFinancieres('expense');
   const { data: entrees = [], isLoading: isLoadingEntrees } = useTransactionsFinancieres('income', undefined, undefined, 'Entrée manuelle');
   const { data: categories = [], isLoading: isLoadingCategories } = useCategoriesFinancieres();
+
+  // Mettre à jour le sous-onglet si le paramètre initial change
+  React.useEffect(() => {
+    if (initialSubTab) {
+      setSubTab(initialSubTab);
+    }
+  }, [initialSubTab]);
 
   const handlePrint = () => {
     window.print();
