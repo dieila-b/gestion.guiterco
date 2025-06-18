@@ -1,8 +1,8 @@
-
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useDevMode } from '@/hooks/useDevMode';
 
 interface UtilisateurInterne {
   id: string;
@@ -46,6 +46,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [utilisateurInterne, setUtilisateurInterne] = useState<UtilisateurInterne | null>(null);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
+  const { bypassAuth, mockUser } = useDevMode();
 
   const checkInternalUser = async (userId: string) => {
     try {
@@ -75,20 +76,49 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   useEffect(() => {
-    // Écouter les changements d'état d'authentification
+    // Si le bypass est activé en mode développement
+    if (bypassAuth) {
+      console.log('🚀 Mode développement: Bypass d\'authentification activé');
+      setUtilisateurInterne(mockUser);
+      
+      // Créer un mock user pour Supabase
+      const mockSupabaseUser = {
+        id: mockUser.id,
+        email: mockUser.email,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        email_confirmed_at: new Date().toISOString(),
+        user_metadata: {},
+        app_metadata: {},
+        aud: 'authenticated'
+      } as User;
+      
+      setUser(mockSupabaseUser);
+      setSession({
+        access_token: 'mock-token',
+        refresh_token: 'mock-refresh',
+        expires_in: 3600,
+        expires_at: Date.now() + 3600000,
+        token_type: 'bearer',
+        user: mockSupabaseUser
+      } as Session);
+      
+      setLoading(false);
+      return;
+    }
+
+    // Comportement normal en production
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
 
         if (session?.user) {
-          // Vérifier si l'utilisateur est un utilisateur interne autorisé
           const internalUser = await checkInternalUser(session.user.id);
           
           if (internalUser && internalUser.type_compte === 'interne') {
             setUtilisateurInterne(internalUser);
           } else {
-            // Si l'utilisateur n'est pas autorisé, le déconnecter
             await supabase.auth.signOut();
             setUtilisateurInterne(null);
             toast({
@@ -105,7 +135,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
     );
 
-    // Récupérer la session actuelle
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
@@ -126,7 +155,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     });
 
     return () => subscription.unsubscribe();
-  }, [toast]);
+  }, [toast, bypassAuth, mockUser]);
 
   const signIn = async (email: string, password: string) => {
     try {
@@ -139,7 +168,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         return { error };
       }
 
-      // La vérification de l'utilisateur interne se fera dans le onAuthStateChange
       return { error: null };
     } catch (error) {
       return { error };
@@ -147,6 +175,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   const signOut = async () => {
+    if (bypassAuth) {
+      // En mode bypass, on recharge simplement la page
+      window.location.reload();
+      return;
+    }
+    
     await supabase.auth.signOut();
     setUtilisateurInterne(null);
   };

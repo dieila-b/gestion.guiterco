@@ -7,6 +7,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/components/auth/AuthProvider";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import LoginPage from "@/components/auth/LoginPage";
+import { DevModeToggle } from "@/components/auth/DevModeToggle";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import Stocks from "./pages/Stocks";
@@ -70,6 +71,7 @@ const App = () => (
             } />
             <Route path="*" element={<NotFound />} />
           </Routes>
+          <DevModeToggle />
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
