@@ -22,10 +22,11 @@ export const useCatalogueSync = () => {
         queryClient.invalidateQueries({ queryKey: ['entrepots'] }),
         queryClient.invalidateQueries({ queryKey: ['bons-commande'] }),
         queryClient.invalidateQueries({ queryKey: ['bons-livraison'] }),
-        queryClient.invalidateQueries({ queryKey: ['factures-achat'] })
+        queryClient.invalidateQueries({ queryKey: ['factures-achat'] }),
+        queryClient.invalidateQueries({ queryKey: ['data-integrity'] })
       ]);
 
-      // Vérifier la cohérence des données
+      // Vérifier la cohérence des données après synchronisation
       const { data: catalogueData } = await supabase
         .from('catalogue')
         .select(`
@@ -60,51 +61,92 @@ export const useCatalogueSync = () => {
     }
   });
 
-  // Vérifier l'intégrité des relations
+  // Vérifier l'intégrité des relations - Version corrigée
   const checkDataIntegrity = useQuery({
     queryKey: ['data-integrity'],
     queryFn: async () => {
       console.log('Vérification de l\'intégrité des données...');
       
-      const checks = await Promise.all([
-        // Vérifier les articles sans catégorie
-        supabase
+      try {
+        // Vérifier les articles actifs sans stock associé
+        const { data: articlesWithoutStock, error: stockError } = await supabase
           .from('catalogue')
-          .select('id, nom, categorie')
-          .is('categorie', null)
-          .eq('statut', 'actif'),
-        
-        // Vérifier les stocks orphelins
-        supabase
+          .select(`
+            id, 
+            nom, 
+            reference,
+            stock_principal!inner(quantite_disponible)
+          `)
+          .eq('statut', 'actif')
+          .is('stock_principal.quantite_disponible', null);
+
+        if (stockError) {
+          console.error('Erreur lors de la vérification du stock:', stockError);
+        }
+
+        // Vérifier les stocks avec des références d'articles invalides
+        const { data: orphanedStock, error: orphanedError } = await supabase
           .from('stock_principal')
           .select(`
             id,
             article_id,
-            article:catalogue (nom)
+            quantite_disponible,
+            entrepot_id
           `)
-          .is('article.id', null),
-        
-        // Vérifier les entrepôts inactifs avec du stock
-        supabase
+          .not('article_id', 'in', 
+            `(SELECT id FROM catalogue WHERE statut = 'actif')`
+          );
+
+        if (orphanedError) {
+          console.error('Erreur lors de la vérification des stocks orphelins:', orphanedError);
+        }
+
+        // Vérifier les stocks dans des entrepôts inactifs
+        const { data: inactiveWarehousesWithStock, error: warehouseError } = await supabase
           .from('stock_principal')
           .select(`
             id,
-            entrepot_id,
             quantite_disponible,
-            entrepot:entrepots (nom, statut)
+            entrepot:entrepots!inner(nom, statut)
           `)
           .gt('quantite_disponible', 0)
-          .eq('entrepot.statut', 'inactif')
-      ]);
+          .eq('entrepot.statut', 'inactif');
 
-      return {
-        articlesWithoutCategory: checks[0].data || [],
-        orphanedStock: checks[1].data || [],
-        inactiveWarehousesWithStock: checks[2].data || []
-      };
+        if (warehouseError) {
+          console.error('Erreur lors de la vérification des entrepôts:', warehouseError);
+        }
+
+        // Vérifier les doublons de stock (même article dans le même entrepôt)
+        const { data: duplicateStock, error: duplicateError } = await supabase
+          .rpc('check_duplicate_stock');
+
+        if (duplicateError) {
+          console.warn('Fonction check_duplicate_stock non disponible:', duplicateError);
+        }
+
+        const result = {
+          articlesWithoutStock: articlesWithoutStock || [],
+          orphanedStock: orphanedStock || [],
+          inactiveWarehousesWithStock: inactiveWarehousesWithStock || [],
+          duplicateStock: duplicateStock || []
+        };
+
+        console.log('Résultats de vérification d\'intégrité:', result);
+        return result;
+
+      } catch (error) {
+        console.error('Erreur lors de la vérification d\'intégrité:', error);
+        return {
+          articlesWithoutStock: [],
+          orphanedStock: [],
+          inactiveWarehousesWithStock: [],
+          duplicateStock: []
+        };
+      }
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
-    refetchOnWindowFocus: false
+    refetchOnWindowFocus: false,
+    retry: 1
   });
 
   return {

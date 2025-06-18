@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search, RefreshCw, Filter, AlertTriangle } from 'lucide-react';
+import { Search, RefreshCw, Filter, AlertTriangle, CheckCircle } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { formatCurrency } from '@/lib/currency';
@@ -18,6 +18,7 @@ const StockEntrepot = () => {
   const { syncCatalogue, checkDataIntegrity } = useCatalogueSync();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedEntrepot, setSelectedEntrepot] = useState<string>('tous');
+  const [lastSyncTime, setLastSyncTime] = useState<Date | null>(null);
 
   const filteredStock = stockEntrepot?.filter(item => {
     const matchesSearch = 
@@ -36,28 +37,57 @@ const StockEntrepot = () => {
     return quantity * unitPrice;
   };
 
-  const handleSync = () => {
-    syncCatalogue.mutate();
-    refreshStock();
+  const handleSync = async () => {
+    try {
+      await syncCatalogue.mutateAsync();
+      refreshStock();
+      setLastSyncTime(new Date());
+    } catch (error) {
+      console.error('Erreur lors de la synchronisation:', error);
+    }
   };
 
   // Vérification de l'intégrité des données
-  const { data: integrityData } = checkDataIntegrity;
-  const hasIntegrityIssues = integrityData && (
-    integrityData.articlesWithoutCategory.length > 0 ||
-    integrityData.orphanedStock.length > 0 ||
-    integrityData.inactiveWarehousesWithStock.length > 0
+  const { data: integrityData, isLoading: integrityLoading } = checkDataIntegrity;
+  
+  // Calculer s'il y a vraiment des problèmes d'intégrité
+  const hasRealIntegrityIssues = integrityData && (
+    (integrityData.orphanedStock && integrityData.orphanedStock.length > 0) ||
+    (integrityData.inactiveWarehousesWithStock && integrityData.inactiveWarehousesWithStock.length > 0) ||
+    (integrityData.duplicateStock && integrityData.duplicateStock.length > 0)
   );
+
+  // Afficher l'alerte seulement s'il y a de vrais problèmes
+  const shouldShowIntegrityAlert = hasRealIntegrityIssues && !integrityLoading;
 
   return (
     <div className="space-y-6">
-      {/* Alerte d'intégrité des données */}
-      {hasIntegrityIssues && (
+      {/* Alerte d'intégrité des données - seulement si nécessaire */}
+      {shouldShowIntegrityAlert && (
         <Alert>
           <AlertTriangle className="h-4 w-4" />
           <AlertDescription>
             Des problèmes de cohérence des données ont été détectés. 
-            Cliquez sur "Synchroniser" pour corriger automatiquement.
+            <Button 
+              variant="link" 
+              className="p-0 h-auto ml-1" 
+              onClick={handleSync}
+              disabled={syncCatalogue.isPending}
+            >
+              Cliquez ici pour synchroniser
+            </Button> 
+            et corriger automatiquement.
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {/* Message de confirmation après synchronisation réussie */}
+      {lastSyncTime && !shouldShowIntegrityAlert && (
+        <Alert className="border-green-200 bg-green-50">
+          <CheckCircle className="h-4 w-4 text-green-600" />
+          <AlertDescription className="text-green-800">
+            Synchronisation réussie à {lastSyncTime.toLocaleTimeString()}. 
+            Toutes les données sont cohérentes.
           </AlertDescription>
         </Alert>
       )}
