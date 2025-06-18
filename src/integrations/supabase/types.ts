@@ -2053,6 +2053,7 @@ export type Database = {
           role_id: string | null
           statut: string | null
           telephone: string | null
+          type_compte: string | null
           updated_at: string | null
           user_id: string | null
         }
@@ -2068,6 +2069,7 @@ export type Database = {
           role_id?: string | null
           statut?: string | null
           telephone?: string | null
+          type_compte?: string | null
           updated_at?: string | null
           user_id?: string | null
         }
@@ -2083,6 +2085,7 @@ export type Database = {
           role_id?: string | null
           statut?: string | null
           telephone?: string | null
+          type_compte?: string | null
           updated_at?: string | null
           user_id?: string | null
         }
@@ -2210,6 +2213,10 @@ export type Database = {
       get_factures_vente_with_details: {
         Args: Record<PropertyKey, never>
         Returns: Json
+      }
+      is_internal_user_active: {
+        Args: { user_id: string }
+        Returns: boolean
       }
       update_stock_pdv: {
         Args: {
