@@ -19,6 +19,8 @@ const FacturesImpayeesModal: React.FC<FacturesImpayeesModalProps> = ({ isOpen, o
   const { data: facturesImpayees, isLoading } = useQuery({
     queryKey: ['factures-impayees-jour', today],
     queryFn: async () => {
+      console.log('🔍 Récupération des factures impayées du jour...');
+      
       const { data: factures, error } = await supabase
         .from('factures_vente')
         .select(`
@@ -27,36 +29,45 @@ const FacturesImpayeesModal: React.FC<FacturesImpayeesModalProps> = ({ isOpen, o
           date_facture,
           montant_ttc,
           statut_paiement,
-          client:client_id(nom, prenom)
+          client:client_id(nom, prenom),
+          versements:versements_clients(montant)
         `)
         .gte('date_facture', `${today} 00:00:00`)
         .lte('date_facture', `${today} 23:59:59`)
-        .neq('statut_paiement', 'payee')
         .order('date_facture', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Erreur lors de la récupération des factures:', error);
+        throw error;
+      }
 
-      // Récupérer les versements séparément pour chaque facture
-      const facturesWithVersements = await Promise.all(
-        (factures || []).map(async (facture) => {
-          const { data: versements } = await supabase
-            .from('versements_clients')
-            .select('montant')
-            .eq('facture_id', facture.id);
+      console.log(`📊 ${factures?.length || 0} factures trouvées pour le ${today}`);
 
-          const montantPaye = versements?.reduce((sum, v) => sum + (v.montant || 0), 0) || 0;
-          const montantRestant = facture.montant_ttc - montantPaye;
-          
-          return {
-            ...facture,
-            montantPaye,
-            montantRestant
-          };
-        })
-      );
+      // Calculer les montants payés et restants pour chaque facture
+      const facturesWithCalculations = (factures || []).map(facture => {
+        const montantPaye = facture.versements?.reduce((sum: number, v: any) => sum + (v.montant || 0), 0) || 0;
+        const montantRestant = Math.max(0, (facture.montant_ttc || 0) - montantPaye);
+        
+        console.log(`💰 Facture ${facture.numero_facture}:`, {
+          montant_ttc: facture.montant_ttc,
+          montantPaye,
+          montantRestant,
+          versements: facture.versements?.length || 0
+        });
+        
+        return {
+          ...facture,
+          montantPaye,
+          montantRestant
+        };
+      });
 
       // Filtrer seulement les factures avec un montant restant > 0
-      return facturesWithVersements.filter(facture => facture.montantRestant > 0);
+      const facturesAvecMontantRestant = facturesWithCalculations.filter(facture => facture.montantRestant > 0);
+      
+      console.log(`✅ ${facturesAvecMontantRestant.length} factures avec montant restant > 0`);
+      
+      return facturesAvecMontantRestant;
     },
     enabled: isOpen
   });
@@ -72,7 +83,7 @@ const FacturesImpayeesModal: React.FC<FacturesImpayeesModalProps> = ({ isOpen, o
         
         <div className="mb-4 p-4 bg-red-50 rounded-lg">
           <p className="text-lg font-semibold text-red-800">
-            Total impayé : {formatCurrency(totalImpaye)}
+            Total impayé (montant restant) : {formatCurrency(totalImpaye)}
           </p>
         </div>
 
@@ -105,7 +116,7 @@ const FacturesImpayeesModal: React.FC<FacturesImpayeesModalProps> = ({ isOpen, o
                   <TableRow key={facture.id}>
                     <TableCell className="font-medium">{facture.numero_facture}</TableCell>
                     <TableCell>
-                      {facture.client ? `${facture.client.prenom} ${facture.client.nom}` : 'Client anonyme'}
+                      {facture.client ? `${facture.client.prenom || ''} ${facture.client.nom}`.trim() : 'Client anonyme'}
                     </TableCell>
                     <TableCell>{format(new Date(facture.date_facture), 'HH:mm')}</TableCell>
                     <TableCell className="text-right">{formatCurrency(facture.montant_ttc)}</TableCell>

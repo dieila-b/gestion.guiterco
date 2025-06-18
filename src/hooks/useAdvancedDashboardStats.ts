@@ -29,32 +29,48 @@ export const useAdvancedDashboardStats = () => {
       const today = format(new Date(), 'yyyy-MM-dd');
       const startOfMonth = format(new Date(new Date().getFullYear(), new Date().getMonth(), 1), 'yyyy-MM-dd');
       
-      // 1. Ventes du jour
+      // 1. Ventes du jour - uniquement les factures payées
       const { data: ventesJour, error: ventesError } = await supabase
         .from('factures_vente')
         .select('montant_ttc')
         .gte('date_facture', `${today} 00:00:00`)
         .lte('date_facture', `${today} 23:59:59`)
-        .eq('statut_paiement', 'paye');
+        .eq('statut_paiement', 'payee');
       
       if (ventesError) throw ventesError;
 
-      // 2. Factures impayées du jour
-      const { data: facturesImpayees, error: impayeesError } = await supabase
+      // 2. Factures impayées du jour - calcul correct avec les versements
+      const { data: facturesAvecVersements, error: facturesError } = await supabase
         .from('factures_vente')
-        .select('montant_ttc')
+        .select(`
+          id,
+          montant_ttc,
+          versements:versements_clients(montant)
+        `)
         .gte('date_facture', `${today} 00:00:00`)
-        .lte('date_facture', `${today} 23:59:59`)
-        .neq('statut_paiement', 'paye');
+        .lte('date_facture', `${today} 23:59:59`);
       
-      if (impayeesError) throw impayeesError;
+      if (facturesError) throw facturesError;
 
-      // 3. Dépenses du mois (factures d'achat)
+      // Calculer le montant réellement impayé
+      let facturesImpayeesTotal = 0;
+      facturesAvecVersements?.forEach(facture => {
+        const montantPaye = facture.versements?.reduce((sum: number, v: any) => sum + (v.montant || 0), 0) || 0;
+        const montantRestant = Math.max(0, (facture.montant_ttc || 0) - montantPaye);
+        facturesImpayeesTotal += montantRestant;
+      });
+
+      console.log('Calcul factures impayées:', {
+        nombreFactures: facturesAvecVersements?.length,
+        totalImpaye: facturesImpayeesTotal
+      });
+
+      // 3. Dépenses du mois (factures d'achat payées)
       const { data: depenses, error: depensesError } = await supabase
         .from('factures_achat')
         .select('montant_ttc')
         .gte('date_facture', `${startOfMonth} 00:00:00`)
-        .eq('statut_paiement', 'paye');
+        .eq('statut_paiement', 'payee');
       
       if (depensesError) throw depensesError;
 
@@ -72,7 +88,7 @@ export const useAdvancedDashboardStats = () => {
         .select('montant_ttc')
         .gte('date_paiement', `${today} 00:00:00`)
         .lte('date_paiement', `${today} 23:59:59`)
-        .eq('statut_paiement', 'paye');
+        .eq('statut_paiement', 'payee');
       
       if (reglementsError) throw reglementsError;
 
@@ -117,7 +133,6 @@ export const useAdvancedDashboardStats = () => {
 
       // Calculs
       const ventesJourTotal = ventesJour?.reduce((sum, v) => sum + (v.montant_ttc || 0), 0) || 0;
-      const facturesImpayeesTotal = facturesImpayees?.reduce((sum, f) => sum + (f.montant_ttc || 0), 0) || 0;
       const depensesTotal = depenses?.reduce((sum, d) => sum + (d.montant_ttc || 0), 0) || 0;
       const reglementsTotal = reglements?.reduce((sum, r) => sum + (r.montant_ttc || 0), 0) || 0;
 
@@ -149,7 +164,7 @@ export const useAdvancedDashboardStats = () => {
       // Calculs des soldes
       const totalVersements = versements?.reduce((sum, v) => sum + (v.montant || 0), 0) || 0;
       const totalFactures = facturesVente?.reduce((sum, f) => sum + (f.montant_ttc || 0), 0) || 0;
-      const totalFacturesPayees = facturesVente?.filter(f => f.statut_paiement === 'paye').reduce((sum, f) => sum + (f.montant_ttc || 0), 0) || 0;
+      const totalFacturesPayees = facturesVente?.filter(f => f.statut_paiement === 'payee').reduce((sum, f) => sum + (f.montant_ttc || 0), 0) || 0;
       
       const soldeAvoirValue = totalVersements;
       const soldeDevoirValue = totalFactures - totalFacturesPayees;
@@ -175,7 +190,7 @@ export const useAdvancedDashboardStats = () => {
       return {
         ventesJour: ventesJourTotal,
         margeJour: margeJourValue,
-        facturesImpayeesJour: facturesImpayeesTotal,
+        facturesImpayeesJour: facturesImpayeesTotal, // Maintenant calcul correct
         depensesMois: depensesTotal,
         nombreArticles: articlesCount || 0,
         reglementsFournisseurs: reglementsTotal,
