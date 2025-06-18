@@ -2,7 +2,7 @@
 import React from 'react';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import UserMenu from './UserMenu';
-import { useAuth } from '@/components/auth/AuthProvider';
+import { useAuth } from '@/components/auth/AuthContext';
 
 interface AppHeaderProps {
   title: string;

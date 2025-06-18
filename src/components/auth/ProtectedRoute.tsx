@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Navigate } from 'react-router-dom';
-import { useAuth } from './AuthProvider';
+import { useAuth } from './AuthContext';
 import { Loader2 } from 'lucide-react';
 
 interface ProtectedRouteProps {

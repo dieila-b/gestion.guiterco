@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loader2, Lock, Mail, Shield } from 'lucide-react';
-import { useAuth } from './AuthProvider';
+import { useAuth } from './AuthContext';
 
 const LoginPage = () => {
   const [email, setEmail] = useState('');

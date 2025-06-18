@@ -1,45 +1,12 @@
 
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useDevMode } from '@/hooks/useDevMode';
-
-interface UtilisateurInterne {
-  id: string;
-  prenom: string;
-  nom: string;
-  email: string;
-  telephone?: string;
-  adresse?: string;
-  photo_url?: string;
-  statut: string;
-  type_compte: string;
-  role: {
-    nom: string;
-    description: string;
-  };
-}
-
-interface AuthContextType {
-  user: User | null;
-  session: Session | null;
-  utilisateurInterne: UtilisateurInterne | null;
-  loading: boolean;
-  signIn: (email: string, password: string) => Promise<{ error?: any }>;
-  signOut: () => Promise<void>;
-  isInternalUser: boolean;
-}
-
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
-
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
-};
+import { AuthContext } from './AuthContext';
+import { UtilisateurInterne, AuthContextType } from './types';
+import { checkInternalUser, signIn as authSignIn, signOut as authSignOut } from './authUtils';
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
@@ -48,33 +15,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
   const { bypassAuth, mockUser, isDevMode } = useDevMode();
-
-  const checkInternalUser = async (userId: string) => {
-    try {
-      const { data, error } = await supabase
-        .from('utilisateurs_internes')
-        .select(`
-          *,
-          role:role_id (
-            nom,
-            description
-          )
-        `)
-        .eq('user_id', userId)
-        .eq('statut', 'actif')
-        .single();
-
-      if (error || !data) {
-        console.log('Utilisateur non autorisé:', error);
-        return null;
-      }
-
-      return data as UtilisateurInterne;
-    } catch (error) {
-      console.error('Erreur lors de la vérification de l\'utilisateur interne:', error);
-      return null;
-    }
-  };
 
   useEffect(() => {
     console.log('🔍 AuthProvider - État actuel:', { 
@@ -178,20 +118,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }, [toast, bypassAuth, mockUser, isDevMode]);
 
   const signIn = async (email: string, password: string) => {
-    try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-
-      if (error) {
-        return { error };
-      }
-
-      return { error: null };
-    } catch (error) {
-      return { error };
-    }
+    return await authSignIn(email, password);
   };
 
   const signOut = async () => {
@@ -204,13 +131,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       return;
     }
     
-    await supabase.auth.signOut();
+    await authSignOut();
     setUtilisateurInterne(null);
   };
 
   const isInternalUser = user && utilisateurInterne && utilisateurInterne.statut === 'actif';
 
-  const value = {
+  const value: AuthContextType = {
     user,
     session,
     utilisateurInterne,
