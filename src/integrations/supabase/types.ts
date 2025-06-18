@@ -1652,6 +1652,30 @@ export type Database = {
           },
         ]
       }
+      roles_utilisateurs: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          nom: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          nom: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          nom?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       sorties_financieres: {
         Row: {
           categorie_id: string | null
@@ -2015,6 +2039,62 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      utilisateurs_internes: {
+        Row: {
+          adresse: string | null
+          created_at: string | null
+          doit_changer_mot_de_passe: boolean | null
+          email: string
+          id: string
+          nom: string
+          photo_url: string | null
+          prenom: string
+          role_id: string | null
+          statut: string | null
+          telephone: string | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          adresse?: string | null
+          created_at?: string | null
+          doit_changer_mot_de_passe?: boolean | null
+          email: string
+          id?: string
+          nom: string
+          photo_url?: string | null
+          prenom: string
+          role_id?: string | null
+          statut?: string | null
+          telephone?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          adresse?: string | null
+          created_at?: string | null
+          doit_changer_mot_de_passe?: boolean | null
+          email?: string
+          id?: string
+          nom?: string
+          photo_url?: string | null
+          prenom?: string
+          role_id?: string | null
+          statut?: string | null
+          telephone?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "utilisateurs_internes_role_id_fkey"
+            columns: ["role_id"]
+            isOneToOne: false
+            referencedRelation: "roles_utilisateurs"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       versements_clients: {
         Row: {

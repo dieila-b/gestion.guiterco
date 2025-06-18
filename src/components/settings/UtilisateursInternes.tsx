@@ -2,74 +2,107 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Edit, Trash2, UserCheck } from 'lucide-react';
+import { Edit, Trash2, UserCheck } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import CreateUserDialog from './CreateUserDialog';
+
+interface UtilisateurInterne {
+  id: string;
+  prenom: string;
+  nom: string;
+  email: string;
+  telephone?: string;
+  adresse?: string;
+  photo_url?: string;
+  statut: string;
+  doit_changer_mot_de_passe: boolean;
+  created_at: string;
+  role: {
+    nom: string;
+    description: string;
+  } | null;
+}
 
 const UtilisateursInternes = () => {
-  const [utilisateurs, setUtilisateurs] = useState([
-    { id: 1, nom: 'Admin User', email: 'admin@gestcompta.com', role: 'admin', statut: 'actif' },
-    { id: 2, nom: 'Manager Stock', email: 'manager@gestcompta.com', role: 'manager', statut: 'actif' },
-    { id: 3, nom: 'Vendeur PDV', email: 'vendeur@gestcompta.com', role: 'vendeur', statut: 'inactif' }
-  ]);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [editingUtilisateur, setEditingUtilisateur] = useState(null);
-  const [formData, setFormData] = useState({ nom: '', email: '', role: '', statut: 'actif' });
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
-  const roles = [
-    { value: 'admin', label: 'Administrateur' },
-    { value: 'manager', label: 'Manager' },
-    { value: 'vendeur', label: 'Vendeur' },
-    { value: 'comptable', label: 'Comptable' }
-  ];
+  // Récupérer les utilisateurs internes
+  const { data: utilisateurs, isLoading } = useQuery({
+    queryKey: ['utilisateurs-internes'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('utilisateurs_internes')
+        .select(`
+          *,
+          role:role_id (
+            nom,
+            description
+          )
+        `)
+        .order('created_at', { ascending: false });
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (editingUtilisateur) {
-      setUtilisateurs(utilisateurs.map(user => 
-        user.id === editingUtilisateur.id ? { ...user, ...formData } : user
-      ));
-      toast({ title: "Utilisateur mis à jour avec succès" });
-    } else {
-      setUtilisateurs([...utilisateurs, { id: Date.now(), ...formData }]);
-      toast({ title: "Utilisateur ajouté avec succès" });
+      if (error) throw error;
+      return data as UtilisateurInterne[];
     }
-    setIsDialogOpen(false);
-    setFormData({ nom: '', email: '', role: '', statut: 'actif' });
-    setEditingUtilisateur(null);
+  });
+
+  // Mutation pour supprimer un utilisateur
+  const deleteUser = useMutation({
+    mutationFn: async (userId: string) => {
+      const { error } = await supabase
+        .from('utilisateurs_internes')
+        .delete()
+        .eq('id', userId);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['utilisateurs-internes'] });
+      toast({ title: "Utilisateur supprimé avec succès" });
+    },
+    onError: (error: any) => {
+      toast({ 
+        title: "Erreur", 
+        description: error.message || "Impossible de supprimer l'utilisateur",
+        variant: "destructive" 
+      });
+    }
+  });
+
+  const handleDelete = (id: string) => {
+    if (confirm('Êtes-vous sûr de vouloir supprimer cet utilisateur ?')) {
+      deleteUser.mutate(id);
+    }
   };
 
-  const handleEdit = (utilisateur) => {
-    setEditingUtilisateur(utilisateur);
-    setFormData({ 
-      nom: utilisateur.nom, 
-      email: utilisateur.email, 
-      role: utilisateur.role, 
-      statut: utilisateur.statut 
-    });
-    setIsDialogOpen(true);
+  const getRoleLabel = (role: { nom: string } | null) => {
+    if (!role) return 'Non défini';
+    
+    switch (role.nom) {
+      case 'employe':
+        return 'Employé';
+      case 'administrateur':
+        return 'Administrateur';
+      case 'manager':
+        return 'Manager';
+      default:
+        return role.nom;
+    }
   };
 
-  const handleDelete = (id) => {
-    setUtilisateurs(utilisateurs.filter(user => user.id !== id));
-    toast({ title: "Utilisateur supprimé avec succès" });
-  };
-
-  const getRoleLabel = (role) => {
-    const roleObj = roles.find(r => r.value === role);
-    return roleObj ? roleObj.label : role;
-  };
-
-  const getStatutBadge = (statut) => {
+  const getStatutBadge = (statut: string) => {
     return statut === 'actif' ? 
       <Badge className="bg-green-100 text-green-800">Actif</Badge> : 
       <Badge variant="secondary">Inactif</Badge>;
+  };
+
+  const handleUserCreated = () => {
+    queryClient.invalidateQueries({ queryKey: ['utilisateurs-internes'] });
   };
 
   return (
@@ -86,114 +119,88 @@ const UtilisateursInternes = () => {
                 </CardDescription>
               </div>
             </div>
-            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-              <DialogTrigger asChild>
-                <Button onClick={() => { setEditingUtilisateur(null); setFormData({ nom: '', email: '', role: '', statut: 'actif' }); }}>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Ajouter un utilisateur
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>
-                    {editingUtilisateur ? 'Modifier l\'utilisateur' : 'Ajouter un utilisateur'}
-                  </DialogTitle>
-                  <DialogDescription>
-                    Saisissez les informations de l'utilisateur
-                  </DialogDescription>
-                </DialogHeader>
-                <form onSubmit={handleSubmit} className="space-y-4">
-                  <div>
-                    <Label htmlFor="nom">Nom complet</Label>
-                    <Input
-                      id="nom"
-                      value={formData.nom}
-                      onChange={(e) => setFormData({ ...formData, nom: e.target.value })}
-                      required
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="email">Email</Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      value={formData.email}
-                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                      required
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="role">Rôle</Label>
-                    <Select value={formData.role} onValueChange={(value) => setFormData({ ...formData, role: value })}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Sélectionnez un rôle" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {roles.map((role) => (
-                          <SelectItem key={role.value} value={role.value}>
-                            {role.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <Label htmlFor="statut">Statut</Label>
-                    <Select value={formData.statut} onValueChange={(value) => setFormData({ ...formData, statut: value })}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="actif">Actif</SelectItem>
-                        <SelectItem value="inactif">Inactif</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="flex justify-end space-x-2">
-                    <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
-                      Annuler
-                    </Button>
-                    <Button type="submit">
-                      {editingUtilisateur ? 'Modifier' : 'Ajouter'}
-                    </Button>
-                  </div>
-                </form>
-              </DialogContent>
-            </Dialog>
+            <CreateUserDialog onUserCreated={handleUserCreated} />
           </div>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Nom</TableHead>
-                <TableHead>Email</TableHead>
-                <TableHead>Rôle</TableHead>
-                <TableHead>Statut</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {utilisateurs.map((utilisateur) => (
-                <TableRow key={utilisateur.id}>
-                  <TableCell className="font-medium">{utilisateur.nom}</TableCell>
-                  <TableCell>{utilisateur.email}</TableCell>
-                  <TableCell>{getRoleLabel(utilisateur.role)}</TableCell>
-                  <TableCell>{getStatutBadge(utilisateur.statut)}</TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end space-x-2">
-                      <Button variant="outline" size="sm" onClick={() => handleEdit(utilisateur)}>
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button variant="outline" size="sm" onClick={() => handleDelete(utilisateur.id)}>
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </TableCell>
+          {isLoading ? (
+            <div className="text-center py-8">Chargement...</div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Photo</TableHead>
+                  <TableHead>Nom complet</TableHead>
+                  <TableHead>Email</TableHead>
+                  <TableHead>Téléphone</TableHead>
+                  <TableHead>Rôle</TableHead>
+                  <TableHead>Statut</TableHead>
+                  <TableHead>Changer MDP</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {utilisateurs && utilisateurs.length > 0 ? (
+                  utilisateurs.map((utilisateur) => (
+                    <TableRow key={utilisateur.id}>
+                      <TableCell>
+                        {utilisateur.photo_url ? (
+                          <img 
+                            src={utilisateur.photo_url} 
+                            alt={`${utilisateur.prenom} ${utilisateur.nom}`}
+                            className="w-8 h-8 rounded-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center">
+                            <UserCheck className="h-4 w-4 text-gray-500" />
+                          </div>
+                        )}
+                      </TableCell>
+                      <TableCell className="font-medium">
+                        {utilisateur.prenom} {utilisateur.nom}
+                      </TableCell>
+                      <TableCell>{utilisateur.email}</TableCell>
+                      <TableCell>{utilisateur.telephone || '-'}</TableCell>
+                      <TableCell>{getRoleLabel(utilisateur.role)}</TableCell>
+                      <TableCell>{getStatutBadge(utilisateur.statut)}</TableCell>
+                      <TableCell>
+                        {utilisateur.doit_changer_mot_de_passe ? (
+                          <Badge variant="outline" className="text-orange-600 border-orange-600">
+                            Requis
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline" className="text-green-600 border-green-600">
+                            Non requis
+                          </Badge>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end space-x-2">
+                          <Button variant="outline" size="sm">
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            onClick={() => handleDelete(utilisateur.id)}
+                            disabled={deleteUser.isPending}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                ) : (
+                  <TableRow>
+                    <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                      Aucun utilisateur trouvé
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          )}
         </CardContent>
       </Card>
     </div>
