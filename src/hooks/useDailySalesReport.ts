@@ -32,32 +32,33 @@ export const useDailySalesReport = (selectedDate: Date) => {
       const startOfDay = `${dateStr} 00:00:00`;
       const endOfDay = `${dateStr} 23:59:59`;
 
-      // 1. Récupérer toutes les commandes du jour avec leurs lignes et clients
-      const { data: commandes, error: commandesError } = await supabase
-        .from('commandes_clients')
+      // 1. Total des ventes : toutes les factures émises à cette date
+      const { data: facturesJour, error: facturesError } = await supabase
+        .from('factures_vente')
         .select(`
           *,
-          client:clients(*),
-          lignes_commande(
+          client:clients(nom, prenom),
+          lignes_facture:lignes_facture_vente(
             *,
             article:catalogue(nom)
           )
         `)
-        .gte('date_commande', startOfDay)
-        .lte('date_commande', endOfDay)
-        .eq('statut', 'confirmee');
+        .gte('date_facture', startOfDay)
+        .lte('date_facture', endOfDay);
 
-      if (commandesError) {
-        console.error('Error fetching commandes:', commandesError);
-        throw commandesError;
+      if (facturesError) {
+        console.error('Error fetching factures:', facturesError);
+        throw facturesError;
       }
 
-      // 2. Récupérer tous les versements du jour
-      const { data: versements, error: versementsError } = await supabase
+      console.log(`📊 ${facturesJour?.length || 0} factures trouvées pour le ${dateStr}`);
+
+      // 2. Montant encaissé : tous les versements réellement encaissés à cette date
+      const { data: versementsJour, error: versementsError } = await supabase
         .from('versements_clients')
         .select(`
           *,
-          client:clients(*)
+          client:clients(nom, prenom)
         `)
         .gte('date_versement', startOfDay)
         .lte('date_versement', endOfDay);
@@ -67,61 +68,64 @@ export const useDailySalesReport = (selectedDate: Date) => {
         throw versementsError;
       }
 
+      console.log(`💰 ${versementsJour?.length || 0} versements trouvés pour le ${dateStr}`);
+
+      // 3. Récupérer tous les versements pour les factures du jour (pour calculer les restes)
+      const factureIds = facturesJour?.map(f => f.id) || [];
+      let versementsFactures: any[] = [];
+      
+      if (factureIds.length > 0) {
+        const { data: versements, error: versementsFacturesError } = await supabase
+          .from('versements_clients')
+          .select('*')
+          .in('facture_id', factureIds);
+        
+        if (versementsFacturesError) {
+          console.error('Error fetching versements for factures:', versementsFacturesError);
+          throw versementsFacturesError;
+        }
+        
+        versementsFactures = versements || [];
+      }
+
       // Calculs des totaux
-      const totalVentes = commandes?.reduce((sum, cmd) => sum + cmd.montant_ttc, 0) || 0;
-      const montantEncaisse = versements?.reduce((sum, v) => sum + v.montant, 0) || 0;
-      const resteAPayer = totalVentes - montantEncaisse;
+      const totalVentes = facturesJour?.reduce((sum, facture) => sum + (facture.montant_ttc || 0), 0) || 0;
+      const montantEncaisse = versementsJour?.reduce((sum, versement) => sum + (versement.montant || 0), 0) || 0;
 
-      // Calcul des ventes par produit
-      const produitsMap = new Map();
-      commandes?.forEach(commande => {
-        commande.lignes_commande?.forEach((ligne: any) => {
-          const nomProduit = ligne.article?.nom || 'Produit inconnu';
-          if (produitsMap.has(nomProduit)) {
-            const existing = produitsMap.get(nomProduit);
-            existing.quantiteVendue += ligne.quantite;
-            existing.montantVentes += ligne.montant_ligne;
-          } else {
-            produitsMap.set(nomProduit, {
-              produit: nomProduit,
-              quantiteVendue: ligne.quantite,
-              montantVentes: ligne.montant_ligne
-            });
-          }
-        });
-      });
-
-      const ventesParProduit = Array.from(produitsMap.values());
-
-      // Calcul des ventes par client
+      // Calcul du reste à payer pour les factures du jour
+      let resteAPayer = 0;
       const clientsMap = new Map();
-      commandes?.forEach(commande => {
-        const clientNom = commande.client?.nom || 'Client inconnu';
-        if (clientsMap.has(commande.client_id)) {
-          const existing = clientsMap.get(commande.client_id);
-          existing.montantTotal += commande.montant_ttc;
+
+      facturesJour?.forEach(facture => {
+        // Calculer les versements pour cette facture spécifique
+        const versementsFacture = versementsFactures.filter(v => v.facture_id === facture.id);
+        const montantPayeFacture = versementsFacture.reduce((sum, v) => sum + (v.montant || 0), 0);
+        const resteFacture = Math.max(0, (facture.montant_ttc || 0) - montantPayeFacture);
+        
+        resteAPayer += resteFacture;
+
+        // Préparer les données par client
+        const clientNom = facture.client?.nom || `${facture.client?.prenom || ''} ${facture.client?.nom || ''}`.trim() || 'Client inconnu';
+        const clientId = facture.client_id;
+        
+        if (clientsMap.has(clientId)) {
+          const existing = clientsMap.get(clientId);
+          existing.montantTotal += facture.montant_ttc || 0;
+          existing.montantPaye += montantPayeFacture;
+          existing.resteAPayer += resteFacture;
         } else {
-          clientsMap.set(commande.client_id, {
+          clientsMap.set(clientId, {
             client: clientNom,
-            montantTotal: commande.montant_ttc,
-            montantPaye: 0,
-            resteAPayer: 0,
+            montantTotal: facture.montant_ttc || 0,
+            montantPaye: montantPayeFacture,
+            resteAPayer: resteFacture,
             etat: 'impayé' as const
           });
         }
       });
 
-      // Ajouter les paiements
-      versements?.forEach(versement => {
-        if (clientsMap.has(versement.client_id)) {
-          const client = clientsMap.get(versement.client_id);
-          client.montantPaye += versement.montant;
-        }
-      });
-
-      // Calculer les restes à payer et les états
+      // Définir les états des clients
       clientsMap.forEach(client => {
-        client.resteAPayer = client.montantTotal - client.montantPaye;
         if (client.montantPaye >= client.montantTotal) {
           client.etat = 'payé';
         } else if (client.montantPaye > 0) {
@@ -131,6 +135,26 @@ export const useDailySalesReport = (selectedDate: Date) => {
         }
       });
 
+      // Calcul des ventes par produit (basé sur les factures du jour)
+      const produitsMap = new Map();
+      facturesJour?.forEach(facture => {
+        facture.lignes_facture?.forEach((ligne: any) => {
+          const nomProduit = ligne.article?.nom || 'Produit inconnu';
+          if (produitsMap.has(nomProduit)) {
+            const existing = produitsMap.get(nomProduit);
+            existing.quantiteVendue += ligne.quantite || 0;
+            existing.montantVentes += ligne.montant_ligne || 0;
+          } else {
+            produitsMap.set(nomProduit, {
+              produit: nomProduit,
+              quantiteVendue: ligne.quantite || 0,
+              montantVentes: ligne.montant_ligne || 0
+            });
+          }
+        });
+      });
+
+      const ventesParProduit = Array.from(produitsMap.values());
       const ventesParClient = Array.from(clientsMap.values());
 
       console.log('Daily sales report calculated:', {
