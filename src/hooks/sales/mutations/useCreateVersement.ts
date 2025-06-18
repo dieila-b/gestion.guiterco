@@ -2,7 +2,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { createCashTransaction } from '../../useVenteComptoir/services/transactionService';
 
 export const useCreateVersement = () => {
   const queryClient = useQueryClient();
@@ -53,15 +52,69 @@ export const useCreateVersement = () => {
 
       console.log('✅ Versement créé:', data);
 
-      // CRUCIAL: Créer la transaction financière pour la caisse
+      // CRUCIAL: Créer la transaction financière pour la caisse avec source "facture"
       try {
-        await createCashTransaction({
-          montant_paye: montant,
-          mode_paiement: mode_paiement,
-          notes: observations,
-          client_id: client_id
-        }, facture.numero_facture);
-        console.log('✅ Transaction financière créée pour versement:', montant);
+        // Récupérer la première caisse disponible
+        const { data: cashRegister, error: cashRegisterError } = await supabase
+          .from('cash_registers')
+          .select('id')
+          .limit(1)
+          .single();
+
+        if (cashRegisterError) {
+          console.error('❌ Erreur récupération caisse:', cashRegisterError);
+          return data;
+        }
+
+        // Mapper le mode de paiement vers les valeurs acceptées par Supabase
+        let paymentMethod: 'cash' | 'card' | 'transfer' | 'check' = 'cash';
+        
+        switch(mode_paiement) {
+          case 'carte':
+            paymentMethod = 'card';
+            break;
+          case 'virement':
+            paymentMethod = 'transfer';
+            break;
+          case 'cheque':
+            paymentMethod = 'check';
+            break;
+          case 'especes':
+          default:
+            paymentMethod = 'cash';
+            break;
+        }
+
+        console.log('🔄 Insertion transaction règlement avec format correct:', {
+          type: 'income',
+          amount: montant,
+          description: `Règlement facture ${facture.numero_facture}`,
+          category: 'sales',
+          payment_method: paymentMethod,
+          cash_register_id: cashRegister.id,
+          source: 'facture'
+        });
+
+        const { error: transactionError } = await supabase
+          .from('transactions')
+          .insert({
+            type: 'income',
+            amount: montant,
+            montant: montant,
+            description: `Règlement facture ${facture.numero_facture}`,
+            commentaire: observations || `Versement pour facture ${facture.numero_facture} - Client: ${client_id}`,
+            category: 'sales',
+            payment_method: paymentMethod,
+            cash_register_id: cashRegister.id,
+            date_operation: new Date().toISOString(),
+            source: 'facture'
+          });
+
+        if (transactionError) {
+          console.error('❌ Erreur création transaction de caisse:', transactionError);
+        } else {
+          console.log('✅ Transaction de règlement créée avec succès pour:', montant, 'facture:', facture.numero_facture);
+        }
       } catch (transactionError) {
         console.error('❌ Erreur création transaction financière:', transactionError);
         // Ne pas faire échouer toute l'opération pour cette erreur

@@ -49,7 +49,7 @@ export const createCashTransaction = async (
       break;
   }
 
-  console.log('🔄 Insertion transaction avec format correct:', {
+  console.log('🔄 Insertion transaction vente avec format correct:', {
     type: 'income',
     amount: venteData.montant_paye,
     description: `Vente ${numeroFacture}`,
