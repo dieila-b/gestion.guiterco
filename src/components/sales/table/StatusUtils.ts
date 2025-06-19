@@ -23,8 +23,14 @@ export const getStatusLabel = (statut: string) => {
 
 export const calculatePaidAmount = (facture: FactureVente) => {
   console.log('🔍 calculatePaidAmount - Facture:', facture.numero_facture);
-  console.log('🔍 Versements bruts:', facture.versements);
   
+  // Utiliser la valeur calculée si disponible
+  if (typeof (facture as any).montant_paye_calcule === 'number') {
+    console.log('💰 Utilisation montant calculé:', (facture as any).montant_paye_calcule);
+    return (facture as any).montant_paye_calcule;
+  }
+  
+  // Sinon calculer depuis les versements
   if (!facture.versements || !Array.isArray(facture.versements)) {
     console.log('❌ Aucun versement trouvé pour facture:', facture.numero_facture);
     return 0;
@@ -32,12 +38,6 @@ export const calculatePaidAmount = (facture: FactureVente) => {
   
   const total = facture.versements.reduce((sum: number, versement: any) => {
     const montant = Number(versement.montant) || 0;
-    console.log('💰 Versement:', {
-      id: versement.id,
-      montant: montant,
-      mode_paiement: versement.mode_paiement,
-      date_versement: versement.date_versement
-    });
     return sum + montant;
   }, 0);
   
@@ -46,6 +46,11 @@ export const calculatePaidAmount = (facture: FactureVente) => {
 };
 
 export const calculateRemainingAmount = (facture: FactureVente) => {
+  // Utiliser la valeur calculée si disponible
+  if (typeof (facture as any).montant_restant_calcule === 'number') {
+    return (facture as any).montant_restant_calcule;
+  }
+  
   const paid = calculatePaidAmount(facture);
   const remaining = Math.max(0, facture.montant_ttc - paid);
   console.log('💰 Calcul montant restant - TTC:', facture.montant_ttc, 'Payé:', paid, 'Restant:', remaining);
@@ -53,26 +58,24 @@ export const calculateRemainingAmount = (facture: FactureVente) => {
 };
 
 export const getActualPaymentStatus = (facture: FactureVente) => {
+  console.log('🔄 Calcul statut paiement RÉEL - Facture:', facture.numero_facture);
+  
+  // Utiliser le statut calculé si disponible
+  if ((facture as any).statut_paiement_calcule) {
+    console.log('🔄 Utilisation statut calculé:', (facture as any).statut_paiement_calcule);
+    return (facture as any).statut_paiement_calcule;
+  }
+  
   const paidAmount = calculatePaidAmount(facture);
   const totalAmount = facture.montant_ttc;
   
-  console.log('🔄 Calcul statut paiement RÉEL - Facture:', facture.numero_facture);
-  console.log('🔄 Montant payé:', paidAmount, 'Montant total:', totalAmount);
-  
-  // Logique stricte sans tolérance pour éviter les erreurs
   let status;
   if (paidAmount === 0) {
     status = 'en_attente';
-    console.log('🔄 Aucun paiement détecté');
   } else if (paidAmount >= totalAmount) {
     status = 'payee';
-    console.log('🔄 Facture entièrement payée');
-  } else if (paidAmount > 0 && paidAmount < totalAmount) {
-    status = 'partiellement_payee';
-    console.log('🔄 Paiement partiel détecté');
   } else {
-    status = 'en_attente';
-    console.log('🔄 Statut par défaut appliqué');
+    status = 'partiellement_payee';
   }
   
   console.log('🔄 Statut paiement RÉEL calculé final:', status);
@@ -81,11 +84,6 @@ export const getActualPaymentStatus = (facture: FactureVente) => {
 
 export const getArticleCount = (facture: FactureVente) => {
   console.log('📦 getArticleCount - Facture:', facture.numero_facture);
-  console.log('📦 Données disponibles:', {
-    nb_articles: facture.nb_articles,
-    lignes_facture: facture.lignes_facture?.length,
-    lignes_facture_data: facture.lignes_facture
-  });
   
   // Priorité aux lignes_facture réelles
   if (facture.lignes_facture && Array.isArray(facture.lignes_facture)) {
@@ -106,8 +104,12 @@ export const getArticleCount = (facture: FactureVente) => {
 
 export const getActualDeliveryStatus = (facture: FactureVente) => {
   console.log('🚚 getActualDeliveryStatus - Facture:', facture.numero_facture);
-  console.log('🚚 Statut BDD facture:', facture.statut_livraison);
-  console.log('🚚 Lignes facture disponibles:', facture.lignes_facture);
+  
+  // Utiliser le statut calculé si disponible
+  if ((facture as any).statut_livraison_calcule) {
+    console.log('🚚 Utilisation statut calculé:', (facture as any).statut_livraison_calcule);
+    return (facture as any).statut_livraison_calcule;
+  }
   
   // Si pas de lignes de facture, utiliser le statut de la facture par défaut
   if (!facture.lignes_facture || !Array.isArray(facture.lignes_facture) || facture.lignes_facture.length === 0) {
@@ -115,26 +117,17 @@ export const getActualDeliveryStatus = (facture: FactureVente) => {
     return facture.statut_livraison || 'en_attente';
   }
   
-  // Calcul basé sur les quantités réellement livrées (plus précis)
+  // Calcul basé sur les quantités réellement livrées
   const totalQuantiteCommandee = facture.lignes_facture.reduce((sum, ligne) => sum + ligne.quantite, 0);
   const totalQuantiteLivree = facture.lignes_facture.reduce((sum, ligne) => sum + (ligne.quantite_livree || 0), 0);
   
-  console.log('🚚 Calcul basé sur quantités totales:', {
-    totalQuantiteCommandee,
-    totalQuantiteLivree
-  });
-  
-  // Logique simplifiée et plus fiable
   let status;
   if (totalQuantiteLivree === 0) {
     status = 'en_attente';
-    console.log('🚚 Aucune livraison détectée');
   } else if (totalQuantiteLivree >= totalQuantiteCommandee) {
     status = 'livree';
-    console.log('🚚 Livraison complète');
   } else {
     status = 'partiellement_livree';
-    console.log('🚚 Livraison partielle détectée');
   }
   
   console.log('🚚 Statut livraison final:', status);

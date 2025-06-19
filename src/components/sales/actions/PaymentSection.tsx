@@ -32,7 +32,7 @@ const PaymentSection = ({ facture, remainingAmount }: PaymentSectionProps) => {
       mode_paiement: modePaiement
     });
 
-    // Validation des données
+    // Validation stricte des données
     if (!montant || montant <= 0) {
       console.error('❌ ERREUR: Montant invalide:', montant);
       return;
@@ -64,11 +64,11 @@ const PaymentSection = ({ facture, remainingAmount }: PaymentSectionProps) => {
       reference_paiement: referencePaiement.trim() || undefined,
       observations: observations.trim() || undefined
     }, {
-      onSuccess: () => {
-        console.log('🎉 PAIEMENT AJOUTÉ AVEC SUCCÈS');
+      onSuccess: (result) => {
+        console.log('🎉 PAIEMENT AJOUTÉ AVEC SUCCÈS:', result);
         // Reset form après succès
-        const newRemaining = remainingAmount - montant;
-        setMontant(newRemaining > 0 ? newRemaining : 0);
+        const newRemaining = Math.max(0, remainingAmount - montant);
+        setMontant(newRemaining);
         setReferencePaiement('');
         setObservations('');
       },

@@ -23,7 +23,7 @@ export const useUpdateFactureStatut = () => {
 
       // Déterminer les nouvelles valeurs selon le statut choisi
       let nouveauStatutLigne;
-      let nouvelleQuantiteLivree = null; // null = ne pas modifier
+      let nouvelleQuantiteLivree = null;
 
       switch (statut_livraison) {
         case 'livree':
@@ -34,7 +34,7 @@ export const useUpdateFactureStatut = () => {
               .from('lignes_facture_vente')
               .update({ 
                 statut_livraison: 'livree',
-                quantite_livree: ligne.quantite // Livraison complète
+                quantite_livree: ligne.quantite
               })
               .eq('id', ligne.id);
           }
@@ -48,15 +48,13 @@ export const useUpdateFactureStatut = () => {
               .from('lignes_facture_vente')
               .update({ 
                 statut_livraison: 'en_attente',
-                quantite_livree: 0 // Remise à zéro
+                quantite_livree: 0
               })
               .eq('id', ligne.id);
           }
           break;
           
         case 'partiellement_livree':
-          // Pour ce statut, on ouvre le modal de saisie détaillée
-          // Ne pas modifier les quantités ici
           nouveauStatutLigne = 'partiellement_livree';
           await supabase
             .from('lignes_facture_vente')
@@ -95,11 +93,12 @@ export const useUpdateFactureStatut = () => {
       return facture;
     },
     onSuccess: (facture) => {
-      // Invalider toutes les queries liées aux factures pour forcer le rechargement
+      // Invalider TOUTES les queries liées aux factures
       queryClient.invalidateQueries({ queryKey: ['factures_vente'] });
-      
-      // Invalider aussi les queries spécifiques si elles existent
       queryClient.invalidateQueries({ queryKey: ['facture', facture.id] });
+      
+      // Utiliser la fonction Supabase pour recharger les données
+      queryClient.invalidateQueries({ queryKey: ['factures-vente-details'] });
       
       // Forcer le refetch immédiat
       queryClient.refetchQueries({ queryKey: ['factures_vente'] });

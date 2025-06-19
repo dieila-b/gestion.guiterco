@@ -4,58 +4,72 @@ import { supabase } from '@/integrations/supabase/client';
 import type { FactureVente } from '@/types/sales';
 
 export const useFacturesVenteQuery = () => {
-  return useQuery<FactureVente[], Error>({
-    queryKey: ['factures_vente'],
+  return useQuery({
+    queryKey: ['factures_vente', 'factures-vente-details'],
     queryFn: async () => {
-      console.log('🔄 Récupération des factures via la fonction SQL...');
-      
-      // Test direct de la table lignes_facture_vente pour diagnostic
-      const { data: lignesTest, error: lignesError } = await supabase
-        .from('lignes_facture_vente')
-        .select('*')
-        .limit(5);
-      
-      console.log('🔍 Test direct lignes_facture_vente:', { 
-        count: lignesTest?.length || 0, 
-        lignes: lignesTest,
-        error: lignesError 
-      });
+      console.log('🔍 Récupération des factures de vente avec détails complets...');
 
-      // Test de la fonction SQL
-      const { data: functionResult, error: functionError } = await supabase
-        .rpc('get_factures_vente_with_details');
-      
-      if (functionError) {
-        console.error('❌ Error calling get_factures_vente_with_details function:', functionError);
-        throw functionError;
+      // Utiliser la fonction Supabase pour récupérer toutes les données
+      const { data, error } = await supabase.rpc('get_factures_vente_with_details');
+
+      if (error) {
+        console.error('❌ Erreur lors de la récupération des factures:', error);
+        throw error;
       }
-      
-      const facturesData = functionResult || [];
-      
-      if (!Array.isArray(facturesData)) {
-        console.error('❌ Function did not return an array:', facturesData);
+
+      if (!data) {
+        console.log('⚠️ Aucune facture trouvée');
         return [];
       }
+
+      const factures = Array.isArray(data) ? data : [data];
       
-      console.log('✅ Factures récupérées:', facturesData.length);
-      
-      // Log détaillé pour diagnostic
-      facturesData.forEach((facture: any, index: number) => {
-        const lignesCount = facture.lignes_facture?.length || 0;
-        console.log(`📊 Facture ${facture.numero_facture}:`, {
-          nb_articles: facture.nb_articles,
-          lignes_facture_count: lignesCount,
-          statut_paiement: facture.statut_paiement,
-          statut_livraison: facture.statut_livraison,
-          montant_ttc: facture.montant_ttc,
-          has_lignes_data: lignesCount > 0,
-          lignes_sample: facture.lignes_facture?.slice(0, 2) // Échantillon des lignes
-        });
+      console.log('✅ Factures récupérées avec succès:', factures.length);
+      console.log('🔍 Première facture (pour debug):', factures[0]);
+
+      // Traitement des données pour s'assurer de la cohérence
+      const facturesTraitees = factures.map((facture: any) => {
+        // Calcul du montant payé basé sur les versements
+        const montantPaye = facture.versements?.reduce((sum: number, v: any) => sum + Number(v.montant || 0), 0) || 0;
+        
+        // Calcul du statut de paiement réel
+        let statutPaiementReel = 'en_attente';
+        if (montantPaye >= facture.montant_ttc) {
+          statutPaiementReel = 'payee';
+        } else if (montantPaye > 0) {
+          statutPaiementReel = 'partiellement_payee';
+        }
+
+        // Calcul du statut de livraison réel basé sur les lignes
+        let statutLivraisonReel = facture.statut_livraison || 'en_attente';
+        if (facture.lignes_facture && facture.lignes_facture.length > 0) {
+          const totalQuantite = facture.lignes_facture.reduce((sum: number, ligne: any) => sum + ligne.quantite, 0);
+          const totalLivree = facture.lignes_facture.reduce((sum: number, ligne: any) => sum + (ligne.quantite_livree || 0), 0);
+          
+          if (totalLivree === 0) {
+            statutLivraisonReel = 'en_attente';
+          } else if (totalLivree >= totalQuantite) {
+            statutLivraisonReel = 'livree';
+          } else {
+            statutLivraisonReel = 'partiellement_livree';
+          }
+        }
+
+        return {
+          ...facture,
+          statut_paiement_calcule: statutPaiementReel,
+          statut_livraison_calcule: statutLivraisonReel,
+          montant_paye_calcule: montantPaye,
+          montant_restant_calcule: Math.max(0, facture.montant_ttc - montantPaye)
+        };
       });
-      
-      return facturesData as unknown as FactureVente[];
+
+      console.log('✅ Factures traitées avec statuts calculés:', facturesTraitees.length);
+      return facturesTraitees as FactureVente[];
     },
-    staleTime: 30000,
-    refetchOnWindowFocus: false
+    staleTime: 1000 * 30, // 30 secondes
+    gcTime: 1000 * 60 * 5, // 5 minutes
+    refetchOnWindowFocus: true,
+    refetchOnMount: true
   });
 };
