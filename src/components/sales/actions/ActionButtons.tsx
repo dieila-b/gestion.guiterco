@@ -2,7 +2,7 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Trash, Printer, Ticket, Edit } from 'lucide-react';
-import { printFacture, printTicket } from './print';
+import { printFactureVente, printTicket } from './print';
 import EditFactureDialog from './EditFactureDialog';
 import type { FactureVente } from '@/types/sales';
 import { calculatePaidAmount, getActualDeliveryStatus } from '../table/StatusUtils';
@@ -14,7 +14,7 @@ interface ActionButtonsProps {
 
 const ActionButtons = ({ facture, onDelete }: ActionButtonsProps) => {
   const handlePrint = () => {
-    printFacture(facture);
+    printFactureVente(facture);
   };
 
   const handleTicket = () => {
