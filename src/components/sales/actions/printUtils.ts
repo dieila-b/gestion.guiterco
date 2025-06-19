@@ -43,7 +43,7 @@ export const printFacture = (facture: FactureVente) => {
 export const printTicket = (facture: FactureVente) => {
   // Calculer les totaux des versements pour cette facture
   const totalPaid = facture.versements?.reduce((sum, versement) => sum + versement.montant, 0) || 0;
-  const changeAmount = Math.max(0, totalPaid - facture.montant_ttc);
+  const remainingAmount = Math.max(0, facture.montant_ttc - totalPaid);
   
   // Générer un numéro de ticket basé sur la facture
   const ticketNumber = facture.numero_facture.replace('FA-', '').replace(/-/g, '');
@@ -60,103 +60,100 @@ export const printTicket = (facture: FactureVente) => {
         <style>
           body { 
             font-family: 'Courier New', monospace; 
-            width: 300px; 
+            width: 280px; 
             margin: 0 auto; 
             font-size: 12px; 
-            line-height: 1.3;
+            line-height: 1.2;
             padding: 10px;
             background: white;
+            text-align: center;
           }
           .center { text-align: center; }
+          .left { text-align: left; }
+          .right { text-align: right; }
           .bold { font-weight: bold; }
           .line { 
             border-top: 1px dashed #000; 
-            margin: 5px 0; 
+            margin: 8px 0; 
             width: 100%;
           }
-          .logo {
-            font-size: 16px;
-            font-weight: bold;
-            color: #d32f2f;
-            margin-bottom: 5px;
-          }
           .shop-name {
-            font-size: 18px;
+            font-size: 16px;
             font-weight: bold;
             margin: 5px 0;
           }
           .shop-info {
-            font-size: 10px;
-            margin-bottom: 10px;
+            font-size: 11px;
+            margin-bottom: 15px;
           }
-          .ticket-info {
+          .ticket-header {
+            margin: 15px 0;
+            font-size: 11px;
+          }
+          .articles-table {
+            width: 100%;
             margin: 10px 0;
             font-size: 11px;
           }
-          .article-header {
+          .article-line {
             display: flex;
             justify-content: space-between;
-            font-weight: bold;
-            margin: 10px 0 5px 0;
-            font-size: 10px;
-            border-bottom: 1px solid #000;
-            padding-bottom: 2px;
-          }
-          .article-line {
-            margin: 3px 0;
-            font-size: 11px;
+            margin: 2px 0;
+            text-align: left;
           }
           .article-qty {
-            display: inline-block;
             width: 15px;
+            flex-shrink: 0;
           }
           .article-name {
-            display: inline-block;
-            width: 140px;
+            flex: 1;
+            padding: 0 8px;
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
           }
           .article-price {
-            display: inline-block;
-            width: 50px;
-            text-align: right;
-          }
-          .article-total {
-            display: inline-block;
             width: 60px;
             text-align: right;
+            flex-shrink: 0;
+          }
+          .article-total {
+            width: 60px;
+            text-align: right;
+            flex-shrink: 0;
           }
           .totals {
-            margin-top: 10px;
-            border-top: 1px solid #000;
-            padding-top: 5px;
+            margin: 15px 0;
+            font-size: 12px;
           }
           .total-line {
             display: flex;
             justify-content: space-between;
-            margin: 2px 0;
+            margin: 3px 0;
+            padding: 0 5px;
           }
           .grand-total {
             font-weight: bold;
-            font-size: 13px;
+            font-size: 14px;
             border-top: 1px solid #000;
-            padding-top: 3px;
-            margin-top: 5px;
+            padding-top: 5px;
+            margin-top: 8px;
           }
-          .change-amount {
-            color: red;
+          .payment-info {
+            font-size: 11px;
+            margin: 5px 0;
+          }
+          .remaining-amount {
+            color: #d32f2f;
             font-weight: bold;
           }
           .barcode {
-            text-align: center;
             font-family: 'Libre Barcode 128', monospace;
-            font-size: 40px;
-            margin: 10px 0;
-            letter-spacing: 0;
+            font-size: 32px;
+            margin: 15px 0;
+            letter-spacing: 1px;
           }
           .footer {
-            text-align: center;
             margin-top: 15px;
             font-size: 11px;
           }
@@ -165,59 +162,60 @@ export const printTicket = (facture: FactureVente) => {
             margin: 10px 0;
           }
           @media print {
-            body { width: 300px; }
-            .no-print { display: none; }
+            body { width: 280px; margin: 0; }
           }
         </style>
       </head>
       <body>
-        <div class="center logo">3AF Technology</div>
-        <div class="center shop-name">DEMO SHOP</div>
-        <div class="center shop-info">Tel : +225 05 55 95 45 33</div>
+        <div class="shop-name">DEMO SHOP</div>
+        <div class="shop-info">Tel : +225 05 55 95 45 33</div>
         
         <div class="line"></div>
         
-        <div class="ticket-info">
-          <div>Client : ${facture.client?.nom || 'CLIENT COMPTOIR'}</div>
-          <div>N° Ticket : ${ticketNumber}</div>
+        <div class="ticket-header">
+          <div>Client : ${facture.client?.nom || 'Client Comptoir'}</div>
+          <div>Ticket : ${ticketNumber}</div>
         </div>
         
-        <div class="article-header">
-          <span style="width: 15px;">Qt</span>
-          <span style="width: 140px;">Article</span>
-          <span style="width: 50px; text-align: right;">PU</span>
-          <span style="width: 60px; text-align: right;">Total</span>
+        <div class="line"></div>
+        
+        <div class="articles-table">
+          ${facture.lignes_facture?.map((ligne, index) => `
+            <div class="article-line">
+              <span class="article-qty">${ligne.quantite}</span>
+              <span class="article-name">${ligne.article?.nom || 'Article'}</span>
+              <span class="article-price">${Math.round(ligne.prix_unitaire)}</span>
+              <span class="article-total">${Math.round(ligne.montant_ligne)}</span>
+            </div>
+          `).join('') || `
+            <div class="article-line">
+              <span class="article-qty">1</span>
+              <span class="article-name">Vente globale</span>
+              <span class="article-price">${Math.round(facture.montant_ttc)}</span>
+              <span class="article-total">${Math.round(facture.montant_ttc)}</span>
+            </div>
+          `}
         </div>
         
-        ${facture.lignes_facture?.map(ligne => `
-          <div class="article-line">
-            <span class="article-qty">${ligne.quantite}</span>
-            <span class="article-name">${ligne.article?.nom || 'Article'}</span>
-            <span class="article-price">${Math.round(ligne.prix_unitaire)}</span>
-            <span class="article-total">${Math.round(ligne.montant_ligne)}</span>
-          </div>
-        `).join('') || `
-          <div class="article-line">
-            <span class="article-qty">1</span>
-            <span class="article-name">Vente globale</span>
-            <span class="article-price">${Math.round(facture.montant_ttc)}</span>
-            <span class="article-total">${Math.round(facture.montant_ttc)}</span>
-          </div>
-        `}
+        <div class="line"></div>
         
         <div class="totals">
           <div class="total-line grand-total">
             <span>Total</span>
             <span>${Math.round(facture.montant_ttc)} F</span>
           </div>
-          <div class="total-line">
-            <span>Net à payer</span>
-            <span>${Math.round(facture.montant_ttc)} F</span>
-          </div>
-          ${changeAmount > 0 ? `
-            <div class="total-line change-amount">
-              <span>Monnaie client</span>
-              <span>${Math.round(changeAmount)} F</span>
+          
+          ${totalPaid > 0 ? `
+            <div class="total-line payment-info">
+              <span>Montant payé</span>
+              <span>${Math.round(totalPaid)} F</span>
+            </div>
+          ` : ''}
+          
+          ${remainingAmount > 0 ? `
+            <div class="total-line payment-info remaining-amount">
+              <span>Reste à payer</span>
+              <span>${Math.round(remainingAmount)} F</span>
             </div>
           ` : ''}
         </div>
