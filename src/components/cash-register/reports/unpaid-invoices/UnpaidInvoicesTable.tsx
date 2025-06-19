@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -9,7 +10,7 @@ import { formatCurrency } from '@/lib/currency';
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/table';
 import ArticleCountCell from '@/components/sales/table/ArticleCountCell';
 import EditFactureDialog from '@/components/sales/actions/EditFactureDialog';
-import { printFacture, printTicket } from '@/components/sales/actions/printUtils';
+import { printFacture, printTicket } from '@/components/sales/actions/print';
 import type { FactureVente } from '@/types/sales';
 
 interface UnpaidInvoicesTableProps {
