@@ -11,9 +11,13 @@ interface FacturesVenteActionsProps {
 const FacturesVenteActions = ({ facture }: FacturesVenteActionsProps) => {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
+  const handleDelete = () => {
+    setShowDeleteDialog(true);
+  };
+
   return (
     <>
-      <ActionButtons facture={facture} />
+      <ActionButtons facture={facture} onDelete={handleDelete} />
 
       <DeleteFactureDialog
         facture={facture}
