@@ -23,7 +23,7 @@ const numberToWords = (num: number): string => {
   if (num < 100) return tens[Math.floor(num / 10)] + (num % 10 !== 0 ? '-' + ones[num % 10] : '');
   if (num < 1000) return ones[Math.floor(num / 100)] + ' cent' + (num % 100 !== 0 ? ' ' + numberToWords(num % 100) : '');
   
-  return num.toString(); // Fallback pour les nombres plus grands
+  return num.toString();
 };
 
 export const PrintFactureAchatDialog = ({ facture }: PrintFactureAchatDialogProps) => {
@@ -40,164 +40,307 @@ export const PrintFactureAchatDialog = ({ facture }: PrintFactureAchatDialogProp
             <head>
               <title>Facture ${facture.numero_facture}</title>
               <style>
+                @page {
+                  size: A4;
+                  margin: 20mm;
+                }
                 body { 
                   font-family: Arial, sans-serif; 
                   margin: 0; 
-                  padding: 20px; 
-                  font-size: 12px;
-                  color: #000;
+                  padding: 0; 
+                  font-size: 11px;
+                  line-height: 1.4;
+                  color: #333;
                 }
-                .facture-header {
+                .invoice-container {
+                  max-width: 210mm;
+                  margin: 0 auto;
+                  background: white;
+                  padding: 20px;
+                }
+                .header-section {
                   display: flex;
                   justify-content: space-between;
-                  margin-bottom: 30px;
                   align-items: flex-start;
+                  margin-bottom: 30px;
+                  border-bottom: 2px solid #e0e0e0;
+                  padding-bottom: 20px;
                 }
                 .company-info {
                   flex: 1;
+                  max-width: 50%;
                 }
                 .company-logo {
                   width: 80px;
                   height: 80px;
-                  margin-bottom: 10px;
-                  background: #e3f2fd;
+                  margin-bottom: 15px;
+                  background: #f5f5f5;
                   border-radius: 8px;
                   display: flex;
                   align-items: center;
                   justify-content: center;
-                  font-weight: bold;
-                  color: #1976d2;
+                  border: 1px solid #ddd;
+                }
+                .company-logo img {
+                  max-width: 70px;
+                  max-height: 70px;
+                  object-fit: contain;
                 }
                 .company-name {
+                  font-size: 18px;
                   font-weight: bold;
-                  font-size: 16px;
-                  margin-bottom: 5px;
+                  color: #2c3e50;
+                  margin-bottom: 8px;
                 }
                 .company-details {
-                  font-size: 11px;
-                  line-height: 1.4;
+                  font-size: 10px;
+                  line-height: 1.5;
                   color: #666;
                 }
                 .invoice-info {
-                  text-align: right;
                   flex: 1;
+                  max-width: 45%;
+                  text-align: right;
                 }
                 .invoice-title {
-                  font-size: 24px;
+                  font-size: 28px;
                   font-weight: bold;
+                  color: #2c3e50;
                   margin-bottom: 20px;
                   text-align: center;
-                  width: 100%;
+                  text-transform: uppercase;
+                  letter-spacing: 2px;
                 }
                 .invoice-details {
-                  background: #f5f5f5;
+                  background: #f8f9fa;
                   padding: 15px;
-                  border-radius: 5px;
-                  margin-bottom: 20px;
+                  border-radius: 6px;
+                  border: 1px solid #e9ecef;
                 }
-                .client-info {
-                  background: #f9f9f9;
-                  padding: 15px;
-                  border-radius: 5px;
-                  margin-bottom: 20px;
+                .invoice-details h3 {
+                  margin: 0 0 12px 0;
+                  font-size: 12px;
+                  color: #495057;
+                  text-transform: uppercase;
+                  font-weight: 600;
+                }
+                .invoice-details p {
+                  margin: 6px 0;
+                  font-size: 11px;
+                }
+                .supplier-section {
+                  margin: 25px 0;
+                  background: #fff8e1;
+                  padding: 20px;
+                  border-radius: 6px;
+                  border-left: 4px solid #ffc107;
+                }
+                .supplier-section h3 {
+                  margin: 0 0 15px 0;
+                  font-size: 14px;
+                  color: #e65100;
+                  text-transform: uppercase;
+                  font-weight: 600;
+                }
+                .supplier-info {
+                  display: grid;
+                  grid-template-columns: 1fr 1fr;
+                  gap: 15px;
+                }
+                .supplier-field {
+                  display: flex;
+                  align-items: center;
+                }
+                .supplier-field label {
+                  font-weight: 600;
+                  margin-right: 8px;
+                  color: #6c757d;
+                  min-width: 60px;
+                }
+                .articles-section {
+                  margin: 30px 0;
                 }
                 .articles-table {
                   width: 100%;
                   border-collapse: collapse;
+                  border: 1px solid #dee2e6;
                   margin-bottom: 20px;
                 }
                 .articles-table th {
-                  background: #f0f0f0;
-                  padding: 10px 8px;
-                  text-align: left;
-                  border: 1px solid #ddd;
-                  font-weight: bold;
-                  font-size: 11px;
+                  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                  color: white;
+                  padding: 12px 8px;
+                  text-align: center;
+                  font-weight: 600;
+                  font-size: 10px;
+                  text-transform: uppercase;
+                  letter-spacing: 0.5px;
+                  border: 1px solid #5a6cb8;
                 }
                 .articles-table td {
-                  padding: 8px;
-                  border: 1px solid #ddd;
-                  font-size: 11px;
+                  padding: 10px 8px;
+                  border: 1px solid #dee2e6;
+                  font-size: 10px;
+                  text-align: center;
                 }
-                .text-center { text-align: center; }
-                .text-right { text-align: right; }
-                .delivered { color: #4caf50; font-weight: bold; }
-                .remaining { color: #ff9800; font-weight: bold; }
+                .articles-table tbody tr:nth-child(even) {
+                  background-color: #f8f9fa;
+                }
+                .articles-table tbody tr:hover {
+                  background-color: #e3f2fd;
+                }
+                .product-name {
+                  text-align: left !important;
+                  font-weight: 500;
+                  color: #2c3e50;
+                }
+                .quantity-delivered {
+                  color: #28a745;
+                  font-weight: 600;
+                }
+                .quantity-remaining {
+                  color: #dc3545;
+                  font-weight: 600;
+                }
                 .totals-section {
                   display: flex;
                   justify-content: space-between;
-                  margin-bottom: 30px;
+                  margin: 30px 0;
+                  gap: 30px;
                 }
                 .totals-left {
                   flex: 1;
                 }
                 .totals-right {
-                  width: 300px;
-                  border: 1px solid #ddd;
-                  padding: 15px;
+                  width: 320px;
+                  background: #f8f9fa;
+                  border: 2px solid #dee2e6;
+                  border-radius: 8px;
+                  padding: 20px;
+                }
+                .totals-right h4 {
+                  margin: 0 0 15px 0;
+                  font-size: 12px;
+                  color: #495057;
+                  text-transform: uppercase;
+                  font-weight: 600;
+                  text-align: center;
+                  border-bottom: 1px solid #dee2e6;
+                  padding-bottom: 8px;
                 }
                 .total-line {
                   display: flex;
                   justify-content: space-between;
-                  margin-bottom: 8px;
+                  margin-bottom: 10px;
+                  font-size: 11px;
                 }
                 .total-line.final {
                   font-weight: bold;
                   font-size: 14px;
-                  border-top: 1px solid #333;
-                  padding-top: 8px;
-                  margin-top: 10px;
+                  color: #2c3e50;
+                  border-top: 2px solid #495057;
+                  padding-top: 12px;
+                  margin-top: 15px;
                 }
                 .status-section {
                   display: flex;
-                  justify-content: space-between;
-                  margin-bottom: 20px;
+                  gap: 20px;
+                  margin: 30px 0;
                 }
                 .status-box {
                   flex: 1;
-                  margin-right: 20px;
-                  border: 1px solid #ddd;
-                  padding: 15px;
-                  border-radius: 5px;
+                  background: white;
+                  border: 1px solid #dee2e6;
+                  border-radius: 8px;
+                  padding: 20px;
+                  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
                 }
-                .status-box:last-child {
-                  margin-right: 0;
+                .status-box h4 {
+                  margin: 0 0 15px 0;
+                  font-size: 12px;
+                  color: #495057;
+                  text-transform: uppercase;
+                  font-weight: 600;
+                  border-bottom: 1px solid #dee2e6;
+                  padding-bottom: 8px;
+                }
+                .status-info {
+                  margin-bottom: 10px;
+                  font-size: 11px;
                 }
                 .status-badge {
                   display: inline-block;
-                  padding: 4px 8px;
-                  border-radius: 4px;
-                  font-size: 10px;
-                  font-weight: bold;
+                  padding: 4px 12px;
+                  border-radius: 12px;
+                  font-size: 9px;
+                  font-weight: 600;
+                  text-transform: uppercase;
+                  letter-spacing: 0.5px;
+                  margin-left: 8px;
                 }
                 .badge-partial {
                   background: #fff3cd;
                   color: #856404;
                   border: 1px solid #ffeaa7;
                 }
+                .badge-paid {
+                  background: #d4edda;
+                  color: #155724;
+                  border: 1px solid #c3e6cb;
+                }
                 .badge-delivered {
                   background: #d4edda;
                   color: #155724;
                   border: 1px solid #c3e6cb;
                 }
-                .legal-mention {
-                  font-size: 10px;
-                  text-align: center;
-                  margin-top: 30px;
-                  font-style: italic;
-                  color: #666;
+                .highlight-messages {
+                  margin: 25px 0;
                 }
-                .highlight-box {
+                .message-box {
                   background: #fff3cd;
                   border: 1px solid #ffeaa7;
-                  padding: 10px;
+                  border-radius: 6px;
+                  padding: 12px;
                   margin: 10px 0;
-                  border-radius: 4px;
+                  font-size: 10px;
+                  color: #856404;
+                  display: flex;
+                  align-items: center;
+                }
+                .message-box::before {
+                  content: "ℹ️";
+                  margin-right: 8px;
+                  font-size: 14px;
+                }
+                .observations-section {
+                  margin: 25px 0;
+                  background: #f8f9fa;
+                  padding: 15px;
+                  border-radius: 6px;
+                  border-left: 4px solid #6c757d;
+                }
+                .observations-section h4 {
+                  margin: 0 0 10px 0;
+                  font-size: 12px;
+                  color: #495057;
+                  font-weight: 600;
+                }
+                .legal-mention {
+                  margin-top: 40px;
+                  padding: 20px;
+                  background: #e9ecef;
+                  border-radius: 6px;
+                  text-align: center;
                   font-size: 11px;
+                  font-weight: 500;
+                  color: #495057;
+                  font-style: italic;
+                  border: 1px dashed #adb5bd;
                 }
                 @media print {
-                  body { margin: 0; padding: 15px; }
-                  .no-print { display: none; }
+                  body { margin: 0; padding: 10px; }
+                  .no-print { display: none !important; }
+                  .invoice-container { max-width: none; padding: 0; }
                 }
               </style>
             </head>
@@ -217,30 +360,52 @@ export const PrintFactureAchatDialog = ({ facture }: PrintFactureAchatDialogProp
   const calculateTotals = () => {
     if (!articles || articles.length === 0) {
       return {
-        montantTotal: facture.montant_ttc,
+        montantTotal: facture.montant_ttc || 0,
         remise: 0,
-        netAPayer: facture.montant_ttc
+        netAPayer: facture.montant_ttc || 0
       };
     }
     
     const montantTotal = articles.reduce((sum: number, article: any) => sum + (article.montant_ligne || 0), 0);
-    const remise = 0; // À calculer selon votre logique métier
+    const remise = 0;
     const netAPayer = montantTotal - remise;
     
     return { montantTotal, remise, netAPayer };
   };
 
   const getPaymentStatus = () => {
-    switch (facture.statut_paiement) {
-      case 'paye': return { label: 'Payé', badge: 'badge-delivered' };
-      case 'partiellement_paye': return { label: 'Partiellement payé', badge: 'badge-partial' };
-      case 'en_retard': return { label: 'En retard', badge: 'badge-partial' };
-      default: return { label: 'En attente', badge: 'badge-partial' };
+    const montantPaye = facture.montant_paye || 0;
+    const montantTotal = facture.montant_ttc || 0;
+    
+    if (montantPaye === 0) {
+      return { label: 'Non payé', badge: 'badge-partial' };
+    } else if (montantPaye >= montantTotal) {
+      return { label: 'Payé', badge: 'badge-paid' };
+    } else {
+      return { label: 'Partiellement payé', badge: 'badge-partial' };
+    }
+  };
+
+  const getDeliveryStatus = () => {
+    if (!articles || articles.length === 0) {
+      return { label: 'Livré', badge: 'badge-delivered' };
+    }
+    
+    const totalArticles = articles.length;
+    const articlesLivres = articles.filter((article: any) => (article.quantite_livree || 0) > 0).length;
+    
+    if (articlesLivres === totalArticles) {
+      return { label: 'Livré', badge: 'badge-delivered' };
+    } else if (articlesLivres > 0) {
+      return { label: 'Partiellement livré', badge: 'badge-partial' };
+    } else {
+      return { label: 'En attente', badge: 'badge-partial' };
     }
   };
 
   const totals = calculateTotals();
   const paymentStatus = getPaymentStatus();
+  const deliveryStatus = getDeliveryStatus();
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -258,82 +423,107 @@ export const PrintFactureAchatDialog = ({ facture }: PrintFactureAchatDialogProp
           <DialogTitle>Aperçu de la facture d'achat</DialogTitle>
         </DialogHeader>
         
-        <div id="facture-print-content" className="bg-white p-6">
+        <div id="facture-print-content" className="invoice-container">
           {/* En-tête avec logo et informations société */}
-          <div className="facture-header">
+          <div className="header-section">
             <div className="company-info">
               <div className="company-logo">
-                <img src="/lovable-uploads/932def2b-197f-4495-8a0a-09c753a4a892.png" alt="Logo" style={{width: '60px', height: '60px', objectFit: 'contain'}} />
+                <img src="/lovable-uploads/932def2b-197f-4495-8a0a-09c753a4a892.png" alt="U CONNEXT Logo" />
               </div>
               <div className="company-name">U CONNEXT</div>
               <div className="company-details">
-                Adresse: Madina-Gare routière Kankan C/Matam<br/>
-                Téléphone: 623 26 87 81<br/>
-                Email: uconnext@gmail.com
+                <strong>Adresse :</strong> Madina-Gare routière Kankan C/Matam<br/>
+                <strong>Téléphone :</strong> 623 26 87 81<br/>
+                <strong>Email :</strong> uconnext@gmail.com
               </div>
             </div>
             
             <div className="invoice-info">
               <div className="invoice-details">
-                <h3 style={{margin: '0 0 10px 0', fontSize: '14px'}}>Information de la facture</h3>
-                <p><strong>Date:</strong> {format(new Date(facture.date_facture), 'dd/MM/yyyy', { locale: fr })}</p>
-                <p><strong>Facture N°:</strong> {facture.numero_facture}</p>
+                <h3>Informations de la facture</h3>
+                <p><strong>Date :</strong> {format(new Date(facture.date_facture), 'dd/MM/yyyy', { locale: fr })}</p>
+                <p><strong>N° Facture :</strong> {facture.numero_facture}</p>
                 {facture.date_echeance && (
-                  <p><strong>Échéance:</strong> {format(new Date(facture.date_echeance), 'dd/MM/yyyy', { locale: fr })}</p>
+                  <p><strong>Échéance :</strong> {format(new Date(facture.date_echeance), 'dd/MM/yyyy', { locale: fr })}</p>
                 )}
               </div>
             </div>
           </div>
 
-          <div className="invoice-title">FACTURE</div>
+          <div className="invoice-title">Facture d'Achat</div>
 
           {/* Informations fournisseur */}
-          <div className="client-info">
-            <h3 style={{margin: '0 0 10px 0', fontSize: '14px'}}>FOURNISSEUR:</h3>
-            <p><strong>Nom:</strong> {facture.fournisseur}</p>
-            <p><strong>Code:</strong> {facture.fournisseur_id || 'N/A'}</p>
+          <div className="supplier-section">
+            <h3>Informations Fournisseur</h3>
+            <div className="supplier-info">
+              <div className="supplier-field">
+                <label>Nom :</label>
+                <span>{facture.fournisseur}</span>
+              </div>
+              <div className="supplier-field">
+                <label>Code :</label>
+                <span>{facture.fournisseur_id || 'N/A'}</span>
+              </div>
+              <div className="supplier-field">
+                <label>Téléphone :</label>
+                <span>N/A</span>
+              </div>
+              <div className="supplier-field">
+                <label>Email :</label>
+                <span>N/A</span>
+              </div>
+            </div>
           </div>
 
           {/* Tableau des articles */}
-          {articles && articles.length > 0 && (
-            <table className="articles-table">
-              <thead>
-                <tr>
-                  <th>Produit</th>
-                  <th className="text-right">Prix unitaire</th>
-                  <th className="text-center">Remise</th>
-                  <th className="text-right">Prix net</th>
-                  <th className="text-center">Qté</th>
-                  <th className="text-center">Livré</th>
-                  <th className="text-center">Restant</th>
-                  <th className="text-right">Total</th>
-                </tr>
-              </thead>
-              <tbody>
-                {articles.map((article: any) => {
-                  const delivered = article.quantite || 0;
-                  const remaining = 0; // À calculer selon votre logique
-                  return (
-                    <tr key={article.id}>
-                      <td>{article.catalogue?.nom || 'Article'}</td>
-                      <td className="text-right">{formatCurrency(article.prix_unitaire)}</td>
-                      <td className="text-center">0</td>
-                      <td className="text-right">{formatCurrency(article.prix_unitaire)}</td>
-                      <td className="text-center">{article.quantite}</td>
-                      <td className="text-center delivered">{delivered}</td>
-                      <td className="text-center remaining">{remaining}</td>
-                      <td className="text-right">{formatCurrency(article.montant_ligne)}</td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          )}
+          <div className="articles-section">
+            {articles && articles.length > 0 ? (
+              <table className="articles-table">
+                <thead>
+                  <tr>
+                    <th>Produit</th>
+                    <th>Prix unitaire</th>
+                    <th>Remise</th>
+                    <th>Prix net</th>
+                    <th>Qté</th>
+                    <th>Livré</th>
+                    <th>Restant</th>
+                    <th>Total</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {articles.map((article: any) => {
+                    const delivered = article.quantite_livree || 0;
+                    const ordered = article.quantite || 0;
+                    const remaining = Math.max(0, ordered - delivered);
+                    
+                    return (
+                      <tr key={article.id}>
+                        <td className="product-name">{article.catalogue?.nom || 'Article'}</td>
+                        <td>{formatCurrency(article.prix_unitaire)}</td>
+                        <td>0</td>
+                        <td>{formatCurrency(article.prix_unitaire)}</td>
+                        <td>{ordered}</td>
+                        <td className="quantity-delivered">{delivered}</td>
+                        <td className="quantity-remaining">{remaining}</td>
+                        <td>{formatCurrency(article.montant_ligne)}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            ) : (
+              <div className="message-box">
+                Aucun article détaillé disponible pour cette facture.
+              </div>
+            )}
+          </div>
 
           {/* Section totaux */}
           <div className="totals-section">
             <div className="totals-left"></div>
             <div className="totals-right">
+              <h4>Récapitulatif des montants</h4>
               <div className="total-line">
                 <span>Montant Total</span>
                 <span>{formatCurrency(totals.montantTotal)}</span>
@@ -352,52 +542,58 @@ export const PrintFactureAchatDialog = ({ facture }: PrintFactureAchatDialogProp
           {/* Section statuts */}
           <div className="status-section">
             <div className="status-box">
-              <h4 style={{margin: '0 0 10px 0', fontSize: '12px'}}>Statut de paiement</h4>
-              <p>
-                <strong>Statut:</strong> 
-                <span className={`status-badge ${paymentStatus.badge}`} style={{marginLeft: '10px'}}>
+              <h4>Statut de paiement</h4>
+              <div className="status-info">
+                <strong>Statut :</strong>
+                <span className={`status-badge ${paymentStatus.badge}`}>
                   {paymentStatus.label}
                 </span>
-              </p>
-              <p><strong>Montant payé:</strong> {formatCurrency(facture.montant_paye || 0)}</p>
-              <p><strong>Montant restant:</strong> {formatCurrency((facture.montant_ttc || 0) - (facture.montant_paye || 0))}</p>
+              </div>
+              <div className="status-info">
+                <strong>Montant payé :</strong> {formatCurrency(facture.montant_paye || 0)}
+              </div>
+              <div className="status-info">
+                <strong>Reste à payer :</strong> {formatCurrency(Math.max(0, (facture.montant_ttc || 0) - (facture.montant_paye || 0)))}
+              </div>
             </div>
             
             <div className="status-box">
-              <h4 style={{margin: '0 0 10px 0', fontSize: '12px'}}>Statut de livraison</h4>
-              <p>
-                <strong>Statut:</strong> 
-                <span className="status-badge badge-delivered" style={{marginLeft: '10px'}}>
-                  Partiellement livré
+              <h4>Statut de livraison</h4>
+              <div className="status-info">
+                <strong>Statut :</strong>
+                <span className={`status-badge ${deliveryStatus.badge}`}>
+                  {deliveryStatus.label}
                 </span>
-              </p>
+              </div>
             </div>
           </div>
 
           {/* Messages informatifs */}
-          {facture.statut_paiement === 'partiellement_paye' && (
-            <div className="highlight-box">
-              Un paiement partiel a été effectué sur cette facture.
-            </div>
-          )}
-          
-          {articles && articles.length > 0 && (
-            <div className="highlight-box">
-              Cette commande a été partiellement livrée.
-            </div>
-          )}
+          <div className="highlight-messages">
+            {paymentStatus.label === 'Partiellement payé' && (
+              <div className="message-box">
+                Un paiement partiel a été effectué sur cette facture.
+              </div>
+            )}
+            
+            {deliveryStatus.label === 'Partiellement livré' && (
+              <div className="message-box">
+                Cette commande a été partiellement livrée.
+              </div>
+            )}
+          </div>
 
           {/* Observations */}
           {facture.observations && (
-            <div style={{marginBottom: '20px'}}>
-              <h4 style={{fontSize: '12px', marginBottom: '5px'}}>Observations:</h4>
-              <p style={{fontSize: '11px', color: '#666'}}>{facture.observations}</p>
+            <div className="observations-section">
+              <h4>Observations :</h4>
+              <p>{facture.observations}</p>
             </div>
           )}
 
           {/* Mention légale */}
           <div className="legal-mention">
-            Arrêtée la présente facture à la somme de {numberToWords(Math.floor(totals.netAPayer))} francs guinéens
+            Arrêtée la présente facture à la somme de <strong>{numberToWords(Math.floor(totals.netAPayer))} francs guinéens</strong>
           </div>
         </div>
 
