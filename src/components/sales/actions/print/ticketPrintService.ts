@@ -7,6 +7,7 @@ import {
   generateTicketNumber, 
   getCurrentDateTime 
 } from './printUtils';
+import { getActualDeliveryStatus } from '@/components/sales/table/StatusUtils';
 
 const generateTicketStyles = (): string => {
   return `
@@ -21,23 +22,40 @@ const generateTicketStyles = (): string => {
         background: white;
         text-align: center;
       }
-      .center { text-align: center; }
-      .left { text-align: left; }
-      .right { text-align: right; }
-      .bold { font-weight: bold; }
-      .line { 
-        border-top: 1px dashed #000; 
-        margin: 8px 0; 
-        width: 100%;
+      .header {
+        text-align: center;
+        margin-bottom: 15px;
+      }
+      .logo {
+        width: 60px;
+        height: 60px;
+        margin: 0 auto 8px auto;
+        display: block;
       }
       .shop-name {
         font-size: 16px;
         font-weight: bold;
         margin: 5px 0;
+        letter-spacing: 1px;
+      }
+      .shop-subtitle {
+        font-size: 10px;
+        color: #666;
+        margin-bottom: 5px;
       }
       .shop-info {
         font-size: 11px;
         margin-bottom: 15px;
+      }
+      .center { text-align: center; }
+      .left { text-align: left; }
+      .right { text-align: right; }
+      .bold { font-weight: bold; }
+      .red { color: #d32f2f; }
+      .line { 
+        border-top: 1px dashed #000; 
+        margin: 8px 0; 
+        width: 100%;
       }
       .ticket-header {
         margin: 15px 0;
@@ -53,10 +71,12 @@ const generateTicketStyles = (): string => {
         justify-content: space-between;
         margin: 2px 0;
         text-align: left;
+        align-items: center;
       }
       .article-qty {
         width: 15px;
         flex-shrink: 0;
+        font-size: 10px;
       }
       .article-name {
         flex: 1;
@@ -64,16 +84,19 @@ const generateTicketStyles = (): string => {
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
+        font-size: 10px;
       }
       .article-price {
-        width: 60px;
+        width: 50px;
         text-align: right;
         flex-shrink: 0;
+        font-size: 10px;
       }
       .article-total {
-        width: 60px;
+        width: 50px;
         text-align: right;
         flex-shrink: 0;
+        font-size: 10px;
       }
       .totals {
         margin: 15px 0;
@@ -100,15 +123,16 @@ const generateTicketStyles = (): string => {
         color: #d32f2f;
         font-weight: bold;
       }
-      .barcode {
-        font-family: 'Libre Barcode 128', monospace;
-        font-size: 32px;
-        margin: 15px 0;
-        letter-spacing: 1px;
+      .delivery-status {
+        font-size: 11px;
+        margin: 8px 0;
+        padding: 5px;
+        border: 1px dashed #666;
       }
       .footer {
         margin-top: 15px;
         font-size: 11px;
+        font-weight: bold;
       }
       .datetime {
         font-size: 10px;
@@ -167,6 +191,31 @@ const generatePaymentSection = (facture: FactureVente, totalPaid: number, remain
   return paymentHtml;
 };
 
+const generateDeliverySection = (facture: FactureVente): string => {
+  const deliveryStatus = getActualDeliveryStatus(facture);
+  
+  if (deliveryStatus === 'livree') {
+    return `
+      <div class="delivery-status">
+        <div class="bold">Statut : Livré</div>
+      </div>
+    `;
+  } else if (deliveryStatus === 'partiellement_livree') {
+    const totalQuantiteCommandee = facture.lignes_facture?.reduce((sum, ligne) => sum + ligne.quantite, 0) || 0;
+    const totalQuantiteLivree = facture.lignes_facture?.reduce((sum, ligne) => sum + (ligne.quantite_livree || 0), 0) || 0;
+    const articlesRestants = totalQuantiteCommandee - totalQuantiteLivree;
+    
+    return `
+      <div class="delivery-status">
+        <div class="bold">Statut : Partiel</div>
+        <div>Articles livrés : ${totalQuantiteLivree} | Restants : ${articlesRestants}</div>
+      </div>
+    `;
+  }
+  
+  return '';
+};
+
 const generateTicketContent = (facture: FactureVente): string => {
   const totalPaid = calculateTotalPaid(facture);
   const remainingAmount = calculateRemainingAmount(facture);
@@ -180,8 +229,12 @@ const generateTicketContent = (facture: FactureVente): string => {
         ${generateTicketStyles()}
       </head>
       <body>
-        <div class="shop-name">DEMO SHOP</div>
-        <div class="shop-info">Tel : +225 05 55 95 45 33</div>
+        <div class="header">
+          <img src="/lovable-uploads/932def2b-197f-4495-8a0a-09c753a4a892.png" alt="U CONNEXT Logo" class="logo">
+          <div class="shop-name">U CONNEXT</div>
+          <div class="shop-subtitle">Universal conNext</div>
+          <div class="shop-info">Tel : +225 05 55 95 45 33</div>
+        </div>
         
         <div class="line"></div>
         
@@ -207,7 +260,7 @@ const generateTicketContent = (facture: FactureVente): string => {
           ${generatePaymentSection(facture, totalPaid, remainingAmount)}
         </div>
         
-        <div class="center barcode">||||| |||| | |||| ||||| | ||||</div>
+        ${generateDeliverySection(facture)}
         
         <div class="center datetime">${dateStr} ${timeStr}</div>
         <div class="center footer">Merci à la prochaine</div>
