@@ -10,7 +10,7 @@ import { formatCurrency } from '@/lib/currency';
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/table';
 import ArticleCountCell from '@/components/sales/table/ArticleCountCell';
 import EditFactureDialog from '@/components/sales/actions/EditFactureDialog';
-import { printFacture, printTicket } from '@/components/sales/actions/print';
+import { printFactureVente, printTicket } from '@/components/sales/actions/print';
 import type { FactureVente } from '@/types/sales';
 
 interface UnpaidInvoicesTableProps {
@@ -114,7 +114,7 @@ const UnpaidInvoicesTable: React.FC<UnpaidInvoicesTableProps> = ({
   };
 
   const handlePrintFacture = (facture: FactureVente) => {
-    printFacture(facture);
+    printFactureVente(facture);
   };
 
   const handlePrintTicket = (facture: FactureVente) => {
