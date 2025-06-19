@@ -38,11 +38,6 @@ const generateTicketStyles = (): string => {
         margin: 5px 0;
         letter-spacing: 1px;
       }
-      .shop-subtitle {
-        font-size: 10px;
-        color: #666;
-        margin-bottom: 5px;
-      }
       .shop-info {
         font-size: 11px;
         margin-bottom: 15px;
@@ -66,6 +61,40 @@ const generateTicketStyles = (): string => {
         margin: 10px 0;
         font-size: 11px;
       }
+      .table-header {
+        display: flex;
+        justify-content: space-between;
+        margin: 5px 0;
+        font-weight: bold;
+        border-bottom: 1px solid #000;
+        padding-bottom: 2px;
+        text-align: left;
+        font-size: 10px;
+      }
+      .header-article {
+        width: 80px;
+        flex-shrink: 0;
+      }
+      .header-qty {
+        width: 25px;
+        text-align: center;
+        flex-shrink: 0;
+      }
+      .header-remise {
+        width: 35px;
+        text-align: center;
+        flex-shrink: 0;
+      }
+      .header-pu {
+        width: 35px;
+        text-align: right;
+        flex-shrink: 0;
+      }
+      .header-total {
+        width: 40px;
+        text-align: right;
+        flex-shrink: 0;
+      }
       .article-line {
         display: flex;
         justify-content: space-between;
@@ -73,27 +102,34 @@ const generateTicketStyles = (): string => {
         text-align: left;
         align-items: center;
       }
-      .article-qty {
-        width: 15px;
-        flex-shrink: 0;
-        font-size: 10px;
-      }
       .article-name {
-        flex: 1;
-        padding: 0 8px;
+        width: 80px;
+        flex-shrink: 0;
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
         font-size: 10px;
       }
+      .article-qty {
+        width: 25px;
+        text-align: center;
+        flex-shrink: 0;
+        font-size: 10px;
+      }
+      .article-remise {
+        width: 35px;
+        text-align: center;
+        flex-shrink: 0;
+        font-size: 10px;
+      }
       .article-price {
-        width: 50px;
+        width: 35px;
         text-align: right;
         flex-shrink: 0;
         font-size: 10px;
       }
       .article-total {
-        width: 50px;
+        width: 40px;
         text-align: right;
         flex-shrink: 0;
         font-size: 10px;
@@ -146,25 +182,39 @@ const generateTicketStyles = (): string => {
 };
 
 const generateArticlesSection = (facture: FactureVente): string => {
+  let articlesHtml = `
+    <div class="table-header">
+      <span class="header-article">Article</span>
+      <span class="header-qty">Qté</span>
+      <span class="header-remise">Remise</span>
+      <span class="header-pu">PU</span>
+      <span class="header-total">Total</span>
+    </div>
+  `;
+
   if (facture.lignes_facture && facture.lignes_facture.length > 0) {
-    return facture.lignes_facture.map((ligne, index) => `
+    articlesHtml += facture.lignes_facture.map((ligne, index) => `
       <div class="article-line">
-        <span class="article-qty">${ligne.quantite}</span>
         <span class="article-name">${ligne.article?.nom || 'Article'}</span>
+        <span class="article-qty">${ligne.quantite}</span>
+        <span class="article-remise">0</span>
         <span class="article-price">${Math.round(ligne.prix_unitaire)}</span>
         <span class="article-total">${Math.round(ligne.montant_ligne)}</span>
       </div>
     `).join('');
+  } else {
+    articlesHtml += `
+      <div class="article-line">
+        <span class="article-name">Vente globale</span>
+        <span class="article-qty">1</span>
+        <span class="article-remise">0</span>
+        <span class="article-price">${Math.round(facture.montant_ttc)}</span>
+        <span class="article-total">${Math.round(facture.montant_ttc)}</span>
+      </div>
+    `;
   }
   
-  return `
-    <div class="article-line">
-      <span class="article-qty">1</span>
-      <span class="article-name">Vente globale</span>
-      <span class="article-price">${Math.round(facture.montant_ttc)}</span>
-      <span class="article-total">${Math.round(facture.montant_ttc)}</span>
-    </div>
-  `;
+  return articlesHtml;
 };
 
 const generatePaymentSection = (facture: FactureVente, totalPaid: number, remainingAmount: number): string => {
@@ -232,8 +282,7 @@ const generateTicketContent = (facture: FactureVente): string => {
         <div class="header">
           <img src="/lovable-uploads/932def2b-197f-4495-8a0a-09c753a4a892.png" alt="U CONNEXT Logo" class="logo">
           <div class="shop-name">U CONNEXT</div>
-          <div class="shop-subtitle">Universal conNext</div>
-          <div class="shop-info">Tel : +225 05 55 95 45 33</div>
+          <div class="shop-info">Tel : 623 26 87 81</div>
         </div>
         
         <div class="line"></div>
