@@ -7,7 +7,7 @@ import { fr } from 'date-fns/locale';
 import PaymentStatusBadge from './PaymentStatusBadge';
 import DeliveryStatusBadge from './DeliveryStatusBadge';
 import ArticleCountCell from './ArticleCountCell';
-import FacturesVenteActions from '../FacturesVenteActions';
+import ActionButtons from '../actions/ActionButtons';
 import { calculatePaidAmount, calculateRemainingAmount } from './StatusUtils';
 import type { FactureVente } from '@/types/sales';
 
@@ -65,7 +65,7 @@ const FactureVenteTableRow = ({ facture }: FactureVenteTableRowProps) => {
       </TableCell>
       
       <TableCell className="text-center">
-        <FacturesVenteActions facture={facture} />
+        <ActionButtons facture={facture} />
       </TableCell>
     </TableRow>
   );

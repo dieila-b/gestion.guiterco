@@ -13,10 +13,7 @@ const FacturesVenteActions = ({ facture }: FacturesVenteActionsProps) => {
 
   return (
     <>
-      <ActionButtons 
-        facture={facture} 
-        onDelete={() => setShowDeleteDialog(true)}
-      />
+      <ActionButtons facture={facture} />
 
       <DeleteFactureDialog
         facture={facture}

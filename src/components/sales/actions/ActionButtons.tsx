@@ -1,79 +1,75 @@
 
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { Edit, Check, Trash, Printer } from 'lucide-react';
+import { Trash, Printer, Ticket } from 'lucide-react';
+import { printFacture, printTicket } from './printUtils';
+import EditFactureDialog from './EditFactureDialog';
 import type { FactureVente } from '@/types/sales';
+import { calculatePaidAmount, getActualDeliveryStatus } from '../table/StatusUtils';
 
 interface ActionButtonsProps {
   facture: FactureVente;
-  onDelete?: () => void;
 }
 
-const ActionButtons = ({ facture, onDelete }: ActionButtonsProps) => {
-  const handleEdit = () => {
-    console.log('Édition de la facture:', facture.numero_facture);
-    // TODO: Ouvrir le dialog d'édition
+const ActionButtons = ({ facture }: ActionButtonsProps) => {
+  const handlePrint = () => {
+    printFacture(facture);
   };
 
-  const handleValidate = () => {
-    console.log('Validation de la facture:', facture.numero_facture);
-    // TODO: Valider la facture selon le statut actuel
+  const handleTicket = () => {
+    printTicket(facture);
   };
 
   const handleDelete = () => {
-    console.log('Suppression de la facture:', facture.numero_facture);
-    onDelete?.();
+    // TODO: Implement delete functionality
+    console.log('Delete facture:', facture.id);
   };
 
-  const handlePrint = () => {
-    console.log('Impression de la facture:', facture.numero_facture);
-    // TODO: Imprimer la facture (PDF ou ticket)
-  };
+  // Nouvelle règle suppression :
+  // => Afficher le bouton supprimer UNIQUEMENT si aucun paiement ET aucune livraison effectuée
+  const isDeletable =
+    calculatePaidAmount(facture) === 0 && getActualDeliveryStatus(facture) === 'en_attente';
+
+  // Facture = archivée si payée ET livrée
+  const isArchived =
+    calculatePaidAmount(facture) >= facture.montant_ttc &&
+    getActualDeliveryStatus(facture) === 'livree';
 
   return (
-    <div className="flex items-center gap-1">
-      {/* Bouton Éditer (jaune) */}
+    <div className="flex justify-center space-x-1">
+      {/* Bouton Modifier désactivé si archivée */}
+      {!isArchived && (
+        <EditFactureDialog facture={facture} />
+      )}
+      {/* Bouton Supprimer affiché UNIQUEMENT si facture ni payée ni livrée */}
+      {isDeletable && !isArchived && (
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={handleDelete}
+          className="h-8 w-8 p-0 hover:bg-red-100"
+          title="Supprimer"
+        >
+          <Trash className="h-4 w-4 text-red-600" />
+        </Button>
+      )}
       <Button
         variant="ghost"
         size="sm"
-        className="h-8 w-8 p-0 text-yellow-600 hover:bg-yellow-50 hover:text-yellow-700 transition-colors"
-        onClick={handleEdit}
-        title="Éditer"
-      >
-        <Edit className="h-4 w-4" />
-      </Button>
-
-      {/* Bouton Valider (vert) */}
-      <Button
-        variant="ghost"
-        size="sm"
-        className="h-8 w-8 p-0 text-green-600 hover:bg-green-50 hover:text-green-700 transition-colors"
-        onClick={handleValidate}
-        title="Valider"
-      >
-        <Check className="h-4 w-4" />
-      </Button>
-
-      {/* Bouton Supprimer (rouge) */}
-      <Button
-        variant="ghost"
-        size="sm"
-        className="h-8 w-8 p-0 text-red-600 hover:bg-red-50 hover:text-red-700 transition-colors"
-        onClick={handleDelete}
-        title="Supprimer"
-      >
-        <Trash className="h-4 w-4" />
-      </Button>
-
-      {/* Bouton Imprimer (gris clair) */}
-      <Button
-        variant="ghost"
-        size="sm"
-        className="h-8 w-8 p-0 text-gray-600 hover:bg-gray-50 hover:text-gray-700 transition-colors"
         onClick={handlePrint}
+        className="h-8 w-8 p-0 hover:bg-blue-100"
         title="Imprimer"
       >
-        <Printer className="h-4 w-4" />
+        <Printer className="h-4 w-4 text-blue-600" />
+      </Button>
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={handleTicket}
+        className="h-8 w-8 p-0 hover:bg-green-100"
+        title="Ticket"
+      >
+        <Ticket className="h-4 w-4 text-green-600" />
       </Button>
     </div>
   );
