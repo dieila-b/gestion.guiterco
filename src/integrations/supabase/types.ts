@@ -2194,6 +2194,15 @@ export type Database = {
       }
     }
     Functions: {
+      debug_auth_info: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          current_user_id: string
+          current_email: string
+          is_authenticated: boolean
+          is_internal_active: boolean
+        }[]
+      }
       generate_bon_commande_number: {
         Args: Record<PropertyKey, never>
         Returns: string
