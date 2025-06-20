@@ -3,7 +3,7 @@ import React from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Bug, RefreshCw } from 'lucide-react';
+import { Bug, RefreshCw, Database } from 'lucide-react';
 import { formatCurrency } from '@/lib/currency';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
@@ -100,6 +100,40 @@ const ArticleMarginTable = ({ articles, isLoading }: ArticleMarginTableProps) =>
     }
   };
 
+  const handleForceRefreshView = async () => {
+    try {
+      console.log('🔄 Forçage du recalcul de la vue marges...');
+      
+      // Appeler la nouvelle fonction de rafraîchissement
+      const { error } = await supabase.rpc('refresh_marges_view');
+      
+      if (error) {
+        console.error('❌ Erreur lors du recalcul de la vue:', error);
+        toast({
+          title: "Erreur de recalcul",
+          description: "Impossible de forcer le recalcul de la vue",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Invalider le cache après le recalcul
+      await queryClient.invalidateQueries({ queryKey: ['articles-with-margins'] });
+      
+      toast({
+        title: "Vue recalculée",
+        description: "La vue des marges a été forcée à se recalculer. Les données sont maintenant à jour.",
+      });
+    } catch (error) {
+      console.error('❌ Erreur lors du recalcul forcé:', error);
+      toast({
+        title: "Erreur",
+        description: "Une erreur est survenue lors du recalcul forcé",
+        variant: "destructive",
+      });
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="rounded-md border">
@@ -122,6 +156,15 @@ const ArticleMarginTable = ({ articles, isLoading }: ArticleMarginTableProps) =>
         >
           <RefreshCw className="h-4 w-4" />
           Rafraîchir
+        </Button>
+        <Button 
+          variant="outline" 
+          size="sm" 
+          onClick={handleForceRefreshView}
+          className="flex items-center gap-2"
+        >
+          <Database className="h-4 w-4" />
+          Recalculer Vue
         </Button>
         <Button 
           variant="outline" 
@@ -161,7 +204,7 @@ const ArticleMarginTable = ({ articles, isLoading }: ArticleMarginTableProps) =>
                 
                 // Utiliser directement le champ frais_bon_commande de la vue
                 const fraisBonCommande = article.frais_bon_commande || 0;
-                console.log(`Article ${article.nom}: frais_bon_commande =`, fraisBonCommande);
+                console.log(`📊 Article ${article.nom}: frais_bon_commande = ${fraisBonCommande} GNF`);
                 
                 const fraisTotal = fraisDirects + fraisBonCommande;
 
@@ -178,7 +221,7 @@ const ArticleMarginTable = ({ articles, isLoading }: ArticleMarginTableProps) =>
                       </span>
                     </TableCell>
                     <TableCell className="text-right">
-                      <span className={fraisBonCommande > 0 ? 'text-purple-600 font-medium' : 'text-gray-500'}>
+                      <span className={fraisBonCommande > 0 ? 'text-purple-600 font-bold' : 'text-gray-500'}>
                         {formatCurrency(fraisBonCommande)}
                       </span>
                     </TableCell>
@@ -221,7 +264,8 @@ const ArticleMarginTable = ({ articles, isLoading }: ArticleMarginTableProps) =>
           <p><strong>Frais BC*</strong> = Frais issus des Bons de Commande (répartis proportionnellement par montant de ligne)</p>
           <p><strong>Frais Total</strong> = Frais Direct + Frais BC</p>
           <p>Utilisez le bouton "Debug Frais BC" pour analyser les calculs en détail dans la console.</p>
-          <p>Le bouton "Rafraîchir" recharge les données depuis la base de données.</p>
+          <p>Le bouton "Rafraîchir" recharge les données depuis le cache.</p>
+          <p>Le bouton "Recalculer Vue" force le recalcul complet de la vue des marges.</p>
         </div>
       </div>
     </div>

@@ -2447,6 +2447,10 @@ export type Database = {
         Args: { user_id: string }
         Returns: boolean
       }
+      refresh_marges_view: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
       update_stock_pdv: {
         Args: {
           p_article_id: string
