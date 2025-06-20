@@ -52,8 +52,8 @@ const CreateProductForm = ({
   onFormDataChange, 
   onCancel 
 }: CreateProductFormProps) => {
-  const { categories } = useCategories();
-  const { unites } = useUnites();
+  const { data: categories } = useCategories();
+  const { data: unites } = useUnites();
 
   // Calculs de marge en temps réel
   const prixAchat = parseFloat(formData.prix_achat) || 0;
@@ -155,7 +155,7 @@ const CreateProductForm = ({
               <SelectContent>
                 {unites?.map((unite) => (
                   <SelectItem key={unite.id} value={unite.id}>
-                    {unite.nom} ({unite.abreviation})
+                    {unite.nom} ({unite.symbole})
                   </SelectItem>
                 ))}
               </SelectContent>

@@ -15,12 +15,13 @@ const CreateProductDialog = () => {
     resetForm();
   };
 
-  const handleFormSubmit = async (e: React.FormEvent) => {
-    const success = await handleSubmit(e);
+  const handleFormSubmit = async (data: any) => {
+    // Create a fake event for the existing handleSubmit function
+    const fakeEvent = { preventDefault: () => {} } as React.FormEvent;
+    const success = await handleSubmit(fakeEvent);
     if (success) {
       handleClose();
     }
-    return success;
   };
 
   return (

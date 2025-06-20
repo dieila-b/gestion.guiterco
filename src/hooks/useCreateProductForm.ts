@@ -9,6 +9,10 @@ interface FormData {
   description: string;
   prix_achat: string;
   prix_vente: string;
+  frais_logistique: string;
+  frais_douane: string;
+  frais_transport: string;
+  autres_frais: string;
   categorie_id: string;
   unite_id: string;
   seuil_alerte: string;
@@ -20,6 +24,10 @@ const initialFormData: FormData = {
   description: '',
   prix_achat: '',
   prix_vente: '',
+  frais_logistique: '',
+  frais_douane: '',
+  frais_transport: '',
+  autres_frais: '',
   categorie_id: '',
   unite_id: '',
   seuil_alerte: '10',
@@ -68,6 +76,35 @@ export const useCreateProductForm = () => {
         const prixVente = parseFloat(formData.prix_vente);
         if (!isNaN(prixVente) && prixVente >= 0) {
           insertData.prix_vente = prixVente;
+        }
+      }
+
+      // Ajouter les frais seulement s'ils sont renseignés et valides
+      if (formData.frais_logistique && formData.frais_logistique.trim() !== '') {
+        const fraisLogistique = parseFloat(formData.frais_logistique);
+        if (!isNaN(fraisLogistique) && fraisLogistique >= 0) {
+          insertData.frais_logistique = fraisLogistique;
+        }
+      }
+
+      if (formData.frais_douane && formData.frais_douane.trim() !== '') {
+        const fraisDouane = parseFloat(formData.frais_douane);
+        if (!isNaN(fraisDouane) && fraisDouane >= 0) {
+          insertData.frais_douane = fraisDouane;
+        }
+      }
+
+      if (formData.frais_transport && formData.frais_transport.trim() !== '') {
+        const fraisTransport = parseFloat(formData.frais_transport);
+        if (!isNaN(fraisTransport) && fraisTransport >= 0) {
+          insertData.frais_transport = fraisTransport;
+        }
+      }
+
+      if (formData.autres_frais && formData.autres_frais.trim() !== '') {
+        const autresFrais = parseFloat(formData.autres_frais);
+        if (!isNaN(autresFrais) && autresFrais >= 0) {
+          insertData.autres_frais = autresFrais;
         }
       }
 
