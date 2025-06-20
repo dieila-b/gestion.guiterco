@@ -148,21 +148,21 @@ export const MultipleDestinationApprovalDialog = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto bg-gray-800 border-gray-700">
+      <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto bg-white border-gray-200">
         <DialogHeader>
-          <DialogTitle className="text-white">
+          <DialogTitle className="text-gray-900">
             Approuver le bon de livraison {bonLivraison?.numero_bon}
           </DialogTitle>
         </DialogHeader>
 
         <div className="space-y-6">
           {/* Option destinations multiples */}
-          <Card className="bg-gray-700 border-gray-600">
+          <Card className="bg-gray-50 border-gray-200">
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
-                <CardTitle className="text-white text-lg">Configuration des destinations</CardTitle>
+                <CardTitle className="text-gray-900 text-lg">Configuration des destinations</CardTitle>
                 <div className="flex items-center space-x-2">
-                  <Label className="text-gray-300">Destinations multiples</Label>
+                  <Label className="text-gray-700">Destinations multiples</Label>
                   <Switch
                     checked={useMultipleDestinations}
                     onCheckedChange={setUseMultipleDestinations}
@@ -176,10 +176,10 @@ export const MultipleDestinationApprovalDialog = ({
           {/* Configuration des destinations */}
           <div className="space-y-4">
             {destinations.map((destination, index) => (
-              <Card key={destination.id} className="bg-gray-700 border-gray-600">
+              <Card key={destination.id} className="bg-gray-50 border-gray-200">
                 <CardHeader className="pb-3">
                   <div className="flex items-center justify-between">
-                    <CardTitle className="text-white">
+                    <CardTitle className="text-gray-900">
                       Destination {index + 1}
                     </CardTitle>
                     {useMultipleDestinations && destinations.length > 1 && (
@@ -197,7 +197,7 @@ export const MultipleDestinationApprovalDialog = ({
                 <CardContent className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <Label className="text-gray-300">Type de destination</Label>
+                      <Label className="text-gray-700 font-medium">Type de destination</Label>
                       <Select 
                         value={destination.type} 
                         onValueChange={(value: 'entrepot' | 'point_vente') => 
@@ -205,18 +205,22 @@ export const MultipleDestinationApprovalDialog = ({
                         }
                         disabled={isApproving}
                       >
-                        <SelectTrigger className="bg-gray-600 border-gray-500 text-white">
+                        <SelectTrigger className="bg-white border-gray-300 text-gray-900 focus:border-blue-500 focus:ring-blue-500">
                           <SelectValue />
                         </SelectTrigger>
-                        <SelectContent className="bg-gray-700 border-gray-600">
-                          <SelectItem value="entrepot">Entrepôt</SelectItem>
-                          <SelectItem value="point_vente">Point de vente</SelectItem>
+                        <SelectContent className="bg-white border-gray-200 shadow-lg">
+                          <SelectItem value="entrepot" className="text-gray-900 hover:bg-blue-50 focus:bg-blue-50">
+                            Entrepôt
+                          </SelectItem>
+                          <SelectItem value="point_vente" className="text-gray-900 hover:bg-blue-50 focus:bg-blue-50">
+                            Point de vente
+                          </SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
 
                     <div>
-                      <Label className="text-gray-300">
+                      <Label className="text-gray-700 font-medium">
                         {destination.type === 'entrepot' ? 'Entrepôt' : 'Point de vente'}
                       </Label>
                       <Select 
@@ -226,18 +230,26 @@ export const MultipleDestinationApprovalDialog = ({
                         }
                         disabled={isApproving}
                       >
-                        <SelectTrigger className="bg-gray-600 border-gray-500 text-white">
+                        <SelectTrigger className="bg-white border-gray-300 text-gray-900 focus:border-blue-500 focus:ring-blue-500">
                           <SelectValue placeholder="Sélectionner..." />
                         </SelectTrigger>
-                        <SelectContent className="bg-gray-700 border-gray-600">
+                        <SelectContent className="bg-white border-gray-200 shadow-lg">
                           {destination.type === 'entrepot' 
                             ? entrepots?.map(entrepot => (
-                                <SelectItem key={entrepot.id} value={entrepot.id}>
+                                <SelectItem 
+                                  key={entrepot.id} 
+                                  value={entrepot.id}
+                                  className="text-gray-900 hover:bg-blue-50 focus:bg-blue-50"
+                                >
                                   {entrepot.nom}
                                 </SelectItem>
                               ))
                             : pointsDeVente?.map(pdv => (
-                                <SelectItem key={pdv.id} value={pdv.id}>
+                                <SelectItem 
+                                  key={pdv.id} 
+                                  value={pdv.id}
+                                  className="text-gray-900 hover:bg-blue-50 focus:bg-blue-50"
+                                >
                                   {pdv.nom}
                                 </SelectItem>
                               ))
@@ -250,15 +262,15 @@ export const MultipleDestinationApprovalDialog = ({
                   {/* Répartition des articles pour cette destination */}
                   {useMultipleDestinations && (
                     <div>
-                      <Label className="text-gray-300 text-sm font-semibold">
+                      <Label className="text-gray-700 text-sm font-semibold">
                         Répartition des articles
                       </Label>
                       <div className="space-y-2 mt-2">
                         {articles?.map(article => (
-                          <div key={article.id} className="flex items-center justify-between bg-gray-600 p-3 rounded">
+                          <div key={article.id} className="flex items-center justify-between bg-white border border-gray-200 p-3 rounded">
                             <div className="flex-1">
-                              <p className="text-white text-sm">{article.catalogue?.nom}</p>
-                              <p className="text-gray-400 text-xs">
+                              <p className="text-gray-900 text-sm font-medium">{article.catalogue?.nom}</p>
+                              <p className="text-gray-600 text-xs">
                                 Disponible: {getAvailableQuantityForArticle(article.id)} / {article.quantite_commandee}
                               </p>
                             </div>
@@ -273,7 +285,7 @@ export const MultipleDestinationApprovalDialog = ({
                                   article.id, 
                                   parseInt(e.target.value) || 0
                                 )}
-                                className="bg-gray-500 border-gray-400 text-white text-sm"
+                                className="bg-white border-gray-300 text-gray-900 text-sm focus:border-blue-500 focus:ring-blue-500"
                                 disabled={isApproving}
                               />
                             </div>
@@ -291,7 +303,7 @@ export const MultipleDestinationApprovalDialog = ({
                 variant="outline"
                 onClick={addDestination}
                 disabled={isApproving}
-                className="w-full border-gray-600 text-gray-300 hover:bg-gray-700"
+                className="w-full border-gray-300 text-gray-700 hover:bg-gray-50 hover:text-gray-900"
               >
                 <Plus className="mr-2 h-4 w-4" />
                 Ajouter une destination
@@ -302,22 +314,22 @@ export const MultipleDestinationApprovalDialog = ({
           {/* Liste des articles (mode simple uniquement) */}
           {!useMultipleDestinations && (
             <div>
-              <Label className="text-gray-300 text-lg font-semibold">Articles à réceptionner</Label>
+              <Label className="text-gray-900 text-lg font-semibold">Articles à réceptionner</Label>
               <div className="space-y-3 mt-3">
                 {articles?.map(article => (
-                  <Card key={article.id} className="bg-gray-700 border-gray-600">
+                  <Card key={article.id} className="bg-gray-50 border-gray-200">
                     <CardContent className="p-4">
                       <div className="grid grid-cols-1 md:grid-cols-5 gap-4 items-center">
                         <div className="col-span-2">
-                          <p className="text-white font-medium">{article.catalogue?.nom || 'Article inconnu'}</p>
-                          <p className="text-gray-400 text-sm">Réf: {article.catalogue?.reference || 'N/A'}</p>
+                          <p className="text-gray-900 font-medium">{article.catalogue?.nom || 'Article inconnu'}</p>
+                          <p className="text-gray-600 text-sm">Réf: {article.catalogue?.reference || 'N/A'}</p>
                         </div>
                         <div className="text-center">
-                          <p className="text-gray-300 text-sm">Commandé</p>
-                          <p className="text-white font-semibold">{article.quantite_commandee}</p>
+                          <p className="text-gray-700 text-sm">Commandé</p>
+                          <p className="text-gray-900 font-semibold">{article.quantite_commandee}</p>
                         </div>
                         <div>
-                          <Label className="text-gray-300 text-sm">Quantité reçue</Label>
+                          <Label className="text-gray-700 text-sm">Quantité reçue</Label>
                           <Input
                             type="number"
                             min="0"
@@ -328,13 +340,13 @@ export const MultipleDestinationApprovalDialog = ({
                               article.id, 
                               parseInt(e.target.value) || 0
                             )}
-                            className="bg-gray-600 border-gray-500 text-white"
+                            className="bg-white border-gray-300 text-gray-900 focus:border-blue-500 focus:ring-blue-500"
                             disabled={isApproving}
                           />
                         </div>
                         <div className="text-right">
-                          <p className="text-gray-300 text-sm">Montant</p>
-                          <p className="text-white font-semibold">
+                          <p className="text-gray-700 text-sm">Montant</p>
+                          <p className="text-gray-900 font-semibold">
                             {formatCurrency(article.montant_ligne)}
                           </p>
                         </div>
@@ -350,7 +362,7 @@ export const MultipleDestinationApprovalDialog = ({
             <Button
               variant="outline"
               onClick={() => onOpenChange(false)}
-              className="border-gray-600 text-gray-300 hover:bg-gray-700"
+              className="border-gray-300 text-gray-700 hover:bg-gray-50 hover:text-gray-900"
               disabled={isApproving}
             >
               Annuler

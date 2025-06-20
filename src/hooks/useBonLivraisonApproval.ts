@@ -19,7 +19,28 @@ export const useBonLivraisonApproval = () => {
     mutationFn: async ({ bonLivraisonId, approvalData }: { bonLivraisonId: string; approvalData: ApprovalData }) => {
       console.log('🔄 Début de l\'approbation du bon de livraison:', bonLivraisonId, approvalData);
 
-      // 1. Mettre à jour les quantités reçues pour chaque article
+      // 1. Récupérer les articles du bon de livraison avec leurs IDs du catalogue
+      const { data: articlesData, error: articlesError } = await supabase
+        .from('articles_bon_livraison')
+        .select(`
+          id,
+          article_id,
+          quantite_commandee,
+          prix_unitaire,
+          catalogue:article_id (
+            id,
+            nom,
+            reference
+          )
+        `)
+        .eq('bon_livraison_id', bonLivraisonId);
+
+      if (articlesError) {
+        console.error('❌ Erreur lors de la récupération des articles:', articlesError);
+        throw new Error(`Erreur de récupération des articles: ${articlesError.message}`);
+      }
+
+      // 2. Mettre à jour les quantités reçues pour chaque article
       for (const article of approvalData.articles) {
         const { error: updateError } = await supabase
           .from('articles_bon_livraison')
@@ -32,7 +53,7 @@ export const useBonLivraisonApproval = () => {
         }
       }
 
-      // 2. Mettre à jour le bon de livraison avec la destination et le statut
+      // 3. Mettre à jour le bon de livraison avec la destination et le statut
       const updateData: any = {
         statut: 'receptionne',
         date_reception: new Date().toISOString()
@@ -40,10 +61,8 @@ export const useBonLivraisonApproval = () => {
 
       if (approvalData.destinationType === 'entrepot') {
         updateData.entrepot_destination_id = approvalData.destinationId;
-        // Ne pas écraser point_vente_destination_id si c'est une approbation multiple
       } else {
         updateData.point_vente_destination_id = approvalData.destinationId;
-        // Ne pas écraser entrepot_destination_id si c'est une approbation multiple
       }
 
       const { error: bonError } = await supabase
@@ -56,12 +75,20 @@ export const useBonLivraisonApproval = () => {
         throw new Error(`Erreur de mise à jour du bon: ${bonError.message}`);
       }
 
-      // 3. Créer les entrées de stock appropriées
-      for (const article of approvalData.articles) {
-        if (article.quantite_recue > 0) {
+      // 4. Créer les entrées de stock appropriées avec les bons article_id du catalogue
+      for (const approvalArticle of approvalData.articles) {
+        if (approvalArticle.quantite_recue > 0) {
+          // Trouver l'article correspondant dans les données récupérées
+          const articleData = articlesData?.find(a => a.id === approvalArticle.id);
+          
+          if (!articleData || !articleData.article_id) {
+            console.error('❌ Article introuvable ou sans article_id:', approvalArticle.id);
+            continue;
+          }
+
           const entreeData: any = {
-            article_id: article.id,
-            quantite: article.quantite_recue,
+            article_id: articleData.article_id, // Utiliser l'ID du catalogue, pas l'ID de articles_bon_livraison
+            quantite: approvalArticle.quantite_recue,
             type_entree: 'achat-livraison',
             numero_bon: `Approbation-${bonLivraisonId.slice(0, 8)}`,
             fournisseur: 'Réception bon livraison',
@@ -74,6 +101,8 @@ export const useBonLivraisonApproval = () => {
           } else {
             entreeData.point_vente_id = approvalData.destinationId;
           }
+
+          console.log('🔄 Création entrée stock:', entreeData);
 
           const { error: entreeError } = await supabase
             .from('entrees_stock')

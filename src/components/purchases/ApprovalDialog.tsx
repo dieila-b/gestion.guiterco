@@ -75,9 +75,9 @@ export const ApprovalDialog = ({ open, onOpenChange, bonLivraison, onApprove }: 
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto bg-gray-800 border-gray-700">
+      <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto bg-white border-gray-200">
         <DialogHeader>
-          <DialogTitle className="text-white">
+          <DialogTitle className="text-gray-900">
             Approuver le bon de livraison {bonLivraison?.numero_bon}
           </DialogTitle>
         </DialogHeader>
@@ -86,24 +86,28 @@ export const ApprovalDialog = ({ open, onOpenChange, bonLivraison, onApprove }: 
           {/* Sélection de la destination */}
           <div className="space-y-4">
             <div>
-              <Label className="text-gray-300">Type de destination</Label>
+              <Label className="text-gray-700 font-medium">Type de destination</Label>
               <Select 
                 value={destinationType} 
                 onValueChange={(value: 'entrepot' | 'point_vente') => setDestinationType(value)}
                 disabled={isApproving}
               >
-                <SelectTrigger className="bg-gray-700 border-gray-600 text-white">
+                <SelectTrigger className="bg-white border-gray-300 text-gray-900 focus:border-blue-500 focus:ring-blue-500">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent className="bg-gray-700 border-gray-600">
-                  <SelectItem value="entrepot">Entrepôt</SelectItem>
-                  <SelectItem value="point_vente">Point de vente</SelectItem>
+                <SelectContent className="bg-white border-gray-200 shadow-lg">
+                  <SelectItem value="entrepot" className="text-gray-900 hover:bg-blue-50 focus:bg-blue-50">
+                    Entrepôt
+                  </SelectItem>
+                  <SelectItem value="point_vente" className="text-gray-900 hover:bg-blue-50 focus:bg-blue-50">
+                    Point de vente
+                  </SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
             <div>
-              <Label className="text-gray-300">
+              <Label className="text-gray-700 font-medium">
                 {destinationType === 'entrepot' ? 'Entrepôt' : 'Point de vente'} de destination
               </Label>
               <Select 
@@ -111,18 +115,26 @@ export const ApprovalDialog = ({ open, onOpenChange, bonLivraison, onApprove }: 
                 onValueChange={setDestinationId}
                 disabled={isApproving}
               >
-                <SelectTrigger className="bg-gray-700 border-gray-600 text-white">
+                <SelectTrigger className="bg-white border-gray-300 text-gray-900 focus:border-blue-500 focus:ring-blue-500">
                   <SelectValue placeholder="Sélectionner..." />
                 </SelectTrigger>
-                <SelectContent className="bg-gray-700 border-gray-600">
+                <SelectContent className="bg-white border-gray-200 shadow-lg">
                   {destinationType === 'entrepot' 
                     ? entrepots?.map(entrepot => (
-                        <SelectItem key={entrepot.id} value={entrepot.id}>
+                        <SelectItem 
+                          key={entrepot.id} 
+                          value={entrepot.id}
+                          className="text-gray-900 hover:bg-blue-50 focus:bg-blue-50"
+                        >
                           {entrepot.nom}
                         </SelectItem>
                       ))
                     : pointsDeVente?.map(pdv => (
-                        <SelectItem key={pdv.id} value={pdv.id}>
+                        <SelectItem 
+                          key={pdv.id} 
+                          value={pdv.id}
+                          className="text-gray-900 hover:bg-blue-50 focus:bg-blue-50"
+                        >
                           {pdv.nom}
                         </SelectItem>
                       ))
@@ -134,35 +146,35 @@ export const ApprovalDialog = ({ open, onOpenChange, bonLivraison, onApprove }: 
 
           {/* Liste des articles */}
           <div>
-            <Label className="text-gray-300 text-lg font-semibold">Articles à réceptionner</Label>
+            <Label className="text-gray-900 text-lg font-semibold">Articles à réceptionner</Label>
             <div className="space-y-3 mt-3">
               {articles?.map(article => (
-                <Card key={article.id} className="bg-gray-700 border-gray-600">
+                <Card key={article.id} className="bg-gray-50 border-gray-200">
                   <CardContent className="p-4">
                     <div className="grid grid-cols-1 md:grid-cols-5 gap-4 items-center">
                       <div className="col-span-2">
-                        <p className="text-white font-medium">{article.catalogue?.nom || 'Article inconnu'}</p>
-                        <p className="text-gray-400 text-sm">Réf: {article.catalogue?.reference || 'N/A'}</p>
+                        <p className="text-gray-900 font-medium">{article.catalogue?.nom || 'Article inconnu'}</p>
+                        <p className="text-gray-600 text-sm">Réf: {article.catalogue?.reference || 'N/A'}</p>
                       </div>
                       <div className="text-center">
-                        <p className="text-gray-300 text-sm">Commandé</p>
-                        <p className="text-white font-semibold">{article.quantite_commandee}</p>
+                        <p className="text-gray-700 text-sm">Commandé</p>
+                        <p className="text-gray-900 font-semibold">{article.quantite_commandee}</p>
                       </div>
                       <div>
-                        <Label className="text-gray-300 text-sm">Quantité reçue</Label>
+                        <Label className="text-gray-700 text-sm">Quantité reçue</Label>
                         <Input
                           type="number"
                           min="0"
                           max={article.quantite_commandee}
                           defaultValue={article.quantite_commandee}
                           onChange={(e) => handleQuantiteChange(article.id, parseInt(e.target.value) || 0)}
-                          className="bg-gray-600 border-gray-500 text-white"
+                          className="bg-white border-gray-300 text-gray-900 focus:border-blue-500 focus:ring-blue-500"
                           disabled={isApproving}
                         />
                       </div>
                       <div className="text-right">
-                        <p className="text-gray-300 text-sm">Montant</p>
-                        <p className="text-white font-semibold">
+                        <p className="text-gray-700 text-sm">Montant</p>
+                        <p className="text-gray-900 font-semibold">
                           {formatCurrency(article.montant_ligne)}
                         </p>
                       </div>
@@ -177,7 +189,7 @@ export const ApprovalDialog = ({ open, onOpenChange, bonLivraison, onApprove }: 
             <Button
               variant="outline"
               onClick={() => onOpenChange(false)}
-              className="border-gray-600 text-gray-300 hover:bg-gray-700"
+              className="border-gray-300 text-gray-700 hover:bg-gray-50 hover:text-gray-900"
               disabled={isApproving}
             >
               Annuler
