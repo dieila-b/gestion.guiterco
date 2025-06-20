@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
+import CreatePrecommandeForm from './CreatePrecommandeForm';
 
 interface CreatePrecommandeDialogProps {
   open: boolean;
@@ -9,23 +9,22 @@ interface CreatePrecommandeDialogProps {
 }
 
 const CreatePrecommandeDialog = ({ open, onClose }: CreatePrecommandeDialogProps) => {
+  const handleSuccess = () => {
+    onClose();
+    // Le formulaire gère déjà le toast de succès et les rafraîchissements
+  };
+
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent>
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Créer une nouvelle précommande</DialogTitle>
         </DialogHeader>
-        <div className="p-4">
-          <p className="text-muted-foreground mb-4">
-            La fonctionnalité de création de précommandes sera bientôt disponible.
-          </p>
-          <Button onClick={onClose} className="w-full">
-            Fermer
-          </Button>
-        </div>
+        <CreatePrecommandeForm onSuccess={handleSuccess} onCancel={onClose} />
       </DialogContent>
     </Dialog>
   );
 };
 
 export default CreatePrecommandeDialog;
+

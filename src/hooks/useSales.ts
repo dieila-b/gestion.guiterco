@@ -16,3 +16,5 @@ export * from './precommandes/usePrecommandesComplete';
 export * from './precommandes/useNotificationsPrecommandes';
 export * from './precommandes/usePrecommandeMutations';
 export * from './precommandes/useStockDisponibilite';
+export * from './precommandes/useCreatePrecommande';
+
