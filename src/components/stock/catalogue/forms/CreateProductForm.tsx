@@ -1,274 +1,324 @@
 
 import React from 'react';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
-import { Package, DollarSign, Truck } from 'lucide-react';
+import { Calculator, Package, Euro, Truck, Shield, Plane, Plus } from 'lucide-react';
+import { useCategories } from '@/hooks/useCategories';
+import { useUnites } from '@/hooks/useUnites';
+import { formatCurrency } from '@/lib/currency';
 
-const createProductSchema = z.object({
-  nom: z.string().min(1, 'Le nom est requis'),
-  reference: z.string().optional(),
-  description: z.string().optional(),
-  prix_achat: z.coerce.number().min(0, 'Le prix d\'achat doit être positif').optional(),
-  prix_vente: z.coerce.number().min(0, 'Le prix de vente doit être positif').optional(),
-  frais_logistique: z.coerce.number().min(0, 'Les frais de logistique doivent être positifs').optional(),
-  frais_douane: z.coerce.number().min(0, 'Les frais de douane doivent être positifs').optional(),
-  frais_transport: z.coerce.number().min(0, 'Les frais de transport doivent être positifs').optional(),
-  autres_frais: z.coerce.number().min(0, 'Les autres frais doivent être positifs').optional(),
-  seuil_alerte: z.coerce.number().min(0, 'Le seuil d\'alerte doit être positif').optional(),
-});
-
-type CreateProductFormValues = z.infer<typeof createProductSchema>;
-
-interface CreateProductFormProps {
-  onSubmit: (data: CreateProductFormValues) => void;
-  isLoading: boolean;
+interface FormData {
+  nom: string;
+  description: string;
+  prix_achat: string;
+  prix_vente: string;
+  frais_logistique: string;
+  frais_douane: string;
+  frais_transport: string;
+  autres_frais: string;
+  categorie_id: string;
+  unite_id: string;
+  seuil_alerte: string;
+  image_url: string;
 }
 
-const CreateProductForm = ({ onSubmit, isLoading }: CreateProductFormProps) => {
-  const form = useForm<CreateProductFormValues>({
-    resolver: zodResolver(createProductSchema),
-    defaultValues: {
-      nom: '',
-      reference: '',
-      description: '',
-      prix_achat: 0,
-      prix_vente: 0,
-      frais_logistique: 0,
-      frais_douane: 0,
-      frais_transport: 0,
-      autres_frais: 0,
-      seuil_alerte: 10,
-    },
-  });
+interface CreateProductFormProps {
+  formData: FormData;
+  loading: boolean;
+  onSubmit: (data: {
+    nom?: string;
+    reference?: string;
+    description?: string;
+    prix_achat?: number;
+    prix_vente?: number;
+    frais_logistique?: number;
+    frais_douane?: number;
+    frais_transport?: number;
+    autres_frais?: number;
+    seuil_alerte?: number;
+  }) => void;
+  onFormDataChange: (updates: Partial<FormData>) => void;
+  onCancel: () => void;
+}
 
-  const prixAchat = form.watch('prix_achat') || 0;
-  const fraisLogistique = form.watch('frais_logistique') || 0;
-  const fraisDouane = form.watch('frais_douane') || 0;
-  const fraisTransport = form.watch('frais_transport') || 0;
-  const autresFrais = form.watch('autres_frais') || 0;
-  const prixVente = form.watch('prix_vente') || 0;
+const CreateProductForm = ({ 
+  formData, 
+  loading, 
+  onSubmit, 
+  onFormDataChange, 
+  onCancel 
+}: CreateProductFormProps) => {
+  const { categories } = useCategories();
+  const { unites } = useUnites();
 
+  // Calculs de marge en temps réel
+  const prixAchat = parseFloat(formData.prix_achat) || 0;
+  const fraisLogistique = parseFloat(formData.frais_logistique) || 0;
+  const fraisDouane = parseFloat(formData.frais_douane) || 0;
+  const fraisTransport = parseFloat(formData.frais_transport) || 0;
+  const autresFrais = parseFloat(formData.autres_frais) || 0;
   const coutTotal = prixAchat + fraisLogistique + fraisDouane + fraisTransport + autresFrais;
-  const margeUnitaire = prixVente - coutTotal;
-  const tauxMarge = coutTotal > 0 ? (margeUnitaire / coutTotal) * 100 : 0;
+  const prixVente = parseFloat(formData.prix_vente) || 0;
+  const marge = prixVente - coutTotal;
+  const tauxMarge = coutTotal > 0 ? (marge / coutTotal) * 100 : 0;
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    const submitData = {
+      nom: formData.nom,
+      description: formData.description,
+      prix_achat: prixAchat || undefined,
+      prix_vente: prixVente || undefined,
+      frais_logistique: fraisLogistique || undefined,
+      frais_douane: fraisDouane || undefined,
+      frais_transport: fraisTransport || undefined,
+      autres_frais: autresFrais || undefined,
+      seuil_alerte: parseInt(formData.seuil_alerte) || undefined,
+    };
+    
+    onSubmit(submitData);
+  };
 
   return (
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-        {/* Informations de base */}
-        <div className="space-y-4">
-          <div className="flex items-center gap-2">
-            <Package className="h-4 w-4" />
-            <h3 className="text-sm font-medium">Informations de base</h3>
+    <form onSubmit={handleSubmit} className="space-y-6">
+      {/* Informations de base */}
+      <div className="space-y-4">
+        <div className="flex items-center gap-2">
+          <Package className="h-4 w-4" />
+          <h3 className="font-medium">Informations produit</h3>
+        </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <Label htmlFor="nom">Nom du produit *</Label>
+            <Input
+              id="nom"
+              value={formData.nom}
+              onChange={(e) => onFormDataChange({ nom: e.target.value })}
+              placeholder="Nom du produit"
+              required
+            />
           </div>
           
-          <div className="grid grid-cols-2 gap-4">
-            <FormField
-              control={form.control}
-              name="nom"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Nom du produit</FormLabel>
-                  <FormControl>
-                    <Input {...field} placeholder="Ex: iPhone 15 Pro" />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="reference"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Référence (optionnel)</FormLabel>
-                  <FormControl>
-                    <Input {...field} placeholder="Laissez vide pour génération auto" />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
+          <div>
+            <Label htmlFor="seuil_alerte">Seuil d'alerte</Label>
+            <Input
+              id="seuil_alerte"
+              type="number"
+              value={formData.seuil_alerte}
+              onChange={(e) => onFormDataChange({ seuil_alerte: e.target.value })}
+              placeholder="10"
+              min="0"
             />
           </div>
+        </div>
 
-          <FormField
-            control={form.control}
-            name="description"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Description</FormLabel>
-                <FormControl>
-                  <Textarea {...field} placeholder="Description du produit..." rows={2} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
+        <div>
+          <Label htmlFor="description">Description</Label>
+          <Textarea
+            id="description"
+            value={formData.description}
+            onChange={(e) => onFormDataChange({ description: e.target.value })}
+            placeholder="Description du produit"
+            rows={3}
           />
         </div>
 
-        <Separator />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <Label htmlFor="categorie">Catégorie</Label>
+            <Select value={formData.categorie_id} onValueChange={(value) => onFormDataChange({ categorie_id: value })}>
+              <SelectTrigger>
+                <SelectValue placeholder="Choisir une catégorie" />
+              </SelectTrigger>
+              <SelectContent>
+                {categories?.map((cat) => (
+                  <SelectItem key={cat.id} value={cat.id}>
+                    {cat.nom}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
 
-        {/* Prix et coûts */}
-        <div className="space-y-4">
-          <div className="flex items-center gap-2">
-            <DollarSign className="h-4 w-4" />
-            <h3 className="text-sm font-medium">Structure des coûts</h3>
+          <div>
+            <Label htmlFor="unite">Unité de mesure</Label>
+            <Select value={formData.unite_id} onValueChange={(value) => onFormDataChange({ unite_id: value })}>
+              <SelectTrigger>
+                <SelectValue placeholder="Choisir une unité" />
+              </SelectTrigger>
+              <SelectContent>
+                {unites?.map((unite) => (
+                  <SelectItem key={unite.id} value={unite.id}>
+                    {unite.nom} ({unite.abreviation})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+      </div>
+
+      <Separator />
+
+      {/* Prix et coûts */}
+      <div className="space-y-4">
+        <div className="flex items-center gap-2">
+          <Euro className="h-4 w-4" />
+          <h3 className="font-medium">Prix et coûts</h3>
+        </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <Label htmlFor="prix_achat">Prix d'achat unitaire</Label>
+            <Input
+              id="prix_achat"
+              type="number"
+              step="0.01"
+              min="0"
+              value={formData.prix_achat}
+              onChange={(e) => onFormDataChange({ prix_achat: e.target.value })}
+              placeholder="0.00"
+            />
           </div>
           
-          <div className="grid grid-cols-2 gap-4">
-            <FormField
-              control={form.control}
-              name="prix_achat"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Prix d'achat (GNF)</FormLabel>
-                  <FormControl>
-                    <Input type="number" step="0.01" {...field} placeholder="0" />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="prix_vente"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Prix de vente (GNF)</FormLabel>
-                  <FormControl>
-                    <Input type="number" step="0.01" {...field} placeholder="0" />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
+          <div>
+            <Label htmlFor="prix_vente">Prix de vente unitaire</Label>
+            <Input
+              id="prix_vente"
+              type="number"
+              step="0.01"
+              min="0"
+              value={formData.prix_vente}
+              onChange={(e) => onFormDataChange({ prix_vente: e.target.value })}
+              placeholder="0.00"
             />
           </div>
         </div>
+      </div>
 
-        <Separator />
+      <Separator />
 
-        {/* Frais additionnels */}
-        <div className="space-y-4">
-          <div className="flex items-center gap-2">
-            <Truck className="h-4 w-4" />
-            <h3 className="text-sm font-medium">Frais additionnels</h3>
+      {/* Frais additionnels */}
+      <div className="space-y-4">
+        <div className="flex items-center gap-2">
+          <Truck className="h-4 w-4" />
+          <h3 className="font-medium">Frais additionnels</h3>
+        </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <Label htmlFor="frais_logistique" className="flex items-center gap-2">
+              <Package className="h-3 w-3" />
+              Frais logistique
+            </Label>
+            <Input
+              id="frais_logistique"
+              type="number"
+              step="0.01"
+              min="0"
+              value={formData.frais_logistique}
+              onChange={(e) => onFormDataChange({ frais_logistique: e.target.value })}
+              placeholder="0.00"
+            />
           </div>
           
-          <div className="grid grid-cols-2 gap-4">
-            <FormField
-              control={form.control}
-              name="frais_logistique"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Frais de logistique (GNF)</FormLabel>
-                  <FormControl>
-                    <Input type="number" step="0.01" {...field} placeholder="0" />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
+          <div>
+            <Label htmlFor="frais_douane" className="flex items-center gap-2">
+              <Shield className="h-3 w-3" />
+              Frais de douane
+            </Label>
+            <Input
+              id="frais_douane"
+              type="number"
+              step="0.01"
+              min="0"
+              value={formData.frais_douane}
+              onChange={(e) => onFormDataChange({ frais_douane: e.target.value })}
+              placeholder="0.00"
             />
-
-            <FormField
-              control={form.control}
-              name="frais_douane"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Frais de douane (GNF)</FormLabel>
-                  <FormControl>
-                    <Input type="number" step="0.01" {...field} placeholder="0" />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
+          </div>
+          
+          <div>
+            <Label htmlFor="frais_transport" className="flex items-center gap-2">
+              <Plane className="h-3 w-3" />
+              Frais de transport
+            </Label>
+            <Input
+              id="frais_transport"
+              type="number"
+              step="0.01"
+              min="0"
+              value={formData.frais_transport}
+              onChange={(e) => onFormDataChange({ frais_transport: e.target.value })}
+              placeholder="0.00"
             />
-
-            <FormField
-              control={form.control}
-              name="frais_transport"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Frais de transport (GNF)</FormLabel>
-                  <FormControl>
-                    <Input type="number" step="0.01" {...field} placeholder="0" />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="autres_frais"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Autres frais (GNF)</FormLabel>
-                  <FormControl>
-                    <Input type="number" step="0.01" {...field} placeholder="0" />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
+          </div>
+          
+          <div>
+            <Label htmlFor="autres_frais" className="flex items-center gap-2">
+              <Plus className="h-3 w-3" />
+              Autres frais
+            </Label>
+            <Input
+              id="autres_frais"
+              type="number"
+              step="0.01"
+              min="0"
+              value={formData.autres_frais}
+              onChange={(e) => onFormDataChange({ autres_frais: e.target.value })}
+              placeholder="0.00"
             />
           </div>
         </div>
+      </div>
 
-        <Separator />
+      <Separator />
 
-        {/* Calculs de marge */}
-        <div className="bg-muted/50 p-4 rounded-lg space-y-2">
-          <h3 className="text-sm font-medium">Calculs automatiques</h3>
-          <div className="grid grid-cols-3 gap-4 text-sm">
-            <div>
-              <span className="text-muted-foreground">Coût total unitaire:</span>
-              <p className="font-medium">{coutTotal.toLocaleString()} GNF</p>
-            </div>
-            <div>
-              <span className="text-muted-foreground">Marge unitaire:</span>
-              <p className={`font-medium ${margeUnitaire >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                {margeUnitaire.toLocaleString()} GNF
-              </p>
-            </div>
-            <div>
-              <span className="text-muted-foreground">Taux de marge:</span>
-              <p className={`font-medium ${tauxMarge >= 20 ? 'text-green-600' : tauxMarge >= 10 ? 'text-yellow-600' : 'text-red-600'}`}>
-                {tauxMarge.toFixed(1)}%
-              </p>
-            </div>
+      {/* Calculs de marge */}
+      <div className="space-y-4">
+        <div className="flex items-center gap-2">
+          <Calculator className="h-4 w-4" />
+          <h3 className="font-medium">Calculs de marge</h3>
+        </div>
+        
+        <div className="bg-gray-50 p-4 rounded-lg space-y-2">
+          <div className="flex justify-between">
+            <span>Coût total unitaire :</span>
+            <span className="font-medium">{formatCurrency(coutTotal)}</span>
+          </div>
+          <div className="flex justify-between">
+            <span>Marge unitaire :</span>
+            <span className={`font-medium ${marge >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+              {formatCurrency(marge)}
+            </span>
+          </div>
+          <div className="flex justify-between">
+            <span>Taux de marge :</span>
+            <span className={`font-medium ${tauxMarge >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+              {tauxMarge.toFixed(2)}%
+            </span>
           </div>
         </div>
+      </div>
 
-        <Separator />
+      <Separator />
 
-        <FormField
-          control={form.control}
-          name="seuil_alerte"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Seuil d'alerte stock</FormLabel>
-              <FormControl>
-                <Input type="number" {...field} placeholder="10" />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <div className="flex justify-end gap-2">
-          <Button type="submit" disabled={isLoading}>
-            {isLoading ? 'Création...' : 'Créer le produit'}
-          </Button>
-        </div>
-      </form>
-    </Form>
+      {/* Actions */}
+      <div className="flex justify-end gap-2">
+        <Button type="button" variant="outline" onClick={onCancel}>
+          Annuler
+        </Button>
+        <Button type="submit" disabled={loading || !formData.nom}>
+          {loading ? 'Création...' : 'Créer le produit'}
+        </Button>
+      </div>
+    </form>
   );
 };
 

@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { SidebarProvider } from "@/components/ui/sidebar";
-import { AppSidebar } from '@/components/layout/AppSidebar';
+import AppSidebar from '@/components/layout/AppSidebar';
 import { AppHeader } from '@/components/layout/AppHeader';
 import { useIsMobile } from "@/hooks/use-mobile";
 
