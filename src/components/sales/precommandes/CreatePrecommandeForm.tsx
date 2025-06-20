@@ -33,7 +33,7 @@ const CreatePrecommandeForm = ({ onSuccess }: CreatePrecommandeFormProps) => {
   ]);
 
   const createPrecommande = useCreatePrecommande();
-  const { data: articles } = useCatalogue();
+  const { articles } = useCatalogue();
   const { data: clients } = useClientsQuery();
 
   const handleSubmit = async (e: React.FormEvent) => {
