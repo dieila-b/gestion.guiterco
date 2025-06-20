@@ -50,19 +50,11 @@ const ArticleMarginTableActions = ({ isLoading }: ArticleMarginTableActionsProps
         }
       }
 
-      // 2. Vérifier les articles des bons de commande
+      // 2. Vérifier les articles des bons de commande - corriger la jointure
       const { data: articlesBC, error: abcError } = await supabase
         .from('articles_bon_commande')
         .select(`
           *,
-          bons_de_commande!inner(
-            numero_bon,
-            statut,
-            montant_ht,
-            frais_livraison,
-            frais_logistique,
-            transit_douane
-          ),
           catalogue!inner(
             nom,
             reference
@@ -75,37 +67,57 @@ const ArticleMarginTableActions = ({ isLoading }: ArticleMarginTableActionsProps
       } else {
         console.log(`✅ ${articlesBC?.length || 0} lignes d'articles dans les bons de commande`);
         
-        const articlesAvecFraisBC = articlesBC?.filter(abc => {
-          const bc = abc.bons_de_commande;
-          return bc.statut && ['approuve', 'livre', 'receptionne'].includes(bc.statut) &&
-                 bc.montant_ht > 0 &&
-                 ((bc.frais_livraison || 0) > 0 || (bc.frais_logistique || 0) > 0 || (bc.transit_douane || 0) > 0);
-        }) || [];
-        
-        console.log(`💰 ${articlesAvecFraisBC.length} lignes d'articles avec frais BC éligibles`);
-        
-        if (articlesAvecFraisBC.length > 0) {
-          console.log('🔍 Exemples d\'articles avec frais BC:', articlesAvecFraisBC.slice(0, 3).map(abc => ({
-            article: abc.catalogue?.nom,
-            bon: abc.bons_de_commande?.numero_bon,
-            statut_bc: abc.bons_de_commande?.statut,
-            montant_ligne: abc.montant_ligne,
-            montant_ht_bc: abc.bons_de_commande?.montant_ht,
-            frais_bc_total: (abc.bons_de_commande?.frais_livraison || 0) + 
-                           (abc.bons_de_commande?.frais_logistique || 0) + 
-                           (abc.bons_de_commande?.transit_douane || 0),
-            part_theorique: abc.bons_de_commande?.montant_ht > 0 ? 
-              ((abc.bons_de_commande?.frais_livraison || 0) + 
-               (abc.bons_de_commande?.frais_logistique || 0) + 
-               (abc.bons_de_commande?.transit_douane || 0)) * 
-              (abc.montant_ligne / abc.bons_de_commande?.montant_ht) : 0
-          })));
-        } else {
-          console.log('⚠️ PROBLÈME IDENTIFIÉ: Aucune ligne d\'article avec frais BC éligible trouvée !');
-          console.log('🔍 Vérifications nécessaires:');
-          console.log('- Statut des bons de commande (doit être approuve/livre/receptionne)');
-          console.log('- Montant HT > 0 dans les bons de commande');
-          console.log('- Présence de frais (livraison/logistique/transit_douane) > 0');
+        // Récupérer séparément les informations des bons de commande
+        if (articlesBC && articlesBC.length > 0) {
+          const bonIds = [...new Set(articlesBC.map(abc => abc.bon_commande_id).filter(Boolean))];
+          
+          const { data: bonsData, error: bonsError } = await supabase
+            .from('bons_de_commande')
+            .select('*')
+            .in('id', bonIds)
+            .in('statut', ['approuve', 'livre', 'receptionne'])
+            .gt('montant_ht', 0);
+          
+          if (!bonsError && bonsData) {
+            const bonsAvecFrais = bonsData.filter(bc => 
+              (bc.frais_livraison || 0) > 0 || 
+              (bc.frais_logistique || 0) > 0 || 
+              (bc.transit_douane || 0) > 0
+            );
+            
+            console.log(`💰 ${bonsAvecFrais.length} bons de commande avec frais éligibles`);
+            
+            // Calculer les articles avec frais BC théoriques
+            const articlesAvecFraisBC = articlesBC.filter(abc => {
+              const bc = bonsAvecFrais.find(b => b.id === abc.bon_commande_id);
+              return bc && bc.montant_ht > 0;
+            });
+            
+            console.log(`📊 ${articlesAvecFraisBC.length} lignes d'articles avec frais BC éligibles`);
+            
+            if (articlesAvecFraisBC.length > 0) {
+              const exemples = articlesAvecFraisBC.slice(0, 3).map(abc => {
+                const bc = bonsAvecFrais.find(b => b.id === abc.bon_commande_id);
+                const fraisTotalBC = (bc?.frais_livraison || 0) + (bc?.frais_logistique || 0) + (bc?.transit_douane || 0);
+                const partTheorique = bc && bc.montant_ht > 0 ? 
+                  fraisTotalBC * (abc.montant_ligne / bc.montant_ht) : 0;
+                
+                return {
+                  article: abc.catalogue?.nom || 'Article inconnu',
+                  bon: bc?.numero_bon || 'Bon inconnu',
+                  statut_bc: bc?.statut || 'Statut inconnu',
+                  montant_ligne: abc.montant_ligne,
+                  montant_ht_bc: bc?.montant_ht || 0,
+                  frais_bc_total: fraisTotalBC,
+                  part_theorique: partTheorique
+                };
+              });
+              
+              console.log('🔍 Exemples d\'articles avec frais BC théoriques:', exemples);
+            } else {
+              console.log('⚠️ PROBLÈME IDENTIFIÉ: Aucune ligne d\'article avec frais BC éligible trouvée !');
+            }
+          }
         }
       }
 
