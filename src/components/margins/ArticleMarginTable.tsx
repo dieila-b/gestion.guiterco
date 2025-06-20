@@ -24,9 +24,9 @@ const ArticleMarginTable = ({ articles, isLoading }: ArticleMarginTableProps) =>
 
   const handleDebugFrais = async () => {
     try {
-      console.log('🔍 Lancement du debug des frais...');
+      console.log('🔍 Lancement du debug des frais détaillé...');
       
-      const { data, error } = await supabase.rpc('debug_frais_articles');
+      const { data, error } = await supabase.rpc('debug_frais_articles_detaille');
       
       if (error) {
         console.error('❌ Erreur lors du debug des frais:', error);
@@ -38,20 +38,31 @@ const ArticleMarginTable = ({ articles, isLoading }: ArticleMarginTableProps) =>
         return;
       }
 
-      console.log('📊 Données de debug des frais:', data);
+      console.log('📊 Données de debug des frais détaillées:', data);
       
       // Afficher les données dans la console avec un format lisible
       if (data && data.length > 0) {
         console.table(data);
+        
+        // Statistiques utiles
+        const totalArticles = new Set(data.map(d => d.article_id)).size;
+        const articlesAvecFrais = data.filter(d => d.frais_total_bc > 0).length;
+        const fraisTotalCalcule = data.reduce((sum, d) => sum + (d.part_frais || 0), 0);
+        
+        console.log(`📈 Statistiques:`);
+        console.log(`- Articles uniques: ${totalArticles}`);
+        console.log(`- Lignes avec frais BC > 0: ${articlesAvecFrais}`);
+        console.log(`- Total frais répartis: ${fraisTotalCalcule} GNF`);
+        
         toast({
-          title: "Debug des frais",
-          description: `${data.length} enregistrements trouvés. Consultez la console pour les détails.`,
+          title: "Debug des frais réussi",
+          description: `${data.length} enregistrements analysés. ${articlesAvecFrais} avec frais BC. Consultez la console pour les détails.`,
         });
       } else {
         console.log('⚠️ Aucune donnée de frais trouvée');
         toast({
-          title: "Debug des frais",
-          description: "Aucune donnée de frais trouvée dans les bons de commande approuvés",
+          title: "Aucune donnée trouvée",
+          description: "Aucune donnée de frais trouvée. Vérifiez que des bons de commande approuvés existent avec des frais.",
           variant: "destructive",
         });
       }
@@ -86,7 +97,7 @@ const ArticleMarginTable = ({ articles, isLoading }: ArticleMarginTableProps) =>
           className="flex items-center gap-2"
         >
           <Bug className="h-4 w-4" />
-          Debug Frais
+          Debug Frais BC
         </Button>
       </div>
 
@@ -115,7 +126,7 @@ const ArticleMarginTable = ({ articles, isLoading }: ArticleMarginTableProps) =>
                                    (article.frais_transport || 0) + 
                                    (article.autres_frais || 0);
                 
-                // Les frais des bons de commande sont inclus dans cout_total_unitaire
+                // Les frais des bons de commande sont maintenant dans une colonne séparée
                 const fraisBonCommande = article.cout_total_unitaire - (article.prix_achat || 0) - fraisDirects;
                 const fraisTotal = fraisDirects + fraisBonCommande;
 
@@ -170,10 +181,11 @@ const ArticleMarginTable = ({ articles, isLoading }: ArticleMarginTableProps) =>
           </TableBody>
         </Table>
         
-        {/* Légende */}
+        {/* Légende mise à jour */}
         <div className="p-4 bg-muted/20 border-t text-sm text-muted-foreground">
-          <p><strong>Frais BC*</strong> = Frais issus des Bons de Commande (répartis proportionnellement)</p>
+          <p><strong>Frais BC*</strong> = Frais issus des Bons de Commande (répartis proportionnellement par montant de ligne)</p>
           <p><strong>Frais Total</strong> = Frais Direct + Frais BC</p>
+          <p>Utilisez le bouton "Debug Frais BC" pour analyser les calculs en détail dans la console.</p>
         </div>
       </div>
     </div>

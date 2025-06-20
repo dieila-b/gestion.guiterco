@@ -2291,6 +2291,7 @@ export type Database = {
           autres_frais: number | null
           cout_total_unitaire: number | null
           created_at: string | null
+          frais_bon_commande: number | null
           frais_douane: number | null
           frais_logistique: number | null
           frais_transport: number | null
@@ -2346,6 +2347,24 @@ export type Database = {
           quantite: number
           prix_unitaire: number
           montant_ligne: number
+        }[]
+      }
+      debug_frais_articles_detaille: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          article_nom: string
+          article_id: string
+          bon_commande_numero: string
+          bc_statut: string
+          frais_livraison: number
+          frais_logistique: number
+          transit_douane: number
+          montant_ht: number
+          quantite: number
+          prix_unitaire: number
+          montant_ligne: number
+          frais_total_bc: number
+          part_frais: number
         }[]
       }
       generate_bon_commande_number: {

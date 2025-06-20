@@ -9,6 +9,7 @@ export interface ArticleWithMargin {
   frais_douane?: number;
   frais_transport?: number;
   autres_frais?: number;
+  frais_bon_commande?: number; // Ajout du champ pour les frais BC
   cout_total_unitaire: number;
   marge_unitaire: number;
   taux_marge: number;
