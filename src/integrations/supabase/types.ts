@@ -2334,6 +2334,20 @@ export type Database = {
           is_authenticated: boolean
         }[]
       }
+      debug_frais_articles: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          article_nom: string
+          bon_commande_numero: string
+          frais_livraison: number
+          frais_logistique: number
+          transit_douane: number
+          montant_ht: number
+          quantite: number
+          prix_unitaire: number
+          montant_ligne: number
+        }[]
+      }
       generate_bon_commande_number: {
         Args: Record<PropertyKey, never>
         Returns: string

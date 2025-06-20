@@ -1,4 +1,3 @@
-
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import type { ArticleWithMargin, FactureWithMargin, RapportMargePeriode } from '@/types/margins';
@@ -20,10 +19,18 @@ export const useArticlesWithMargins = () => {
       }
 
       console.log('✅ Articles avec marges récupérés:', data?.length);
+      console.log('📊 Exemple de données récupérées:', data?.slice(0, 3));
+      
+      // Vérifier s'il y a des frais > 0
+      const articlesAvecFrais = data?.filter(article => 
+        (article.cout_total_unitaire - (article.prix_achat || 0)) > 0
+      );
+      console.log(`💰 ${articlesAvecFrais?.length || 0} articles avec des frais > 0`);
+      
       return data as ArticleWithMargin[];
     },
-    staleTime: 1000 * 60 * 5, // 5 minutes
-    refetchOnWindowFocus: false
+    staleTime: 1000 * 60 * 2, // Réduire à 2 minutes pour voir les changements plus rapidement
+    refetchOnWindowFocus: true // Permettre le rafraîchissement au focus
   });
 };
 
