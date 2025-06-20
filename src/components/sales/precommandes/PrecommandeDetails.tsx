@@ -12,7 +12,6 @@ import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { Package, Truck, Bell } from 'lucide-react';
 import PrecommandeNotifications from './PrecommandeNotifications';
-import PrecommandeStatusManager from './PrecommandeStatusManager';
 import { useMarquerNotificationVue } from '@/hooks/precommandes/usePrecommandeMutations';
 
 interface PrecommandeDetailsProps {
@@ -51,11 +50,6 @@ const PrecommandeDetails = ({ precommandeId, open, onClose }: PrecommandeDetails
         </DialogHeader>
 
         <div className="space-y-6">
-          {/* Gestionnaire de statut */}
-          <PrecommandeStatusManager precommande={precommande} />
-
-          <Separator />
-
           {/* Informations générales */}
           <div className="grid grid-cols-2 gap-4">
             <div>
@@ -91,21 +85,37 @@ const PrecommandeDetails = ({ precommandeId, open, onClose }: PrecommandeDetails
             </div>
           </div>
 
+          <Separator />
+
+          {/* Bon de livraison */}
+          {precommande.bon_livraison_genere && precommande.bon_livraison && (
+            <>
+              <div>
+                <h3 className="font-medium mb-2 flex items-center">
+                  <Truck className="mr-2 h-4 w-4" />
+                  Bon de livraison
+                </h3>
+                <div className="p-3 bg-muted rounded-lg">
+                  <p><span className="font-medium">Numéro:</span> {precommande.bon_livraison.numero_bon}</p>
+                  <p><span className="font-medium">Statut:</span> {precommande.bon_livraison.statut}</p>
+                </div>
+              </div>
+              <Separator />
+            </>
+          )}
+
           {/* Notifications */}
           {notifications && notifications.length > 0 && (
-            <>
-              <Separator />
-              <div>
-                <h3 className="font-medium mb-3 flex items-center">
-                  <Bell className="mr-2 h-4 w-4" />
-                  Historique des notifications
-                </h3>
-                <PrecommandeNotifications 
-                  notifications={notifications} 
-                  onMarquerVue={handleMarquerNotificationVue}
-                />
-              </div>
-            </>
+            <div>
+              <h3 className="font-medium mb-3 flex items-center">
+                <Bell className="mr-2 h-4 w-4" />
+                Historique des notifications
+              </h3>
+              <PrecommandeNotifications 
+                notifications={notifications} 
+                onMarquerVue={handleMarquerNotificationVue}
+              />
+            </div>
           )}
         </div>
       </DialogContent>
@@ -142,4 +152,3 @@ const LignePrecommandeDetail = ({ ligne }: { ligne: any }) => {
 };
 
 export default PrecommandeDetails;
-
