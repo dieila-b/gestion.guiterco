@@ -40,10 +40,10 @@ export const useBonLivraisonApproval = () => {
 
       if (approvalData.destinationType === 'entrepot') {
         updateData.entrepot_destination_id = approvalData.destinationId;
-        updateData.point_vente_destination_id = null;
+        // Ne pas écraser point_vente_destination_id si c'est une approbation multiple
       } else {
         updateData.point_vente_destination_id = approvalData.destinationId;
-        updateData.entrepot_destination_id = null;
+        // Ne pas écraser entrepot_destination_id si c'est une approbation multiple
       }
 
       const { error: bonError } = await supabase
@@ -54,6 +54,36 @@ export const useBonLivraisonApproval = () => {
       if (bonError) {
         console.error('❌ Erreur lors de la mise à jour du bon:', bonError);
         throw new Error(`Erreur de mise à jour du bon: ${bonError.message}`);
+      }
+
+      // 3. Créer les entrées de stock appropriées
+      for (const article of approvalData.articles) {
+        if (article.quantite_recue > 0) {
+          const entreeData: any = {
+            article_id: article.id,
+            quantite: article.quantite_recue,
+            type_entree: 'achat-livraison',
+            numero_bon: `Approbation-${bonLivraisonId.slice(0, 8)}`,
+            fournisseur: 'Réception bon livraison',
+            observations: `Réception depuis bon de livraison ${bonLivraisonId}`,
+            created_by: 'Système'
+          };
+
+          if (approvalData.destinationType === 'entrepot') {
+            entreeData.entrepot_id = approvalData.destinationId;
+          } else {
+            entreeData.point_vente_id = approvalData.destinationId;
+          }
+
+          const { error: entreeError } = await supabase
+            .from('entrees_stock')
+            .insert(entreeData);
+
+          if (entreeError) {
+            console.error('❌ Erreur lors de la création de l\'entrée stock:', entreeError);
+            throw new Error(`Erreur d'entrée stock: ${entreeError.message}`);
+          }
+        }
       }
 
       console.log('✅ Approbation terminée avec succès');
@@ -68,7 +98,7 @@ export const useBonLivraisonApproval = () => {
       
       toast({
         title: "✅ Bon de livraison approuvé",
-        description: "Le bon de livraison a été approuvé et le stock mis à jour. Une facture d'achat a été générée automatiquement.",
+        description: "Le bon de livraison a été approuvé et le stock mis à jour.",
         variant: "default",
       });
     },
