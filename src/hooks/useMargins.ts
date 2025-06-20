@@ -1,4 +1,3 @@
-
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import type { ArticleWithMargin, FactureWithMargin, RapportMargePeriode } from '@/types/margins';
@@ -7,7 +6,7 @@ export const useArticlesWithMargins = () => {
   return useQuery({
     queryKey: ['articles-with-margins'],
     queryFn: async () => {
-      console.log('🔍 Récupération des articles avec marges...');
+      console.log('🔍 Récupération des articles avec marges depuis la vue corrigée...');
       
       const { data, error } = await supabase
         .from('vue_marges_articles')
@@ -20,27 +19,32 @@ export const useArticlesWithMargins = () => {
       }
 
       console.log('✅ Articles avec marges récupérés:', data?.length);
-      console.log('📊 Exemple de données récupérées:', data?.slice(0, 3));
       
-      // Vérifier s'il y a des frais BC > 0
+      // Vérifier spécifiquement les frais BC dans les données récupérées
       const articlesAvecFraisBC = data?.filter(article => 
         (article.frais_bon_commande || 0) > 0
-      );
-      console.log(`💰 ${articlesAvecFraisBC?.length || 0} articles avec des frais BC > 0`);
+      ) || [];
       
-      // Log détaillé des premiers articles avec frais BC
-      if (articlesAvecFraisBC && articlesAvecFraisBC.length > 0) {
-        console.log('🔍 Détail des premiers articles avec frais BC:', articlesAvecFraisBC.slice(0, 5).map(a => ({
+      console.log(`💰 ${articlesAvecFraisBC.length} articles avec des frais BC > 0 trouvés dans la vue`);
+      
+      if (articlesAvecFraisBC.length > 0) {
+        console.log('🔍 Premiers articles avec frais BC depuis la vue:', articlesAvecFraisBC.slice(0, 5).map(a => ({
           nom: a.nom,
           frais_bon_commande: a.frais_bon_commande,
-          cout_total_unitaire: a.cout_total_unitaire
+          cout_total_unitaire: a.cout_total_unitaire,
+          prix_achat: a.prix_achat
         })));
+        
+        const totalFraisBC = articlesAvecFraisBC.reduce((sum, a) => sum + (a.frais_bon_commande || 0), 0);
+        console.log(`💰 Total des frais BC dans la vue: ${totalFraisBC} GNF`);
+      } else {
+        console.log('⚠️ Aucun article avec frais BC trouvé dans la vue - vérifiez la vue et les données de base');
       }
       
       return data as ArticleWithMargin[];
     },
-    staleTime: 0, // Toujours considérer les données comme périmées pour forcer le rafraîchissement
-    gcTime: 0, // Ne pas garder en cache
+    staleTime: 0, 
+    gcTime: 0, 
     refetchOnWindowFocus: true,
     refetchOnMount: true
   });

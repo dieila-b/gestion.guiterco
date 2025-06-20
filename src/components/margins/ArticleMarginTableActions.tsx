@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { Bug, RefreshCw, Database, Search } from 'lucide-react';
+import { Bug, RefreshCw, Database, Search, Eye } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { useQueryClient } from '@tanstack/react-query';
@@ -13,6 +13,66 @@ interface ArticleMarginTableActionsProps {
 const ArticleMarginTableActions = ({ isLoading }: ArticleMarginTableActionsProps) => {
   const queryClient = useQueryClient();
 
+  const handleDebugVueMarges = async () => {
+    try {
+      console.log('🔍 Debug de la vue des marges...');
+      
+      const { data, error } = await supabase.rpc('debug_vue_marges_frais');
+      
+      if (error) {
+        console.error('❌ Erreur lors du debug de la vue:', error);
+        toast({
+          title: "Erreur de debug",
+          description: "Impossible de récupérer les données de debug de la vue",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      console.log('📊 Données de debug de la vue des marges:', data);
+      
+      if (data && data.length > 0) {
+        console.table(data);
+        
+        const articlesAvecFrais = data.filter(d => d.frais_bon_commande > 0);
+        const totalFraisBC = data.reduce((sum, d) => sum + (d.frais_bon_commande || 0), 0);
+        
+        console.log(`📈 Debug Vue - Statistiques:`);
+        console.log(`- Articles total: ${data.length}`);
+        console.log(`- Articles avec frais BC > 0: ${articlesAvecFrais.length}`);
+        console.log(`- Total frais BC dans la vue: ${totalFraisBC} GNF`);
+        
+        if (articlesAvecFrais.length > 0) {
+          console.log('💰 Articles avec frais BC:', articlesAvecFrais.slice(0, 5).map(d => ({
+            nom: d.article_nom,
+            frais_bc: d.frais_bon_commande,
+            cout_total: d.cout_total_unitaire,
+            nb_bons: d.nb_bons_commande
+          })));
+        }
+        
+        toast({
+          title: "Debug vue des marges réussi",
+          description: `${data.length} articles analysés. ${articlesAvecFrais.length} avec frais BC. Total: ${totalFraisBC.toFixed(0)} GNF`,
+        });
+      } else {
+        console.log('⚠️ Aucune donnée trouvée dans la vue des marges');
+        toast({
+          title: "Aucune donnée trouvée",
+          description: "La vue des marges ne contient aucune donnée",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error('❌ Erreur lors du debug de la vue:', error);
+      toast({
+        title: "Erreur",
+        description: "Une erreur est survenue lors du debug de la vue",
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleDiagnosticComplet = async () => {
     try {
       console.log('🔍 Lancement du diagnostic complet...');
@@ -21,55 +81,51 @@ const ArticleMarginTableActions = ({ isLoading }: ArticleMarginTableActionsProps
       const { data: vueData, error: vueError } = await supabase
         .from('vue_marges_articles')
         .select('*')
-        .limit(5);
+        .limit(10);
       
       if (vueError) {
         console.error('❌ Erreur vue:', vueError);
       } else {
-        console.log('✅ Données vue (5 premiers):', vueData);
-        console.log('📊 Frais BC dans la vue:', vueData?.map(a => ({
-          nom: a.nom,
-          frais_bon_commande: a.frais_bon_commande
-        })));
+        console.log('✅ Données vue (10 premiers):', vueData);
+        const vueAvecFrais = vueData?.filter(a => (a.frais_bon_commande || 0) > 0) || [];
+        console.log(`💰 Vue: ${vueAvecFrais.length} articles avec frais BC > 0`);
+        
+        if (vueAvecFrais.length > 0) {
+          console.log('🔍 Exemples avec frais Vue:', vueAvecFrais.slice(0, 3).map(a => ({
+            nom: a.nom,
+            frais_bon_commande: a.frais_bon_commande,
+            cout_total_unitaire: a.cout_total_unitaire
+          })));
+        }
       }
 
-      // 2. Vérifier les données de debug
+      // 2. Vérifier les données de debug détaillé
       const { data: debugData, error: debugError } = await supabase.rpc('debug_frais_articles_detaille');
       
       if (debugError) {
-        console.error('❌ Erreur debug:', debugError);
+        console.error('❌ Erreur debug détaillé:', debugError);
       } else {
-        console.log('✅ Données debug récupérées:', debugData?.length);
-        const articlesAvecFrais = debugData?.filter(d => d.part_frais > 0) || [];
-        console.log('💰 Articles avec frais calculés:', articlesAvecFrais.length);
+        console.log('✅ Données debug détaillé récupérées:', debugData?.length);
+        const debugAvecFrais = debugData?.filter(d => d.part_frais > 0) || [];
+        console.log('💰 Debug détaillé: Articles avec frais calculés:', debugAvecFrais.length);
         
-        if (articlesAvecFrais.length > 0) {
-          console.log('🔍 Exemples de frais calculés:', articlesAvecFrais.slice(0, 3).map(d => ({
+        if (debugAvecFrais.length > 0) {
+          console.log('🔍 Exemples debug détaillé:', debugAvecFrais.slice(0, 3).map(d => ({
             article: d.article_nom,
             part_frais: d.part_frais,
+            frais_total_bc: d.frais_total_bc,
             montant_ligne: d.montant_ligne,
             montant_ht: d.montant_ht
           })));
         }
       }
 
-      // 3. Comparer les deux sources
-      if (vueData && debugData) {
-        const vueAvecFrais = vueData.filter(v => (v.frais_bon_commande || 0) > 0);
-        const debugAvecFrais = debugData.filter(d => d.part_frais > 0);
-        
-        console.log(`📈 Comparaison:`);
-        console.log(`- Vue: ${vueAvecFrais.length} articles avec frais BC > 0`);
-        console.log(`- Debug: ${debugAvecFrais.length} lignes avec frais > 0`);
-        
-        if (vueAvecFrais.length === 0 && debugAvecFrais.length > 0) {
-          console.log('⚠️ PROBLÈME DÉTECTÉ: La vue ne reflète pas les frais calculés!');
-        }
-      }
+      // 3. Vérifier la nouvelle fonction de debug vue
+      await handleDebugVueMarges();
 
       toast({
         title: "Diagnostic complet terminé",
-        description: "Consultez la console pour les détails complets du diagnostic.",
+        description: "Consultez la console pour les détails complets du diagnostic. Comparaison entre vue et debug détaillé effectuée.",
       });
     } catch (error) {
       console.error('❌ Erreur lors du diagnostic:', error);
@@ -99,16 +155,14 @@ const ArticleMarginTableActions = ({ isLoading }: ArticleMarginTableActionsProps
 
       console.log('📊 Données de debug des frais détaillées:', data);
       
-      // Afficher les données dans la console avec un format lisible
       if (data && data.length > 0) {
         console.table(data);
         
-        // Statistiques utiles
         const totalArticles = new Set(data.map(d => d.article_id)).size;
         const articlesAvecFrais = data.filter(d => d.frais_total_bc > 0).length;
         const fraisTotalCalcule = data.reduce((sum, d) => sum + (d.part_frais || 0), 0);
         
-        console.log(`📈 Statistiques:`);
+        console.log(`📈 Statistiques debug détaillé:`);
         console.log(`- Articles uniques: ${totalArticles}`);
         console.log(`- Lignes avec frais BC > 0: ${articlesAvecFrais}`);
         console.log(`- Total frais répartis: ${fraisTotalCalcule} GNF`);
@@ -139,7 +193,6 @@ const ArticleMarginTableActions = ({ isLoading }: ArticleMarginTableActionsProps
     try {
       console.log('🔄 Rafraîchissement des données de marges...');
       
-      // Invalider le cache des marges pour forcer le rechargement
       await queryClient.invalidateQueries({ queryKey: ['articles-with-margins'] });
       
       toast({
@@ -160,7 +213,6 @@ const ArticleMarginTableActions = ({ isLoading }: ArticleMarginTableActionsProps
     try {
       console.log('🔄 Forçage du recalcul de la vue marges...');
       
-      // Appeler la nouvelle fonction de rafraîchissement
       const { error } = await supabase.rpc('refresh_marges_view');
       
       if (error) {
@@ -173,7 +225,6 @@ const ArticleMarginTableActions = ({ isLoading }: ArticleMarginTableActionsProps
         return;
       }
 
-      // Invalider le cache après le recalcul
       await queryClient.invalidateQueries({ queryKey: ['articles-with-margins'] });
       
       toast({
@@ -191,7 +242,7 @@ const ArticleMarginTableActions = ({ isLoading }: ArticleMarginTableActionsProps
   };
 
   return (
-    <div className="flex justify-end gap-2">
+    <div className="flex justify-end gap-2 flex-wrap">
       <Button 
         variant="outline" 
         size="sm" 
@@ -201,6 +252,16 @@ const ArticleMarginTableActions = ({ isLoading }: ArticleMarginTableActionsProps
       >
         <Search className="h-4 w-4" />
         Diagnostic Complet
+      </Button>
+      <Button 
+        variant="outline" 
+        size="sm" 
+        onClick={handleDebugVueMarges}
+        className="flex items-center gap-2"
+        disabled={isLoading}
+      >
+        <Eye className="h-4 w-4" />
+        Debug Vue Marges
       </Button>
       <Button 
         variant="outline" 

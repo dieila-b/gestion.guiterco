@@ -2367,6 +2367,15 @@ export type Database = {
           part_frais: number
         }[]
       }
+      debug_vue_marges_frais: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          article_nom: string
+          frais_bon_commande: number
+          cout_total_unitaire: number
+          nb_bons_commande: number
+        }[]
+      }
       generate_bon_commande_number: {
         Args: Record<PropertyKey, never>
         Returns: string

@@ -23,9 +23,13 @@ const ArticleMarginTableRow = ({ article }: ArticleMarginTableRowProps) => {
                      (article.frais_transport || 0) + 
                      (article.autres_frais || 0);
   
-  // Utiliser directement le champ frais_bon_commande de la vue
+  // Le champ frais_bon_commande vient maintenant directement de la vue corrigée
   const fraisBonCommande = article.frais_bon_commande || 0;
-  console.log(`📊 Article ${article.nom}: frais_bon_commande = ${fraisBonCommande} GNF`);
+  
+  // Log pour debug - à voir dans la console
+  if (fraisBonCommande > 0) {
+    console.log(`💰 Article ${article.nom}: frais_bon_commande = ${fraisBonCommande} GNF (depuis la vue)`);
+  }
   
   const fraisTotal = fraisDirects + fraisBonCommande;
 
@@ -45,6 +49,9 @@ const ArticleMarginTableRow = ({ article }: ArticleMarginTableRowProps) => {
         <span className={fraisBonCommande > 0 ? 'text-purple-600 font-bold' : 'text-gray-500'}>
           {formatCurrency(fraisBonCommande)}
         </span>
+        {fraisBonCommande > 0 && (
+          <div className="text-xs text-purple-500">BC</div>
+        )}
       </TableCell>
       <TableCell className="text-right">
         <span className={fraisTotal > 0 ? 'text-orange-600 font-bold' : 'text-gray-500'}>
