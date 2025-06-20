@@ -1,3 +1,4 @@
+
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import type { ArticleWithMargin, FactureWithMargin, RapportMargePeriode } from '@/types/margins';
@@ -21,16 +22,27 @@ export const useArticlesWithMargins = () => {
       console.log('✅ Articles avec marges récupérés:', data?.length);
       console.log('📊 Exemple de données récupérées:', data?.slice(0, 3));
       
-      // Vérifier s'il y a des frais > 0
-      const articlesAvecFrais = data?.filter(article => 
-        (article.cout_total_unitaire - (article.prix_achat || 0)) > 0
+      // Vérifier s'il y a des frais BC > 0
+      const articlesAvecFraisBC = data?.filter(article => 
+        (article.frais_bon_commande || 0) > 0
       );
-      console.log(`💰 ${articlesAvecFrais?.length || 0} articles avec des frais > 0`);
+      console.log(`💰 ${articlesAvecFraisBC?.length || 0} articles avec des frais BC > 0`);
+      
+      // Log détaillé des premiers articles avec frais BC
+      if (articlesAvecFraisBC && articlesAvecFraisBC.length > 0) {
+        console.log('🔍 Détail des premiers articles avec frais BC:', articlesAvecFraisBC.slice(0, 5).map(a => ({
+          nom: a.nom,
+          frais_bon_commande: a.frais_bon_commande,
+          cout_total_unitaire: a.cout_total_unitaire
+        })));
+      }
       
       return data as ArticleWithMargin[];
     },
-    staleTime: 1000 * 60 * 2, // Réduire à 2 minutes pour voir les changements plus rapidement
-    refetchOnWindowFocus: true // Permettre le rafraîchissement au focus
+    staleTime: 0, // Toujours considérer les données comme périmées pour forcer le rafraîchissement
+    gcTime: 0, // Ne pas garder en cache
+    refetchOnWindowFocus: true,
+    refetchOnMount: true
   });
 };
 

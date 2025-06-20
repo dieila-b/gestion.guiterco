@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { Bug, RefreshCw, Database } from 'lucide-react';
+import { Bug, RefreshCw, Database, Search } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { useQueryClient } from '@tanstack/react-query';
@@ -12,6 +12,74 @@ interface ArticleMarginTableActionsProps {
 
 const ArticleMarginTableActions = ({ isLoading }: ArticleMarginTableActionsProps) => {
   const queryClient = useQueryClient();
+
+  const handleDiagnosticComplet = async () => {
+    try {
+      console.log('🔍 Lancement du diagnostic complet...');
+      
+      // 1. Vérifier la vue directement
+      const { data: vueData, error: vueError } = await supabase
+        .from('vue_marges_articles')
+        .select('*')
+        .limit(5);
+      
+      if (vueError) {
+        console.error('❌ Erreur vue:', vueError);
+      } else {
+        console.log('✅ Données vue (5 premiers):', vueData);
+        console.log('📊 Frais BC dans la vue:', vueData?.map(a => ({
+          nom: a.nom,
+          frais_bon_commande: a.frais_bon_commande
+        })));
+      }
+
+      // 2. Vérifier les données de debug
+      const { data: debugData, error: debugError } = await supabase.rpc('debug_frais_articles_detaille');
+      
+      if (debugError) {
+        console.error('❌ Erreur debug:', debugError);
+      } else {
+        console.log('✅ Données debug récupérées:', debugData?.length);
+        const articlesAvecFrais = debugData?.filter(d => d.part_frais > 0) || [];
+        console.log('💰 Articles avec frais calculés:', articlesAvecFrais.length);
+        
+        if (articlesAvecFrais.length > 0) {
+          console.log('🔍 Exemples de frais calculés:', articlesAvecFrais.slice(0, 3).map(d => ({
+            article: d.article_nom,
+            part_frais: d.part_frais,
+            montant_ligne: d.montant_ligne,
+            montant_ht: d.montant_ht
+          })));
+        }
+      }
+
+      // 3. Comparer les deux sources
+      if (vueData && debugData) {
+        const vueAvecFrais = vueData.filter(v => (v.frais_bon_commande || 0) > 0);
+        const debugAvecFrais = debugData.filter(d => d.part_frais > 0);
+        
+        console.log(`📈 Comparaison:`);
+        console.log(`- Vue: ${vueAvecFrais.length} articles avec frais BC > 0`);
+        console.log(`- Debug: ${debugAvecFrais.length} lignes avec frais > 0`);
+        
+        if (vueAvecFrais.length === 0 && debugAvecFrais.length > 0) {
+          console.log('⚠️ PROBLÈME DÉTECTÉ: La vue ne reflète pas les frais calculés!');
+        }
+      }
+
+      toast({
+        title: "Diagnostic complet terminé",
+        description: "Consultez la console pour les détails complets du diagnostic.",
+      });
+    } catch (error) {
+      console.error('❌ Erreur lors du diagnostic:', error);
+      toast({
+        title: "Erreur de diagnostic",
+        description: "Impossible de réaliser le diagnostic complet",
+        variant: "destructive",
+      });
+    }
+  };
 
   const handleDebugFrais = async () => {
     try {
@@ -124,6 +192,16 @@ const ArticleMarginTableActions = ({ isLoading }: ArticleMarginTableActionsProps
 
   return (
     <div className="flex justify-end gap-2">
+      <Button 
+        variant="outline" 
+        size="sm" 
+        onClick={handleDiagnosticComplet}
+        className="flex items-center gap-2"
+        disabled={isLoading}
+      >
+        <Search className="h-4 w-4" />
+        Diagnostic Complet
+      </Button>
       <Button 
         variant="outline" 
         size="sm" 
