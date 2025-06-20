@@ -54,3 +54,75 @@ export const useMarquerNotificationVue = () => {
     }
   });
 };
+
+export const useCreatePrecommande = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (precommande: {
+      numero_precommande: string;
+      client_id: string;
+      date_precommande: string;
+      date_livraison_prevue?: string;
+      observations?: string;
+      acompte_verse?: number;
+      lignes: Array<{
+        article_id: string;
+        quantite: number;
+        prix_unitaire: number;
+      }>;
+    }) => {
+      const { lignes, ...precommandeData } = precommande;
+      
+      // Calculer les montants
+      const montant_ht = lignes.reduce((sum, ligne) => sum + (ligne.quantite * ligne.prix_unitaire), 0);
+      const tva = montant_ht * 0.20; // 20% de TVA
+      const montant_ttc = montant_ht + tva;
+
+      // Créer la précommande
+      const { data: newPrecommande, error: precommandeError } = await supabase
+        .from('precommandes')
+        .insert({
+          ...precommandeData,
+          montant_ht,
+          tva,
+          montant_ttc,
+          statut: 'confirmee'
+        })
+        .select()
+        .single();
+
+      if (precommandeError) throw precommandeError;
+
+      // Créer les lignes de précommande
+      const lignesWithPrecommandeId = lignes.map(ligne => ({
+        ...ligne,
+        precommande_id: newPrecommande.id,
+        montant_ligne: ligne.quantite * ligne.prix_unitaire
+      }));
+
+      const { error: lignesError } = await supabase
+        .from('lignes_precommande')
+        .insert(lignesWithPrecommandeId);
+
+      if (lignesError) throw lignesError;
+
+      return newPrecommande;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['precommandes-complete'] });
+      toast({
+        title: "Précommande créée",
+        description: "La précommande a été créée avec succès.",
+      });
+    },
+    onError: (error) => {
+      console.error('Erreur lors de la création de la précommande:', error);
+      toast({
+        title: "Erreur",
+        description: "Impossible de créer la précommande",
+        variant: "destructive",
+      });
+    }
+  });
+};
