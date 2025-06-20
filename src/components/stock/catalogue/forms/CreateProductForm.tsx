@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,6 +9,7 @@ import { Calculator, Package, Euro, Truck, Shield, Plane, Plus } from 'lucide-re
 import { useCategories } from '@/hooks/useCategories';
 import { useUnites } from '@/hooks/useUnites';
 import { formatCurrency } from '@/lib/currency';
+import { ImageUpload } from '@/components/ui/image-upload';
 
 interface FormData {
   nom: string;
@@ -40,6 +40,7 @@ interface CreateProductFormProps {
     frais_transport?: number;
     autres_frais?: number;
     seuil_alerte?: number;
+    image_url?: string;
   }) => void;
   onFormDataChange: (updates: Partial<FormData>) => void;
   onCancel: () => void;
@@ -79,9 +80,14 @@ const CreateProductForm = ({
       frais_transport: fraisTransport || undefined,
       autres_frais: autresFrais || undefined,
       seuil_alerte: parseInt(formData.seuil_alerte) || undefined,
+      image_url: formData.image_url || undefined,
     };
     
     onSubmit(submitData);
+  };
+
+  const handleImageUploaded = (url: string) => {
+    onFormDataChange({ image_url: url });
   };
 
   return (
@@ -126,6 +132,15 @@ const CreateProductForm = ({
             onChange={(e) => onFormDataChange({ description: e.target.value })}
             placeholder="Description du produit"
             rows={3}
+          />
+        </div>
+
+        {/* Nouveau champ d'upload d'image */}
+        <div>
+          <ImageUpload
+            onImageUploaded={handleImageUploaded}
+            currentImageUrl={formData.image_url}
+            label="Image du produit"
           />
         </div>
 
