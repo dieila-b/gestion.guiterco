@@ -3,10 +3,11 @@ import React from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Bug } from 'lucide-react';
+import { Bug, RefreshCw } from 'lucide-react';
 import { formatCurrency } from '@/lib/currency';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
+import { useQueryClient } from '@tanstack/react-query';
 import type { ArticleWithMargin } from '@/types/margins';
 
 interface ArticleMarginTableProps {
@@ -15,6 +16,8 @@ interface ArticleMarginTableProps {
 }
 
 const ArticleMarginTable = ({ articles, isLoading }: ArticleMarginTableProps) => {
+  const queryClient = useQueryClient();
+
   const getMarginBadgeColor = (taux: number) => {
     if (taux >= 30) return 'bg-green-100 text-green-800';
     if (taux >= 20) return 'bg-blue-100 text-blue-800';
@@ -76,6 +79,27 @@ const ArticleMarginTable = ({ articles, isLoading }: ArticleMarginTableProps) =>
     }
   };
 
+  const handleRefreshData = async () => {
+    try {
+      console.log('🔄 Rafraîchissement des données de marges...');
+      
+      // Invalider le cache des marges pour forcer le rechargement
+      await queryClient.invalidateQueries({ queryKey: ['articles-with-margins'] });
+      
+      toast({
+        title: "Données rafraîchies",
+        description: "Les données de marges ont été rechargées depuis la base de données.",
+      });
+    } catch (error) {
+      console.error('❌ Erreur lors du rafraîchissement:', error);
+      toast({
+        title: "Erreur de rafraîchissement",
+        description: "Impossible de rafraîchir les données",
+        variant: "destructive",
+      });
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="rounded-md border">
@@ -88,8 +112,17 @@ const ArticleMarginTable = ({ articles, isLoading }: ArticleMarginTableProps) =>
 
   return (
     <div className="space-y-4">
-      {/* Bouton de debug */}
-      <div className="flex justify-end">
+      {/* Boutons de debug et rafraîchissement */}
+      <div className="flex justify-end gap-2">
+        <Button 
+          variant="outline" 
+          size="sm" 
+          onClick={handleRefreshData}
+          className="flex items-center gap-2"
+        >
+          <RefreshCw className="h-4 w-4" />
+          Rafraîchir
+        </Button>
         <Button 
           variant="outline" 
           size="sm" 
@@ -126,8 +159,10 @@ const ArticleMarginTable = ({ articles, isLoading }: ArticleMarginTableProps) =>
                                    (article.frais_transport || 0) + 
                                    (article.autres_frais || 0);
                 
-                // Les frais des bons de commande sont maintenant dans une colonne séparée
-                const fraisBonCommande = article.cout_total_unitaire - (article.prix_achat || 0) - fraisDirects;
+                // Utiliser directement le champ frais_bon_commande de la vue
+                const fraisBonCommande = article.frais_bon_commande || 0;
+                console.log(`Article ${article.nom}: frais_bon_commande =`, fraisBonCommande);
+                
                 const fraisTotal = fraisDirects + fraisBonCommande;
 
                 return (
@@ -186,6 +221,7 @@ const ArticleMarginTable = ({ articles, isLoading }: ArticleMarginTableProps) =>
           <p><strong>Frais BC*</strong> = Frais issus des Bons de Commande (répartis proportionnellement par montant de ligne)</p>
           <p><strong>Frais Total</strong> = Frais Direct + Frais BC</p>
           <p>Utilisez le bouton "Debug Frais BC" pour analyser les calculs en détail dans la console.</p>
+          <p>Le bouton "Rafraîchir" recharge les données depuis la base de données.</p>
         </div>
       </div>
     </div>
