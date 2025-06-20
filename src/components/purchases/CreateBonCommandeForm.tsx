@@ -46,9 +46,16 @@ export const CreateBonCommandeForm = ({ onSuccess }: CreateBonCommandeFormProps)
   const handleFormSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     console.log('🎯 Gestion de la soumission du formulaire');
+    console.log('📊 État du formulaire:', form.getValues());
+    console.log('📦 Articles sélectionnés:', articlesLignes);
     
     // Utiliser handleSubmit du hook form pour valider et soumettre
     form.handleSubmit(onSubmit)(e);
+  };
+
+  const isFormValid = () => {
+    const values = form.getValues();
+    return values.fournisseur_id && articlesLignes.length > 0;
   };
 
   return (
@@ -103,8 +110,19 @@ export const CreateBonCommandeForm = ({ onSuccess }: CreateBonCommandeFormProps)
         <Button type="button" variant="outline" onClick={onSuccess}>
           Annuler
         </Button>
-        <Button type="submit" disabled={createBonCommande.isPending}>
-          {createBonCommande.isPending ? 'Création...' : 'Créer le bon de commande'}
+        <Button 
+          type="submit" 
+          disabled={createBonCommande.isPending || !isFormValid()}
+          className="min-w-[200px]"
+        >
+          {createBonCommande.isPending ? (
+            <div className="flex items-center space-x-2">
+              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+              <span>Création en cours...</span>
+            </div>
+          ) : (
+            'Créer le bon de commande'
+          )}
         </Button>
       </div>
     </form>

@@ -112,8 +112,17 @@ export const useBonCommandeForm = (onSuccess: () => void) => {
 
     if (articlesLignes.length === 0) {
       toast({
-        title: "Erreur",
-        description: "Veuillez ajouter au moins un article",
+        title: "Erreur de validation",
+        description: "Veuillez ajouter au moins un article au bon de commande",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!data.fournisseur_id) {
+      toast({
+        title: "Erreur de validation",
+        description: "Veuillez sélectionner un fournisseur",
         variant: "destructive",
       });
       return;
@@ -122,8 +131,8 @@ export const useBonCommandeForm = (onSuccess: () => void) => {
     const fournisseur = fournisseurs?.find(f => f.id === data.fournisseur_id);
     if (!fournisseur) {
       toast({
-        title: "Erreur",
-        description: "Fournisseur non trouvé",
+        title: "Erreur de validation",
+        description: "Fournisseur non trouvé dans la liste",
         variant: "destructive",
       });
       return;
@@ -135,34 +144,58 @@ export const useBonCommandeForm = (onSuccess: () => void) => {
       console.log('🚀 Soumission du bon de commande avec génération automatique du numéro...');
       console.log('📦 Articles à inclure:', articlesLignes);
       
-      // Le numéro sera généré automatiquement par le trigger de base de données
-      await createBonCommande.mutateAsync({
+      // Préparer les données du bon de commande avec validation
+      const bonCommandeData = {
         fournisseur: fournisseurName,
         fournisseur_id: data.fournisseur_id,
         date_commande: data.date_commande,
-        date_livraison_prevue: data.date_livraison_prevue,
+        date_livraison_prevue: data.date_livraison_prevue || null,
         statut: data.statut,
         statut_paiement: data.statut_paiement,
-        remise: Number(data.remise),
-        frais_livraison: Number(data.frais_livraison),
-        frais_logistique: Number(data.frais_logistique),
-        transit_douane: Number(data.transit_douane),
-        taux_tva: Number(data.taux_tva),
-        observations: data.observations,
+        remise: Number(data.remise) || 0,
+        frais_livraison: Number(data.frais_livraison) || 0,
+        frais_logistique: Number(data.frais_logistique) || 0,
+        transit_douane: Number(data.transit_douane) || 0,
+        taux_tva: Number(data.taux_tva) || 20,
+        observations: data.observations || '',
         montant_ht: Number(montantHT),
         tva: Number(tva),
         montant_total: Number(montantTTC),
         montant_paye: Number(montantPaye),
-        articles: articlesLignes, // Passer les articles à la mutation
-      });
+        articles: articlesLignes.map(article => ({
+          article_id: article.article_id,
+          quantite: article.quantite,
+          prix_unitaire: Number(article.prix_unitaire),
+          montant_ligne: Number(article.montant_ligne)
+        }))
+      };
+
+      console.log('📊 Données finales à envoyer:', bonCommandeData);
       
-      console.log('✅ Bon de commande créé avec numéro auto-généré au format BC-AA-MM-JJ-XXX');
+      await createBonCommande.mutateAsync(bonCommandeData);
+      
+      console.log('✅ Bon de commande créé avec succès');
+      
+      // Réinitialiser le formulaire
+      form.reset({
+        date_commande: new Date().toISOString().split('T')[0],
+        statut: 'en_cours',
+        statut_paiement: 'en_attente',
+        remise: 0,
+        frais_livraison: 0,
+        frais_logistique: 0,
+        transit_douane: 0,
+        taux_tva: 20,
+      });
+      setArticlesLignes([]);
+      setMontantPaye(0);
+      
       onSuccess();
     } catch (error) {
       console.error('❌ Erreur lors de la création du bon de commande:', error);
       toast({
-        title: "Erreur",
-        description: error instanceof Error ? error.message : "Erreur lors de la création du bon de commande",
+        title: "Erreur de création",
+        description: error instanceof Error ? error.message : "Erreur lors de la création du bon de commande. Vérifiez vos données et réessayez.",
         variant: "destructive",
       });
     }

@@ -35,24 +35,25 @@ export const useBonsCommande = () => {
   });
 
   const createBonCommande = useMutation({
-    mutationFn: async (bonCommande: Omit<BonCommande, 'id' | 'created_at' | 'updated_at' | 'numero_bon'> & { articles?: any[] }) => {
+    mutationFn: async (bonCommandeData: any) => {
       console.log('🔄 Création d\'un bon de commande avec numérotation automatique...');
-      console.log('📝 Données du bon de commande:', bonCommande);
+      console.log('📝 Données du bon de commande:', bonCommandeData);
       
       // Extraire les articles de l'objet bonCommande
-      const { articles, ...bonCommandeData } = bonCommande;
+      const { articles, ...bonCommandeMainData } = bonCommandeData;
       
-      // Le numéro sera généré automatiquement par le trigger de base de données selon le format BC-AA-MM-JJ-XXX
       console.log('🎯 Insertion du bon de commande - le numéro sera généré automatiquement...');
+      
+      // Démarrer une transaction
       const { data: newBonCommande, error: bonCommandeError } = await supabase
         .from('bons_de_commande')
-        .insert([bonCommandeData as any])
+        .insert([bonCommandeMainData])
         .select()
         .single();
 
       if (bonCommandeError) {
         console.error('❌ Erreur lors de la création du bon de commande:', bonCommandeError);
-        throw bonCommandeError;
+        throw new Error(`Erreur lors de la création du bon de commande: ${bonCommandeError.message}`);
       }
 
       console.log('✅ Bon de commande créé avec numéro auto-généré:', newBonCommande.numero_bon);
@@ -63,10 +64,10 @@ export const useBonsCommande = () => {
         console.log('📦 Insertion des articles dans le bon de commande...');
         console.log('🔢 Nombre d\'articles à insérer:', articles.length);
         
-        const articlesData = articles.map(article => ({
+        const articlesData = articles.map((article: any) => ({
           bon_commande_id: newBonCommande.id,
           article_id: article.article_id,
-          quantite: article.quantite,
+          quantite: Number(article.quantite),
           prix_unitaire: Number(article.prix_unitaire),
           montant_ligne: Number(article.montant_ligne)
         }));
@@ -79,11 +80,14 @@ export const useBonsCommande = () => {
 
         if (articlesError) {
           console.error('❌ Erreur lors de l\'insertion des articles:', articlesError);
-          toast({
-            title: "⚠️ Attention",
-            description: "Le bon de commande a été créé mais il y a eu un problème avec les articles.",
-            variant: "destructive",
-          });
+          
+          // Supprimer le bon de commande créé en cas d'erreur sur les articles
+          await supabase
+            .from('bons_de_commande')
+            .delete()
+            .eq('id', newBonCommande.id);
+            
+          throw new Error(`Erreur lors de l'ajout des articles: ${articlesError.message}`);
         } else {
           console.log('✅ Articles insérés avec succès dans le bon de commande');
         }
@@ -96,7 +100,7 @@ export const useBonsCommande = () => {
       queryClient.invalidateQueries({ queryKey: ['all-bon-commande-articles-counts'] });
       toast({
         title: "✅ Bon de commande créé avec succès",
-        description: `Numéro généré automatiquement: ${newBonCommande.numero_bon} (format BC-AA-MM-JJ-XXX)`,
+        description: `Numéro généré: ${newBonCommande.numero_bon}`,
         variant: "default",
       });
     },
