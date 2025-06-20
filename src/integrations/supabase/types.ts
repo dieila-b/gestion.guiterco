@@ -2303,38 +2303,6 @@ export type Database = {
           taux_marge: number | null
           updated_at: string | null
         }
-        Insert: {
-          autres_frais?: number | null
-          cout_total_unitaire?: never
-          created_at?: string | null
-          frais_douane?: number | null
-          frais_logistique?: number | null
-          frais_transport?: number | null
-          id?: string | null
-          marge_unitaire?: never
-          nom?: string | null
-          prix_achat?: number | null
-          prix_vente?: number | null
-          reference?: string | null
-          taux_marge?: never
-          updated_at?: string | null
-        }
-        Update: {
-          autres_frais?: number | null
-          cout_total_unitaire?: never
-          created_at?: string | null
-          frais_douane?: number | null
-          frais_logistique?: number | null
-          frais_transport?: number | null
-          id?: string | null
-          marge_unitaire?: never
-          nom?: string | null
-          prix_achat?: number | null
-          prix_vente?: number | null
-          reference?: string | null
-          taux_marge?: never
-          updated_at?: string | null
-        }
         Relationships: []
       }
       vue_solde_caisse: {

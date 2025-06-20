@@ -45,35 +45,43 @@ const ArticleMarginTable = ({ articles, isLoading }: ArticleMarginTableProps) =>
         </TableHeader>
         <TableBody>
           {articles?.length > 0 ? (
-            articles.map((article) => (
-              <TableRow key={article.id}>
-                <TableCell className="font-medium">{article.reference}</TableCell>
-                <TableCell>{article.nom}</TableCell>
-                <TableCell className="text-right">{formatCurrency(article.prix_achat || 0)}</TableCell>
-                <TableCell className="text-right">
-                  {formatCurrency(
-                    (article.frais_logistique || 0) + 
-                    (article.frais_douane || 0) + 
-                    (article.frais_transport || 0) + 
-                    (article.autres_frais || 0)
-                  )}
-                </TableCell>
-                <TableCell className="text-right font-medium">
-                  {formatCurrency(article.cout_total_unitaire)}
-                </TableCell>
-                <TableCell className="text-right">{formatCurrency(article.prix_vente || 0)}</TableCell>
-                <TableCell className="text-right">
-                  <span className={article.marge_unitaire >= 0 ? 'text-green-600' : 'text-red-600'}>
-                    {formatCurrency(article.marge_unitaire)}
-                  </span>
-                </TableCell>
-                <TableCell className="text-center">
-                  <Badge className={getMarginBadgeColor(article.taux_marge)}>
-                    {article.taux_marge.toFixed(1)}%
-                  </Badge>
-                </TableCell>
-              </TableRow>
-            ))
+            articles.map((article) => {
+              // Calculer les frais totaux = frais directs + frais des bons de commande
+              const fraisDirects = (article.frais_logistique || 0) + 
+                                 (article.frais_douane || 0) + 
+                                 (article.frais_transport || 0) + 
+                                 (article.autres_frais || 0);
+              
+              // Les frais des bons de commande sont déjà inclus dans cout_total_unitaire
+              const fraisTotal = article.cout_total_unitaire - (article.prix_achat || 0);
+
+              return (
+                <TableRow key={article.id}>
+                  <TableCell className="font-medium">{article.reference}</TableCell>
+                  <TableCell>{article.nom}</TableCell>
+                  <TableCell className="text-right">{formatCurrency(article.prix_achat || 0)}</TableCell>
+                  <TableCell className="text-right">
+                    <span className={fraisTotal > 0 ? 'text-orange-600 font-medium' : 'text-gray-500'}>
+                      {formatCurrency(fraisTotal)}
+                    </span>
+                  </TableCell>
+                  <TableCell className="text-right font-medium">
+                    {formatCurrency(article.cout_total_unitaire)}
+                  </TableCell>
+                  <TableCell className="text-right">{formatCurrency(article.prix_vente || 0)}</TableCell>
+                  <TableCell className="text-right">
+                    <span className={article.marge_unitaire >= 0 ? 'text-green-600' : 'text-red-600'}>
+                      {formatCurrency(article.marge_unitaire)}
+                    </span>
+                  </TableCell>
+                  <TableCell className="text-center">
+                    <Badge className={getMarginBadgeColor(article.taux_marge)}>
+                      {article.taux_marge.toFixed(1)}%
+                    </Badge>
+                  </TableCell>
+                </TableRow>
+              );
+            })
           ) : (
             <TableRow>
               <TableCell colSpan={8} className="text-center py-8">
