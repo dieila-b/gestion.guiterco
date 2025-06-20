@@ -10,9 +10,9 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Package, DollarSign, Truck } from 'lucide-react';
 
-const createProductSchema = z.object({
+const editProductSchema = z.object({
   nom: z.string().min(1, 'Le nom est requis'),
-  reference: z.string().optional(),
+  reference: z.string().min(1, 'La référence est requise'),
   description: z.string().optional(),
   prix_achat: z.coerce.number().min(0, 'Le prix d\'achat doit être positif').optional(),
   prix_vente: z.coerce.number().min(0, 'Le prix de vente doit être positif').optional(),
@@ -23,27 +23,28 @@ const createProductSchema = z.object({
   seuil_alerte: z.coerce.number().min(0, 'Le seuil d\'alerte doit être positif').optional(),
 });
 
-type CreateProductFormValues = z.infer<typeof createProductSchema>;
+type EditProductFormValues = z.infer<typeof editProductSchema>;
 
-interface CreateProductFormProps {
-  onSubmit: (data: CreateProductFormValues) => void;
+interface EditProductFormProps {
+  article: any;
+  onSubmit: (data: EditProductFormValues) => void;
   isLoading: boolean;
 }
 
-const CreateProductForm = ({ onSubmit, isLoading }: CreateProductFormProps) => {
-  const form = useForm<CreateProductFormValues>({
-    resolver: zodResolver(createProductSchema),
+const EditProductForm = ({ article, onSubmit, isLoading }: EditProductFormProps) => {
+  const form = useForm<EditProductFormValues>({
+    resolver: zodResolver(editProductSchema),
     defaultValues: {
-      nom: '',
-      reference: '',
-      description: '',
-      prix_achat: 0,
-      prix_vente: 0,
-      frais_logistique: 0,
-      frais_douane: 0,
-      frais_transport: 0,
-      autres_frais: 0,
-      seuil_alerte: 10,
+      nom: article.nom || '',
+      reference: article.reference || '',
+      description: article.description || '',
+      prix_achat: article.prix_achat || 0,
+      prix_vente: article.prix_vente || 0,
+      frais_logistique: article.frais_logistique || 0,
+      frais_douane: article.frais_douane || 0,
+      frais_transport: article.frais_transport || 0,
+      autres_frais: article.autres_frais || 0,
+      seuil_alerte: article.seuil_alerte || 10,
     },
   });
 
@@ -76,7 +77,7 @@ const CreateProductForm = ({ onSubmit, isLoading }: CreateProductFormProps) => {
                 <FormItem>
                   <FormLabel>Nom du produit</FormLabel>
                   <FormControl>
-                    <Input {...field} placeholder="Ex: iPhone 15 Pro" />
+                    <Input {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -88,9 +89,9 @@ const CreateProductForm = ({ onSubmit, isLoading }: CreateProductFormProps) => {
               name="reference"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Référence (optionnel)</FormLabel>
+                  <FormLabel>Référence</FormLabel>
                   <FormControl>
-                    <Input {...field} placeholder="Laissez vide pour génération auto" />
+                    <Input {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -105,7 +106,7 @@ const CreateProductForm = ({ onSubmit, isLoading }: CreateProductFormProps) => {
               <FormItem>
                 <FormLabel>Description</FormLabel>
                 <FormControl>
-                  <Textarea {...field} placeholder="Description du produit..." rows={2} />
+                  <Textarea {...field} rows={2} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -130,7 +131,7 @@ const CreateProductForm = ({ onSubmit, isLoading }: CreateProductFormProps) => {
                 <FormItem>
                   <FormLabel>Prix d'achat (GNF)</FormLabel>
                   <FormControl>
-                    <Input type="number" step="0.01" {...field} placeholder="0" />
+                    <Input type="number" step="0.01" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -144,7 +145,7 @@ const CreateProductForm = ({ onSubmit, isLoading }: CreateProductFormProps) => {
                 <FormItem>
                   <FormLabel>Prix de vente (GNF)</FormLabel>
                   <FormControl>
-                    <Input type="number" step="0.01" {...field} placeholder="0" />
+                    <Input type="number" step="0.01" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -170,7 +171,7 @@ const CreateProductForm = ({ onSubmit, isLoading }: CreateProductFormProps) => {
                 <FormItem>
                   <FormLabel>Frais de logistique (GNF)</FormLabel>
                   <FormControl>
-                    <Input type="number" step="0.01" {...field} placeholder="0" />
+                    <Input type="number" step="0.01" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -184,7 +185,7 @@ const CreateProductForm = ({ onSubmit, isLoading }: CreateProductFormProps) => {
                 <FormItem>
                   <FormLabel>Frais de douane (GNF)</FormLabel>
                   <FormControl>
-                    <Input type="number" step="0.01" {...field} placeholder="0" />
+                    <Input type="number" step="0.01" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -198,7 +199,7 @@ const CreateProductForm = ({ onSubmit, isLoading }: CreateProductFormProps) => {
                 <FormItem>
                   <FormLabel>Frais de transport (GNF)</FormLabel>
                   <FormControl>
-                    <Input type="number" step="0.01" {...field} placeholder="0" />
+                    <Input type="number" step="0.01" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -212,7 +213,7 @@ const CreateProductForm = ({ onSubmit, isLoading }: CreateProductFormProps) => {
                 <FormItem>
                   <FormLabel>Autres frais (GNF)</FormLabel>
                   <FormControl>
-                    <Input type="number" step="0.01" {...field} placeholder="0" />
+                    <Input type="number" step="0.01" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -255,7 +256,7 @@ const CreateProductForm = ({ onSubmit, isLoading }: CreateProductFormProps) => {
             <FormItem>
               <FormLabel>Seuil d'alerte stock</FormLabel>
               <FormControl>
-                <Input type="number" {...field} placeholder="10" />
+                <Input type="number" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -264,7 +265,7 @@ const CreateProductForm = ({ onSubmit, isLoading }: CreateProductFormProps) => {
 
         <div className="flex justify-end gap-2">
           <Button type="submit" disabled={isLoading}>
-            {isLoading ? 'Création...' : 'Créer le produit'}
+            {isLoading ? 'Modification...' : 'Modifier le produit'}
           </Button>
         </div>
       </form>
@@ -272,4 +273,4 @@ const CreateProductForm = ({ onSubmit, isLoading }: CreateProductFormProps) => {
   );
 };
 
-export default CreateProductForm;
+export default EditProductForm;

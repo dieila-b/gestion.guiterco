@@ -1,132 +1,65 @@
 
 import React from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import {
-  Sidebar,
-  SidebarContent,
-  SidebarGroup,
-  SidebarGroupContent,
-  SidebarGroupLabel,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-} from "@/components/ui/sidebar";
-import {
-  ArrowRight,
-  Archive,
-  Calendar,
-  ClipboardList,
-  Database,
-  List,
+import { 
+  Home, 
+  ShoppingCart, 
+  Package, 
+  Users, 
   Settings,
-  Users,
+  DollarSign,
+  FileText,
+  TrendingUp,
+  CreditCard
 } from 'lucide-react';
+import { useLocation, Link } from 'react-router-dom';
+import { cn } from '@/lib/utils';
 
-const mainMenu = [
-  {
-    title: "Tableau de Bord", // Modifié ici
-    url: "/",
-    icon: Database,
-  },
-  {
-    title: "Stocks",
-    url: "/stocks",
-    icon: Archive,
-  },
-  {
-    title: "Achats",
-    url: "/purchases",
-    icon: ClipboardList,
-  },
-  {
-    title: "Ventes",
-    url: "/sales",
-    icon: List,
-  },
-  {
-    title: "Clients",
-    url: "/clients",
-    icon: Users,
-  },
-  {
-    title: "Finances", // Renommé depuis "Caisses"
-    url: "/cash-registers",
-    icon: Calendar,
-  },
-  {
-    title: "Rapports",
-    url: "/reports",
-    icon: ArrowRight,
-  }
-];
-
-const settingsMenu = [
-  {
-    title: "Paramètres",
-    url: "/settings",
-    icon: Settings,
-  },
-];
-
-export function AppSidebar() {
+const AppSidebar = () => {
   const location = useLocation();
 
-  const isActive = (url: string) => {
-    return location.pathname === url || 
-           (url !== '/' && location.pathname.startsWith(url));
-  };
-  
+  const menuItems = [
+    { icon: Home, label: 'Tableau de bord', href: '/' },
+    { icon: ShoppingCart, label: 'Ventes', href: '/sales' },
+    { icon: Package, label: 'Stocks', href: '/stocks' },
+    { icon: CreditCard, label: 'Achats', href: '/purchases' },
+    { icon: Users, label: 'Clients', href: '/clients' },
+    { icon: DollarSign, label: 'Caisse', href: '/cash-registers' },
+    { icon: TrendingUp, label: 'Marges', href: '/margins' },
+    { icon: FileText, label: 'Rapports', href: '/reports' },
+    { icon: Settings, label: 'Paramètres', href: '/settings' },
+  ];
+
   return (
-    <Sidebar>
-      <div className="p-4 border-b border-sidebar-border">
-        <h1 className="text-xl font-bold text-white">GestCompta</h1>
+    <aside className="w-64 bg-white border-r border-gray-200 h-full flex flex-col">
+      <div className="p-6 border-b border-gray-200">
+        <h1 className="text-xl font-bold text-gray-900">ERP Business</h1>
       </div>
-      <SidebarContent>
-        <SidebarGroup>
-          <SidebarGroupLabel>Menu principal</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {mainMenu.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton 
-                    className={isActive(item.url) ? "bg-sidebar-accent" : ""}
-                    asChild
-                  >
-                    <Link to={item.url} className="flex items-center">
-                      <item.icon className="mr-2 h-5 w-5" />
-                      <span>{item.title}</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-        <SidebarGroup>
-          <SidebarGroupLabel>Configuration</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {settingsMenu.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton 
-                    className={isActive(item.url) ? "bg-sidebar-accent" : ""}
-                    asChild
-                  >
-                    <Link to={item.url}>
-                      <item.icon className="mr-2 h-5 w-5" />
-                      <span>{item.title}</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-      </SidebarContent>
-      <div className="mt-auto p-4 border-t border-sidebar-border text-xs text-sidebar-foreground/70">
-        <p>GestCompta v1.0</p>
-        <p>© 2025 Tous droits réservés</p>
-      </div>
-    </Sidebar>
+      
+      <nav className="flex-1 p-4">
+        <ul className="space-y-2">
+          {menuItems.map((item) => {
+            const isActive = location.pathname === item.href;
+            return (
+              <li key={item.href}>
+                <Link
+                  to={item.href}
+                  className={cn(
+                    "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
+                    isActive
+                      ? "bg-blue-100 text-blue-700"
+                      : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+                  )}
+                >
+                  <item.icon className="h-5 w-5" />
+                  {item.label}
+                </Link>
+              </li>
+            );
+          })}
+        </ul>
+      </nav>
+    </aside>
   );
-}
+};
+
+export default AppSidebar;

@@ -5,18 +5,17 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/components/auth/AuthProvider";
-import ProtectedRoute from "@/components/auth/ProtectedRoute";
-import LoginPage from "@/components/auth/LoginPage";
-import { DevModeToggle } from "@/components/auth/DevModeToggle";
+import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import Index from "./pages/Index";
-import NotFound from "./pages/NotFound";
+import Sales from "./pages/Sales";
 import Stocks from "./pages/Stocks";
 import Purchases from "./pages/Purchases";
-import Sales from "./pages/Sales";
 import Clients from "./pages/Clients";
 import CashRegisters from "./pages/CashRegisters";
-import Settings from "./pages/Settings";
+import Margins from "./pages/Margins";
 import Reports from "./pages/Reports";
+import Settings from "./pages/Settings";
+import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
@@ -28,50 +27,17 @@ const App = () => (
       <BrowserRouter>
         <AuthProvider>
           <Routes>
-            <Route path="/auth" element={<LoginPage />} />
-            <Route path="/" element={
-              <ProtectedRoute>
-                <Index />
-              </ProtectedRoute>
-            } />
-            <Route path="/stocks" element={
-              <ProtectedRoute>
-                <Stocks />
-              </ProtectedRoute>
-            } />
-            <Route path="/purchases" element={
-              <ProtectedRoute>
-                <Purchases />
-              </ProtectedRoute>
-            } />
-            <Route path="/sales" element={
-              <ProtectedRoute>
-                <Sales />
-              </ProtectedRoute>
-            } />
-            <Route path="/clients" element={
-              <ProtectedRoute>
-                <Clients />
-              </ProtectedRoute>
-            } />
-            <Route path="/cash-registers" element={
-              <ProtectedRoute>
-                <CashRegisters />
-              </ProtectedRoute>
-            } />
-            <Route path="/settings" element={
-              <ProtectedRoute requireRole={['administrateur']}>
-                <Settings />
-              </ProtectedRoute>
-            } />
-            <Route path="/reports" element={
-              <ProtectedRoute>
-                <Reports />
-              </ProtectedRoute>
-            } />
+            <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
+            <Route path="/sales" element={<ProtectedRoute><Sales /></ProtectedRoute>} />
+            <Route path="/stocks" element={<ProtectedRoute><Stocks /></ProtectedRoute>} />
+            <Route path="/purchases" element={<ProtectedRoute><Purchases /></ProtectedRoute>} />
+            <Route path="/clients" element={<ProtectedRoute><Clients /></ProtectedRoute>} />
+            <Route path="/cash-registers" element={<ProtectedRoute><CashRegisters /></ProtectedRoute>} />
+            <Route path="/margins" element={<ProtectedRoute><Margins /></ProtectedRoute>} />
+            <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
+            <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
-          <DevModeToggle />
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
