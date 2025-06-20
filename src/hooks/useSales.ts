@@ -10,3 +10,9 @@ export * from './sales/mutations';
 
 // Re-export des queries spécifiques
 export * from './sales/queries/useFacturesVenteQuery';
+
+// Export des hooks précommandes
+export * from './precommandes/usePrecommandesComplete';
+export * from './precommandes/useNotificationsPrecommandes';
+export * from './precommandes/usePrecommandeMutations';
+export * from './precommandes/useStockDisponibilite';

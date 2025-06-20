@@ -97,6 +97,10 @@ export interface Precommande {
   taux_tva?: number;
   acompte_verse?: number;
   observations?: string;
+  notification_envoyee?: boolean;
+  date_notification?: string;
+  bon_livraison_genere?: boolean;
+  bon_livraison_id?: string;
   created_at: string;
   updated_at: string;
   client?: Client;

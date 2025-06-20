@@ -481,6 +481,7 @@ export type Database = {
           categorie_id: string | null
           created_at: string
           description: string | null
+          frais_bon_commande: number | null
           frais_douane: number | null
           frais_logistique: number | null
           frais_transport: number | null
@@ -503,6 +504,7 @@ export type Database = {
           categorie_id?: string | null
           created_at?: string
           description?: string | null
+          frais_bon_commande?: number | null
           frais_douane?: number | null
           frais_logistique?: number | null
           frais_transport?: number | null
@@ -525,6 +527,7 @@ export type Database = {
           categorie_id?: string | null
           created_at?: string
           description?: string | null
+          frais_bon_commande?: number | null
           frais_douane?: number | null
           frais_logistique?: number | null
           frais_transport?: number | null
@@ -1442,6 +1445,50 @@ export type Database = {
           },
         ]
       }
+      notifications_precommandes: {
+        Row: {
+          created_at: string
+          date_creation: string
+          date_envoi: string | null
+          id: string
+          message: string
+          precommande_id: string | null
+          statut: string | null
+          type_notification: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          date_creation?: string
+          date_envoi?: string | null
+          id?: string
+          message: string
+          precommande_id?: string | null
+          statut?: string | null
+          type_notification: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          date_creation?: string
+          date_envoi?: string | null
+          id?: string
+          message?: string
+          precommande_id?: string | null
+          statut?: string | null
+          type_notification?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notifications_precommandes_precommande_id_fkey"
+            columns: ["precommande_id"]
+            isOneToOne: false
+            referencedRelation: "precommandes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pays: {
         Row: {
           code_iso: string
@@ -1502,13 +1549,17 @@ export type Database = {
       precommandes: {
         Row: {
           acompte_verse: number | null
+          bon_livraison_genere: boolean | null
+          bon_livraison_id: string | null
           client_id: string
           created_at: string
           date_livraison_prevue: string | null
+          date_notification: string | null
           date_precommande: string
           id: string
           montant_ht: number
           montant_ttc: number
+          notification_envoyee: boolean | null
           numero_precommande: string
           observations: string | null
           statut: string
@@ -1518,13 +1569,17 @@ export type Database = {
         }
         Insert: {
           acompte_verse?: number | null
+          bon_livraison_genere?: boolean | null
+          bon_livraison_id?: string | null
           client_id: string
           created_at?: string
           date_livraison_prevue?: string | null
+          date_notification?: string | null
           date_precommande?: string
           id?: string
           montant_ht?: number
           montant_ttc?: number
+          notification_envoyee?: boolean | null
           numero_precommande: string
           observations?: string | null
           statut?: string
@@ -1534,13 +1589,17 @@ export type Database = {
         }
         Update: {
           acompte_verse?: number | null
+          bon_livraison_genere?: boolean | null
+          bon_livraison_id?: string | null
           client_id?: string
           created_at?: string
           date_livraison_prevue?: string | null
+          date_notification?: string | null
           date_precommande?: string
           id?: string
           montant_ht?: number
           montant_ttc?: number
+          notification_envoyee?: boolean | null
           numero_precommande?: string
           observations?: string | null
           statut?: string
@@ -1549,6 +1608,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "precommandes_bon_livraison_id_fkey"
+            columns: ["bon_livraison_id"]
+            isOneToOne: false
+            referencedRelation: "bons_de_livraison"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "precommandes_client_id_fkey"
             columns: ["client_id"]
@@ -2286,6 +2352,29 @@ export type Database = {
       }
     }
     Views: {
+      repartition_frais_bc: {
+        Row: {
+          article_id: string | null
+          total_frais: number | null
+          total_ligne: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lignes_commande_article_id_fkey"
+            columns: ["article_id"]
+            isOneToOne: false
+            referencedRelation: "catalogue"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lignes_commande_article_id_fkey"
+            columns: ["article_id"]
+            isOneToOne: false
+            referencedRelation: "vue_marges_articles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       vue_marges_articles: {
         Row: {
           autres_frais: number | null
@@ -2390,6 +2479,10 @@ export type Database = {
       }
       generate_product_reference: {
         Args: Record<PropertyKey, never>
+        Returns: string
+      }
+      generer_bon_livraison_precommande: {
+        Args: { precommande_uuid: string }
         Returns: string
       }
       get_client_statistics: {
