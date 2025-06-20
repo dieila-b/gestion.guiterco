@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { Check, Trash, Printer } from 'lucide-react';
+import { Check, Trash } from 'lucide-react';
 import { EditBonCommandeDialog } from './EditBonCommandeDialog';
 import { PrintBonCommandeDialog } from './PrintBonCommandeDialog';
 
@@ -34,27 +34,13 @@ export const BonCommandeActionButtons = ({ bon, onApprove, onDelete }: ActionBut
         >
           <Trash className="h-4 w-4" />
         </Button>
-        <Button
-          variant="ghost"
-          size="sm"
-          className="h-8 w-8 p-0 text-gray-600 hover:bg-gray-50 hover:text-gray-700 transition-colors"
-          title="Imprimer"
-        >
-          <Printer className="h-4 w-4" />
-        </Button>
+        <PrintBonCommandeDialog bon={bon} />
       </div>
     );
   } else {
     return (
       <div className="flex items-center justify-center">
-        <Button
-          variant="ghost"
-          size="sm"
-          className="h-8 w-8 p-0 text-gray-600 hover:bg-gray-50 hover:text-gray-700 transition-colors"
-          title="Imprimer"
-        >
-          <Printer className="h-4 w-4" />
-        </Button>
+        <PrintBonCommandeDialog bon={bon} />
       </div>
     );
   }
