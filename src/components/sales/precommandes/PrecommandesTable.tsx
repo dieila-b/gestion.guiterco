@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
@@ -89,11 +88,15 @@ const PrecommandesTable = ({ precommandes }: PrecommandesTableProps) => {
   };
 
   const handleFacture = (precommande: PrecommandeComplete) => {
+    // TODO: Générer et afficher la facture de précommande
     console.log('Générer facture pour:', precommande.numero_precommande);
   };
 
   const handleSupprimer = (precommande: PrecommandeComplete) => {
-    console.log('Supprimer précommande:', precommande.numero_precommande);
+    // TODO: Confirmer et supprimer la précommande
+    if (window.confirm(`Êtes-vous sûr de vouloir supprimer la précommande ${precommande.numero_precommande} ?`)) {
+      console.log('Supprimer précommande:', precommande.numero_precommande);
+    }
   };
 
   const calculerTotalPrecommande = (precommande: PrecommandeComplete) => {
