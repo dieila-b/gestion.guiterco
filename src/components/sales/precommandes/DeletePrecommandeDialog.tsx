@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -10,8 +10,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { useToast } from '@/hooks/use-toast';
 import type { PrecommandeComplete } from '@/types/precommandes';
+import { useDeletePrecommande } from '@/hooks/precommandes/useUpdatePrecommande';
 
 interface DeletePrecommandeDialogProps {
   precommande: PrecommandeComplete | null;
@@ -20,32 +20,16 @@ interface DeletePrecommandeDialogProps {
 }
 
 const DeletePrecommandeDialog = ({ precommande, open, onClose }: DeletePrecommandeDialogProps) => {
-  const { toast } = useToast();
-  const [isDeleting, setIsDeleting] = useState(false);
+  const deletePrecommande = useDeletePrecommande();
 
   const handleDelete = async () => {
     if (!precommande) return;
 
-    setIsDeleting(true);
     try {
-      // TODO: Implementer la logique de suppression via Supabase
-      console.log('Suppression de la précommande:', precommande.id);
-      
-      toast({
-        title: "Précommande supprimée",
-        description: `La précommande ${precommande.numero_precommande} a été supprimée avec succès.`,
-      });
-      
+      await deletePrecommande.mutateAsync(precommande.id);
       onClose();
     } catch (error) {
       console.error('Erreur lors de la suppression:', error);
-      toast({
-        title: "Erreur",
-        description: "Impossible de supprimer la précommande",
-        variant: "destructive",
-      });
-    } finally {
-      setIsDeleting(false);
     }
   };
 
@@ -63,15 +47,15 @@ const DeletePrecommandeDialog = ({ precommande, open, onClose }: DeletePrecomman
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel disabled={isDeleting}>
+          <AlertDialogCancel disabled={deletePrecommande.isPending}>
             Annuler
           </AlertDialogCancel>
           <AlertDialogAction 
             onClick={handleDelete}
-            disabled={isDeleting}
+            disabled={deletePrecommande.isPending}
             className="bg-red-600 hover:bg-red-700"
           >
-            {isDeleting ? 'Suppression...' : 'Supprimer'}
+            {deletePrecommande.isPending ? 'Suppression...' : 'Supprimer'}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

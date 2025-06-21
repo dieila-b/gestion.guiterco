@@ -11,11 +11,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useToast } from '@/hooks/use-toast';
 import type { PrecommandeComplete } from '@/types/precommandes';
 import { formatCurrency } from '@/lib/currency';
 import { calculerTotalPrecommande } from './PrecommandesTableUtils';
+import { useUpdatePrecommande } from '@/hooks/precommandes/useUpdatePrecommande';
 
 interface EditPrecommandeDialogProps {
   precommande: PrecommandeComplete | null;
@@ -24,8 +23,7 @@ interface EditPrecommandeDialogProps {
 }
 
 const EditPrecommandeDialog = ({ precommande, open, onClose }: EditPrecommandeDialogProps) => {
-  const { toast } = useToast();
-  const [isLoading, setIsLoading] = useState(false);
+  const updatePrecommande = useUpdatePrecommande();
   const [formData, setFormData] = useState({
     observations: '',
     acompte_verse: 0,
@@ -47,29 +45,18 @@ const EditPrecommandeDialog = ({ precommande, open, onClose }: EditPrecommandeDi
   const handleSave = async () => {
     if (!precommande) return;
 
-    setIsLoading(true);
     try {
-      // TODO: Implementer la logique de sauvegarde via Supabase
-      console.log('Sauvegarde des modifications:', {
+      await updatePrecommande.mutateAsync({
         id: precommande.id,
-        ...formData
+        updates: {
+          observations: formData.observations,
+          acompte_verse: formData.acompte_verse,
+          date_livraison_prevue: formData.date_livraison_prevue || null,
+        }
       });
-      
-      toast({
-        title: "Précommande modifiée",
-        description: "Les modifications ont été enregistrées avec succès.",
-      });
-      
       onClose();
     } catch (error) {
-      console.error('Erreur lors de la modification:', error);
-      toast({
-        title: "Erreur",
-        description: "Impossible de modifier la précommande",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
+      console.error('Erreur lors de la sauvegarde:', error);
     }
   };
 
@@ -121,11 +108,11 @@ const EditPrecommandeDialog = ({ precommande, open, onClose }: EditPrecommandeDi
               </div>
 
               <div>
-                <Label htmlFor="acompte">Acompte versé</Label>
+                <Label htmlFor="acompte">Acompte versé (GNF)</Label>
                 <Input
                   id="acompte"
                   type="number"
-                  step="0.01"
+                  step="1"
                   min="0"
                   max={totalPrecommande}
                   value={formData.acompte_verse}
@@ -150,11 +137,11 @@ const EditPrecommandeDialog = ({ precommande, open, onClose }: EditPrecommandeDi
         )}
 
         <DialogFooter>
-          <Button variant="outline" onClick={onClose} disabled={isLoading}>
+          <Button variant="outline" onClick={onClose} disabled={updatePrecommande.isPending}>
             Annuler
           </Button>
-          <Button onClick={handleSave} disabled={isLoading}>
-            {isLoading ? 'Enregistrement...' : 'Enregistrer'}
+          <Button onClick={handleSave} disabled={updatePrecommande.isPending}>
+            {updatePrecommande.isPending ? 'Enregistrement...' : 'Enregistrer'}
           </Button>
         </DialogFooter>
       </DialogContent>

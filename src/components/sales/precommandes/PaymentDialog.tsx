@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { formatCurrency } from '@/lib/currency';
 import type { PrecommandeComplete } from '@/types/precommandes';
 import { useCreatePrecommandeAcompte, useCompletePrecommandePayment } from '@/hooks/precommandes/usePrecommandePayment';
+import { useUpdatePrecommande } from '@/hooks/precommandes/useUpdatePrecommande';
 
 interface PaymentDialogProps {
   precommande: PrecommandeComplete;
@@ -22,6 +23,7 @@ const PaymentDialog = ({ precommande, open, onClose, type }: PaymentDialogProps)
   
   const createAcompte = useCreatePrecommandeAcompte();
   const completePaiement = useCompletePrecommandePayment();
+  const updatePrecommande = useUpdatePrecommande();
 
   const montantTotal = precommande.lignes_precommande?.reduce((sum, ligne) => sum + ligne.montant_ligne, 0) || 0;
   const acompteVerse = precommande.acompte_verse || 0;
@@ -34,12 +36,23 @@ const PaymentDialog = ({ precommande, open, onClose, type }: PaymentDialogProps)
 
     try {
       if (type === 'acompte') {
-        await createAcompte.mutateAsync({
-          precommandeId: precommande.id,
-          montantAcompte: montant,
-          modePaiement
-        });
+        // Pour les acomptes, on met à jour directement la précommande
+        // et on crée une transaction de caisse
+        const nouveauAcompte = acompteVerse + montant;
+        
+        await Promise.all([
+          updatePrecommande.mutateAsync({
+            id: precommande.id,
+            updates: { acompte_verse: nouveauAcompte }
+          }),
+          createAcompte.mutateAsync({
+            precommandeId: precommande.id,
+            montantAcompte: montant,
+            modePaiement
+          })
+        ]);
       } else {
+        // Pour le solde final
         await completePaiement.mutateAsync({
           precommandeId: precommande.id,
           montantFinal: montant,
@@ -52,7 +65,7 @@ const PaymentDialog = ({ precommande, open, onClose, type }: PaymentDialogProps)
     }
   };
 
-  const isPending = createAcompte.isPending || completePaiement.isPending;
+  const isPending = createAcompte.isPending || completePaiement.isPending || updatePrecommande.isPending;
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
@@ -87,7 +100,7 @@ const PaymentDialog = ({ precommande, open, onClose, type }: PaymentDialogProps)
               id="montant"
               type="number"
               min="0"
-              max={type === 'acompte' ? montantTotal - acompteVerse : resteAPayer}
+              max={type === 'acompte' ? resteAPayer : resteAPayer}
               value={montant}
               onChange={(e) => setMontant(Number(e.target.value))}
               placeholder="0"

@@ -18,3 +18,4 @@ export * from './precommandes/usePrecommandeMutations';
 export * from './precommandes/useStockDisponibilite';
 export * from './precommandes/useConvertPrecommandeToSale';
 export * from './precommandes/usePrecommandePayment';
+export * from './precommandes/useUpdatePrecommande';
