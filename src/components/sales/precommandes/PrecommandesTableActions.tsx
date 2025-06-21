@@ -52,7 +52,8 @@ const PrecommandesTableActions = ({
         size="sm"
         variant="outline"
         onClick={() => onEditer(precommande)}
-        title="Éditer"
+        title="Éditer la précommande"
+        className="text-green-600 hover:text-green-700"
       >
         <Edit className="h-4 w-4" />
       </Button>
@@ -60,7 +61,8 @@ const PrecommandesTableActions = ({
         size="sm"
         variant="outline"
         onClick={() => onFacture(precommande)}
-        title="Facture"
+        title="Voir la facture"
+        className="text-blue-600 hover:text-blue-700"
       >
         <FileText className="h-4 w-4" />
       </Button>
@@ -68,7 +70,7 @@ const PrecommandesTableActions = ({
         size="sm"
         variant="outline"
         onClick={() => onSupprimer(precommande)}
-        title="Supprimer"
+        title="Supprimer la précommande"
         className="text-red-600 hover:text-red-700"
       >
         <Trash2 className="h-4 w-4" />

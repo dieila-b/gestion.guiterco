@@ -4,6 +4,9 @@ import { Table, TableBody } from '@/components/ui/table';
 import type { PrecommandeComplete } from '@/types/precommandes';
 import { useConvertPrecommandeToSale } from '@/hooks/precommandes/useConvertPrecommandeToSale';
 import PaymentDialog from './PaymentDialog';
+import EditPrecommandeDialog from './EditPrecommandeDialog';
+import DeletePrecommandeDialog from './DeletePrecommandeDialog';
+import PrecommandeFactureDialog from './PrecommandeFactureDialog';
 import PrecommandesTableHeader from './PrecommandesTableHeader';
 import PrecommandesTableRow from './PrecommandesTableRow';
 
@@ -17,26 +20,25 @@ const PrecommandesTable = ({ precommandes }: PrecommandesTableProps) => {
     precommande: PrecommandeComplete;
     type: 'acompte' | 'solde';
   } | null>(null);
+  
+  const [editDialog, setEditDialog] = useState<PrecommandeComplete | null>(null);
+  const [deleteDialog, setDeleteDialog] = useState<PrecommandeComplete | null>(null);
+  const [factureDialog, setFactureDialog] = useState<PrecommandeComplete | null>(null);
 
   const handleConvertirEnVente = (precommande: PrecommandeComplete) => {
     convertToSale.mutate(precommande.id);
   };
 
   const handleEditer = (precommande: PrecommandeComplete) => {
-    // TODO: Ouvrir le dialogue d'édition de la précommande
-    console.log('Éditer précommande:', precommande.numero_precommande);
+    setEditDialog(precommande);
   };
 
   const handleFacture = (precommande: PrecommandeComplete) => {
-    // TODO: Générer et afficher la facture de précommande
-    console.log('Générer facture pour:', precommande.numero_precommande);
+    setFactureDialog(precommande);
   };
 
   const handleSupprimer = (precommande: PrecommandeComplete) => {
-    // TODO: Confirmer et supprimer la précommande
-    if (window.confirm(`Êtes-vous sûr de vouloir supprimer la précommande ${precommande.numero_precommande} ?`)) {
-      console.log('Supprimer précommande:', precommande.numero_precommande);
-    }
+    setDeleteDialog(precommande);
   };
 
   const handleFinaliserPaiement = (precommande: PrecommandeComplete) => {
@@ -65,6 +67,7 @@ const PrecommandesTable = ({ precommandes }: PrecommandesTableProps) => {
         </Table>
       </div>
 
+      {/* Dialogs */}
       {paymentDialog && (
         <PaymentDialog
           precommande={paymentDialog.precommande}
@@ -73,6 +76,24 @@ const PrecommandesTable = ({ precommandes }: PrecommandesTableProps) => {
           onClose={() => setPaymentDialog(null)}
         />
       )}
+
+      <EditPrecommandeDialog
+        precommande={editDialog}
+        open={!!editDialog}
+        onClose={() => setEditDialog(null)}
+      />
+
+      <DeletePrecommandeDialog
+        precommande={deleteDialog}
+        open={!!deleteDialog}
+        onClose={() => setDeleteDialog(null)}
+      />
+
+      <PrecommandeFactureDialog
+        precommande={factureDialog}
+        open={!!factureDialog}
+        onClose={() => setFactureDialog(null)}
+      />
     </>
   );
 };
