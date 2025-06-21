@@ -10,6 +10,7 @@ import { Plus, Trash2 } from 'lucide-react';
 import { useCreatePrecommande } from '@/hooks/precommandes/usePrecommandeMutations';
 import { useCatalogue } from '@/hooks/useCatalogue';
 import { useClientsQuery } from '@/hooks/sales/queries/useClientsQuery';
+import { formatCurrency } from '@/lib/currency';
 
 interface LignePrecommande {
   article_id: string;
@@ -82,7 +83,6 @@ const CreatePrecommandeForm = ({ onSuccess }: CreatePrecommandeFormProps) => {
   };
 
   const montantTotal = lignes.reduce((sum, ligne) => sum + (ligne.quantite * ligne.prix_unitaire), 0);
-  const montantTTC = montantTotal * 1.20;
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
@@ -151,19 +151,19 @@ const CreatePrecommandeForm = ({ onSuccess }: CreatePrecommandeFormProps) => {
               </div>
               
               <div>
-                <Label>Prix unitaire</Label>
+                <Label>Prix unitaire (GNF)</Label>
                 <Input
                   type="number"
-                  step="0.01"
+                  min="0"
                   value={ligne.prix_unitaire}
-                  onChange={(e) => updateLigne(index, 'prix_unitaire', parseFloat(e.target.value))}
+                  onChange={(e) => updateLigne(index, 'prix_unitaire', parseInt(e.target.value))}
                 />
               </div>
               
               <div>
                 <Label>Montant</Label>
                 <Input
-                  value={(ligne.quantite * ligne.prix_unitaire).toFixed(2)}
+                  value={formatCurrency(ligne.quantite * ligne.prix_unitaire)}
                   disabled
                 />
               </div>
@@ -184,23 +184,19 @@ const CreatePrecommandeForm = ({ onSuccess }: CreatePrecommandeFormProps) => {
 
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <Label htmlFor="acompte">Acompte versé (€)</Label>
+          <Label htmlFor="acompte">Acompte versé (GNF)</Label>
           <Input
             type="number"
-            step="0.01"
+            min="0"
             value={formData.acompte_verse}
-            onChange={(e) => setFormData({...formData, acompte_verse: parseFloat(e.target.value) || 0})}
+            onChange={(e) => setFormData({...formData, acompte_verse: parseInt(e.target.value) || 0})}
           />
         </div>
 
         <div className="space-y-2">
-          <div className="flex justify-between">
-            <span>Total HT:</span>
-            <span>{montantTotal.toFixed(2)} €</span>
-          </div>
-          <div className="flex justify-between font-bold">
-            <span>Total TTC:</span>
-            <span>{montantTTC.toFixed(2)} €</span>
+          <div className="flex justify-between font-bold text-lg">
+            <span>Total:</span>
+            <span>{formatCurrency(montantTotal)}</span>
           </div>
         </div>
       </div>
