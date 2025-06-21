@@ -1,12 +1,12 @@
 
 import React from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
-import NewDashboard from '@/components/dashboard/NewDashboard';
+import ModernDashboard from '@/components/dashboard/ModernDashboard';
 
 const Index = () => {
   return (
     <AppLayout title="Dashboard">
-      <NewDashboard />
+      <ModernDashboard />
     </AppLayout>
   );
 };
