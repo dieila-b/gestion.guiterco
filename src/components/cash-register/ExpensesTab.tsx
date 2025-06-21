@@ -1,3 +1,4 @@
+
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { Printer } from "lucide-react";
@@ -18,6 +19,8 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import CreateSortieDialog from "./dialogs/CreateSortieDialog";
 import CreateEntreeDialog from "./dialogs/CreateEntreeDialog";
 import CreateCategorieDialog from "./dialogs/CreateCategorieDialog";
+import EditCategorieDialog from "./dialogs/EditCategorieDialog";
+import DeleteCategorieDialog from "./dialogs/DeleteCategorieDialog";
 
 interface ExpensesTabProps {
   initialSubTab?: string | null;
@@ -207,18 +210,19 @@ const ExpensesTab: React.FC<ExpensesTabProps> = ({ initialSubTab }) => {
                   <TableHead>Type</TableHead>
                   <TableHead>Couleur</TableHead>
                   <TableHead>Description</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {isLoadingCategories ? (
                   <TableRow>
-                    <TableCell colSpan={4} className="text-center py-6 text-zinc-400">
+                    <TableCell colSpan={5} className="text-center py-6 text-zinc-400">
                       Chargement...
                     </TableCell>
                   </TableRow>
                 ) : categories.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={4} className="text-center py-6 text-zinc-400">
+                    <TableCell colSpan={5} className="text-center py-6 text-zinc-400">
                       Aucune catégorie enregistrée.
                     </TableCell>
                   </TableRow>
@@ -246,6 +250,12 @@ const ExpensesTab: React.FC<ExpensesTabProps> = ({ initialSubTab }) => {
                       </TableCell>
                       <TableCell className="text-sm text-gray-600">
                         {categorie.description || "-"}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-2">
+                          <EditCategorieDialog categorie={categorie} />
+                          <DeleteCategorieDialog categorie={categorie} />
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))
