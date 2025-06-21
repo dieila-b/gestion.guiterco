@@ -19,6 +19,7 @@ export interface ClôtureCaisse {
 }
 
 export interface ComptageDetails {
+  [key: string]: number; // Index signature pour compatibilité Json
   billet_500: number;
   billet_200: number;
   billet_100: number;
@@ -130,7 +131,7 @@ export const useCreateComptage = () => {
           cash_register_id: comptageData.cash_register_id,
           montant_theorique: comptageData.montant_theorique,
           montant_reel: comptageData.montant_reel,
-          details_coupures: comptageData.details_coupures,
+          details_coupures: comptageData.details_coupures ? JSON.parse(JSON.stringify(comptageData.details_coupures)) : null,
           observations: comptageData.observations,
           utilisateur_comptage: 'Utilisateur actuel'
         })
@@ -202,7 +203,7 @@ export const useGenerateEtatCaisse = () => {
         .insert({
           cash_register_id: cashRegisterId,
           type_etat: type,
-          donnees_etat: donneesEtat,
+          donnees_etat: JSON.parse(JSON.stringify(donneesEtat)),
           utilisateur_generation: 'Utilisateur actuel'
         })
         .select()
