@@ -37,27 +37,25 @@ const NewDashboard = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-7xl mx-auto space-y-8">
-        {/* Ligne du haut - 4 cartes principales colorées */}
-        <MainStatsCards
-          stats={stats}
-          isLoading={isLoading}
-          onVentesClick={() => setVentesModalOpen(true)}
-          onMargeClick={() => setMargeModalOpen(true)}
-          onFacturesImpayeesClick={handleFacturesImpayeesClick}
-          onDepensesClick={handleDepensesClick}
-        />
+    <div className="space-y-8 p-6 bg-gray-50 min-h-screen">
+      {/* Ligne du haut - 4 cartes principales colorées */}
+      <MainStatsCards
+        stats={stats}
+        isLoading={isLoading}
+        onVentesClick={() => setVentesModalOpen(true)}
+        onMargeClick={() => setMargeModalOpen(true)}
+        onFacturesImpayeesClick={handleFacturesImpayeesClick}
+        onDepensesClick={handleDepensesClick}
+      />
 
-        {/* Ligne du milieu - 4 cartes avec icônes */}
-        <IconStatsCards stats={stats} isLoading={isLoading} />
+      {/* Ligne du milieu - 4 cartes avec icônes */}
+      <IconStatsCards stats={stats} isLoading={isLoading} />
 
-        {/* Ligne du bas - 3 cartes horizontales */}
-        <BottomStatsCards stats={stats} isLoading={isLoading} />
+      {/* Ligne du bas - 3 cartes horizontales */}
+      <BottomStatsCards stats={stats} isLoading={isLoading} />
 
-        {/* Situation actuelle */}
-        <SituationCard stats={stats} isLoading={isLoading} />
-      </div>
+      {/* Situation actuelle */}
+      <SituationCard stats={stats} isLoading={isLoading} />
 
       {/* Modals */}
       <VentesDuJourModal 
