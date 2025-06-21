@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo } from 'react';
 import { useCatalogueOptimized } from '@/hooks/useCatalogueOptimized';
 import { useDebounce } from '@/hooks/useDebounce';
@@ -23,7 +24,7 @@ const VenteComptoirResponsive = () => {
   // Debounce pour la recherche
   const debouncedSearch = useDebounce(searchProduct, 300);
 
-  // Hook vente comptoir avec gestion du stock PDV
+  // Hook vente comptoir avec gestion du stock PDV et stock local
   const {
     cart,
     stockPDV,
@@ -35,6 +36,7 @@ const VenteComptoirResponsive = () => {
     clearCart,
     createVente,
     getStockColor,
+    getLocalStock,
     isLoading
   } = useVenteComptoir(selectedPDV);
 
@@ -126,6 +128,9 @@ const VenteComptoirResponsive = () => {
       setShowPaymentModal(false);
       setShowPostPaymentActions(true);
       
+      // Réinitialisation automatique après validation
+      setSelectedClient('');
+      
       // Message de succès adaptatif selon le montant payé
       const montantPaye = paymentData.montant_paye || 0;
       if (montantPaye === 0) {
@@ -158,6 +163,13 @@ const VenteComptoirResponsive = () => {
     updateRemise(productId, remise);
   };
 
+  const handlePostPaymentClose = () => {
+    setShowPostPaymentActions(false);
+    setLastFacture(null);
+    // Réinitialisation complète après fermeture des actions post-paiement
+    setSelectedClient('');
+  };
+
   return (
     <div className="h-screen bg-gray-50 overflow-hidden">
       <div className="h-full flex flex-col">
@@ -175,7 +187,7 @@ const VenteComptoirResponsive = () => {
 
         {/* Contenu principal */}
         <div className="flex-1 flex min-h-0">
-          {/* Zone produits */}
+          {/* Zone produits avec stock temps réel */}
           <ProductGrid
             stockPDV={stockPDV}
             loadingArticles={loadingArticles}
@@ -184,6 +196,7 @@ const VenteComptoirResponsive = () => {
             totalPages={totalPages}
             goToPage={goToPage}
             getStockColor={getStockColor}
+            getLocalStock={getLocalStock}
             searchProduct={searchProduct}
             selectedCategory={selectedCategory}
           />
@@ -204,7 +217,7 @@ const VenteComptoirResponsive = () => {
         </div>
       </div>
 
-      {/* Modal de paiement */}
+      {/* Modal de paiement optimisée */}
       <PaymentModal
         isOpen={showPaymentModal}
         onClose={() => setShowPaymentModal(false)}
@@ -214,10 +227,10 @@ const VenteComptoirResponsive = () => {
         isLoading={isLoading}
       />
 
-      {/* Actions post-paiement */}
+      {/* Actions post-paiement améliorées */}
       <PostPaymentActions
         isOpen={showPostPaymentActions}
-        onClose={() => setShowPostPaymentActions(false)}
+        onClose={handlePostPaymentClose}
         factureData={lastFacture || {}}
       />
     </div>

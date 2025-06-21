@@ -20,6 +20,7 @@ interface ProductGridProps {
   totalPages: number;
   goToPage: (page: number) => void;
   getStockColor: (quantite: number) => string;
+  getLocalStock?: (articleId: string) => number;
   searchProduct: string;
   selectedCategory: string;
 }
@@ -32,6 +33,7 @@ const ProductGrid: React.FC<ProductGridProps> = ({
   totalPages,
   goToPage,
   getStockColor,
+  getLocalStock,
   searchProduct,
   selectedCategory
 }) => {
@@ -63,6 +65,14 @@ const ProductGrid: React.FC<ProductGridProps> = ({
     return { emoji: '🔴', text: 'Stock faible' };
   };
 
+  const getDisplayStock = (stockItem: any) => {
+    // Utiliser le stock local si disponible, sinon le stock PDV
+    if (getLocalStock) {
+      return getLocalStock(stockItem.article_id);
+    }
+    return stockItem.quantite_disponible;
+  };
+
   return (
     <div className="w-1/2 p-4 flex flex-col">
       <div className="bg-white rounded-lg shadow-lg border border-gray-200 flex flex-col h-full">
@@ -70,7 +80,7 @@ const ProductGrid: React.FC<ProductGridProps> = ({
         <div className="p-4 border-b border-gray-200">
           <h3 className="text-lg font-bold text-gray-800">Produits disponibles</h3>
           <p className="text-sm text-gray-500">
-            {filteredProducts.length} produits trouvés - Cliquez pour ajouter au panier
+            {filteredProducts.length} produits trouvés - Stock mis à jour en temps réel
           </p>
         </div>
 
@@ -98,7 +108,7 @@ const ProductGrid: React.FC<ProductGridProps> = ({
               <div className="grid grid-cols-5 gap-4 mb-4">
                 {filteredProducts.map((stockItem) => {
                   const article = stockItem.article;
-                  const stockDisponible = stockItem.quantite_disponible;
+                  const stockDisponible = getDisplayStock(stockItem);
                   const stockIndicator = getStockIndicator(stockDisponible);
                   
                   return (
@@ -132,9 +142,12 @@ const ProductGrid: React.FC<ProductGridProps> = ({
                         {article.nom}
                       </div>
                       
-                      {/* Stock disponible avec couleur */}
+                      {/* Stock disponible avec couleur et indication temps réel */}
                       <div className={`text-xs font-medium mb-1 ${getStockColor(stockDisponible)}`}>
                         Stock: {stockDisponible}
+                        {getLocalStock && (
+                          <span className="ml-1 text-blue-500 animate-pulse">●</span>
+                        )}
                       </div>
                       
                       <div className="font-bold text-blue-600">

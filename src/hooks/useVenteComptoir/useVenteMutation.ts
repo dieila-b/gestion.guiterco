@@ -7,35 +7,28 @@ import { useCreateFactureVente } from '../sales/mutations';
 export const useVenteMutation = (
   pointsDeVente: any[],
   selectedPDV: string | undefined,
-  setCart: (cart: CartItem[]) => void
+  setCart: (cart: CartItem[]) => void,
+  restoreLocalStock?: () => void
 ) => {
   const createFactureVente = useCreateFactureVente();
 
   const mutation = useMutation({
     mutationFn: async (venteData: VenteComptoirData) => {
-      console.log('🔄 Début création vente comptoir:', venteData);
+      console.log('🚀 Début création vente comptoir optimisée:', venteData);
 
-      // Validation des données
-      if (!venteData.client_id) {
-        throw new Error('Client non sélectionné');
+      // Validation rapide des données essentielles
+      if (!venteData.client_id || !venteData.cart?.length || !selectedPDV) {
+        throw new Error('Données de vente incomplètes');
       }
 
-      if (!venteData.cart || venteData.cart.length === 0) {
-        throw new Error('Panier vide');
-      }
+      // Récupérer l'ID du point de vente de manière optimisée
+      const pdvSelected = pointsDeVente?.find(pdv => pdv.nom === selectedPDV);
+      const pointVenteId = pdvSelected?.id || selectedPDV;
 
-      // Récupérer l'ID du point de vente sélectionné
-      let pointVenteId = selectedPDV;
-      if (selectedPDV && pointsDeVente) {
-        const pdvSelected = pointsDeVente.find(pdv => pdv.nom === selectedPDV);
-        if (pdvSelected) {
-          pointVenteId = pdvSelected.id;
-          console.log('🔍 ID du point de vente:', pointVenteId, 'pour nom:', selectedPDV);
-        }
-      }
+      console.log('📍 Point de vente sélectionné:', pointVenteId);
 
-      // Utiliser la mutation de création de facture avec les données de paiement
-      const result = await createFactureVente.mutateAsync({
+      // Préparer les données optimisées pour la création
+      const factureData = {
         client_id: venteData.client_id,
         cart: venteData.cart,
         montant_ht: venteData.montant_ht,
@@ -43,20 +36,39 @@ export const useVenteMutation = (
         montant_ttc: venteData.montant_ttc,
         mode_paiement: venteData.mode_paiement,
         point_vente_id: pointVenteId,
-        payment_data: venteData.payment_data // CRUCIAL: passer les données de paiement
-      });
+        payment_data: venteData.payment_data
+      };
 
-      console.log('✅ Vente comptoir créée avec succès:', result);
+      // Exécution optimisée de la création
+      const result = await createFactureVente.mutateAsync(factureData);
+      console.log('✅ Vente créée avec succès:', result);
+      
       return result;
     },
-    onSuccess: () => {
-      console.log('✅ Vente comptoir terminée avec succès');
+    onSuccess: (result) => {
+      console.log('🎉 Vente comptoir terminée avec succès');
+      
+      // Nettoyage rapide et efficace
       setCart([]);
-      toast.success('Vente enregistrée avec succès');
+      
+      // Message de succès concis
+      toast.success('Vente enregistrée avec succès', {
+        description: `Facture ${result.facture.numero_facture} créée`,
+        duration: 3000
+      });
     },
     onError: (error: Error) => {
       console.error('❌ Erreur lors de la vente:', error);
-      toast.error(error.message || 'Erreur lors de la vente');
+      
+      // Restaurer le stock local en cas d'erreur
+      if (restoreLocalStock) {
+        restoreLocalStock();
+      }
+      
+      toast.error('Erreur lors de la vente', {
+        description: error.message,
+        duration: 5000
+      });
     }
   });
 

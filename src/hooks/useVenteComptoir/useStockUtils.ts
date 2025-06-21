@@ -1,17 +1,25 @@
 
 import { useCallback } from 'react';
 
-export const useStockUtils = (stockPDV?: any[]) => {
-  // Fonction pour vérifier le stock disponible
+export const useStockUtils = (stockPDV?: any[], getLocalStock?: (articleId: string) => number) => {
+  // Fonction pour vérifier le stock disponible (utilise le stock local si disponible)
   const checkStock = useCallback((articleId: string, quantiteDemandee: number) => {
-    const stockItem = stockPDV?.find(item => item.article_id === articleId);
-    if (!stockItem) return { disponible: false, quantiteDisponible: 0 };
+    let quantiteDisponible = 0;
+
+    if (getLocalStock) {
+      // Utiliser le stock local pour les vérifications en temps réel
+      quantiteDisponible = getLocalStock(articleId);
+    } else {
+      // Fallback sur le stock PDV original
+      const stockItem = stockPDV?.find(item => item.article_id === articleId);
+      quantiteDisponible = stockItem?.quantite_disponible || 0;
+    }
     
     return {
-      disponible: stockItem.quantite_disponible >= quantiteDemandee,
-      quantiteDisponible: stockItem.quantite_disponible
+      disponible: quantiteDisponible >= quantiteDemandee,
+      quantiteDisponible
     };
-  }, [stockPDV]);
+  }, [stockPDV, getLocalStock]);
 
   // Fonction pour obtenir la couleur selon le stock
   const getStockColor = useCallback((quantite: number) => {

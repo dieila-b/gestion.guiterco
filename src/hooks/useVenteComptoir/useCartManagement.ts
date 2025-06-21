@@ -3,7 +3,10 @@ import { useState, useCallback } from 'react';
 import { toast } from 'sonner';
 import type { CartItem } from './types';
 
-export const useCartManagement = (checkStock: (articleId: string, quantiteDemandee: number) => { disponible: boolean; quantiteDisponible: number }) => {
+export const useCartManagement = (
+  checkStock: (articleId: string, quantiteDemandee: number) => { disponible: boolean; quantiteDisponible: number },
+  updateLocalStock?: (articleId: string, quantityUsed: number) => void
+) => {
   const [cart, setCart] = useState<CartItem[]>([]);
 
   const addToCart = useCallback((article: any) => {
@@ -26,6 +29,11 @@ export const useCartManagement = (checkStock: (articleId: string, quantiteDemand
           return prevCart;
         }
         
+        // Mettre à jour le stock local visuellement
+        if (updateLocalStock) {
+          updateLocalStock(article.id, 1);
+        }
+        
         return prevCart.map(item =>
           item.id === article.id
             ? { 
@@ -35,6 +43,11 @@ export const useCartManagement = (checkStock: (articleId: string, quantiteDemand
               }
             : item
         );
+      }
+      
+      // Mettre à jour le stock local visuellement pour un nouvel article
+      if (updateLocalStock) {
+        updateLocalStock(article.id, 1);
       }
       
       const newItem: CartItem = {
@@ -52,19 +65,34 @@ export const useCartManagement = (checkStock: (articleId: string, quantiteDemand
       
       return [...prevCart, newItem];
     });
-  }, [checkStock]);
+  }, [checkStock, updateLocalStock]);
 
   const updateQuantity = useCallback((productId: string, newQuantity: number) => {
     if (newQuantity <= 0) {
+      // Restaurer le stock local avant de supprimer l'article
+      const item = cart.find(item => item.id === productId);
+      if (item && updateLocalStock) {
+        updateLocalStock(productId, -item.quantite);
+      }
+      
       setCart(prevCart => prevCart.filter(item => item.id !== productId));
       return;
     }
+
+    const currentItem = cart.find(item => item.id === productId);
+    if (!currentItem) return;
 
     const stockCheck = checkStock(productId, newQuantity);
     
     if (!stockCheck.disponible) {
       toast.error(`Quantité insuffisante. Stock disponible: ${stockCheck.quantiteDisponible}`);
       return;
+    }
+
+    // Calculer la différence pour ajuster le stock local
+    const quantityDifference = newQuantity - currentItem.quantite;
+    if (updateLocalStock && quantityDifference !== 0) {
+      updateLocalStock(productId, quantityDifference);
     }
 
     setCart(prevCart => 
@@ -78,7 +106,7 @@ export const useCartManagement = (checkStock: (articleId: string, quantiteDemand
           : item
       )
     );
-  }, [checkStock]);
+  }, [checkStock, updateLocalStock, cart]);
 
   const updateRemise = useCallback((productId: string, remise: number) => {
     setCart(prevCart => 
@@ -95,12 +123,25 @@ export const useCartManagement = (checkStock: (articleId: string, quantiteDemand
   }, []);
 
   const removeFromCart = useCallback((productId: string) => {
+    // Restaurer le stock local avant de supprimer
+    const item = cart.find(item => item.id === productId);
+    if (item && updateLocalStock) {
+      updateLocalStock(productId, -item.quantite);
+    }
+    
     setCart(prevCart => prevCart.filter(item => item.id !== productId));
-  }, []);
+  }, [updateLocalStock, cart]);
 
   const clearCart = useCallback(() => {
+    // Restaurer tout le stock local
+    if (updateLocalStock) {
+      cart.forEach(item => {
+        updateLocalStock(item.id, -item.quantite);
+      });
+    }
+    
     setCart([]);
-  }, []);
+  }, [updateLocalStock, cart]);
 
   return {
     cart,
