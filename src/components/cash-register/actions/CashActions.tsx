@@ -2,11 +2,10 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Printer, Download, Lock } from 'lucide-react';
+import { Printer, Lock } from 'lucide-react';
 import { useCloseCashRegister, useGenerateEtatCaisse } from '@/hooks/cash';
 import { useCashRegisterBalance } from '@/hooks/useTransactions';
 import ComptageDialog from './ComptageDialog';
-import ExportTransactionsDialog from './ExportTransactionsDialog';
 import { formatCurrency } from '@/lib/currency';
 import { toast } from 'sonner';
 import jsPDF from 'jspdf';
@@ -134,8 +133,6 @@ const CashActions: React.FC<CashActionsProps> = ({ cashRegisterId }) => {
           cashRegisterId={cashRegisterId}
           soldeTheorique={soldeActuel}
         />
-
-        <ExportTransactionsDialog />
       </CardContent>
     </Card>
   );
