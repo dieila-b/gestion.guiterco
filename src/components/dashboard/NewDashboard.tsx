@@ -37,8 +37,8 @@ const NewDashboard = () => {
   }
 
   return (
-    <div className="space-y-6 p-6">
-      {/* Ligne du haut - 4 cartes principales */}
+    <div className="space-y-8 p-6 bg-gray-50 min-h-screen">
+      {/* Ligne du haut - 4 cartes principales colorées */}
       <MainStatsCards
         stats={stats}
         isLoading={isLoading}
