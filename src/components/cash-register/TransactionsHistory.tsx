@@ -2,52 +2,86 @@
 import React from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Transaction } from './types';
-import TransactionFilters from './components/TransactionFilters';
-import TransactionsTable from './components/TransactionsTable';
-import { useTransactionFilters } from './hooks/useTransactionFilters';
+import AdvancedTransactionFilters from './components/AdvancedTransactionFilters';
+import SortableTransactionsTable from './components/SortableTransactionsTable';
+import TransactionsPagination from './components/TransactionsPagination';
+import { useAdvancedTransactionFilters } from '@/hooks/useAdvancedTransactionFilters';
 
 interface TransactionsHistoryProps {
   transactions: (Transaction & { source?: string | null })[];
-  date: Date | undefined;
-  setDate: (date: Date | undefined) => void;
   formatCurrency: (amount: number) => string;
 }
 
 const TransactionsHistory: React.FC<TransactionsHistoryProps> = ({
   transactions,
-  date,
-  setDate,
   formatCurrency
 }) => {
   const {
+    year,
+    month,
+    day,
     typeFilter,
-    setTypeFilter,
     searchTerm,
+    setYear,
+    setMonth,
+    setDay,
+    setTypeFilter,
     setSearchTerm,
-    filteredTransactions
-  } = useTransactionFilters(transactions);
+    currentPage,
+    totalPages,
+    itemsPerPage,
+    totalItems,
+    handlePageChange,
+    handleItemsPerPageChange,
+    sortField,
+    sortDirection,
+    handleSort,
+    paginatedTransactions,
+    resetFilters
+  } = useAdvancedTransactionFilters({ transactions });
 
   return (
     <Card>
       <CardHeader>
         <CardTitle>Historique des transactions</CardTitle>
-        <CardDescription>Toutes les entrées et sorties de caisse</CardDescription>
+        <CardDescription>
+          Toutes les entrées et sorties de caisse avec filtres avancés et pagination
+        </CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="space-y-4">
-          <TransactionFilters
-            searchTerm={searchTerm}
-            setSearchTerm={setSearchTerm}
+        <div className="space-y-6">
+          <AdvancedTransactionFilters
+            year={year}
+            month={month}
+            day={day}
             typeFilter={typeFilter}
-            setTypeFilter={setTypeFilter}
-            date={date}
-            setDate={setDate}
+            searchTerm={searchTerm}
+            onYearChange={setYear}
+            onMonthChange={setMonth}
+            onDayChange={setDay}
+            onTypeFilterChange={setTypeFilter}
+            onSearchTermChange={setSearchTerm}
+            onResetFilters={resetFilters}
           />
           
-          <TransactionsTable
-            transactions={filteredTransactions}
+          <SortableTransactionsTable
+            transactions={paginatedTransactions}
             formatCurrency={formatCurrency}
+            sortField={sortField}
+            sortDirection={sortDirection}
+            onSort={handleSort}
           />
+          
+          {totalItems > 0 && (
+            <TransactionsPagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              itemsPerPage={itemsPerPage}
+              totalItems={totalItems}
+              onPageChange={handlePageChange}
+              onItemsPerPageChange={handleItemsPerPageChange}
+            />
+          )}
         </div>
       </CardContent>
     </Card>

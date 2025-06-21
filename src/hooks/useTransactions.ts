@@ -83,24 +83,56 @@ export const useTodayTransactions = (cashRegisterId?: string) => {
   });
 };
 
-// Hook unifié pour toutes les transactions financières (transactions + cash_operations + sorties_financieres)
-export const useAllFinancialTransactions = () => {
+// Hook unifié pour toutes les transactions financières avec pagination et filtres
+export const useAllFinancialTransactions = (
+  year?: number,
+  month?: number,
+  day?: number,
+  limit?: number,
+  offset?: number
+) => {
   return useQuery<NormalizedFinancialTransaction[]>({
-    queryKey: ['all-financial-transactions'],
+    queryKey: ['all-financial-transactions', year, month, day, limit, offset],
     queryFn: async () => {
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      const tomorrow = new Date(today);
-      tomorrow.setDate(tomorrow.getDate() + 1);
+      console.log('💰 Récupération des transactions financières avec filtres...');
 
-      console.log('💰 Récupération des transactions financières...');
+      // Construire les filtres de date
+      let startDate: Date;
+      let endDate: Date;
 
-      // Récupérer les transactions de la table transactions avec TOUS les champs nécessaires
-      const { data: transactions, error: transError } = await supabase
+      if (year && month) {
+        if (day) {
+          // Jour spécifique
+          startDate = new Date(year, month - 1, day, 0, 0, 0);
+          endDate = new Date(year, month - 1, day, 23, 59, 59);
+        } else {
+          // Mois entier
+          startDate = new Date(year, month - 1, 1, 0, 0, 0);
+          endDate = new Date(year, month, 0, 23, 59, 59);
+        }
+      } else {
+        // Par défaut, transactions du jour actuel
+        const today = new Date();
+        startDate = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 0, 0, 0);
+        endDate = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59);
+      }
+
+      // Récupérer les transactions de la table transactions avec pagination
+      let transactionsQuery = supabase
         .from('transactions')
         .select('id, type, amount, montant, description, date_operation, created_at, source')
-        .gte('date_operation', today.toISOString())
-        .lt('date_operation', tomorrow.toISOString());
+        .gte('date_operation', startDate.toISOString())
+        .lt('date_operation', endDate.toISOString())
+        .order('date_operation', { ascending: false });
+
+      if (limit) {
+        transactionsQuery = transactionsQuery.limit(limit);
+      }
+      if (offset) {
+        transactionsQuery = transactionsQuery.range(offset, offset + (limit || 50) - 1);
+      }
+
+      const { data: transactions, error: transError } = await transactionsQuery;
 
       if (transError) {
         console.error('❌ Erreur transactions:', transError);
@@ -108,14 +140,13 @@ export const useAllFinancialTransactions = () => {
       }
       
       console.log('💰 Transactions trouvées:', transactions?.length || 0);
-      console.log('💰 Première transaction exemple:', transactions?.[0]);
 
-      // Récupérer les opérations de caisse
+      // Récupérer les opérations de caisse avec même période
       const { data: cashOps, error: cashError } = await supabase
         .from('cash_operations')
         .select('*')
-        .gte('created_at', today.toISOString())
-        .lt('created_at', tomorrow.toISOString());
+        .gte('created_at', startDate.toISOString())
+        .lt('created_at', endDate.toISOString());
 
       if (cashError) {
         console.error('❌ Erreur cash_operations:', cashError);
@@ -124,12 +155,12 @@ export const useAllFinancialTransactions = () => {
       
       console.log('💰 Cash operations trouvées:', cashOps?.length || 0);
 
-      // Récupérer les sorties financières
+      // Récupérer les sorties financières avec même période
       const { data: expenses, error: expError } = await supabase
         .from('sorties_financieres')
         .select('*')
-        .gte('date_sortie', today.toISOString())
-        .lt('date_sortie', tomorrow.toISOString());
+        .gte('date_sortie', startDate.toISOString())
+        .lt('date_sortie', endDate.toISOString());
 
       if (expError) {
         console.error('❌ Erreur sorties_financieres:', expError);
@@ -138,30 +169,17 @@ export const useAllFinancialTransactions = () => {
       
       console.log('💰 Sorties financières trouvées:', expenses?.length || 0);
 
-      // Normaliser toutes les données en préservant exactement le champ source
+      // Normaliser toutes les données
       const normalizedTransactions = (transactions || [])
         .filter((t): t is Transaction & { type: 'income' | 'expense' } => t.type === 'income' || t.type === 'expense')
-        .map(t => {
-          const normalizedTrans = {
-            id: t.id,
-            type: t.type,
-            amount: t.amount || t.montant || 0,
-            description: t.description || '',
-            date: t.date_operation || t.created_at,
-            source: t.source // Préserver exactement la valeur source de la DB
-          };
-          
-          console.log('💰 Transaction normalisée:', {
-            id: normalizedTrans.id,
-            type: normalizedTrans.type,
-            amount: normalizedTrans.amount,
-            description: normalizedTrans.description,
-            source: normalizedTrans.source,
-            isFacturePayment: normalizedTrans.source === "facture"
-          });
-          
-          return normalizedTrans;
-        });
+        .map(t => ({
+          id: t.id,
+          type: t.type,
+          amount: t.amount || t.montant || 0,
+          description: t.description || '',
+          date: t.date_operation || t.created_at,
+          source: t.source
+        }));
 
       const normalizedCashOps = (cashOps || []).map(c => ({
         id: c.id,
@@ -192,9 +210,33 @@ export const useAllFinancialTransactions = () => {
       });
       
       console.log('💰 Total transactions financières normalisées:', result.length);
-      console.log('💰 Règlements de factures trouvés:', result.filter(r => r.source === "facture").length);
       
       return result;
+    }
+  });
+};
+
+// Hook pour récupérer toutes les transactions sans filtres (pour l'historique complet)
+export const useAllTransactionsHistory = () => {
+  return useQuery<(Transaction & { source?: string | null })[]>({
+    queryKey: ['all-transactions-history'],
+    queryFn: async () => {
+      console.log('📜 Récupération de l\'historique complet des transactions...');
+
+      // Récupérer toutes les transactions
+      const { data: transactions, error: transError } = await supabase
+        .from('transactions')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (transError) {
+        console.error('❌ Erreur transactions:', transError);
+        throw transError;
+      }
+
+      console.log('📜 Transactions récupérées:', transactions?.length || 0);
+      
+      return transactions || [];
     }
   });
 };
