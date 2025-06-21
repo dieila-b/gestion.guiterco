@@ -34,7 +34,7 @@ const EditPrecommandeDialog = ({ precommande, open, onClose }: EditPrecommandeDi
     if (precommande) {
       setFormData({
         observations: precommande.observations || '',
-        acompte_verse: precommande.acompte_verse || 0,
+        acompte_verse: 0, // Toujours vide pour permettre la saisie d'un nouvel acompte
         date_livraison_prevue: precommande.date_livraison_prevue 
           ? new Date(precommande.date_livraison_prevue).toISOString().split('T')[0] 
           : '',
@@ -46,11 +46,14 @@ const EditPrecommandeDialog = ({ precommande, open, onClose }: EditPrecommandeDi
     if (!precommande) return;
 
     try {
+      // Si un nouvel acompte est saisi, l'ajouter à l'acompte existant
+      const nouvelAcompteTotal = (precommande.acompte_verse || 0) + formData.acompte_verse;
+      
       await updatePrecommande.mutateAsync({
         id: precommande.id,
         updates: {
           observations: formData.observations,
-          acompte_verse: formData.acompte_verse,
+          acompte_verse: nouvelAcompteTotal,
           date_livraison_prevue: formData.date_livraison_prevue || null,
         }
       });
@@ -61,6 +64,8 @@ const EditPrecommandeDialog = ({ precommande, open, onClose }: EditPrecommandeDi
   };
 
   const totalPrecommande = precommande ? calculerTotalPrecommande(precommande) : 0;
+  const acompteActuel = precommande?.acompte_verse || 0;
+  const resteAPayer = totalPrecommande - acompteActuel;
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
@@ -95,6 +100,25 @@ const EditPrecommandeDialog = ({ precommande, open, onClose }: EditPrecommandeDi
               </div>
             </div>
 
+            {/* Statut des paiements */}
+            <div className="border rounded-lg p-4 bg-blue-50">
+              <h3 className="font-semibold mb-2">État des paiements</h3>
+              <div className="space-y-1 text-sm">
+                <div className="flex justify-between">
+                  <span>Total précommande:</span>
+                  <span className="font-semibold">{formatCurrency(totalPrecommande)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Acompte déjà versé:</span>
+                  <span className="font-semibold text-green-600">{formatCurrency(acompteActuel)}</span>
+                </div>
+                <div className="flex justify-between border-t pt-1">
+                  <span>Reste à payer:</span>
+                  <span className="font-semibold text-blue-600">{formatCurrency(resteAPayer)}</span>
+                </div>
+              </div>
+            </div>
+
             {/* Formulaire d'édition */}
             <div className="space-y-4">
               <div>
@@ -108,18 +132,19 @@ const EditPrecommandeDialog = ({ precommande, open, onClose }: EditPrecommandeDi
               </div>
 
               <div>
-                <Label htmlFor="acompte">Acompte versé (GNF)</Label>
+                <Label htmlFor="acompte">Nouvel acompte à ajouter (GNF)</Label>
                 <Input
                   id="acompte"
                   type="number"
                   step="1"
                   min="0"
-                  max={totalPrecommande}
+                  max={resteAPayer}
                   value={formData.acompte_verse}
                   onChange={(e) => setFormData({ ...formData, acompte_verse: parseFloat(e.target.value) || 0 })}
+                  placeholder="Saisir le montant du nouvel acompte"
                 />
                 <p className="text-sm text-gray-500 mt-1">
-                  Reste à payer: {formatCurrency(totalPrecommande - formData.acompte_verse)}
+                  Maximum: {formatCurrency(resteAPayer)}
                 </p>
               </div>
 
