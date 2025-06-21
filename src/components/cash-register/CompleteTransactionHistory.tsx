@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
@@ -6,13 +7,14 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon } from "lucide-react";
+import { CalendarIcon, Download } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { useCompleteTransactionHistory } from "@/hooks/useCompleteTransactionHistory";
 import { formatCurrency } from "@/lib/currency";
 import CompleteHistoryStatsCards from './components/CompleteHistoryStatsCards';
 import CompleteHistoryTable from './components/CompleteHistoryTable';
+import ExportTransactionsDialog from './actions/ExportTransactionsDialog';
 
 const CompleteTransactionHistory: React.FC = () => {
   const currentYear = new Date().getFullYear();
@@ -23,11 +25,15 @@ const CompleteTransactionHistory: React.FC = () => {
     year: currentYear,
     month: currentMonth,
     day: undefined as number | undefined,
+    startDate: undefined as Date | undefined,
+    endDate: undefined as Date | undefined,
     type: 'all' as string,
-    searchTerm: ''
+    searchTerm: '',
+    source: '' as string
   });
 
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
+  const [showCustomDateRange, setShowCustomDateRange] = useState(false);
 
   // Hook pour récupérer les données
   const { 
@@ -70,8 +76,11 @@ const CompleteTransactionHistory: React.FC = () => {
         ...prev,
         year: date.getFullYear(),
         month: date.getMonth() + 1,
-        day: date.getDate()
+        day: date.getDate(),
+        startDate: undefined,
+        endDate: undefined
       }));
+      setShowCustomDateRange(false);
     } else {
       setFilters(prev => ({
         ...prev,
@@ -87,12 +96,31 @@ const CompleteTransactionHistory: React.FC = () => {
     }));
   };
 
+  const handleCustomDateRange = (startDate: Date | undefined, endDate: Date | undefined) => {
+    setFilters(prev => ({
+      ...prev,
+      startDate,
+      endDate,
+      day: undefined
+    }));
+    setSelectedDate(undefined);
+  };
+
   const clearDayFilter = () => {
     setSelectedDate(undefined);
     setFilters(prev => ({
       ...prev,
       day: undefined
     }));
+  };
+
+  const clearCustomDateRange = () => {
+    setFilters(prev => ({
+      ...prev,
+      startDate: undefined,
+      endDate: undefined
+    }));
+    setShowCustomDateRange(false);
   };
 
   return (
@@ -107,102 +135,199 @@ const CompleteTransactionHistory: React.FC = () => {
           <CardDescription>Filtrez et recherchez dans toutes les transactions</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-            {/* Filtre Année */}
-            <div className="space-y-2">
-              <Label>Année (obligatoire)</Label>
-              <Select value={String(filters.year)} onValueChange={(value) => handleFilterChange('year', Number(value))}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {years.map((year) => (
-                    <SelectItem key={year} value={String(year)}>{year}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+          <div className="space-y-4">
+            {/* Choix du mode de filtrage */}
+            <div className="flex gap-2 mb-4">
+              <Button
+                variant={!showCustomDateRange ? "default" : "outline"}
+                onClick={() => setShowCustomDateRange(false)}
+                size="sm"
+              >
+                Filtres standards
+              </Button>
+              <Button
+                variant={showCustomDateRange ? "default" : "outline"}
+                onClick={() => setShowCustomDateRange(true)}
+                size="sm"
+              >
+                Période personnalisée
+              </Button>
             </div>
 
-            {/* Filtre Mois */}
-            <div className="space-y-2">
-              <Label>Mois</Label>
-              <Select value={String(filters.month)} onValueChange={(value) => handleFilterChange('month', Number(value))}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {months.map((month) => (
-                    <SelectItem key={month.value} value={String(month.value)}>{month.label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            {!showCustomDateRange ? (
+              // Filtres standards
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                {/* Filtre Année */}
+                <div className="space-y-2">
+                  <Label>Année (obligatoire)</Label>
+                  <Select value={String(filters.year)} onValueChange={(value) => handleFilterChange('year', Number(value))}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {years.map((year) => (
+                        <SelectItem key={year} value={String(year)}>{year}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
 
-            {/* Filtre Jour */}
-            <div className="space-y-2">
-              <Label>Jour (optionnel)</Label>
-              <div className="flex gap-2">
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button variant="outline" className="flex-1">
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {selectedDate ? format(selectedDate, 'dd/MM/yyyy', { locale: fr }) : <span>Sélectionner</span>}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0">
-                    <Calendar
-                      mode="single"
-                      selected={selectedDate}
-                      onSelect={handleDateSelect}
-                      locale={fr}
-                    />
-                  </PopoverContent>
-                </Popover>
-                {selectedDate && (
-                  <Button variant="outline" size="sm" onClick={clearDayFilter}>
-                    ×
-                  </Button>
-                )}
+                {/* Filtre Mois */}
+                <div className="space-y-2">
+                  <Label>Mois</Label>
+                  <Select value={String(filters.month)} onValueChange={(value) => handleFilterChange('month', Number(value))}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {months.map((month) => (
+                        <SelectItem key={month.value} value={String(month.value)}>{month.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Filtre Jour */}
+                <div className="space-y-2">
+                  <Label>Jour (optionnel)</Label>
+                  <div className="flex gap-2">
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button variant="outline" className="flex-1">
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {selectedDate ? format(selectedDate, 'dd/MM/yyyy', { locale: fr }) : <span>Sélectionner</span>}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0">
+                        <Calendar
+                          mode="single"
+                          selected={selectedDate}
+                          onSelect={handleDateSelect}
+                          locale={fr}
+                        />
+                      </PopoverContent>
+                    </Popover>
+                    {selectedDate && (
+                      <Button variant="outline" size="sm" onClick={clearDayFilter}>
+                        ×
+                      </Button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Filtre Type */}
+                <div className="space-y-2">
+                  <Label>Type de transaction</Label>
+                  <Select value={filters.type} onValueChange={(value) => handleFilterChange('type', value)}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Toutes</SelectItem>
+                      <SelectItem value="vente">Vente</SelectItem>
+                      <SelectItem value="reglement">Règlement</SelectItem>
+                      <SelectItem value="entree_manuelle">Entrée manuelle</SelectItem>
+                      <SelectItem value="sortie_manuelle">Sortie manuelle</SelectItem>
+                      <SelectItem value="precommande">Précommande</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            ) : (
+              // Période personnalisée
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Date de début</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" className="w-full justify-start">
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {filters.startDate ? format(filters.startDate, 'dd/MM/yyyy', { locale: fr }) : <span>Sélectionner</span>}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0">
+                      <Calendar
+                        mode="single"
+                        selected={filters.startDate}
+                        onSelect={(date) => handleCustomDateRange(date, filters.endDate)}
+                        locale={fr}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Date de fin</Label>
+                  <div className="flex gap-2">
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button variant="outline" className="flex-1 justify-start">
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {filters.endDate ? format(filters.endDate, 'dd/MM/yyyy', { locale: fr }) : <span>Sélectionner</span>}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0">
+                        <Calendar
+                          mode="single"
+                          selected={filters.endDate}
+                          onSelect={(date) => handleCustomDateRange(filters.startDate, date)}
+                          locale={fr}
+                        />
+                      </PopoverContent>
+                    </Popover>
+                    {(filters.startDate || filters.endDate) && (
+                      <Button variant="outline" size="sm" onClick={clearCustomDateRange}>
+                        ×
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Filtres avancés */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* Filtre par source */}
+              <div className="space-y-2">
+                <Label>Source</Label>
+                <Input 
+                  placeholder="Filtrer par source..." 
+                  value={filters.source}
+                  onChange={(e) => handleFilterChange('source', e.target.value)}
+                />
+              </div>
+
+              {/* Recherche */}
+              <div className="space-y-2">
+                <Label htmlFor="search">Rechercher</Label>
+                <Input 
+                  id="search"
+                  placeholder="Rechercher par description..." 
+                  value={filters.searchTerm}
+                  onChange={(e) => handleFilterChange('searchTerm', e.target.value)}
+                />
+              </div>
+
+              {/* Bouton d'export */}
+              <div className="space-y-2">
+                <Label>&nbsp;</Label>
+                <ExportTransactionsDialog 
+                  transactions={transactions}
+                  filters={filters}
+                  stats={stats}
+                />
               </div>
             </div>
-
-            {/* Filtre Type */}
-            <div className="space-y-2">
-              <Label>Type de transaction</Label>
-              <Select value={filters.type} onValueChange={(value) => handleFilterChange('type', value)}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Toutes</SelectItem>
-                  <SelectItem value="vente">Vente</SelectItem>
-                  <SelectItem value="reglement">Règlement</SelectItem>
-                  <SelectItem value="entree_manuelle">Entrée manuelle</SelectItem>
-                  <SelectItem value="sortie_manuelle">Sortie manuelle</SelectItem>
-                  <SelectItem value="precommande">Précommande</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          {/* Recherche */}
-          <div className="mb-6">
-            <Label htmlFor="search">Rechercher</Label>
-            <Input 
-              id="search"
-              placeholder="Rechercher par description, source..." 
-              value={filters.searchTerm}
-              onChange={(e) => handleFilterChange('searchTerm', e.target.value)}
-              className="mt-1"
-            />
           </div>
 
           {/* Tableau des transactions */}
-          <CompleteHistoryTable 
-            transactions={transactions}
-            isLoading={isLoading}
-            formatCurrency={formatCurrency}
-          />
+          <div className="mt-6">
+            <CompleteHistoryTable 
+              transactions={transactions}
+              isLoading={isLoading}
+              formatCurrency={formatCurrency}
+            />
+          </div>
         </CardContent>
       </Card>
     </div>

@@ -6,8 +6,11 @@ export type CompleteTransactionFilters = {
   year: number;
   month: number;
   day?: number;
+  startDate?: Date;
+  endDate?: Date;
   type: string;
   searchTerm: string;
+  source?: string;
 };
 
 export type CompleteTransaction = {
@@ -26,10 +29,22 @@ export const useCompleteTransactionHistory = (filters: CompleteTransactionFilter
       console.log('🔍 Récupération historique complet avec filtres:', filters);
 
       // Construire les dates de début et fin basées sur les filtres
-      const startDate = new Date(filters.year, filters.month - 1, filters.day || 1);
-      const endDate = filters.day 
-        ? new Date(filters.year, filters.month - 1, filters.day, 23, 59, 59)
-        : new Date(filters.year, filters.month, 0, 23, 59, 59); // Dernier jour du mois
+      let startDate: Date;
+      let endDate: Date;
+
+      if (filters.startDate && filters.endDate) {
+        // Utiliser la période personnalisée
+        startDate = new Date(filters.startDate);
+        startDate.setHours(0, 0, 0, 0);
+        endDate = new Date(filters.endDate);
+        endDate.setHours(23, 59, 59, 999);
+      } else {
+        // Utiliser les filtres année/mois/jour
+        startDate = new Date(filters.year, filters.month - 1, filters.day || 1);
+        endDate = filters.day 
+          ? new Date(filters.year, filters.month - 1, filters.day, 23, 59, 59)
+          : new Date(filters.year, filters.month, 0, 23, 59, 59); // Dernier jour du mois
+      }
 
       console.log('📅 Période filtrée:', {
         startDate: startDate.toISOString(),
@@ -72,6 +87,18 @@ export const useCompleteTransactionHistory = (filters: CompleteTransactionFilter
         throw expError;
       }
 
+      // Récupérer les versements clients
+      const { data: versements, error: versementsError } = await supabase
+        .from('versements_clients')
+        .select('*')
+        .gte('date_versement', startDate.toISOString())
+        .lte('date_versement', endDate.toISOString());
+
+      if (versementsError) {
+        console.error('❌ Erreur versements_clients:', versementsError);
+        throw versementsError;
+      }
+
       // Normaliser toutes les données
       const normalizedTransactions = (transactions || [])
         .filter((t): t is any & { type: 'income' | 'expense' } => t.type === 'income' || t.type === 'expense')
@@ -102,10 +129,20 @@ export const useCompleteTransactionHistory = (filters: CompleteTransactionFilter
         source: 'Sortie'
       }));
 
+      const normalizedVersements = (versements || []).map(v => ({
+        id: v.id,
+        type: 'income' as const,
+        amount: v.montant || 0,
+        description: `Règlement ${v.numero_versement}`,
+        date: v.date_versement,
+        source: 'facture'
+      }));
+
       let allTransactions: CompleteTransaction[] = [
         ...normalizedTransactions,
         ...normalizedCashOps,
-        ...normalizedExpenses
+        ...normalizedExpenses,
+        ...normalizedVersements
       ];
 
       // Appliquer les filtres de type
@@ -128,6 +165,14 @@ export const useCompleteTransactionHistory = (filters: CompleteTransactionFilter
         });
       }
 
+      // Appliquer le filtre de source
+      if (filters.source) {
+        const sourceLower = filters.source.toLowerCase();
+        allTransactions = allTransactions.filter(transaction =>
+          transaction.source && transaction.source.toLowerCase().includes(sourceLower)
+        );
+      }
+
       // Appliquer le filtre de recherche
       if (filters.searchTerm) {
         const searchLower = filters.searchTerm.toLowerCase();
@@ -144,7 +189,7 @@ export const useCompleteTransactionHistory = (filters: CompleteTransactionFilter
         return dateB - dateA;
       });
 
-      // Calculer les statistiques
+      // Calculer les statistiques pour la période filtrée
       const totalEntrees = allTransactions
         .filter(t => t.type === 'income')
         .reduce((sum, t) => sum + t.amount, 0);
@@ -153,7 +198,7 @@ export const useCompleteTransactionHistory = (filters: CompleteTransactionFilter
         .filter(t => t.type === 'expense')
         .reduce((sum, t) => sum + t.amount, 0);
 
-      // Récupérer le solde actif (toutes les transactions depuis le début)
+      // Récupérer le solde actif (toutes les transactions depuis le début - temps réel)
       const { data: balanceData } = await supabase
         .from('vue_solde_caisse')
         .select('solde_actif')
