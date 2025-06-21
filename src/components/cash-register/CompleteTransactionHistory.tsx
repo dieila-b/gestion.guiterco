@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
@@ -32,10 +31,18 @@ const CompleteTransactionHistory: React.FC = () => {
 
   // Hook pour récupérer les données
   const { 
-    data: transactions = [], 
-    isLoading,
-    stats 
+    data,
+    isLoading
   } = useCompleteTransactionHistory(filters);
+
+  // Extraire les données et statistiques de manière sécurisée
+  const transactions = data?.transactions || [];
+  const stats = data?.stats || {
+    soldeActif: 0,
+    totalEntrees: 0,
+    totalSorties: 0,
+    balance: 0
+  };
 
   // Générer les années (10 dernières années)
   const years = Array.from({ length: 10 }, (_, i) => currentYear - i);
