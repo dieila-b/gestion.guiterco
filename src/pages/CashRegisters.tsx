@@ -5,6 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { useSearchParams } from 'react-router-dom';
 import CashRegisterOverview from '@/components/cash-register/CashRegisterOverview';
+import CompleteTransactionHistory from '@/components/cash-register/CompleteTransactionHistory';
 import AddCashRegisterDialog from '@/components/cash-register/AddCashRegisterDialog';
 import { useCashRegisters } from '@/hooks/useCashRegisters';
 import { useTransactions, useTodayTransactions } from '@/hooks/useTransactions';
@@ -21,6 +22,7 @@ const CashRegisters: React.FC = () => {
   
   // État pour l'onglet actif
   const [activeTab, setActiveTab] = useState(tabParam || 'overview');
+  const [activeSubTab, setActiveSubTab] = useState(subtabParam || 'daily');
 
   // Fetch data from Supabase
   const { data: cashRegisters, isLoading: registersLoading } = useCashRegisters();
@@ -74,7 +76,20 @@ const CashRegisters: React.FC = () => {
         </div>
 
         <TabsContent value="overview" className="space-y-4">
-          <CashRegisterOverview />
+          <Tabs value={activeSubTab} onValueChange={setActiveSubTab} className="space-y-4">
+            <TabsList>
+              <TabsTrigger value="daily">Aperçu du jour</TabsTrigger>
+              <TabsTrigger value="complete">Historique complet</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="daily" className="space-y-4">
+              <CashRegisterOverview />
+            </TabsContent>
+
+            <TabsContent value="complete" className="space-y-4">
+              <CompleteTransactionHistory />
+            </TabsContent>
+          </Tabs>
         </TabsContent>
 
         <TabsContent value="expenses" className="space-y-4">
