@@ -7,14 +7,31 @@ export const fetchTransactions = async (startDate: Date, endDate: Date) => {
     .select('id, type, amount, montant, description, date_operation, created_at, source')
     .gte('date_operation', startDate.toISOString())
     .lte('date_operation', endDate.toISOString())
-    .not('description', 'ilike', '%Règlement VERS-%');
+    .not('description', 'ilike', '%Règlement VERS-%')
+    .not('description', 'ilike', '%Règlement V-%')
+    .not('description', 'ilike', '%Reglement VERS-%')
+    .not('description', 'ilike', '%Reglement V-%');
 
   if (transError) {
     console.error('❌ Erreur transactions:', transError);
     throw transError;
   }
 
-  return transactions;
+  // Filtrage supplémentaire côté client pour sécurité
+  const filteredTransactions = (transactions || []).filter(t => {
+    const desc = (t.description || '').toLowerCase();
+    const isInternal = desc.includes('règlement vers-') || 
+                      desc.includes('règlement v-') || 
+                      desc.includes('reglement vers-') || 
+                      desc.includes('reglement v-');
+    if (isInternal) {
+      console.log('🚫 Exclusion transaction BD:', t.description);
+    }
+    return !isInternal;
+  });
+
+  console.log(`📊 Transactions récupérées: ${transactions?.length || 0}, après filtrage: ${filteredTransactions.length}`);
+  return filteredTransactions;
 };
 
 export const fetchCashOperations = async (startDate: Date, endDate: Date) => {
@@ -29,7 +46,21 @@ export const fetchCashOperations = async (startDate: Date, endDate: Date) => {
     throw cashError;
   }
 
-  return cashOps;
+  // Filtrage des opérations de caisse contenant des règlements internes
+  const filteredCashOps = (cashOps || []).filter(c => {
+    const desc = (c.commentaire || '').toLowerCase();
+    const isInternal = desc.includes('règlement vers-') || 
+                      desc.includes('règlement v-') || 
+                      desc.includes('reglement vers-') || 
+                      desc.includes('reglement v-');
+    if (isInternal) {
+      console.log('🚫 Exclusion cash operation:', c.commentaire);
+    }
+    return !isInternal;
+  });
+
+  console.log(`💰 Cash operations récupérées: ${cashOps?.length || 0}, après filtrage: ${filteredCashOps.length}`);
+  return filteredCashOps;
 };
 
 export const fetchExpenses = async (startDate: Date, endDate: Date) => {
@@ -44,7 +75,21 @@ export const fetchExpenses = async (startDate: Date, endDate: Date) => {
     throw expError;
   }
 
-  return expenses;
+  // Filtrage des sorties financières contenant des règlements internes
+  const filteredExpenses = (expenses || []).filter(e => {
+    const desc = (e.description || '').toLowerCase();
+    const isInternal = desc.includes('règlement vers-') || 
+                      desc.includes('règlement v-') || 
+                      desc.includes('reglement vers-') || 
+                      desc.includes('reglement v-');
+    if (isInternal) {
+      console.log('🚫 Exclusion expense:', e.description);
+    }
+    return !isInternal;
+  });
+
+  console.log(`💸 Expenses récupérées: ${expenses?.length || 0}, après filtrage: ${filteredExpenses.length}`);
+  return filteredExpenses;
 };
 
 export const fetchVersements = async (startDate: Date, endDate: Date) => {
@@ -59,7 +104,19 @@ export const fetchVersements = async (startDate: Date, endDate: Date) => {
     throw versementsError;
   }
 
-  return versements;
+  // Filtrage des versements internes (VERS- et V-)
+  const filteredVersements = (versements || []).filter(v => {
+    const numeroVersement = v.numero_versement || '';
+    const isInternal = numeroVersement.toLowerCase().includes('vers-') || 
+                      numeroVersement.toLowerCase().includes('v-');
+    if (isInternal) {
+      console.log('🚫 Exclusion versement interne:', numeroVersement);
+    }
+    return !isInternal;
+  });
+
+  console.log(`🧾 Versements récupérés: ${versements?.length || 0}, après filtrage: ${filteredVersements.length}`);
+  return filteredVersements;
 };
 
 export const fetchBalanceData = async () => {
