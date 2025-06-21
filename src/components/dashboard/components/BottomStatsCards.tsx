@@ -19,8 +19,8 @@ const BottomStatsCards: React.FC<BottomStatsCardsProps> = ({ stats, isLoading })
         <CardContent className="p-6">
           <div className="flex items-center space-x-4">
             <div className="flex-shrink-0">
-              <div className="w-14 h-14 bg-gradient-to-br from-cyan-500 to-cyan-600 rounded-xl flex items-center justify-center shadow-lg">
-                <ShoppingCart className="h-7 w-7 text-white" />
+              <div className="w-16 h-16 bg-gradient-to-br from-cyan-400 to-cyan-500 rounded-xl flex items-center justify-center shadow-lg">
+                <ShoppingCart className="h-8 w-8 text-white" />
               </div>
             </div>
             <div className="flex-1 min-w-0">
@@ -38,8 +38,8 @@ const BottomStatsCards: React.FC<BottomStatsCardsProps> = ({ stats, isLoading })
         <CardContent className="p-6">
           <div className="flex items-center space-x-4">
             <div className="flex-shrink-0">
-              <div className="w-14 h-14 bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg">
-                <TrendingUp className="h-7 w-7 text-white" />
+              <div className="w-16 h-16 bg-gradient-to-br from-yellow-400 to-yellow-500 rounded-xl flex items-center justify-center shadow-lg">
+                <TrendingUp className="h-8 w-8 text-white" />
               </div>
             </div>
             <div className="flex-1 min-w-0">
@@ -57,8 +57,8 @@ const BottomStatsCards: React.FC<BottomStatsCardsProps> = ({ stats, isLoading })
         <CardContent className="p-6">
           <div className="flex items-center space-x-4">
             <div className="flex-shrink-0">
-              <div className="w-14 h-14 bg-gradient-to-br from-green-500 to-green-600 rounded-xl flex items-center justify-center shadow-lg">
-                <Calculator className="h-7 w-7 text-white" />
+              <div className="w-16 h-16 bg-gradient-to-br from-green-400 to-green-500 rounded-xl flex items-center justify-center shadow-lg">
+                <Calculator className="h-8 w-8 text-white" />
               </div>
             </div>
             <div className="flex-1 min-w-0">

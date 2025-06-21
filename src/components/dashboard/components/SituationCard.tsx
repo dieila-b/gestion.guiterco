@@ -19,7 +19,7 @@ const SituationCard: React.FC<SituationCardProps> = ({ stats, isLoading }) => {
         <CardContent className="p-8">
           <div className="flex items-center space-x-6">
             <div className="flex-shrink-0">
-              <div className="w-20 h-20 bg-gradient-to-br from-green-500 to-green-600 rounded-2xl flex items-center justify-center shadow-lg">
+              <div className="w-20 h-20 bg-gradient-to-br from-green-400 to-green-500 rounded-2xl flex items-center justify-center shadow-lg">
                 <Activity className="h-10 w-10 text-white" />
               </div>
             </div>

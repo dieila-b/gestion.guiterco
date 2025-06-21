@@ -27,9 +27,9 @@ const MainStatsCards: React.FC<MainStatsCardsProps> = ({
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-      {/* Vente du jour - Bleu */}
+      {/* Vente du jour - Cyan */}
       <Card 
-        className="relative overflow-hidden bg-gradient-to-br from-blue-500 to-blue-600 text-white border-0 cursor-pointer hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 rounded-xl"
+        className="relative overflow-hidden bg-gradient-to-br from-cyan-400 to-cyan-500 text-white border-0 cursor-pointer hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 rounded-xl"
         onClick={onVentesClick}
       >
         <CardContent className="p-6">
@@ -57,7 +57,7 @@ const MainStatsCards: React.FC<MainStatsCardsProps> = ({
 
       {/* Marge du jour - Vert */}
       <Card 
-        className="relative overflow-hidden bg-gradient-to-br from-green-500 to-green-600 text-white border-0 cursor-pointer hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 rounded-xl"
+        className="relative overflow-hidden bg-gradient-to-br from-green-400 to-green-500 text-white border-0 cursor-pointer hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 rounded-xl"
         onClick={onMargeClick}
       >
         <CardContent className="p-6">
@@ -85,7 +85,7 @@ const MainStatsCards: React.FC<MainStatsCardsProps> = ({
 
       {/* Facture impayée du jour - Jaune */}
       <Card 
-        className="relative overflow-hidden bg-gradient-to-br from-yellow-500 to-yellow-600 text-white border-0 cursor-pointer hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 rounded-xl"
+        className="relative overflow-hidden bg-gradient-to-br from-yellow-400 to-yellow-500 text-white border-0 cursor-pointer hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 rounded-xl"
         onClick={onFacturesImpayeesClick}
       >
         <CardContent className="p-6">
@@ -113,7 +113,7 @@ const MainStatsCards: React.FC<MainStatsCardsProps> = ({
 
       {/* Dépense du mois - Rouge */}
       <Card 
-        className="relative overflow-hidden bg-gradient-to-br from-red-500 to-red-600 text-white border-0 cursor-pointer hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 rounded-xl"
+        className="relative overflow-hidden bg-gradient-to-br from-red-400 to-red-500 text-white border-0 cursor-pointer hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 rounded-xl"
         onClick={onDepensesClick}
       >
         <CardContent className="p-6">

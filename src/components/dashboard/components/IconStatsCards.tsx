@@ -19,8 +19,8 @@ const IconStatsCards: React.FC<IconStatsCardsProps> = ({ stats, isLoading }) => 
         <CardContent className="p-6">
           <div className="flex items-center space-x-4">
             <div className="flex-shrink-0">
-              <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg">
-                <Package className="h-6 w-6 text-white" />
+              <div className="w-16 h-16 bg-gradient-to-br from-cyan-400 to-cyan-500 rounded-xl flex items-center justify-center shadow-lg">
+                <Package className="h-8 w-8 text-white" />
               </div>
             </div>
             <div className="flex-1 min-w-0">
@@ -38,8 +38,8 @@ const IconStatsCards: React.FC<IconStatsCardsProps> = ({ stats, isLoading }) => 
         <CardContent className="p-6">
           <div className="flex items-center space-x-4">
             <div className="flex-shrink-0">
-              <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-green-600 rounded-xl flex items-center justify-center shadow-lg">
-                <CreditCard className="h-6 w-6 text-white" />
+              <div className="w-16 h-16 bg-gradient-to-br from-green-400 to-green-500 rounded-xl flex items-center justify-center shadow-lg">
+                <CreditCard className="h-8 w-8 text-white" />
               </div>
             </div>
             <div className="flex-1 min-w-0">
@@ -57,8 +57,8 @@ const IconStatsCards: React.FC<IconStatsCardsProps> = ({ stats, isLoading }) => 
         <CardContent className="p-6">
           <div className="flex items-center space-x-4">
             <div className="flex-shrink-0">
-              <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
-                <Users className="h-6 w-6 text-white" />
+              <div className="w-16 h-16 bg-gradient-to-br from-yellow-400 to-yellow-500 rounded-xl flex items-center justify-center shadow-lg">
+                <Users className="h-8 w-8 text-white" />
               </div>
             </div>
             <div className="flex-1 min-w-0">
@@ -76,8 +76,8 @@ const IconStatsCards: React.FC<IconStatsCardsProps> = ({ stats, isLoading }) => 
         <CardContent className="p-6">
           <div className="flex items-center space-x-4">
             <div className="flex-shrink-0">
-              <div className="w-12 h-12 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl flex items-center justify-center shadow-lg">
-                <BarChart3 className="h-6 w-6 text-white" />
+              <div className="w-16 h-16 bg-gradient-to-br from-red-400 to-red-500 rounded-xl flex items-center justify-center shadow-lg">
+                <BarChart3 className="h-8 w-8 text-white" />
               </div>
             </div>
             <div className="flex-1 min-w-0">
