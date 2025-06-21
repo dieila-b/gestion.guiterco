@@ -17,7 +17,7 @@ export const useCreateVersement = () => {
     }) => {
       console.log('💰 Création versement:', { facture_id, client_id, montant, mode_paiement });
 
-      // Vérifier d'abord s'il n'y a pas déjà un versement identique récent (même montant, même facture, même heure)
+      // PROTECTION 1: Vérifier s'il n'y a pas déjà un versement identique récent
       const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
       const { data: existingVersements, error: checkError } = await supabase
         .from('versements_clients')
@@ -27,8 +27,7 @@ export const useCreateVersement = () => {
         .gte('created_at', oneHourAgo);
 
       if (checkError) {
-        console.error('❌ Erreur vérification doublons:', checkError);
-        // Ne pas bloquer pour cette erreur, continuer
+        console.error('❌ Erreur vérification doublons versements:', checkError);
       }
 
       if (existingVersements && existingVersements.length > 0) {
@@ -65,6 +64,24 @@ export const useCreateVersement = () => {
       // Validation du montant
       if (nouveauTotal > facture.montant_ttc) {
         throw new Error(`Le montant total des paiements (${nouveauTotal}) dépasse le montant de la facture (${facture.montant_ttc})`);
+      }
+
+      // PROTECTION 2: Vérifier qu'il n'existe pas déjà une transaction de caisse pour ce règlement
+      const { data: existingTransactions, error: transError } = await supabase
+        .from('transactions')
+        .select('id, amount, description')
+        .ilike('description', `%${facture.numero_facture}%`)
+        .eq('amount', montant)
+        .eq('type', 'income')
+        .gte('created_at', oneHourAgo);
+
+      if (transError) {
+        console.error('❌ Erreur vérification transactions existantes:', transError);
+      }
+
+      const hasExistingTransaction = existingTransactions && existingTransactions.length > 0;
+      if (hasExistingTransaction) {
+        console.warn('⚠️ Transaction de caisse similaire déjà existante, évitement doublon');
       }
 
       // Créer le versement
@@ -109,29 +126,20 @@ export const useCreateVersement = () => {
 
       if (updateError) {
         console.error('❌ Erreur mise à jour statut paiement:', updateError);
-        // Ne pas faire échouer la création du versement pour cette erreur
       }
 
       console.log('✅ Statut paiement mis à jour:', nouveauStatutPaiement);
 
-      // Créer la transaction financière pour la caisse SEULEMENT si pas déjà créée par le workflow principal
-      try {
-        const { data: cashRegister, error: cashRegisterError } = await supabase
-          .from('cash_registers')
-          .select('id')
-          .limit(1)
-          .single();
-
-        if (!cashRegisterError && cashRegister) {
-          // Vérifier qu'il n'y a pas déjà une transaction pour ce versement
-          const { data: existingTransaction } = await supabase
-            .from('transactions')
+      // PROTECTION 3: Créer la transaction financière SEULEMENT si elle n'existe pas déjà
+      if (!hasExistingTransaction) {
+        try {
+          const { data: cashRegister, error: cashRegisterError } = await supabase
+            .from('cash_registers')
             .select('id')
-            .eq('description', `Règlement facture ${facture.numero_facture}`)
-            .eq('amount', montant)
-            .gte('created_at', oneHourAgo);
+            .limit(1)
+            .single();
 
-          if (!existingTransaction || existingTransaction.length === 0) {
+          if (!cashRegisterError && cashRegister) {
             let paymentMethod: 'cash' | 'card' | 'transfer' | 'check' = 'cash';
             
             switch(mode_paiement) {
@@ -170,12 +178,12 @@ export const useCreateVersement = () => {
             } else {
               console.log('✅ Transaction de règlement créée avec succès');
             }
-          } else {
-            console.log('ℹ️ Transaction de caisse déjà existente, évitement doublon');
           }
+        } catch (transactionError) {
+          console.error('❌ Erreur création transaction financière:', transactionError);
         }
-      } catch (transactionError) {
-        console.error('❌ Erreur création transaction financière:', transactionError);
+      } else {
+        console.log('ℹ️ Transaction de caisse non créée car déjà existante');
       }
 
       return { versement: data, nouveauStatutPaiement };
@@ -190,7 +198,8 @@ export const useCreateVersement = () => {
       queryClient.invalidateQueries({ queryKey: ['factures-vente-details'] });
       queryClient.invalidateQueries({ queryKey: ['complete-transaction-history'] });
       
-      // Forcer le refetch immédiat des factures
+      // Forcer le refetch immédiat des données critiques
+      queryClient.refetchQueries({ queryKey: ['complete-transaction-history'] });
       queryClient.refetchQueries({ queryKey: ['factures_vente'] });
       
       toast.success('Paiement enregistré avec succès');

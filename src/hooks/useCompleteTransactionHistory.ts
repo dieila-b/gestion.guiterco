@@ -20,7 +20,7 @@ export type CompleteTransaction = {
   description: string;
   date: string;
   source: string | null;
-  origin_table?: string; // Nouveau champ pour tracer l'origine
+  origin_table?: string;
 };
 
 export const useCompleteTransactionHistory = (filters: CompleteTransactionFilters) => {
@@ -50,7 +50,7 @@ export const useCompleteTransactionHistory = (filters: CompleteTransactionFilter
         endDate: endDate.toISOString()
       });
 
-      // 1. Récupérer les transactions de la table transactions
+      // 1. Récupérer les transactions de la table transactions (source principale)
       const { data: transactions, error: transError } = await supabase
         .from('transactions')
         .select('id, type, amount, montant, description, date_operation, created_at, source')
@@ -62,7 +62,7 @@ export const useCompleteTransactionHistory = (filters: CompleteTransactionFilter
         throw transError;
       }
 
-      // 2. Récupérer les opérations de caisse SEULEMENT si elles n'existent pas déjà dans transactions
+      // 2. Récupérer les opérations de caisse pour les périodes où il n'y a pas de transactions équivalentes
       const { data: cashOps, error: cashError } = await supabase
         .from('cash_operations')
         .select('*')
@@ -86,7 +86,7 @@ export const useCompleteTransactionHistory = (filters: CompleteTransactionFilter
         throw expError;
       }
 
-      // 4. Récupérer les versements clients SEULEMENT si pas déjà dans transactions
+      // 4. Récupérer les versements clients (uniquement ceux sans transaction correspondante)
       const { data: versements, error: versementsError } = await supabase
         .from('versements_clients')
         .select('*')
@@ -98,104 +98,108 @@ export const useCompleteTransactionHistory = (filters: CompleteTransactionFilter
         throw versementsError;
       }
 
-      // Normaliser les transactions avec marquage d'origine
-      const normalizedTransactions = (transactions || [])
+      // Créer un ensemble des transactions principales pour éviter les doublons
+      const transactionSet = new Set<string>();
+      const normalizedTransactions: CompleteTransaction[] = [];
+
+      // ÉTAPE 1: Normaliser les transactions principales (priorité maximale)
+      (transactions || [])
         .filter((t): t is any & { type: 'income' | 'expense' } => t.type === 'income' || t.type === 'expense')
-        .map(t => ({
-          id: `trans_${t.id}`,
-          type: t.type,
-          amount: t.amount || t.montant || 0,
-          description: t.description || '',
-          date: t.date_operation || t.created_at,
-          source: t.source,
-          origin_table: 'transactions'
-        }));
-
-      // Normaliser les opérations de caisse (exclure celles déjà présentes dans transactions)
-      const normalizedCashOps = (cashOps || [])
-        .filter(c => {
-          // Éviter les doublons avec les transactions existantes basées sur la description et le montant
-          const exists = normalizedTransactions.some(t => 
-            Math.abs(t.amount - (c.montant || 0)) < 0.01 && 
-            t.date === c.created_at
-          );
-          return !exists;
-        })
-        .map(c => ({
-          id: `cash_${c.id}`,
-          type: (c.type === 'depot' ? 'income' : 'expense') as 'income' | 'expense',
-          amount: c.montant || 0,
-          description: c.commentaire || 'Opération de caisse',
-          date: c.created_at || new Date().toISOString(),
-          source: c.type === 'depot' ? 'Entrée manuelle' : 'Sortie manuelle',
-          origin_table: 'cash_operations'
-        }));
-
-      // Normaliser les sorties financières
-      const normalizedExpenses = (expenses || []).map(e => ({
-        id: `expense_${e.id}`,
-        type: 'expense' as const,
-        amount: e.montant || 0,
-        description: e.description || '',
-        date: e.date_sortie,
-        source: 'Sortie',
-        origin_table: 'sorties_financieres'
-      }));
-
-      // Normaliser les versements SEULEMENT si pas déjà dans transactions
-      const normalizedVersements = (versements || [])
-        .filter(v => {
-          // Éviter les doublons avec les transactions existantes ayant source = "facture"
-          const exists = normalizedTransactions.some(t => 
-            t.source === 'facture' && 
-            Math.abs(t.amount - (v.montant || 0)) < 0.01 && 
-            new Date(t.date).toDateString() === new Date(v.date_versement).toDateString()
-          );
-          return !exists;
-        })
-        .map(v => ({
-          id: `versement_${v.id}`,
-          type: 'income' as const,
-          amount: v.montant || 0,
-          description: `Règlement ${v.numero_versement}`,
-          date: v.date_versement,
-          source: 'facture',
-          origin_table: 'versements_clients'
-        }));
-
-      // Combiner toutes les transactions et appliquer une déduplication finale
-      let allTransactions: CompleteTransaction[] = [
-        ...normalizedTransactions,
-        ...normalizedCashOps,
-        ...normalizedExpenses,
-        ...normalizedVersements
-      ];
-
-      // Déduplication finale basée sur montant, date et description
-      const seenTransactions = new Map<string, CompleteTransaction>();
-      allTransactions.forEach(transaction => {
-        const key = `${transaction.amount}_${new Date(transaction.date).toISOString().split('T')[0]}_${transaction.description}_${transaction.type}`;
-        
-        if (!seenTransactions.has(key)) {
-          seenTransactions.set(key, transaction);
-        } else {
-          // Garder celle avec l'origine la plus fiable (transactions > versements_clients > autres)
-          const existing = seenTransactions.get(key)!;
-          const priority = ['transactions', 'versements_clients', 'cash_operations', 'sorties_financieres'];
-          const existingPriority = priority.indexOf(existing.origin_table || '');
-          const newPriority = priority.indexOf(transaction.origin_table || '');
+        .forEach(t => {
+          const uniqueKey = `${t.type}_${t.amount || t.montant || 0}_${new Date(t.date_operation || t.created_at).toDateString()}_${t.description}`;
           
-          if (newPriority < existingPriority && newPriority !== -1) {
-            seenTransactions.set(key, transaction);
+          if (!transactionSet.has(uniqueKey)) {
+            transactionSet.add(uniqueKey);
+            normalizedTransactions.push({
+              id: `trans_${t.id}`,
+              type: t.type,
+              amount: t.amount || t.montant || 0,
+              description: t.description || '',
+              date: t.date_operation || t.created_at,
+              source: t.source,
+              origin_table: 'transactions'
+            });
           }
+        });
+
+      // ÉTAPE 2: Ajouter les opérations de caisse SEULEMENT si pas déjà présentes
+      (cashOps || []).forEach(c => {
+        const type = c.type === 'depot' ? 'income' : 'expense';
+        const amount = c.montant || 0;
+        const date = c.created_at || new Date().toISOString();
+        const description = c.commentaire || 'Opération de caisse';
+        
+        const uniqueKey = `${type}_${amount}_${new Date(date).toDateString()}_${description}`;
+        
+        if (!transactionSet.has(uniqueKey)) {
+          transactionSet.add(uniqueKey);
+          normalizedTransactions.push({
+            id: `cash_${c.id}`,
+            type: type as 'income' | 'expense',
+            amount,
+            description,
+            date,
+            source: c.type === 'depot' ? 'Entrée manuelle' : 'Sortie manuelle',
+            origin_table: 'cash_operations'
+          });
         }
       });
 
-      allTransactions = Array.from(seenTransactions.values());
+      // ÉTAPE 3: Ajouter les sorties financières
+      (expenses || []).forEach(e => {
+        const amount = e.montant || 0;
+        const date = e.date_sortie;
+        const description = e.description || '';
+        
+        const uniqueKey = `expense_${amount}_${new Date(date).toDateString()}_${description}`;
+        
+        if (!transactionSet.has(uniqueKey)) {
+          transactionSet.add(uniqueKey);
+          normalizedTransactions.push({
+            id: `expense_${e.id}`,
+            type: 'expense' as const,
+            amount,
+            description,
+            date,
+            source: 'Sortie',
+            origin_table: 'sorties_financieres'
+          });
+        }
+      });
+
+      // ÉTAPE 4: Ajouter les versements UNIQUEMENT s'il n'y a pas de transaction correspondante
+      (versements || []).forEach(v => {
+        const amount = v.montant || 0;
+        const date = v.date_versement;
+        const description = `Règlement ${v.numero_versement}`;
+        
+        // Vérifier si une transaction existe déjà pour ce règlement
+        const hasExistingTransaction = normalizedTransactions.some(t => 
+          t.source === 'facture' && 
+          Math.abs(t.amount - amount) < 0.01 && 
+          new Date(t.date).toDateString() === new Date(date).toDateString()
+        );
+        
+        const uniqueKey = `income_${amount}_${new Date(date).toDateString()}_${description}`;
+        
+        if (!hasExistingTransaction && !transactionSet.has(uniqueKey)) {
+          transactionSet.add(uniqueKey);
+          normalizedTransactions.push({
+            id: `versement_${v.id}`,
+            type: 'income' as const,
+            amount,
+            description,
+            date,
+            source: 'facture',
+            origin_table: 'versements_clients'
+          });
+        }
+      });
 
       // Appliquer les filtres de type
+      let filteredTransactions = normalizedTransactions;
       if (filters.type !== 'all') {
-        allTransactions = allTransactions.filter(transaction => {
+        filteredTransactions = normalizedTransactions.filter(transaction => {
           switch (filters.type) {
             case 'vente':
               return transaction.source === 'vente' || transaction.description.toLowerCase().includes('vente');
@@ -214,18 +218,18 @@ export const useCompleteTransactionHistory = (filters: CompleteTransactionFilter
       }
 
       // Trier par date (plus récent en premier)
-      allTransactions.sort((a, b) => {
+      filteredTransactions.sort((a, b) => {
         const dateA = new Date(a.date).getTime();
         const dateB = new Date(b.date).getTime();
         return dateB - dateA;
       });
 
       // Calculer les statistiques pour la période filtrée
-      const totalEntrees = allTransactions
+      const totalEntrees = filteredTransactions
         .filter(t => t.type === 'income')
         .reduce((sum, t) => sum + t.amount, 0);
 
-      const totalSorties = allTransactions
+      const totalSorties = filteredTransactions
         .filter(t => t.type === 'expense')
         .reduce((sum, t) => sum + t.amount, 0);
 
@@ -243,16 +247,16 @@ export const useCompleteTransactionHistory = (filters: CompleteTransactionFilter
       };
 
       console.log('📊 Statistiques calculées:', stats);
-      console.log('📋 Transactions uniques trouvées:', allTransactions.length);
+      console.log('📋 Transactions uniques trouvées:', filteredTransactions.length);
       console.log('🔍 Répartition par origine:', {
-        transactions: allTransactions.filter(t => t.origin_table === 'transactions').length,
-        cash_operations: allTransactions.filter(t => t.origin_table === 'cash_operations').length,
-        sorties_financieres: allTransactions.filter(t => t.origin_table === 'sorties_financieres').length,
-        versements_clients: allTransactions.filter(t => t.origin_table === 'versements_clients').length
+        transactions: filteredTransactions.filter(t => t.origin_table === 'transactions').length,
+        cash_operations: filteredTransactions.filter(t => t.origin_table === 'cash_operations').length,
+        sorties_financieres: filteredTransactions.filter(t => t.origin_table === 'sorties_financieres').length,
+        versements_clients: filteredTransactions.filter(t => t.origin_table === 'versements_clients').length
       });
 
       return {
-        transactions: allTransactions,
+        transactions: filteredTransactions,
         stats
       };
     }
