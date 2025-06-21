@@ -3,7 +3,7 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Printer, Download, Lock } from 'lucide-react';
-import { useCloseCashRegister, useGenerateEtatCaisse } from '@/hooks/useCashActions';
+import { useCloseCashRegister, useGenerateEtatCaisse } from '@/hooks/cash';
 import { useCashRegisterBalance } from '@/hooks/useTransactions';
 import ComptageDialog from './ComptageDialog';
 import ExportTransactionsDialog from './ExportTransactionsDialog';

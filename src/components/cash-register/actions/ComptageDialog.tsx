@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Calculator, Euro } from 'lucide-react';
-import { useCreateComptage, ComptageDetails } from '@/hooks/useCashActions';
+import { useCreateComptage, ComptageDetails } from '@/hooks/cash';
 import { formatCurrency } from '@/lib/currency';
 
 interface ComptageDialogProps {
