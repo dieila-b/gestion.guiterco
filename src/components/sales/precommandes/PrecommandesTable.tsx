@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
@@ -5,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { formatCurrency } from '@/lib/currency';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import { Eye, FileText, Trash2, ArrowRightLeft, CreditCard, CheckCircle } from 'lucide-react';
+import { Edit, FileText, Trash2, ArrowRightLeft, CheckCircle } from 'lucide-react';
 import type { PrecommandeComplete } from '@/types/precommandes';
 import { useConvertPrecommandeToSale } from '@/hooks/precommandes/useConvertPrecommandeToSale';
 import PaymentDialog from './PaymentDialog';
@@ -72,12 +73,6 @@ const PrecommandesTable = ({ precommandes }: PrecommandesTableProps) => {
     return ['prete', 'confirmee'].includes(statut);
   };
 
-  const peutRecevoirAcompte = (precommande: PrecommandeComplete) => {
-    const montantTotal = calculerTotalPrecommande(precommande);
-    const acompteVerse = precommande.acompte_verse || 0;
-    return acompteVerse < montantTotal && !['livree', 'annulee', 'convertie_en_vente'].includes(precommande.statut);
-  };
-
   const peutFinaliserPaiement = (precommande: PrecommandeComplete) => {
     const montantTotal = calculerTotalPrecommande(precommande);
     const acompteVerse = precommande.acompte_verse || 0;
@@ -88,8 +83,9 @@ const PrecommandesTable = ({ precommandes }: PrecommandesTableProps) => {
     convertToSale.mutate(precommande.id);
   };
 
-  const handleVoir = (precommande: PrecommandeComplete) => {
-    console.log('Voir précommande:', precommande.numero_precommande);
+  const handleEditer = (precommande: PrecommandeComplete) => {
+    // TODO: Ouvrir le dialogue d'édition de la précommande
+    console.log('Éditer précommande:', precommande.numero_precommande);
   };
 
   const handleFacture = (precommande: PrecommandeComplete) => {
@@ -162,17 +158,6 @@ const PrecommandesTable = ({ precommandes }: PrecommandesTableProps) => {
                       </TableCell>
                       <TableCell rowSpan={precommande.lignes_precommande?.length || 1}>
                         <div className="flex gap-1 flex-wrap">
-                          {peutRecevoirAcompte(precommande) && (
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => setPaymentDialog({ precommande, type: 'acompte' })}
-                              title="Acompte"
-                              className="text-green-600 hover:text-green-700"
-                            >
-                              <CreditCard className="h-4 w-4" />
-                            </Button>
-                          )}
                           {peutFinaliserPaiement(precommande) && (
                             <Button
                               size="sm"
@@ -198,10 +183,10 @@ const PrecommandesTable = ({ precommandes }: PrecommandesTableProps) => {
                           <Button
                             size="sm"
                             variant="outline"
-                            onClick={() => handleVoir(precommande)}
-                            title="Voir"
+                            onClick={() => handleEditer(precommande)}
+                            title="Éditer"
                           >
-                            <Eye className="h-4 w-4" />
+                            <Edit className="h-4 w-4" />
                           </Button>
                           <Button
                             size="sm"
@@ -238,17 +223,6 @@ const PrecommandesTable = ({ precommandes }: PrecommandesTableProps) => {
                   <TableCell>{getStatutBadge(precommande.statut)}</TableCell>
                   <TableCell>
                     <div className="flex gap-1 flex-wrap">
-                      {peutRecevoirAcompte(precommande) && (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => setPaymentDialog({ precommande, type: 'acompte' })}
-                          title="Acompte"
-                          className="text-green-600 hover:text-green-700"
-                        >
-                          <CreditCard className="h-4 w-4" />
-                        </Button>
-                      )}
                       {peutFinaliserPaiement(precommande) && (
                         <Button
                           size="sm"
@@ -274,10 +248,10 @@ const PrecommandesTable = ({ precommandes }: PrecommandesTableProps) => {
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={() => handleVoir(precommande)}
-                        title="Voir"
+                        onClick={() => handleEditer(precommande)}
+                        title="Éditer"
                       >
-                        <Eye className="h-4 w-4" />
+                        <Edit className="h-4 w-4" />
                       </Button>
                       <Button
                         size="sm"
