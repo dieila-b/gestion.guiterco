@@ -83,6 +83,7 @@ const CreatePrecommandeForm = ({ onSuccess }: CreatePrecommandeFormProps) => {
   };
 
   const montantTotal = lignes.reduce((sum, ligne) => sum + (ligne.quantite * ligne.prix_unitaire), 0);
+  const resteAPayer = montantTotal - formData.acompte_verse;
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
@@ -198,6 +199,12 @@ const CreatePrecommandeForm = ({ onSuccess }: CreatePrecommandeFormProps) => {
             <span>Total:</span>
             <span>{formatCurrency(montantTotal)}</span>
           </div>
+          {formData.acompte_verse > 0 && (
+            <div className="flex justify-between text-sm text-gray-600">
+              <span>Reste à payer:</span>
+              <span className="font-medium">{formatCurrency(resteAPayer)}</span>
+            </div>
+          )}
         </div>
       </div>
 
