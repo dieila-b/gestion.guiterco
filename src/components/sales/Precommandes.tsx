@@ -5,14 +5,13 @@ import PrecommandesTable from './precommandes/PrecommandesTable';
 import PrecommandesFilters from './precommandes/PrecommandesFilters';
 import CreatePrecommandeDialog from './precommandes/CreatePrecommandeDialog';
 import { useToast } from '@/hooks/use-toast';
-import type { PrecommandeComplete } from '@/types/precommandes';
 
 const Precommandes = () => {
   const { data: precommandes, isLoading } = usePrecommandesComplete();
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('tous');
-  const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [showCreateDialog, setShowCreateDialog] = useState(false');
 
   // Filtrage des précommandes
   const filteredPrecommandes = useMemo(() => {
@@ -41,14 +40,6 @@ const Precommandes = () => {
       return true;
     });
   }, [precommandes, searchTerm, statusFilter]);
-
-  const handleConvertirEnVente = (precommande: PrecommandeComplete) => {
-    // TODO: Implémenter la conversion en vente
-    toast({
-      title: "Conversion en vente",
-      description: `La précommande ${precommande.numero_precommande} sera convertie en vente.`,
-    });
-  };
 
   if (isLoading) {
     return (
@@ -88,10 +79,7 @@ const Precommandes = () => {
           )}
         </div>
       ) : (
-        <PrecommandesTable
-          precommandes={filteredPrecommandes}
-          onConvertirEnVente={handleConvertirEnVente}
-        />
+        <PrecommandesTable precommandes={filteredPrecommandes} />
       )}
 
       <CreatePrecommandeDialog 

@@ -1402,6 +1402,8 @@ export type Database = {
           precommande_id: string | null
           prix_unitaire: number
           quantite: number
+          quantite_livree: number | null
+          statut_ligne: string | null
         }
         Insert: {
           article_id?: string | null
@@ -1411,6 +1413,8 @@ export type Database = {
           precommande_id?: string | null
           prix_unitaire: number
           quantite: number
+          quantite_livree?: number | null
+          statut_ligne?: string | null
         }
         Update: {
           article_id?: string | null
@@ -1420,6 +1424,8 @@ export type Database = {
           precommande_id?: string | null
           prix_unitaire?: number
           quantite?: number
+          quantite_livree?: number | null
+          statut_ligne?: string | null
         }
         Relationships: [
           {
@@ -1562,8 +1568,10 @@ export type Database = {
           notification_envoyee: boolean | null
           numero_precommande: string
           observations: string | null
+          reste_a_payer: number | null
           statut: string
           taux_tva: number | null
+          total_commande: number | null
           tva: number
           updated_at: string
         }
@@ -1582,8 +1590,10 @@ export type Database = {
           notification_envoyee?: boolean | null
           numero_precommande: string
           observations?: string | null
+          reste_a_payer?: number | null
           statut?: string
           taux_tva?: number | null
+          total_commande?: number | null
           tva?: number
           updated_at?: string
         }
@@ -1602,8 +1612,10 @@ export type Database = {
           notification_envoyee?: boolean | null
           numero_precommande?: string
           observations?: string | null
+          reste_a_payer?: number | null
           statut?: string
           taux_tva?: number | null
+          total_commande?: number | null
           tva?: number
           updated_at?: string
         }
@@ -2406,6 +2418,10 @@ export type Database = {
       }
     }
     Functions: {
+      convert_precommande_to_sale: {
+        Args: { precommande_uuid: string }
+        Returns: string
+      }
       debug_auth_info: {
         Args: Record<PropertyKey, never>
         Returns: {

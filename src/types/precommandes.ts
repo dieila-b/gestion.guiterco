@@ -17,12 +17,14 @@ export interface PrecommandeComplete {
   client_id: string;
   date_precommande: string;
   date_livraison_prevue?: string;
-  statut: 'confirmee' | 'en_preparation' | 'prete' | 'livree' | 'partiellement_livree' | 'annulee';
+  statut: 'confirmee' | 'en_preparation' | 'prete' | 'livree' | 'partiellement_livree' | 'annulee' | 'convertie_en_vente';
   montant_ht: number;
   tva: number;
   montant_ttc: number;
   taux_tva?: number;
   acompte_verse?: number;
+  reste_a_payer?: number;
+  total_commande?: number;
   observations?: string;
   notification_envoyee?: boolean;
   date_notification?: string;
@@ -50,6 +52,8 @@ export interface LignePrecommandeComplete {
   precommande_id: string;
   article_id: string;
   quantite: number;
+  quantite_livree?: number;
+  statut_ligne?: string;
   prix_unitaire: number;
   montant_ligne: number;
   created_at: string;

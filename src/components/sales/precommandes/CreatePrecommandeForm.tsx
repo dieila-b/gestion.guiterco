@@ -183,7 +183,7 @@ const CreatePrecommandeForm = ({ onSuccess }: CreatePrecommandeFormProps) => {
         </CardContent>
       </Card>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-2 gap-6">
         <div>
           <Label htmlFor="acompte">Acompte versé (GNF)</Label>
           <Input
@@ -194,15 +194,15 @@ const CreatePrecommandeForm = ({ onSuccess }: CreatePrecommandeFormProps) => {
           />
         </div>
 
-        <div className="space-y-2">
-          <div className="flex justify-between font-bold text-lg">
+        <div className="space-y-3 pt-6">
+          <div className="flex justify-between items-center font-bold text-xl">
             <span>Total:</span>
             <span>{formatCurrency(montantTotal)}</span>
           </div>
           {formData.acompte_verse > 0 && (
-            <div className="flex justify-between text-sm text-gray-600">
+            <div className="flex justify-between items-center text-lg text-blue-600 font-semibold border-t pt-2">
               <span>Reste à payer:</span>
-              <span className="font-medium">{formatCurrency(resteAPayer)}</span>
+              <span>{formatCurrency(resteAPayer)}</span>
             </div>
           )}
         </div>
