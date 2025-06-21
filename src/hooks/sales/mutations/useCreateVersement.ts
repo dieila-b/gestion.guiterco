@@ -17,6 +17,25 @@ export const useCreateVersement = () => {
     }) => {
       console.log('💰 Création versement:', { facture_id, client_id, montant, mode_paiement });
 
+      // Vérifier d'abord s'il n'y a pas déjà un versement identique récent (même montant, même facture, même heure)
+      const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+      const { data: existingVersements, error: checkError } = await supabase
+        .from('versements_clients')
+        .select('id, montant, created_at')
+        .eq('facture_id', facture_id)
+        .eq('montant', montant)
+        .gte('created_at', oneHourAgo);
+
+      if (checkError) {
+        console.error('❌ Erreur vérification doublons:', checkError);
+        // Ne pas bloquer pour cette erreur, continuer
+      }
+
+      if (existingVersements && existingVersements.length > 0) {
+        console.warn('⚠️ Versement similaire récent détecté, annulation pour éviter doublon');
+        throw new Error('Un versement identique a déjà été enregistré récemment');
+      }
+
       // Récupérer les données de la facture pour validation
       const { data: facture, error: factureError } = await supabase
         .from('factures_vente')
@@ -95,7 +114,7 @@ export const useCreateVersement = () => {
 
       console.log('✅ Statut paiement mis à jour:', nouveauStatutPaiement);
 
-      // Créer la transaction financière pour la caisse
+      // Créer la transaction financière pour la caisse SEULEMENT si pas déjà créée par le workflow principal
       try {
         const { data: cashRegister, error: cashRegisterError } = await supabase
           .from('cash_registers')
@@ -104,43 +123,55 @@ export const useCreateVersement = () => {
           .single();
 
         if (!cashRegisterError && cashRegister) {
-          let paymentMethod: 'cash' | 'card' | 'transfer' | 'check' = 'cash';
-          
-          switch(mode_paiement) {
-            case 'carte':
-              paymentMethod = 'card';
-              break;
-            case 'virement':
-              paymentMethod = 'transfer';
-              break;
-            case 'cheque':
-              paymentMethod = 'check';
-              break;
-            case 'especes':
-            default:
-              paymentMethod = 'cash';
-              break;
-          }
-
-          const { error: transactionError } = await supabase
+          // Vérifier qu'il n'y a pas déjà une transaction pour ce versement
+          const { data: existingTransaction } = await supabase
             .from('transactions')
-            .insert({
-              type: 'income',
-              amount: montant,
-              montant: montant,
-              description: `Règlement facture ${facture.numero_facture}`,
-              commentaire: observations || `Versement pour facture ${facture.numero_facture}`,
-              category: 'sales',
-              payment_method: paymentMethod,
-              cash_register_id: cashRegister.id,
-              date_operation: new Date().toISOString(),
-              source: 'facture'
-            });
+            .select('id')
+            .eq('description', `Règlement facture ${facture.numero_facture}`)
+            .eq('amount', montant)
+            .gte('created_at', oneHourAgo);
 
-          if (transactionError) {
-            console.error('❌ Erreur création transaction de caisse:', transactionError);
+          if (!existingTransaction || existingTransaction.length === 0) {
+            let paymentMethod: 'cash' | 'card' | 'transfer' | 'check' = 'cash';
+            
+            switch(mode_paiement) {
+              case 'carte':
+                paymentMethod = 'card';
+                break;
+              case 'virement':
+                paymentMethod = 'transfer';
+                break;
+              case 'cheque':
+                paymentMethod = 'check';
+                break;
+              case 'especes':
+              default:
+                paymentMethod = 'cash';
+                break;
+            }
+
+            const { error: transactionError } = await supabase
+              .from('transactions')
+              .insert({
+                type: 'income',
+                amount: montant,
+                montant: montant,
+                description: `Règlement facture ${facture.numero_facture}`,
+                commentaire: observations || `Versement pour facture ${facture.numero_facture}`,
+                category: 'sales',
+                payment_method: paymentMethod,
+                cash_register_id: cashRegister.id,
+                date_operation: new Date().toISOString(),
+                source: 'facture'
+              });
+
+            if (transactionError) {
+              console.error('❌ Erreur création transaction de caisse:', transactionError);
+            } else {
+              console.log('✅ Transaction de règlement créée avec succès');
+            }
           } else {
-            console.log('✅ Transaction de règlement créée avec succès');
+            console.log('ℹ️ Transaction de caisse déjà existente, évitement doublon');
           }
         }
       } catch (transactionError) {
@@ -157,6 +188,7 @@ export const useCreateVersement = () => {
       queryClient.invalidateQueries({ queryKey: ['all-financial-transactions'] });
       queryClient.invalidateQueries({ queryKey: ['cash-register-balance'] });
       queryClient.invalidateQueries({ queryKey: ['factures-vente-details'] });
+      queryClient.invalidateQueries({ queryKey: ['complete-transaction-history'] });
       
       // Forcer le refetch immédiat des factures
       queryClient.refetchQueries({ queryKey: ['factures_vente'] });

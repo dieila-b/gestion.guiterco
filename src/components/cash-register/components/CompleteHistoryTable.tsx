@@ -14,6 +14,7 @@ interface Transaction {
   description: string;
   date: string;
   source: string | null;
+  origin_table?: string;
 }
 
 interface CompleteHistoryTableProps {
@@ -198,7 +199,7 @@ const CompleteHistoryTable: React.FC<CompleteHistoryTableProps> = ({
                 </td>
               </tr>
             ) : (
-              paginatedTransactions.map(transaction => {
+              paginatedTransactions.map((transaction, index) => {
                 const { label, className, textColor, sourceDisplay } = getTransactionTypeDetails(
                   transaction.source, 
                   transaction.type, 
@@ -206,7 +207,7 @@ const CompleteHistoryTable: React.FC<CompleteHistoryTableProps> = ({
                 );
                 
                 return (
-                  <tr key={`${transaction.source}-${transaction.id}`} className="border-b last:border-b-0 hover:bg-muted/50">
+                  <tr key={transaction.id} className="border-b last:border-b-0 hover:bg-muted/50">
                     <td className="py-3 px-4">
                       {format(new Date(transaction.date), "dd/MM/yyyy HH:mm", { locale: fr })}
                     </td>
@@ -219,7 +220,14 @@ const CompleteHistoryTable: React.FC<CompleteHistoryTableProps> = ({
                       {transaction.type === "expense" ? "-" : "+"}
                       {formatCurrency(transaction.amount)}
                     </td>
-                    <td className="py-3 px-4">{transaction.description}</td>
+                    <td className="py-3 px-4">
+                      {transaction.description}
+                      {transaction.origin_table && (
+                        <span className="ml-2 text-xs text-gray-400 italic">
+                          ({transaction.origin_table})
+                        </span>
+                      )}
+                    </td>
                     <td className="py-3 px-4 text-center text-xs text-gray-500">
                       {sourceDisplay || transaction.source}
                     </td>
