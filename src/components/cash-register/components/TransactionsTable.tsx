@@ -36,7 +36,7 @@ const TransactionsTable: React.FC<TransactionsTableProps> = ({
               source: transaction.source,
               type: transaction.type,
               label: label,
-              isReglement: label === "Règlement"
+              isReglement: label === "Règlement Preco"
             });
             
             return (

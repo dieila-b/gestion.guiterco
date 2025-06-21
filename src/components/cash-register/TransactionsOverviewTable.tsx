@@ -39,7 +39,7 @@ const TransactionsOverviewTable: React.FC = () => {
       }
       
       if (typeFilter === "reglements") {
-        return label === "Règlement";
+        return label === "Règlement Facture" || label === "Règlement Preco";
       }
       
       if (typeFilter === "income") {
@@ -134,7 +134,7 @@ const TransactionsOverviewTable: React.FC = () => {
                         source: transaction.source,
                         type: transaction.type,
                         label: label,
-                        isReglement: label === "Règlement"
+                        isReglement: label === "Règlement Preco"
                       });
                       
                       return (
