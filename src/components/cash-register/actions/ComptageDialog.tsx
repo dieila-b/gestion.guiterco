@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Calculator, Euro } from 'lucide-react';
+import { Calculator, Banknote } from 'lucide-react';
 import { useCreateComptage, ComptageDetails } from '@/hooks/cash';
 import { formatCurrency } from '@/lib/currency';
 
@@ -21,21 +21,24 @@ const ComptageDialog: React.FC<ComptageDialogProps> = ({ cashRegisterId, soldeTh
   const [observations, setObservations] = useState('');
   const [modeSimple, setModeSimple] = useState(true);
   const [coupures, setCoupures] = useState<ComptageDetails>({
-    billet_500: 0, billet_200: 0, billet_100: 0, billet_50: 0,
-    billet_20: 0, billet_10: 0, billet_5: 0,
-    piece_2: 0, piece_1: 0, piece_050: 0, piece_020: 0,
-    piece_010: 0, piece_005: 0, piece_002: 0, piece_001: 0
+    billet_20000: 0,
+    billet_10000: 0,
+    billet_5000: 0,
+    billet_2000: 0,
+    billet_1000: 0,
+    billet_500: 0
   });
 
   const createComptage = useCreateComptage();
 
   const calculerMontantCoupures = () => {
     return (
-      coupures.billet_500 * 500 + coupures.billet_200 * 200 + coupures.billet_100 * 100 +
-      coupures.billet_50 * 50 + coupures.billet_20 * 20 + coupures.billet_10 * 10 +
-      coupures.billet_5 * 5 + coupures.piece_2 * 2 + coupures.piece_1 * 1 +
-      coupures.piece_050 * 0.5 + coupures.piece_020 * 0.2 + coupures.piece_010 * 0.1 +
-      coupures.piece_005 * 0.05 + coupures.piece_002 * 0.02 + coupures.piece_001 * 0.01
+      coupures.billet_20000 * 20000 +
+      coupures.billet_10000 * 10000 +
+      coupures.billet_5000 * 5000 +
+      coupures.billet_2000 * 2000 +
+      coupures.billet_1000 * 1000 +
+      coupures.billet_500 * 500
     );
   };
 
@@ -57,10 +60,12 @@ const ComptageDialog: React.FC<ComptageDialogProps> = ({ cashRegisterId, soldeTh
         setMontantReel(0);
         setObservations('');
         setCoupures({
-          billet_500: 0, billet_200: 0, billet_100: 0, billet_50: 0,
-          billet_20: 0, billet_10: 0, billet_5: 0,
-          piece_2: 0, piece_1: 0, piece_050: 0, piece_020: 0,
-          piece_010: 0, piece_005: 0, piece_002: 0, piece_001: 0
+          billet_20000: 0,
+          billet_10000: 0,
+          billet_5000: 0,
+          billet_2000: 0,
+          billet_1000: 0,
+          billet_500: 0
         });
       }
     });
@@ -126,45 +131,33 @@ const ComptageDialog: React.FC<ComptageDialogProps> = ({ cashRegisterId, soldeTh
 
           {modeSimple ? (
             <div className="space-y-2">
-              <Label>Montant réel en caisse</Label>
+              <Label>Montant réel en caisse (GNF)</Label>
               <Input
                 type="number"
                 min="0"
-                step="0.01"
+                step="1"
                 value={montantReel}
                 onChange={(e) => setMontantReel(parseFloat(e.target.value) || 0)}
-                placeholder="0.00"
+                placeholder="0"
               />
             </div>
           ) : (
             <Card>
               <CardHeader>
                 <CardTitle className="text-base flex items-center">
-                  <Euro className="mr-2 h-4 w-4" />
-                  Détail par coupures
+                  <Banknote className="mr-2 h-4 w-4" />
+                  Détail par coupures (GNF)
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
                 <div className="space-y-2">
-                  <h4 className="font-medium">Billets</h4>
-                  <CoupureInput label="500 €" value={500} field="billet_500" />
-                  <CoupureInput label="200 €" value={200} field="billet_200" />
-                  <CoupureInput label="100 €" value={100} field="billet_100" />
-                  <CoupureInput label="50 €" value={50} field="billet_50" />
-                  <CoupureInput label="20 €" value={20} field="billet_20" />
-                  <CoupureInput label="10 €" value={10} field="billet_10" />
-                  <CoupureInput label="5 €" value={5} field="billet_5" />
-                </div>
-                <div className="space-y-2">
-                  <h4 className="font-medium">Pièces</h4>
-                  <CoupureInput label="2 €" value={2} field="piece_2" />
-                  <CoupureInput label="1 €" value={1} field="piece_1" />
-                  <CoupureInput label="0,50 €" value={0.5} field="piece_050" />
-                  <CoupureInput label="0,20 €" value={0.2} field="piece_020" />
-                  <CoupureInput label="0,10 €" value={0.1} field="piece_010" />
-                  <CoupureInput label="0,05 €" value={0.05} field="piece_005" />
-                  <CoupureInput label="0,02 €" value={0.02} field="piece_002" />
-                  <CoupureInput label="0,01 €" value={0.01} field="piece_001" />
+                  <h4 className="font-medium">Billets en Francs Guinéens</h4>
+                  <CoupureInput label="20 000 GNF" value={20000} field="billet_20000" />
+                  <CoupureInput label="10 000 GNF" value={10000} field="billet_10000" />
+                  <CoupureInput label="5 000 GNF" value={5000} field="billet_5000" />
+                  <CoupureInput label="2 000 GNF" value={2000} field="billet_2000" />
+                  <CoupureInput label="1 000 GNF" value={1000} field="billet_1000" />
+                  <CoupureInput label="500 GNF" value={500} field="billet_500" />
                 </div>
                 <div className="border-t pt-2">
                   <div className="flex justify-between font-medium">

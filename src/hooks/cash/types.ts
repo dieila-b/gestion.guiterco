@@ -16,21 +16,12 @@ export interface ClôtureCaisse {
 
 export interface ComptageDetails {
   [key: string]: number; // Index signature pour compatibilité Json
+  billet_20000: number;
+  billet_10000: number;
+  billet_5000: number;
+  billet_2000: number;
+  billet_1000: number;
   billet_500: number;
-  billet_200: number;
-  billet_100: number;
-  billet_50: number;
-  billet_20: number;
-  billet_10: number;
-  billet_5: number;
-  piece_2: number;
-  piece_1: number;
-  piece_050: number;
-  piece_020: number;
-  piece_010: number;
-  piece_005: number;
-  piece_002: number;
-  piece_001: number;
 }
 
 export interface ComptageRequest {
