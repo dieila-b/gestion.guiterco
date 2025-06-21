@@ -1,22 +1,25 @@
-
-import React from 'react';
+import React, { useState } from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { formatCurrency } from '@/lib/currency';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import { Eye, FileText, Trash2, ArrowRightLeft } from 'lucide-react';
+import { Eye, FileText, Trash2, ArrowRightLeft, CreditCard, CheckCircle } from 'lucide-react';
 import type { PrecommandeComplete } from '@/types/precommandes';
 import { useConvertPrecommandeToSale } from '@/hooks/precommandes/useConvertPrecommandeToSale';
+import PaymentDialog from './PaymentDialog';
 
 interface PrecommandesTableProps {
   precommandes: PrecommandeComplete[];
-  onConvertirEnVente?: (precommande: PrecommandeComplete) => void;
 }
 
 const PrecommandesTable = ({ precommandes }: PrecommandesTableProps) => {
   const convertToSale = useConvertPrecommandeToSale();
+  const [paymentDialog, setPaymentDialog] = useState<{
+    precommande: PrecommandeComplete;
+    type: 'acompte' | 'solde';
+  } | null>(null);
 
   const getStatutBadge = (statut: string) => {
     switch (statut) {
@@ -69,6 +72,18 @@ const PrecommandesTable = ({ precommandes }: PrecommandesTableProps) => {
     return ['prete', 'confirmee'].includes(statut);
   };
 
+  const peutRecevoirAcompte = (precommande: PrecommandeComplete) => {
+    const montantTotal = calculerTotalPrecommande(precommande);
+    const acompteVerse = precommande.acompte_verse || 0;
+    return acompteVerse < montantTotal && !['livree', 'annulee', 'convertie_en_vente'].includes(precommande.statut);
+  };
+
+  const peutFinaliserPaiement = (precommande: PrecommandeComplete) => {
+    const montantTotal = calculerTotalPrecommande(precommande);
+    const acompteVerse = precommande.acompte_verse || 0;
+    return acompteVerse > 0 && acompteVerse < montantTotal && ['prete', 'confirmee'].includes(precommande.statut);
+  };
+
   const handleConvertirEnVente = (precommande: PrecommandeComplete) => {
     convertToSale.mutate(precommande.id);
   };
@@ -95,155 +110,210 @@ const PrecommandesTable = ({ precommandes }: PrecommandesTableProps) => {
   };
 
   return (
-    <div className="border rounded-lg">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>N° Précommande</TableHead>
-            <TableHead>Client</TableHead>
-            <TableHead>Produit</TableHead>
-            <TableHead>Qté demandée</TableHead>
-            <TableHead>Total</TableHead>
-            <TableHead>Acompte</TableHead>
-            <TableHead>Reste à payer</TableHead>
-            <TableHead>Disponibilité estimée</TableHead>
-            <TableHead>Statut</TableHead>
-            <TableHead className="w-32"></TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {precommandes.map((precommande) => (
-            precommande.lignes_precommande?.map((ligne, index) => (
-              <TableRow key={`${precommande.id}-${ligne.id}`}>
-                {index === 0 && (
-                  <>
-                    <TableCell rowSpan={precommande.lignes_precommande?.length || 1} className="font-medium">
-                      {precommande.numero_precommande}
-                    </TableCell>
-                    <TableCell rowSpan={precommande.lignes_precommande?.length || 1}>
-                      {precommande.client?.nom || 'Client non spécifié'}
-                    </TableCell>
-                  </>
-                )}
-                <TableCell>{ligne.article?.nom || 'Article non trouvé'}</TableCell>
-                <TableCell className="text-center">{ligne.quantite}</TableCell>
-                {index === 0 && (
-                  <>
-                    <TableCell rowSpan={precommande.lignes_precommande?.length || 1} className="font-semibold">
-                      {formatCurrency(calculerTotalPrecommande(precommande))}
-                    </TableCell>
-                    <TableCell rowSpan={precommande.lignes_precommande?.length || 1}>
-                      {precommande.acompte_verse ? formatCurrency(precommande.acompte_verse) : '0 GNF'}
-                    </TableCell>
-                    <TableCell rowSpan={precommande.lignes_precommande?.length || 1} className="font-semibold text-blue-600">
-                      {formatCurrency(calculerResteAPayer(precommande))}
-                    </TableCell>
-                    <TableCell rowSpan={precommande.lignes_precommande?.length || 1}>
-                      {getDisponibiliteEstimee(precommande)}
-                    </TableCell>
-                    <TableCell rowSpan={precommande.lignes_precommande?.length || 1}>
-                      {getStatutBadge(precommande.statut)}
-                    </TableCell>
-                    <TableCell rowSpan={precommande.lignes_precommande?.length || 1}>
-                      <div className="flex gap-1">
-                        {peutConvertirEnVente(precommande.statut) && (
+    <>
+      <div className="border rounded-lg">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>N° Précommande</TableHead>
+              <TableHead>Client</TableHead>
+              <TableHead>Produit</TableHead>
+              <TableHead>Qté demandée</TableHead>
+              <TableHead>Total</TableHead>
+              <TableHead>Acompte</TableHead>
+              <TableHead>Reste à payer</TableHead>
+              <TableHead>Disponibilité estimée</TableHead>
+              <TableHead>Statut</TableHead>
+              <TableHead className="w-40">Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {precommandes.map((precommande) => (
+              precommande.lignes_precommande?.map((ligne, index) => (
+                <TableRow key={`${precommande.id}-${ligne.id}`}>
+                  {index === 0 && (
+                    <>
+                      <TableCell rowSpan={precommande.lignes_precommande?.length || 1} className="font-medium">
+                        {precommande.numero_precommande}
+                      </TableCell>
+                      <TableCell rowSpan={precommande.lignes_precommande?.length || 1}>
+                        {precommande.client?.nom || 'Client non spécifié'}
+                      </TableCell>
+                    </>
+                  )}
+                  <TableCell>{ligne.article?.nom || 'Article non trouvé'}</TableCell>
+                  <TableCell className="text-center">{ligne.quantite}</TableCell>
+                  {index === 0 && (
+                    <>
+                      <TableCell rowSpan={precommande.lignes_precommande?.length || 1} className="font-semibold">
+                        {formatCurrency(calculerTotalPrecommande(precommande))}
+                      </TableCell>
+                      <TableCell rowSpan={precommande.lignes_precommande?.length || 1}>
+                        {precommande.acompte_verse ? formatCurrency(precommande.acompte_verse) : '0 GNF'}
+                      </TableCell>
+                      <TableCell rowSpan={precommande.lignes_precommande?.length || 1} className="font-semibold text-blue-600">
+                        {formatCurrency(calculerResteAPayer(precommande))}
+                      </TableCell>
+                      <TableCell rowSpan={precommande.lignes_precommande?.length || 1}>
+                        {getDisponibiliteEstimee(precommande)}
+                      </TableCell>
+                      <TableCell rowSpan={precommande.lignes_precommande?.length || 1}>
+                        {getStatutBadge(precommande.statut)}
+                      </TableCell>
+                      <TableCell rowSpan={precommande.lignes_precommande?.length || 1}>
+                        <div className="flex gap-1 flex-wrap">
+                          {peutRecevoirAcompte(precommande) && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => setPaymentDialog({ precommande, type: 'acompte' })}
+                              title="Acompte"
+                              className="text-green-600 hover:text-green-700"
+                            >
+                              <CreditCard className="h-4 w-4" />
+                            </Button>
+                          )}
+                          {peutFinaliserPaiement(precommande) && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => setPaymentDialog({ precommande, type: 'solde' })}
+                              title="Finaliser le paiement"
+                              className="text-blue-600 hover:text-blue-700"
+                            >
+                              <CheckCircle className="h-4 w-4" />
+                            </Button>
+                          )}
+                          {peutConvertirEnVente(precommande.statut) && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleConvertirEnVente(precommande)}
+                              title="Convertir en vente"
+                              disabled={convertToSale.isPending}
+                            >
+                              <ArrowRightLeft className="h-4 w-4" />
+                            </Button>
+                          )}
                           <Button
                             size="sm"
                             variant="outline"
-                            onClick={() => handleConvertirEnVente(precommande)}
-                            title="Convertir en vente"
-                            disabled={convertToSale.isPending}
+                            onClick={() => handleVoir(precommande)}
+                            title="Voir"
                           >
-                            <ArrowRightLeft className="h-4 w-4" />
+                            <Eye className="h-4 w-4" />
                           </Button>
-                        )}
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleFacture(precommande)}
+                            title="Facture"
+                          >
+                            <FileText className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleSupprimer(precommande)}
+                            title="Supprimer"
+                            className="text-red-600 hover:text-red-700"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </>
+                  )}
+                </TableRow>
+              )) || (
+                <TableRow key={precommande.id}>
+                  <TableCell className="font-medium">{precommande.numero_precommande}</TableCell>
+                  <TableCell>{precommande.client?.nom || 'Client non spécifié'}</TableCell>
+                  <TableCell>Aucun produit</TableCell>
+                  <TableCell className="text-center">0</TableCell>
+                  <TableCell className="font-semibold">{formatCurrency(0)}</TableCell>
+                  <TableCell>{precommande.acompte_verse ? formatCurrency(precommande.acompte_verse) : '0 GNF'}</TableCell>
+                  <TableCell className="font-semibold text-blue-600">{formatCurrency(0)}</TableCell>
+                  <TableCell>{getDisponibiliteEstimee(precommande)}</TableCell>
+                  <TableCell>{getStatutBadge(precommande.statut)}</TableCell>
+                  <TableCell>
+                    <div className="flex gap-1 flex-wrap">
+                      {peutRecevoirAcompte(precommande) && (
                         <Button
                           size="sm"
                           variant="outline"
-                          onClick={() => handleVoir(precommande)}
-                          title="Voir"
+                          onClick={() => setPaymentDialog({ precommande, type: 'acompte' })}
+                          title="Acompte"
+                          className="text-green-600 hover:text-green-700"
                         >
-                          <Eye className="h-4 w-4" />
+                          <CreditCard className="h-4 w-4" />
                         </Button>
+                      )}
+                      {peutFinaliserPaiement(precommande) && (
                         <Button
                           size="sm"
                           variant="outline"
-                          onClick={() => handleFacture(precommande)}
-                          title="Facture"
+                          onClick={() => setPaymentDialog({ precommande, type: 'solde' })}
+                          title="Finaliser le paiement"
+                          className="text-blue-600 hover:text-blue-700"
                         >
-                          <FileText className="h-4 w-4" />
+                          <CheckCircle className="h-4 w-4" />
                         </Button>
+                      )}
+                      {peutConvertirEnVente(precommande.statut) && (
                         <Button
                           size="sm"
                           variant="outline"
-                          onClick={() => handleSupprimer(precommande)}
-                          title="Supprimer"
-                          className="text-red-600 hover:text-red-700"
+                          onClick={() => handleConvertirEnVente(precommande)}
+                          title="Convertir en vente"
+                          disabled={convertToSale.isPending}
                         >
-                          <Trash2 className="h-4 w-4" />
+                          <ArrowRightLeft className="h-4 w-4" />
                         </Button>
-                      </div>
-                    </TableCell>
-                  </>
-                )}
-              </TableRow>
-            )) || (
-              <TableRow key={precommande.id}>
-                <TableCell className="font-medium">{precommande.numero_precommande}</TableCell>
-                <TableCell>{precommande.client?.nom || 'Client non spécifié'}</TableCell>
-                <TableCell>Aucun produit</TableCell>
-                <TableCell className="text-center">0</TableCell>
-                <TableCell className="font-semibold">{formatCurrency(0)}</TableCell>
-                <TableCell>{precommande.acompte_verse ? formatCurrency(precommande.acompte_verse) : '0 GNF'}</TableCell>
-                <TableCell className="font-semibold text-blue-600">{formatCurrency(0)}</TableCell>
-                <TableCell>{getDisponibiliteEstimee(precommande)}</TableCell>
-                <TableCell>{getStatutBadge(precommande.statut)}</TableCell>
-                <TableCell>
-                  <div className="flex gap-1">
-                    {peutConvertirEnVente(precommande.statut) && (
+                      )}
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={() => handleConvertirEnVente(precommande)}
-                        title="Convertir en vente"
-                        disabled={convertToSale.isPending}
+                        onClick={() => handleVoir(precommande)}
+                        title="Voir"
                       >
-                        <ArrowRightLeft className="h-4 w-4" />
+                        <Eye className="h-4 w-4" />
                       </Button>
-                    )}
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => handleVoir(precommande)}
-                      title="Voir"
-                    >
-                      <Eye className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => handleFacture(precommande)}
-                      title="Facture"
-                    >
-                      <FileText className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => handleSupprimer(precommande)}
-                      title="Supprimer"
-                      className="text-red-600 hover:text-red-700"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </TableCell>
-              </TableRow>
-            )
-          ))}
-        </TableBody>
-      </Table>
-    </div>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleFacture(precommande)}
+                        title="Facture"
+                      >
+                        <FileText className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleSupprimer(precommande)}
+                        title="Supprimer"
+                        className="text-red-600 hover:text-red-700"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              )
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+
+      {paymentDialog && (
+        <PaymentDialog
+          precommande={paymentDialog.precommande}
+          type={paymentDialog.type}
+          open={true}
+          onClose={() => setPaymentDialog(null)}
+        />
+      )}
+    </>
   );
 };
 

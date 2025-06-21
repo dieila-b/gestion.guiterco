@@ -2418,8 +2418,24 @@ export type Database = {
       }
     }
     Functions: {
+      complete_precommande_payment: {
+        Args: {
+          precommande_uuid: string
+          montant_final: number
+          mode_paiement?: string
+        }
+        Returns: string
+      }
       convert_precommande_to_sale: {
         Args: { precommande_uuid: string }
+        Returns: string
+      }
+      create_precommande_cash_transaction: {
+        Args: {
+          precommande_uuid: string
+          montant_acompte: number
+          mode_paiement?: string
+        }
         Returns: string
       }
       debug_auth_info: {
