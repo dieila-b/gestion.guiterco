@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react';
 import { usePrecommandesComplete } from '@/hooks/precommandes/usePrecommandesComplete';
 import PrecommandesTable from './precommandes/PrecommandesTable';
@@ -11,7 +10,7 @@ const Precommandes = () => {
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('tous');
-  const [showCreateDialog, setShowCreateDialog] = useState(false');
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
 
   // Filtrage des précommandes
   const filteredPrecommandes = useMemo(() => {
