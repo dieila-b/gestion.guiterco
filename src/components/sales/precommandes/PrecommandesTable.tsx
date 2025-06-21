@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { formatCurrency } from '@/lib/currency';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
+import { Eye, FileText, Trash2 } from 'lucide-react';
 import type { PrecommandeComplete } from '@/types/precommandes';
 
 interface PrecommandesTableProps {
@@ -17,17 +18,33 @@ const PrecommandesTable = ({ precommandes, onConvertirEnVente }: PrecommandesTab
   const getStatutBadge = (statut: string) => {
     switch (statut) {
       case 'livree':
-        return <Badge className="bg-green-500 text-white">🟢 Livrée</Badge>;
+        return (
+          <div className="flex items-center gap-2">
+            <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+            <span>Livrée</span>
+          </div>
+        );
       case 'partiellement_livree':
-        return <Badge className="bg-yellow-500 text-white">🟡 Partiellement livrée</Badge>;
+        return (
+          <div className="flex items-center gap-2">
+            <div className="w-3 h-3 bg-orange-500 rounded-full"></div>
+            <span>Partiellement livrée</span>
+          </div>
+        );
       case 'annulee':
-        return <Badge className="bg-red-500 text-white">🔴 Annulée</Badge>;
-      case 'prete':
-        return <Badge className="bg-blue-500 text-white">Prête</Badge>;
-      case 'en_preparation':
-        return <Badge className="bg-orange-500 text-white">En préparation</Badge>;
+        return (
+          <div className="flex items-center gap-2">
+            <div className="w-3 h-3 bg-red-500 rounded-full"></div>
+            <span>Annulée</span>
+          </div>
+        );
       default:
-        return <Badge variant="secondary">Confirmée</Badge>;
+        return (
+          <div className="flex items-center gap-2">
+            <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
+            <span>En attente</span>
+          </div>
+        );
     }
   };
 
@@ -42,6 +59,21 @@ const PrecommandesTable = ({ precommandes, onConvertirEnVente }: PrecommandesTab
     return ['prete', 'confirmee'].includes(statut);
   };
 
+  const handleVoir = (precommande: PrecommandeComplete) => {
+    // TODO: Implémenter la vue détaillée
+    console.log('Voir précommande:', precommande.numero_precommande);
+  };
+
+  const handleFacture = (precommande: PrecommandeComplete) => {
+    // TODO: Implémenter la génération de facture
+    console.log('Générer facture pour:', precommande.numero_precommande);
+  };
+
+  const handleSupprimer = (precommande: PrecommandeComplete) => {
+    // TODO: Implémenter la suppression
+    console.log('Supprimer précommande:', precommande.numero_precommande);
+  };
+
   return (
     <div className="border rounded-lg">
       <Table>
@@ -53,7 +85,7 @@ const PrecommandesTable = ({ precommandes, onConvertirEnVente }: PrecommandesTab
             <TableHead>Qté demandée</TableHead>
             <TableHead>Acompte</TableHead>
             <TableHead>Disponibilité estimée</TableHead>
-            <TableHead>Statut de livraison</TableHead>
+            <TableHead>Statut</TableHead>
             <TableHead>Actions</TableHead>
           </TableRow>
         </TableHeader>
@@ -85,15 +117,44 @@ const PrecommandesTable = ({ precommandes, onConvertirEnVente }: PrecommandesTab
                       {getStatutBadge(precommande.statut)}
                     </TableCell>
                     <TableCell rowSpan={precommande.lignes_precommande?.length || 1}>
-                      {peutConvertirEnVente(precommande.statut) && (
+                      <div className="flex flex-col gap-2">
+                        {peutConvertirEnVente(precommande.statut) && (
+                          <Button
+                            size="sm"
+                            onClick={() => onConvertirEnVente(precommande)}
+                            className="bg-blue-600 hover:bg-blue-700 text-white justify-start"
+                          >
+                            Convertir en vente
+                          </Button>
+                        )}
                         <Button
                           size="sm"
-                          onClick={() => onConvertirEnVente(precommande)}
-                          className="bg-blue-600 hover:bg-blue-700"
+                          variant="outline"
+                          onClick={() => handleVoir(precommande)}
+                          className="justify-start"
                         >
-                          Convertir en vente
+                          <Eye className="h-4 w-4 mr-2" />
+                          Voir
                         </Button>
-                      )}
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleFacture(precommande)}
+                          className="justify-start"
+                        >
+                          <FileText className="h-4 w-4 mr-2" />
+                          Facture
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleSupprimer(precommande)}
+                          className="justify-start text-red-600 hover:text-red-700"
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Supprimer
+                        </Button>
+                      </div>
                     </TableCell>
                   </>
                 )}
@@ -108,15 +169,44 @@ const PrecommandesTable = ({ precommandes, onConvertirEnVente }: PrecommandesTab
                 <TableCell>{getDisponibiliteEstimee(precommande)}</TableCell>
                 <TableCell>{getStatutBadge(precommande.statut)}</TableCell>
                 <TableCell>
-                  {peutConvertirEnVente(precommande.statut) && (
+                  <div className="flex flex-col gap-2">
+                    {peutConvertirEnVente(precommande.statut) && (
+                      <Button
+                        size="sm"
+                        onClick={() => onConvertirEnVente(precommande)}
+                        className="bg-blue-600 hover:bg-blue-700 text-white justify-start"
+                      >
+                        Convertir en vente
+                      </Button>
+                    )}
                     <Button
                       size="sm"
-                      onClick={() => onConvertirEnVente(precommande)}
-                      className="bg-blue-600 hover:bg-blue-700"
+                      variant="outline"
+                      onClick={() => handleVoir(precommande)}
+                      className="justify-start"
                     >
-                      Convertir en vente
+                      <Eye className="h-4 w-4 mr-2" />
+                      Voir
                     </Button>
-                  )}
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleFacture(precommande)}
+                      className="justify-start"
+                    >
+                      <FileText className="h-4 w-4 mr-2" />
+                      Facture
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleSupprimer(precommande)}
+                      className="justify-start text-red-600 hover:text-red-700"
+                    >
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Supprimer
+                    </Button>
+                  </div>
                 </TableCell>
               </TableRow>
             )
