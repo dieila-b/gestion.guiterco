@@ -15,11 +15,11 @@ export function AppLayout({ children, title }: AppLayoutProps) {
   
   return (
     <SidebarProvider>
-      <div className="min-h-screen flex w-full">
+      <div className="min-h-screen flex w-full bg-gray-50">
         <AppSidebar />
         <div className="flex-1 flex flex-col">
           <AppHeader title={title} />
-          <main className="flex-1 p-4 md:p-6">
+          <main className="flex-1">
             {children}
           </main>
         </div>
