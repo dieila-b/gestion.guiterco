@@ -11,6 +11,7 @@ import {
 import { normalizeTransactions } from './useCompleteTransactionHistory/transactionNormalizer';
 import { applyTypeFilters, sortTransactions } from './useCompleteTransactionHistory/transactionFilters';
 import { calculateStats } from './useCompleteTransactionHistory/statsCalculator';
+import type { CompleteTransactionFilters, CompleteTransaction } from './useCompleteTransactionHistory/types';
 
 export type { CompleteTransactionFilters, CompleteTransaction } from './useCompleteTransactionHistory/types';
 
