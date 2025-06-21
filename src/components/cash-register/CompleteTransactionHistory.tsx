@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
@@ -285,38 +284,13 @@ const CompleteTransactionHistory: React.FC = () => {
               </div>
             )}
 
-            {/* Filtres avancés */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {/* Filtre par source */}
-              <div className="space-y-2">
-                <Label>Source</Label>
-                <Input 
-                  placeholder="Filtrer par source..." 
-                  value={filters.source}
-                  onChange={(e) => handleFilterChange('source', e.target.value)}
-                />
-              </div>
-
-              {/* Recherche */}
-              <div className="space-y-2">
-                <Label htmlFor="search">Rechercher</Label>
-                <Input 
-                  id="search"
-                  placeholder="Rechercher par description..." 
-                  value={filters.searchTerm}
-                  onChange={(e) => handleFilterChange('searchTerm', e.target.value)}
-                />
-              </div>
-
-              {/* Bouton d'export */}
-              <div className="space-y-2">
-                <Label>&nbsp;</Label>
-                <ExportTransactionsDialog 
-                  transactions={transactions}
-                  filters={filters}
-                  stats={stats}
-                />
-              </div>
+            {/* Section Export (simplifié) */}
+            <div className="flex justify-end">
+              <ExportTransactionsDialog 
+                transactions={transactions}
+                filters={filters}
+                stats={stats}
+              />
             </div>
           </div>
 

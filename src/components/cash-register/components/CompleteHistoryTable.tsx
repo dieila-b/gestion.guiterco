@@ -52,6 +52,9 @@ const CompleteHistoryTable: React.FC<CompleteHistoryTableProps> = ({
         const bDetails = getTransactionTypeDetails(b.source, b.type, b.description);
         aValue = aDetails.label;
         bValue = bDetails.label;
+      } else if (sortField === 'source') {
+        aValue = String(a.source || '').toLowerCase();
+        bValue = String(b.source || '').toLowerCase();
       } else {
         aValue = String(aValue || '').toLowerCase();
         bValue = String(bValue || '').toLowerCase();
