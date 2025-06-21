@@ -1,4 +1,3 @@
-
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -55,7 +54,8 @@ export const useCompleteTransactionHistory = (filters: CompleteTransactionFilter
         .from('transactions')
         .select('id, type, amount, montant, description, date_operation, created_at, source')
         .gte('date_operation', startDate.toISOString())
-        .lte('date_operation', endDate.toISOString());
+        .lte('date_operation', endDate.toISOString())
+        .not('description', 'ilike', '%Règlement VERS-%'); // Exclure les règlements internes VERS-
 
       if (transError) {
         console.error('❌ Erreur transactions:', transError);
@@ -105,6 +105,11 @@ export const useCompleteTransactionHistory = (filters: CompleteTransactionFilter
       // ÉTAPE 1: Normaliser les transactions principales (priorité maximale)
       (transactions || [])
         .filter((t): t is any & { type: 'income' | 'expense' } => t.type === 'income' || t.type === 'expense')
+        .filter(t => {
+          // Filtrer explicitement les règlements internes VERS-
+          const description = t.description || '';
+          return !description.includes('Règlement VERS-');
+        })
         .forEach(t => {
           const uniqueKey = `${t.type}_${t.amount || t.montant || 0}_${new Date(t.date_operation || t.created_at).toDateString()}_${t.description}`;
           
@@ -173,6 +178,12 @@ export const useCompleteTransactionHistory = (filters: CompleteTransactionFilter
         const date = v.date_versement;
         const description = `Règlement ${v.numero_versement}`;
         
+        // Exclure les versements internes VERS-
+        if (description.includes('Règlement VERS-')) {
+          console.log('🚫 Exclusion versement interne:', description);
+          return;
+        }
+        
         // Vérifier si une transaction existe déjà pour ce règlement
         const hasExistingTransaction = normalizedTransactions.some(t => 
           t.source === 'facture' && 
@@ -196,10 +207,20 @@ export const useCompleteTransactionHistory = (filters: CompleteTransactionFilter
         }
       });
 
+      // Filtrage final pour supprimer définitivement tous les règlements VERS-
+      const filteredFromVers = normalizedTransactions.filter(transaction => {
+        const description = transaction.description || '';
+        const isInternalVers = description.includes('Règlement VERS-');
+        if (isInternalVers) {
+          console.log('🚫 Filtrage final - Exclusion règlement interne:', description);
+        }
+        return !isInternalVers;
+      });
+
       // Appliquer les filtres de type
-      let filteredTransactions = normalizedTransactions;
+      let filteredTransactions = filteredFromVers;
       if (filters.type !== 'all') {
-        filteredTransactions = normalizedTransactions.filter(transaction => {
+        filteredTransactions = filteredFromVers.filter(transaction => {
           switch (filters.type) {
             case 'vente':
               return transaction.source === 'vente' || transaction.description.toLowerCase().includes('vente');
@@ -247,7 +268,7 @@ export const useCompleteTransactionHistory = (filters: CompleteTransactionFilter
       };
 
       console.log('📊 Statistiques calculées:', stats);
-      console.log('📋 Transactions uniques trouvées:', filteredTransactions.length);
+      console.log('📋 Transactions uniques trouvées (après filtrage VERS-):', filteredTransactions.length);
       console.log('🔍 Répartition par origine:', {
         transactions: filteredTransactions.filter(t => t.origin_table === 'transactions').length,
         cash_operations: filteredTransactions.filter(t => t.origin_table === 'cash_operations').length,
