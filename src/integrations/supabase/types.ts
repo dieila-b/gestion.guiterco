@@ -705,6 +705,65 @@ export type Database = {
         }
         Relationships: []
       }
+      clotures_caisse: {
+        Row: {
+          balance_jour: number
+          cash_register_id: string
+          created_at: string | null
+          date_cloture: string
+          heure_cloture: string
+          id: string
+          nb_transactions: number
+          observations: string | null
+          solde_debut: number
+          solde_fin: number
+          total_entrees: number
+          total_sorties: number
+          updated_at: string | null
+          utilisateur_cloture: string | null
+        }
+        Insert: {
+          balance_jour?: number
+          cash_register_id: string
+          created_at?: string | null
+          date_cloture?: string
+          heure_cloture?: string
+          id?: string
+          nb_transactions?: number
+          observations?: string | null
+          solde_debut?: number
+          solde_fin?: number
+          total_entrees?: number
+          total_sorties?: number
+          updated_at?: string | null
+          utilisateur_cloture?: string | null
+        }
+        Update: {
+          balance_jour?: number
+          cash_register_id?: string
+          created_at?: string | null
+          date_cloture?: string
+          heure_cloture?: string
+          id?: string
+          nb_transactions?: number
+          observations?: string | null
+          solde_debut?: number
+          solde_fin?: number
+          total_entrees?: number
+          total_sorties?: number
+          updated_at?: string | null
+          utilisateur_cloture?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clotures_caisse_cash_register_id_fkey"
+            columns: ["cash_register_id"]
+            isOneToOne: false
+            referencedRelation: "cash_registers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       commandes_clients: {
         Row: {
           client_id: string | null
@@ -757,6 +816,56 @@ export type Database = {
             columns: ["client_id"]
             isOneToOne: false
             referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      comptages_caisse: {
+        Row: {
+          cash_register_id: string
+          created_at: string | null
+          date_comptage: string
+          details_coupures: Json | null
+          ecart: number | null
+          id: string
+          montant_reel: number
+          montant_theorique: number
+          observations: string | null
+          type_comptage: string | null
+          utilisateur_comptage: string | null
+        }
+        Insert: {
+          cash_register_id: string
+          created_at?: string | null
+          date_comptage?: string
+          details_coupures?: Json | null
+          ecart?: number | null
+          id?: string
+          montant_reel?: number
+          montant_theorique?: number
+          observations?: string | null
+          type_comptage?: string | null
+          utilisateur_comptage?: string | null
+        }
+        Update: {
+          cash_register_id?: string
+          created_at?: string | null
+          date_comptage?: string
+          details_coupures?: Json | null
+          ecart?: number | null
+          id?: string
+          montant_reel?: number
+          montant_theorique?: number
+          observations?: string | null
+          type_comptage?: string | null
+          utilisateur_comptage?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "comptages_caisse_cash_register_id_fkey"
+            columns: ["cash_register_id"]
+            isOneToOne: false
+            referencedRelation: "cash_registers"
             referencedColumns: ["id"]
           },
         ]
@@ -923,6 +1032,47 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      etats_caisse: {
+        Row: {
+          cash_register_id: string
+          created_at: string | null
+          date_etat: string
+          donnees_etat: Json
+          heure_generation: string
+          id: string
+          type_etat: string
+          utilisateur_generation: string | null
+        }
+        Insert: {
+          cash_register_id: string
+          created_at?: string | null
+          date_etat?: string
+          donnees_etat: Json
+          heure_generation?: string
+          id?: string
+          type_etat: string
+          utilisateur_generation?: string | null
+        }
+        Update: {
+          cash_register_id?: string
+          created_at?: string | null
+          date_etat?: string
+          donnees_etat?: Json
+          heure_generation?: string
+          id?: string
+          type_etat?: string
+          utilisateur_generation?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "etats_caisse_cash_register_id_fkey"
+            columns: ["cash_register_id"]
+            isOneToOne: false
+            referencedRelation: "cash_registers"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       factures_achat: {
         Row: {

@@ -1,13 +1,11 @@
 
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from '@/components/ui/button';
-import { format } from 'date-fns';
-import { fr } from 'date-fns/locale/fr';
 import { useCashRegisters } from "@/hooks/useCashRegisters";
 import { useAllFinancialTransactions, useCashRegisterBalance } from "@/hooks/useTransactions";
 import { formatCurrency } from "@/lib/currency";
 import TransactionsOverviewTable from "./TransactionsOverviewTable";
+import CashActions from "./actions/CashActions";
 
 const CashRegisterOverview: React.FC = () => {
   // Caisse principale
@@ -40,7 +38,13 @@ const CashRegisterOverview: React.FC = () => {
 
   // Formattage de la date
   const lastUpdate = principalRegister?.updated_at
-    ? format(new Date(principalRegister.updated_at), 'dd/MM/yyyy HH:mm')
+    ? new Date(principalRegister.updated_at).toLocaleDateString('fr-FR', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      })
     : 'N/A';
 
   // Gestion du loading
@@ -121,25 +125,7 @@ const CashRegisterOverview: React.FC = () => {
         <div className="lg:col-span-3 flex flex-col">
           <TransactionsOverviewTable />
         </div>
-        <Card>
-          <CardHeader>
-            <CardTitle>Actions</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            <Button variant="outline" className="w-full">
-              Fermer la caisse
-            </Button>
-            <Button variant="outline" className="w-full">
-              Imprimer état de caisse
-            </Button>
-            <Button variant="outline" className="w-full">
-              Effectuer un comptage
-            </Button>
-            <Button variant="outline" className="w-full">
-              Exporter les transactions
-            </Button>
-          </CardContent>
-        </Card>
+        <CashActions cashRegisterId={principalRegister?.id} />
       </div>
     </>
   );
