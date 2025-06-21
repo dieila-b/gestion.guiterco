@@ -4,7 +4,24 @@ import { Transaction } from '../types';
 export const getTransactionTypeDetails = (source: string | null, type: 'income' | 'expense', description?: string) => {
   console.log('🔍 getTransactionTypeDetails appelée avec:', { source, type, description });
   
-  // Première vérification : règlement de facture (paiement d'un solde dû)
+  // Première vérification : acompte ou règlement de précommande
+  if (source === "Précommande" || source === "precommande" || 
+      (description && (
+        description.toLowerCase().includes("précommande") ||
+        description.toLowerCase().includes("precommande") ||
+        description.toLowerCase().includes("acompte précommande") ||
+        description.toLowerCase().includes("solde précommande")
+      ))) {
+    console.log('✅ Règlement de précommande détecté !');
+    return {
+      label: "Règlement Preco",
+      className: "bg-yellow-50 text-yellow-700",
+      textColor: "text-yellow-700",
+      sourceDisplay: "Précommande"
+    };
+  }
+
+  // Deuxième vérification : règlement de facture (paiement d'un solde dû)
   if (source === "facture" || source === "règlement" || source === "Paiement d'un impayé") {
     console.log('✅ Règlement de facture détecté via source !');
     return {
@@ -15,7 +32,7 @@ export const getTransactionTypeDetails = (source: string | null, type: 'income' 
     };
   }
 
-  // Deuxième vérification : détection par la description (fallback pour les règlements)
+  // Troisième vérification : détection par la description (fallback pour les règlements)
   if (description && (
     description.toLowerCase().includes("règlement") ||
     description.toLowerCase().includes("versement") ||
@@ -31,7 +48,7 @@ export const getTransactionTypeDetails = (source: string | null, type: 'income' 
     };
   }
 
-  // Troisième vérification : vente immédiate (source explicite)
+  // Quatrième vérification : vente immédiate (source explicite)
   if (source === "vente" || source === "Vente encaissée") {
     console.log('✅ Vente immédiate détectée via source');
     return {
@@ -42,7 +59,7 @@ export const getTransactionTypeDetails = (source: string | null, type: 'income' 
     };
   }
 
-  // Quatrième vérification : vente détectée par description
+  // Cinquième vérification : vente détectée par description
   if (type === 'income' && description && (
     description.toLowerCase().includes("vente") ||
     description.toLowerCase().includes("fa-") // numéro de facture
