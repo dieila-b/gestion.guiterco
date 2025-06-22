@@ -101,66 +101,97 @@ export const fetchExpenses = async (startDate: Date, endDate: Date) => {
 };
 
 export const fetchVersements = async (startDate: Date, endDate: Date) => {
-  // D'abord récupérer tous les versements dans la période 
-  const { data: versements, error: versementsError } = await supabase
-    .from('versements_clients')
-    .select('*')
-    .gte('date_versement', startDate.toISOString())
-    .lte('date_versement', endDate.toISOString());
+  try {
+    // Récupérer tous les versements dans la période 
+    const { data: versements, error: versementsError } = await supabase
+      .from('versements_clients')
+      .select('*')
+      .gte('date_versement', startDate.toISOString())
+      .lte('date_versement', endDate.toISOString());
 
-  if (versementsError) {
-    console.error('❌ Erreur versements_clients:', versementsError);
-    throw versementsError;
+    if (versementsError) {
+      console.error('❌ Erreur versements_clients:', versementsError);
+      // Ne pas jeter l'erreur, retourner un tableau vide pour éviter de bloquer l'UI
+      return [];
+    }
+
+    if (!versements || versements.length === 0) {
+      console.log('ℹ️ Aucun versement trouvé dans la période');
+      return [];
+    }
+
+    // Récupérer les factures associées pour vérifier leur statut
+    const factureIds = versements.map(v => v.facture_id).filter(Boolean);
+    
+    let facturesPayees = [];
+    if (factureIds.length > 0) {
+      try {
+        const { data: factures, error: facturesError } = await supabase
+          .from('factures_vente')
+          .select('id, statut_paiement')
+          .in('id', factureIds);
+        
+        if (!facturesError && factures) {
+          facturesPayees = factures;
+        } else if (facturesError) {
+          console.warn('⚠️ Erreur lors du chargement des factures:', facturesError);
+        }
+      } catch (error) {
+        console.warn('⚠️ Erreur lors de la récupération des factures:', error);
+      }
+    }
+
+    // Filtrer les versements pour ne garder que ceux valides
+    const filteredVersements = versements.filter(v => {
+      const numeroVersement = v.numero_versement || '';
+      const isInternal = numeroVersement.toLowerCase().includes('vers-') || 
+                        numeroVersement.toLowerCase().includes('v-') ||
+                        numeroVersement.toLowerCase().includes('ver-');
+      
+      if (isInternal) {
+        console.log('🚫 Exclusion versement interne:', numeroVersement);
+        return false;
+      }
+      
+      // Si on a pu récupérer les factures, vérifier le statut
+      if (facturesPayees.length > 0) {
+        const facture = facturesPayees.find(f => f.id === v.facture_id);
+        const facturePayee = facture && ['payee', 'partiellement_payee'].includes(facture.statut_paiement);
+        
+        if (!facturePayee) {
+          console.log('🚫 Exclusion versement facture non payée:', v.numero_versement);
+          return false;
+        }
+      }
+      
+      return true;
+    });
+
+    console.log(`🧾 Versements récupérés: ${versements?.length || 0}, après filtrage: ${filteredVersements.length}`);
+    return filteredVersements;
+    
+  } catch (error) {
+    console.error('❌ Erreur critique dans fetchVersements:', error);
+    // Retourner un tableau vide plutôt que de faire planter l'application
+    return [];
   }
-
-  // Récupérer toutes les factures pour vérifier leur statut
-  const factureIds = (versements || []).map(v => v.facture_id).filter(Boolean);
-  
-  let facturesPayees = [];
-  if (factureIds.length > 0) {
-    const { data: factures, error: facturesError } = await supabase
-      .from('factures_vente')
-      .select('id, statut_paiement')
-      .in('id', factureIds);
-    
-    if (!facturesError) {
-      facturesPayees = factures || [];
-    }
-  }
-
-  // Filtrer les versements pour ne garder que ceux de factures payées/partiellement payées
-  const filteredVersements = (versements || []).filter(v => {
-    const numeroVersement = v.numero_versement || '';
-    const isInternal = numeroVersement.toLowerCase().includes('vers-') || 
-                      numeroVersement.toLowerCase().includes('v-') ||
-                      numeroVersement.toLowerCase().includes('ver-');
-    
-    // Vérifier que la facture associée est bien payée/partiellement payée
-    const facture = facturesPayees.find(f => f.id === v.facture_id);
-    const facturePayee = facture && ['payee', 'partiellement_payee'].includes(facture.statut_paiement);
-    
-    if (isInternal) {
-      console.log('🚫 Exclusion versement interne:', numeroVersement);
-      return false;
-    }
-    
-    if (!facturePayee) {
-      console.log('🚫 Exclusion versement facture non payée:', v.numero_versement);
-      return false;
-    }
-    
-    return true;
-  });
-
-  console.log(`🧾 Versements récupérés: ${versements?.length || 0}, après filtrage: ${filteredVersements.length}`);
-  return filteredVersements;
 };
 
 export const fetchBalanceData = async () => {
-  const { data: balanceData } = await supabase
-    .from('vue_solde_caisse')
-    .select('solde_actif')
-    .single();
+  try {
+    const { data: balanceData, error } = await supabase
+      .from('vue_solde_caisse')
+      .select('solde_actif')
+      .single();
 
-  return balanceData;
+    if (error) {
+      console.warn('⚠️ Erreur vue_solde_caisse:', error);
+      return null;
+    }
+
+    return balanceData;
+  } catch (error) {
+    console.warn('⚠️ Erreur critique fetchBalanceData:', error);
+    return null;
+  }
 };
