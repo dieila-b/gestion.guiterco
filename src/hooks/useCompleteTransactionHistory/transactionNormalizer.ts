@@ -114,7 +114,7 @@ export const normalizeTransactions = (
       }
     });
 
-  // ÉTAPE 4: Ajouter les versements UNIQUEMENT s'il n'y a pas de transaction correspondante
+  // ÉTAPE 4: Ajouter SEULEMENT les versements de factures effectivement payées
   (versements || [])
     .filter(v => {
       const description = `Règlement ${v.numero_versement}`;
@@ -122,6 +122,13 @@ export const normalizeTransactions = (
         console.log('🚫 Exclusion versement interne (VERSEMENT):', description);
         return false;
       }
+      
+      // Vérifier que la facture est bien payée (déjà filtré dans fetchVersements mais double sécurité)
+      if (!v.factures_vente || !['payee', 'partiellement_payee'].includes(v.factures_vente.statut_paiement)) {
+        console.log('🚫 Exclusion versement facture non payée (VERSEMENT):', v.numero_versement);
+        return false;
+      }
+      
       return true;
     })
     .forEach(v => {
@@ -162,7 +169,7 @@ export const normalizeTransactions = (
     return !isInternal;
   });
 
-  console.log('✅ Transactions après filtrage complet:', finalTransactions.length);
+  console.log('✅ Transactions après filtrage complet (ENCAISSÉES UNIQUEMENT):', finalTransactions.length);
   console.log('🔍 Répartition finale par origine:', {
     transactions: finalTransactions.filter(t => t.origin_table === 'transactions').length,
     cash_operations: finalTransactions.filter(t => t.origin_table === 'cash_operations').length,

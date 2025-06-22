@@ -1,3 +1,4 @@
+
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Transaction, TransactionInsert } from '@/components/cash-register/types';
@@ -125,7 +126,7 @@ export const useAllFinancialTransactions = () => {
       const tomorrow = new Date(today);
       tomorrow.setDate(tomorrow.getDate() + 1);
 
-      console.log('💰 Récupération des transactions financières...');
+      console.log('💰 Récupération des transactions financières ENCAISSÉES...');
 
       // Récupérer les transactions de la table transactions avec TOUS les champs nécessaires
       const { data: transactions, error: transError } = await supabase
@@ -174,6 +175,27 @@ export const useAllFinancialTransactions = () => {
       }
       
       console.log('💰 Sorties financières trouvées:', expenses?.length || 0);
+
+      // Récupérer SEULEMENT les versements de factures payées/partiellement payées
+      const { data: versements, error: versementsError } = await supabase
+        .from('versements_clients')
+        .select(`
+          *,
+          factures_vente!inner(
+            statut_paiement,
+            numero_facture
+          )
+        `)
+        .gte('date_versement', today.toISOString())
+        .lt('date_versement', tomorrow.toISOString())
+        .in('factures_vente.statut_paiement', ['payee', 'partiellement_payee']);
+
+      if (versementsError) {
+        console.error('❌ Erreur versements_clients:', versementsError);
+        throw versementsError;
+      }
+
+      console.log('💰 Versements de factures PAYÉES trouvés:', versements?.length || 0);
 
       // Normaliser toutes les données en préservant exactement le champ source et en filtrant les règlements internes
       const normalizedTransactions = (transactions || [])
@@ -241,18 +263,38 @@ export const useAllFinancialTransactions = () => {
           source: 'Sortie'
         }));
 
+      // Ajouter les versements SEULEMENT des factures payées
+      const normalizedVersements = (versements || [])
+        .filter(v => {
+          const isInternal = isInternalSettlement(`Règlement ${v.numero_versement}`);
+          if (isInternal) {
+            console.log('🚫 Exclusion versement interne useAllFinancialTransactions:', v.numero_versement);
+            return false;
+          }
+          return true;
+        })
+        .map(v => ({
+          id: `versement_${v.id}`,
+          type: 'income' as const,
+          amount: v.montant || 0,
+          description: `Règlement ${v.numero_versement}`,
+          date: v.date_versement,
+          source: 'facture'
+        }));
+
       const result: NormalizedFinancialTransaction[] = [
         ...normalizedTransactions,
         ...normalizedCashOps,
-        ...normalizedExpenses
+        ...normalizedExpenses,
+        ...normalizedVersements
       ].sort((a, b) => {
         const dateA = a.date ? new Date(a.date).getTime() : 0;
         const dateB = b.date ? new Date(b.date).getTime() : 0;
         return dateB - dateA;
       });
       
-      console.log('💰 Total transactions financières normalisées:', result.length);
-      console.log('💰 Règlements de factures trouvés:', result.filter(r => r.source === "facture").length);
+      console.log('💰 Total transactions financières ENCAISSÉES normalisées:', result.length);
+      console.log('💰 Règlements de factures PAYÉES trouvés:', result.filter(r => r.source === "facture").length);
       
       return result;
     }
@@ -264,7 +306,7 @@ export const useCashRegisterBalance = () => {
   return useQuery({
     queryKey: ['cash-register-balance'],
     queryFn: async () => {
-      console.log('🔄 Calcul du solde actif...');
+      console.log('🔄 Calcul du solde actif (ENCAISSÉ UNIQUEMENT)...');
       
       // Récupérer toutes les transactions en excluant les règlements internes
       const { data: transactions, error: transError } = await supabase
@@ -300,6 +342,23 @@ export const useCashRegisterBalance = () => {
       if (expError) {
         console.error('❌ Erreur sorties_financieres:', expError);
         throw expError;
+      }
+
+      // Récupérer SEULEMENT les versements de factures PAYÉES
+      const { data: versements, error: versementsBalanceError } = await supabase
+        .from('versements_clients')
+        .select(`
+          montant,
+          numero_versement,
+          factures_vente!inner(
+            statut_paiement
+          )
+        `)
+        .in('factures_vente.statut_paiement', ['payee', 'partiellement_payee']);
+
+      if (versementsBalanceError) {
+        console.error('❌ Erreur versements balance:', versementsBalanceError);
+        throw versementsBalanceError;
       }
 
       // Calculer le solde total
@@ -342,10 +401,30 @@ export const useCashRegisterBalance = () => {
           console.log('💰 - sortie', montant);
         });
 
-      console.log('💰 Solde calculé:', {
+      // Ajouter SEULEMENT les versements de factures PAYÉES (éviter double comptage avec transactions)
+      let versementsCount = 0;
+      (versements || [])
+        .filter(v => !isInternalSettlement(`Règlement ${v.numero_versement}`))
+        .forEach(v => {
+          // Vérifier qu'il n'y a pas déjà une transaction correspondante
+          const hasMatchingTransaction = (transactions || []).some(t => 
+            t.source === 'facture' && 
+            Math.abs((t.amount || t.montant || 0) - (v.montant || 0)) < 0.01
+          );
+          
+          if (!hasMatchingTransaction) {
+            const montant = v.montant || 0;
+            solde += montant;
+            versementsCount++;
+            console.log('💰 + versement facture payée', montant, '(', v.numero_versement, ')');
+          }
+        });
+
+      console.log('💰 Solde calculé (ENCAISSÉ UNIQUEMENT):', {
         transactions: transactions?.length || 0,
         cashOps: cashOps?.length || 0,
         expenses: expenses?.length || 0,
+        versements: versementsCount,
         soldeTotal: solde
       });
 

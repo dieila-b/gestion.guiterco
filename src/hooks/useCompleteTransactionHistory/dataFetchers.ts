@@ -101,27 +101,48 @@ export const fetchExpenses = async (startDate: Date, endDate: Date) => {
 };
 
 export const fetchVersements = async (startDate: Date, endDate: Date) => {
+  // Récupérer SEULEMENT les versements liés aux factures effectivement payées ou partiellement payées
   const { data: versements, error: versementsError } = await supabase
     .from('versements_clients')
-    .select('*')
+    .select(`
+      *,
+      factures_vente!inner(
+        id,
+        statut_paiement,
+        numero_facture
+      )
+    `)
     .gte('date_versement', startDate.toISOString())
-    .lte('date_versement', endDate.toISOString());
+    .lte('date_versement', endDate.toISOString())
+    .in('factures_vente.statut_paiement', ['payee', 'partiellement_payee']);
 
   if (versementsError) {
     console.error('❌ Erreur versements_clients:', versementsError);
     throw versementsError;
   }
 
-  // Filtrage des versements internes (VERS-, V-, VER-)
+  // Filtrage des versements internes (VERS-, V-, VER-) ET vérification que la facture est bien payée
   const filteredVersements = (versements || []).filter(v => {
     const numeroVersement = v.numero_versement || '';
     const isInternal = numeroVersement.toLowerCase().includes('vers-') || 
                       numeroVersement.toLowerCase().includes('v-') ||
                       numeroVersement.toLowerCase().includes('ver-');
+    
+    // Vérifier que la facture associée est bien payée/partiellement payée
+    const facturePayee = v.factures_vente && 
+                        ['payee', 'partiellement_payee'].includes(v.factures_vente.statut_paiement);
+    
     if (isInternal) {
       console.log('🚫 Exclusion versement interne:', numeroVersement);
+      return false;
     }
-    return !isInternal;
+    
+    if (!facturePayee) {
+      console.log('🚫 Exclusion versement facture non payée:', v.numero_versement);
+      return false;
+    }
+    
+    return true;
   });
 
   console.log(`🧾 Versements récupérés: ${versements?.length || 0}, après filtrage: ${filteredVersements.length}`);
