@@ -101,27 +101,34 @@ export const fetchExpenses = async (startDate: Date, endDate: Date) => {
 };
 
 export const fetchVersements = async (startDate: Date, endDate: Date) => {
-  // Récupérer SEULEMENT les versements liés aux factures effectivement payées ou partiellement payées
+  // D'abord récupérer tous les versements dans la période 
   const { data: versements, error: versementsError } = await supabase
     .from('versements_clients')
-    .select(`
-      *,
-      factures_vente!inner(
-        id,
-        statut_paiement,
-        numero_facture
-      )
-    `)
+    .select('*')
     .gte('date_versement', startDate.toISOString())
-    .lte('date_versement', endDate.toISOString())
-    .in('factures_vente.statut_paiement', ['payee', 'partiellement_payee']);
+    .lte('date_versement', endDate.toISOString());
 
   if (versementsError) {
     console.error('❌ Erreur versements_clients:', versementsError);
     throw versementsError;
   }
 
-  // Filtrage des versements internes (VERS-, V-, VER-) ET vérification que la facture est bien payée
+  // Récupérer toutes les factures pour vérifier leur statut
+  const factureIds = (versements || []).map(v => v.facture_id).filter(Boolean);
+  
+  let facturesPayees = [];
+  if (factureIds.length > 0) {
+    const { data: factures, error: facturesError } = await supabase
+      .from('factures_vente')
+      .select('id, statut_paiement')
+      .in('id', factureIds);
+    
+    if (!facturesError) {
+      facturesPayees = factures || [];
+    }
+  }
+
+  // Filtrer les versements pour ne garder que ceux de factures payées/partiellement payées
   const filteredVersements = (versements || []).filter(v => {
     const numeroVersement = v.numero_versement || '';
     const isInternal = numeroVersement.toLowerCase().includes('vers-') || 
@@ -129,8 +136,8 @@ export const fetchVersements = async (startDate: Date, endDate: Date) => {
                       numeroVersement.toLowerCase().includes('ver-');
     
     // Vérifier que la facture associée est bien payée/partiellement payée
-    const facturePayee = v.factures_vente && 
-                        ['payee', 'partiellement_payee'].includes(v.factures_vente.statut_paiement);
+    const facture = facturesPayees.find(f => f.id === v.facture_id);
+    const facturePayee = facture && ['payee', 'partiellement_payee'].includes(facture.statut_paiement);
     
     if (isInternal) {
       console.log('🚫 Exclusion versement interne:', numeroVersement);
