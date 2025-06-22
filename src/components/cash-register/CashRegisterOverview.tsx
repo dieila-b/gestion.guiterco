@@ -15,13 +15,11 @@ const CashRegisterOverview: React.FC = () => {
     [cashRegisters]
   );
 
-  // Solde actif calculé depuis toutes les sources
-  const { data: balanceData, isLoading: isLoadingBalance } = useCashRegisterBalance();
+  // Données financières avec gestion d'erreur robuste
+  const { data: balanceData, isLoading: isLoadingBalance, error: balanceError } = useCashRegisterBalance();
+  const { data: allTransactions = [], isLoading: isLoadingTransactions, error: transactionsError } = useAllFinancialTransactions();
 
-  // Toutes les transactions financières du jour
-  const { data: allTransactions = [], isLoading: isLoadingTransactions } = useAllFinancialTransactions();
-
-  // Calcul des totaux basé sur les transactions unifiées
+  // Calcul des totaux
   const todayIncomes = allTransactions.filter(t => t.type === 'income');
   const todayExpenses = allTransactions.filter(t => t.type === 'expense');
 
@@ -31,12 +29,12 @@ const CashRegisterOverview: React.FC = () => {
   };
   const totalBalance = totals.income - totals.expense;
 
-  // Nb txs
+  // Comptage des transactions
   const nbIncome = todayIncomes.length;
   const nbExpense = todayExpenses.length;
   const nbTotal = allTransactions.length;
 
-  // Formattage de la date
+  // Date de mise à jour
   const lastUpdate = principalRegister?.updated_at
     ? new Date(principalRegister.updated_at).toLocaleDateString('fr-FR', {
         day: '2-digit',
@@ -47,16 +45,26 @@ const CashRegisterOverview: React.FC = () => {
       })
     : 'N/A';
 
-  // Gestion du loading
-  if (isLoadingRegisters || isLoadingTransactions || isLoadingBalance) {
+  // Gestion des erreurs
+  if (balanceError || transactionsError) {
+    console.warn('⚠️ Erreurs détectées:', { balanceError, transactionsError });
+  }
+
+  // Affichage du loading seulement si toutes les données sont en cours de chargement
+  const isFullyLoading = isLoadingRegisters && isLoadingTransactions && isLoadingBalance;
+  
+  if (isFullyLoading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <p>Chargement des données financières...</p>
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-2"></div>
+          <p>Chargement des données financières...</p>
+        </div>
       </div>
     );
   }
 
-  // Utiliser le solde calculé ou le solde de la caisse comme fallback
+  // Utiliser les données disponibles même en cas d'erreur partielle
   const soldeActif = balanceData?.balance ?? Number(principalRegister?.balance) ?? 0;
 
   console.log('🏦 Affichage Aperçu:', {
@@ -64,7 +72,8 @@ const CashRegisterOverview: React.FC = () => {
     entrées: totals.income,
     sorties: totals.expense,
     balance: totalBalance,
-    nbTransactions: nbTotal
+    nbTransactions: nbTotal,
+    erreurs: { balanceError: !!balanceError, transactionsError: !!transactionsError }
   });
 
   return (
@@ -74,13 +83,20 @@ const CashRegisterOverview: React.FC = () => {
         <Card>
           <CardHeader>
             <CardTitle>Solde actif</CardTitle>
-            <CardDescription>Caisse principale</CardDescription>
+            <CardDescription>
+              {balanceError ? "Calcul approximatif" : "Caisse principale"}
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <p className="text-3xl font-bold">{formatCurrency(soldeActif)}</p>
             <p className="text-sm text-muted-foreground mt-1">
               Dernière mise à jour: {lastUpdate}
             </p>
+            {balanceError && (
+              <p className="text-xs text-orange-500 mt-1">
+                ⚠️ Données partielles
+              </p>
+            )}
           </CardContent>
         </Card>
         
@@ -117,6 +133,11 @@ const CashRegisterOverview: React.FC = () => {
           <CardContent>
             <p className="text-3xl font-bold text-blue-600">{formatCurrency(totalBalance)}</p>
             <p className="text-sm text-muted-foreground mt-1">{nbTotal} transaction{nbTotal > 1 ? "s" : ""}</p>
+            {transactionsError && (
+              <p className="text-xs text-orange-500 mt-1">
+                ⚠️ Données partielles
+              </p>
+            )}
           </CardContent>
         </Card>
       </div>
