@@ -7,8 +7,10 @@ const isInternalSettlement = (description: string): boolean => {
   const desc = description.toLowerCase();
   return desc.includes('règlement vers-') || 
          desc.includes('règlement v-') || 
+         desc.includes('règlement ver-') || 
          desc.includes('reglement vers-') || 
-         desc.includes('reglement v-');
+         desc.includes('reglement v-') ||
+         desc.includes('reglement ver-');
 };
 
 export const applyTypeFilters = (

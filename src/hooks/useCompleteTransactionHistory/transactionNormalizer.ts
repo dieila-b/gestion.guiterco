@@ -16,8 +16,10 @@ export const normalizeTransactions = (
     const desc = description.toLowerCase();
     return desc.includes('règlement vers-') || 
            desc.includes('règlement v-') || 
+           desc.includes('règlement ver-') ||
            desc.includes('reglement vers-') || 
-           desc.includes('reglement v-');
+           desc.includes('reglement v-') ||
+           desc.includes('reglement ver-');
   };
 
   // ÉTAPE 1: Normaliser les transactions principales (priorité maximale)
