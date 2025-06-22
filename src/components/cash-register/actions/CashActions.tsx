@@ -6,6 +6,7 @@ import { Printer, Lock } from 'lucide-react';
 import { useCloseCashRegister, useGenerateEtatCaisse } from '@/hooks/cash';
 import { useCashRegisterBalance } from '@/hooks/useTransactions';
 import ComptageDialog from './ComptageDialog';
+import ExportHistoryDialog from './ExportHistoryDialog';
 import { formatCurrency } from '@/lib/currency';
 import { toast } from 'sonner';
 import jsPDF from 'jspdf';
@@ -128,6 +129,8 @@ const CashActions: React.FC<CashActionsProps> = ({ cashRegisterId }) => {
           <Printer className="mr-2 h-4 w-4" />
           {generateEtat.isPending ? 'Génération...' : 'Imprimer état de caisse'}
         </Button>
+
+        <ExportHistoryDialog />
 
         <ComptageDialog 
           cashRegisterId={cashRegisterId}
