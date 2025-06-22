@@ -2,8 +2,6 @@
 import { supabase } from '@/integrations/supabase/client';
 
 export const fetchTransactions = async (startDate: Date, endDate: Date) => {
-  console.log('🔍 Récupération transactions entre:', startDate.toISOString(), 'et', endDate.toISOString());
-  
   const { data: transactions, error: transError } = await supabase
     .from('transactions')
     .select('id, type, amount, montant, description, date_operation, created_at, source')
@@ -37,25 +35,10 @@ export const fetchTransactions = async (startDate: Date, endDate: Date) => {
   });
 
   console.log(`📊 Transactions récupérées: ${transactions?.length || 0}, après filtrage: ${filteredTransactions.length}`);
-  
-  // Log détaillé pour débuggage
-  filteredTransactions.forEach(t => {
-    console.log('✅ Transaction validée:', {
-      id: t.id,
-      type: t.type,
-      amount: t.amount || t.montant,
-      description: t.description,
-      date: t.date_operation,
-      source: t.source
-    });
-  });
-  
   return filteredTransactions;
 };
 
 export const fetchCashOperations = async (startDate: Date, endDate: Date) => {
-  console.log('🔍 Récupération cash operations entre:', startDate.toISOString(), 'et', endDate.toISOString());
-  
   const { data: cashOps, error: cashError } = await supabase
     .from('cash_operations')
     .select('*')
@@ -83,24 +66,10 @@ export const fetchCashOperations = async (startDate: Date, endDate: Date) => {
   });
 
   console.log(`💰 Cash operations récupérées: ${cashOps?.length || 0}, après filtrage: ${filteredCashOps.length}`);
-  
-  // Log détaillé pour débuggage
-  filteredCashOps.forEach(c => {
-    console.log('✅ Cash operation validée:', {
-      id: c.id,
-      type: c.type,
-      montant: c.montant,
-      commentaire: c.commentaire,
-      created_at: c.created_at
-    });
-  });
-  
   return filteredCashOps;
 };
 
 export const fetchExpenses = async (startDate: Date, endDate: Date) => {
-  console.log('🔍 Récupération sorties financières entre:', startDate.toISOString(), 'et', endDate.toISOString());
-  
   const { data: expenses, error: expError } = await supabase
     .from('sorties_financieres')
     .select('*')
@@ -128,23 +97,10 @@ export const fetchExpenses = async (startDate: Date, endDate: Date) => {
   });
 
   console.log(`💸 Expenses récupérées: ${expenses?.length || 0}, après filtrage: ${filteredExpenses.length}`);
-  
-  // Log détaillé pour débuggage
-  filteredExpenses.forEach(e => {
-    console.log('✅ Expense validée:', {
-      id: e.id,
-      montant: e.montant,
-      description: e.description,
-      date_sortie: e.date_sortie
-    });
-  });
-  
   return filteredExpenses;
 };
 
 export const fetchVersements = async (startDate: Date, endDate: Date) => {
-  console.log('🔍 Récupération versements entre:', startDate.toISOString(), 'et', endDate.toISOString());
-  
   const { data: versements, error: versementsError } = await supabase
     .from('versements_clients')
     .select('*')
@@ -169,17 +125,6 @@ export const fetchVersements = async (startDate: Date, endDate: Date) => {
   });
 
   console.log(`🧾 Versements récupérés: ${versements?.length || 0}, après filtrage: ${filteredVersements.length}`);
-  
-  // Log détaillé pour débuggage
-  filteredVersements.forEach(v => {
-    console.log('✅ Versement validé:', {
-      id: v.id,
-      montant: v.montant,
-      numero_versement: v.numero_versement,
-      date_versement: v.date_versement
-    });
-  });
-  
   return filteredVersements;
 };
 
@@ -189,6 +134,5 @@ export const fetchBalanceData = async () => {
     .select('solde_actif')
     .single();
 
-  console.log('💰 Solde caisse récupéré:', balanceData?.solde_actif);
   return balanceData;
 };

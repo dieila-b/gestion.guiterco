@@ -10,31 +10,17 @@ export const normalizeTransactions = (
   const transactionSet = new Set<string>();
   const normalizedTransactions: CompleteTransaction[] = [];
 
-  // Fonction utilitaire RENFORCÉE pour vérifier si une description contient des règlements internes
+  // Fonction utilitaire pour vérifier si une description contient des règlements internes
   const isInternalSettlement = (description: string): boolean => {
     if (!description) return false;
     const desc = description.toLowerCase();
-    
-    // Liste exhaustive des patterns internes
-    const internalPatterns = [
-      'règlement vers-',
-      'règlement v-',
-      'règlement ver-',
-      'reglement vers-',
-      'reglement v-',
-      'reglement ver-'
-    ];
-    
-    return internalPatterns.some(pattern => desc.includes(pattern));
+    return desc.includes('règlement vers-') || 
+           desc.includes('règlement v-') || 
+           desc.includes('règlement ver-') ||
+           desc.includes('reglement vers-') || 
+           desc.includes('reglement v-') ||
+           desc.includes('reglement ver-');
   };
-
-  console.log('🔄 NORMALISATION - Début du processus de normalisation');
-  console.log('📊 Données d\'entrée:', {
-    transactions: transactions?.length || 0,
-    cashOps: cashOps?.length || 0,
-    expenses: expenses?.length || 0,
-    versements: versements?.length || 0
-  });
 
   // ÉTAPE 1: Normaliser les transactions principales (priorité maximale)
   (transactions || [])
@@ -43,7 +29,7 @@ export const normalizeTransactions = (
       const description = t.description || '';
       // Exclusion définitive des règlements internes
       if (isInternalSettlement(description)) {
-        console.log('🚫 NORMALISATION - Exclusion transaction interne (TRANSACTION):', description);
+        console.log('🚫 Exclusion transaction interne (TRANSACTION):', description);
         return false;
       }
       return true;
@@ -53,7 +39,7 @@ export const normalizeTransactions = (
       
       if (!transactionSet.has(uniqueKey)) {
         transactionSet.add(uniqueKey);
-        const normalizedTx = {
+        normalizedTransactions.push({
           id: `trans_${t.id}`,
           type: t.type,
           amount: t.amount || t.montant || 0,
@@ -61,15 +47,6 @@ export const normalizeTransactions = (
           date: t.date_operation || t.created_at,
           source: t.source,
           origin_table: 'transactions'
-        };
-        
-        normalizedTransactions.push(normalizedTx);
-        console.log('✅ NORMALISATION - Transaction ajoutée:', {
-          id: normalizedTx.id,
-          type: normalizedTx.type,
-          amount: normalizedTx.amount,
-          description: normalizedTx.description,
-          source: normalizedTx.source
         });
       }
     });
@@ -79,7 +56,7 @@ export const normalizeTransactions = (
     .filter(c => {
       const description = c.commentaire || 'Opération de caisse';
       if (isInternalSettlement(description)) {
-        console.log('🚫 NORMALISATION - Exclusion opération caisse interne (CASH):', description);
+        console.log('🚫 Exclusion opération caisse interne (CASH):', description);
         return false;
       }
       return true;
@@ -94,7 +71,7 @@ export const normalizeTransactions = (
       
       if (!transactionSet.has(uniqueKey)) {
         transactionSet.add(uniqueKey);
-        const normalizedCash = {
+        normalizedTransactions.push({
           id: `cash_${c.id}`,
           type: type as 'income' | 'expense',
           amount,
@@ -102,14 +79,6 @@ export const normalizeTransactions = (
           date,
           source: c.type === 'depot' ? 'Entrée manuelle' : 'Sortie manuelle',
           origin_table: 'cash_operations'
-        };
-        
-        normalizedTransactions.push(normalizedCash);
-        console.log('✅ NORMALISATION - Cash operation ajoutée:', {
-          id: normalizedCash.id,
-          type: normalizedCash.type,
-          amount: normalizedCash.amount,
-          description: normalizedCash.description
         });
       }
     });
@@ -119,7 +88,7 @@ export const normalizeTransactions = (
     .filter(e => {
       const description = e.description || '';
       if (isInternalSettlement(description)) {
-        console.log('🚫 NORMALISATION - Exclusion sortie financière interne (EXPENSE):', description);
+        console.log('🚫 Exclusion sortie financière interne (EXPENSE):', description);
         return false;
       }
       return true;
@@ -133,7 +102,7 @@ export const normalizeTransactions = (
       
       if (!transactionSet.has(uniqueKey)) {
         transactionSet.add(uniqueKey);
-        const normalizedExp = {
+        normalizedTransactions.push({
           id: `expense_${e.id}`,
           type: 'expense' as const,
           amount,
@@ -141,13 +110,6 @@ export const normalizeTransactions = (
           date,
           source: 'Sortie',
           origin_table: 'sorties_financieres'
-        };
-        
-        normalizedTransactions.push(normalizedExp);
-        console.log('✅ NORMALISATION - Expense ajoutée:', {
-          id: normalizedExp.id,
-          amount: normalizedExp.amount,
-          description: normalizedExp.description
         });
       }
     });
@@ -157,7 +119,7 @@ export const normalizeTransactions = (
     .filter(v => {
       const description = `Règlement ${v.numero_versement}`;
       if (isInternalSettlement(description)) {
-        console.log('🚫 NORMALISATION - Exclusion versement interne (VERSEMENT):', description);
+        console.log('🚫 Exclusion versement interne (VERSEMENT):', description);
         return false;
       }
       return true;
@@ -178,7 +140,7 @@ export const normalizeTransactions = (
       
       if (!hasExistingTransaction && !transactionSet.has(uniqueKey)) {
         transactionSet.add(uniqueKey);
-        const normalizedVers = {
+        normalizedTransactions.push({
           id: `versement_${v.id}`,
           type: 'income' as const,
           amount,
@@ -186,13 +148,6 @@ export const normalizeTransactions = (
           date,
           source: 'facture',
           origin_table: 'versements_clients'
-        };
-        
-        normalizedTransactions.push(normalizedVers);
-        console.log('✅ NORMALISATION - Versement ajouté:', {
-          id: normalizedVers.id,
-          amount: normalizedVers.amount,
-          description: normalizedVers.description
         });
       }
     });
@@ -202,30 +157,17 @@ export const normalizeTransactions = (
     const description = transaction.description || '';
     const isInternal = isInternalSettlement(description);
     if (isInternal) {
-      console.log('🚫 NORMALISATION - Filtrage final - Exclusion règlement interne:', description);
+      console.log('🚫 Filtrage final - Exclusion règlement interne:', description);
     }
     return !isInternal;
   });
 
-  console.log('✅ NORMALISATION TERMINÉE - Transactions après filtrage complet:', finalTransactions.length);
+  console.log('✅ Transactions après filtrage complet:', finalTransactions.length);
   console.log('🔍 Répartition finale par origine:', {
     transactions: finalTransactions.filter(t => t.origin_table === 'transactions').length,
     cash_operations: finalTransactions.filter(t => t.origin_table === 'cash_operations').length,
     sorties_financieres: finalTransactions.filter(t => t.origin_table === 'sorties_financieres').length,
     versements_clients: finalTransactions.filter(t => t.origin_table === 'versements_clients').length
-  });
-
-  // Log des sources spécifiques pour debugging
-  const precommandeTransactions = finalTransactions.filter(t => t.source === 'Précommande');
-  console.log('🎯 NORMALISATION - Transactions de précommande trouvées:', precommandeTransactions.length);
-  precommandeTransactions.forEach(pt => {
-    console.log('🎯 Précommande transaction:', {
-      id: pt.id,
-      amount: pt.amount,
-      description: pt.description,
-      date: pt.date,
-      origin_table: pt.origin_table
-    });
   });
 
   return finalTransactions;

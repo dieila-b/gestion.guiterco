@@ -11,30 +11,22 @@ export type NormalizedFinancialTransaction = {
   source: string | null;
 };
 
-// Fonction utilitaire pour détecter les règlements internes - VERSION RENFORCÉE
+// Fonction utilitaire pour détecter les règlements internes
 const isInternalSettlement = (description: string): boolean => {
   if (!description) return false;
   const desc = description.toLowerCase();
-  
-  // Patterns complets pour tous les cas détectés
-  const internalPatterns = [
-    'règlement vers-',
-    'règlement v-',
-    'règlement ver-',
-    'reglement vers-',
-    'reglement v-',
-    'reglement ver-'
-  ];
-  
-  return internalPatterns.some(pattern => desc.includes(pattern));
+  return desc.includes('règlement vers-') || 
+         desc.includes('règlement v-') || 
+         desc.includes('règlement ver-') ||
+         desc.includes('reglement vers-') || 
+         desc.includes('reglement v-') ||
+         desc.includes('reglement ver-');
 };
 
 export const useTransactions = (cashRegisterId?: string) => {
   return useQuery({
     queryKey: ['transactions', cashRegisterId],
     queryFn: async () => {
-      console.log('🔍 useTransactions - Récupération des transactions pour caisse:', cashRegisterId);
-      
       let query = supabase
         .from('transactions')
         .select('*')
@@ -48,7 +40,7 @@ export const useTransactions = (cashRegisterId?: string) => {
       
       if (error) throw error;
       
-      // Filtrer les règlements internes avec logging détaillé
+      // Filtrer les règlements internes
       const filteredData = (data || []).filter(t => {
         const isInternal = isInternalSettlement(t.description || '');
         if (isInternal) {
@@ -57,7 +49,6 @@ export const useTransactions = (cashRegisterId?: string) => {
         return !isInternal;
       });
       
-      console.log(`✅ useTransactions - ${filteredData.length} transactions valides récupérées`);
       return filteredData as Transaction[];
     }
   });
@@ -91,8 +82,6 @@ export const useTodayTransactions = (cashRegisterId?: string) => {
   return useQuery({
     queryKey: ['today-transactions', cashRegisterId],
     queryFn: async () => {
-      console.log('🔍 useTodayTransactions - Récupération des transactions du jour pour caisse:', cashRegisterId);
-      
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       const tomorrow = new Date(today);
@@ -112,7 +101,7 @@ export const useTodayTransactions = (cashRegisterId?: string) => {
       
       if (error) throw error;
       
-      // Filtrer les règlements internes avec logging détaillé
+      // Filtrer les règlements internes
       const filteredData = (data || []).filter(t => {
         const isInternal = isInternalSettlement(t.description || '');
         if (isInternal) {
@@ -121,35 +110,29 @@ export const useTodayTransactions = (cashRegisterId?: string) => {
         return !isInternal;
       });
       
-      console.log(`✅ useTodayTransactions - ${filteredData.length} transactions du jour valides récupérées`);
       return filteredData as Transaction[];
     }
   });
 };
 
-// Hook unifié pour toutes les transactions financières - VERSION SYNCHRONISÉE
+// Hook unifié pour toutes les transactions financières (transactions + cash_operations + sorties_financieres)
 export const useAllFinancialTransactions = () => {
   return useQuery<NormalizedFinancialTransaction[]>({
     queryKey: ['all-financial-transactions'],
     queryFn: async () => {
       const today = new Date();
-      const startOfDay = new Date(today);
-      startOfDay.setHours(0, 0, 0, 0);
-      const endOfDay = new Date(today);
-      endOfDay.setHours(23, 59, 59, 999);
+      today.setHours(0, 0, 0, 0);
+      const tomorrow = new Date(today);
+      tomorrow.setDate(tomorrow.getDate() + 1);
 
-      console.log('💰 useAllFinancialTransactions - Récupération SYNCHRONISÉE des données du jour');
-      console.log('📅 Période:', {
-        debut: startOfDay.toISOString(),
-        fin: endOfDay.toISOString()
-      });
+      console.log('💰 Récupération des transactions financières...');
 
-      // 1. Récupérer TOUTES les transactions de la table transactions
+      // Récupérer les transactions de la table transactions avec TOUS les champs nécessaires
       const { data: transactions, error: transError } = await supabase
         .from('transactions')
         .select('id, type, amount, montant, description, date_operation, created_at, source')
-        .gte('date_operation', startOfDay.toISOString())
-        .lte('date_operation', endOfDay.toISOString())
+        .gte('date_operation', today.toISOString())
+        .lt('date_operation', tomorrow.toISOString())
         .not('description', 'ilike', '%Règlement VERS-%')
         .not('description', 'ilike', '%Règlement V-%')
         .not('description', 'ilike', '%Règlement VER-%')
@@ -158,41 +141,41 @@ export const useAllFinancialTransactions = () => {
         .not('description', 'ilike', '%Reglement VER-%');
 
       if (transError) {
-        console.error('❌ Erreur transactions dans useAllFinancialTransactions:', transError);
+        console.error('❌ Erreur transactions:', transError);
         throw transError;
       }
       
-      console.log('💰 Transactions de base trouvées:', transactions?.length || 0);
+      console.log('💰 Transactions trouvées:', transactions?.length || 0);
 
-      // 2. Récupérer les opérations de caisse
+      // Récupérer les opérations de caisse
       const { data: cashOps, error: cashError } = await supabase
         .from('cash_operations')
         .select('*')
-        .gte('created_at', startOfDay.toISOString())
-        .lte('created_at', endOfDay.toISOString());
+        .gte('created_at', today.toISOString())
+        .lt('created_at', tomorrow.toISOString());
 
       if (cashError) {
-        console.error('❌ Erreur cash_operations dans useAllFinancialTransactions:', cashError);
+        console.error('❌ Erreur cash_operations:', cashError);
         throw cashError;
       }
       
       console.log('💰 Cash operations trouvées:', cashOps?.length || 0);
 
-      // 3. Récupérer les sorties financières
+      // Récupérer les sorties financières
       const { data: expenses, error: expError } = await supabase
         .from('sorties_financieres')
         .select('*')
-        .gte('date_sortie', startOfDay.toISOString())
-        .lte('date_sortie', endOfDay.toISOString());
+        .gte('date_sortie', today.toISOString())
+        .lt('date_sortie', tomorrow.toISOString());
 
       if (expError) {
-        console.error('❌ Erreur sorties_financieres dans useAllFinancialTransactions:', expError);
+        console.error('❌ Erreur sorties_financieres:', expError);
         throw expError;
       }
       
       console.log('💰 Sorties financières trouvées:', expenses?.length || 0);
 
-      // 4. Normaliser toutes les données AVEC FILTRAGE INTERNE RENFORCÉ
+      // Normaliser toutes les données en préservant exactement le champ source et en filtrant les règlements internes
       const normalizedTransactions = (transactions || [])
         .filter((t): t is Transaction & { type: 'income' | 'expense' } => t.type === 'income' || t.type === 'expense')
         .filter(t => {
@@ -212,13 +195,13 @@ export const useAllFinancialTransactions = () => {
             source: t.source // Préserver exactement la valeur source de la DB
           };
           
-          console.log('💰 Transaction normalisée (useAllFinancialTransactions):', {
+          console.log('💰 Transaction normalisée:', {
             id: normalizedTrans.id,
             type: normalizedTrans.type,
             amount: normalizedTrans.amount,
             description: normalizedTrans.description,
             source: normalizedTrans.source,
-            isPrecommandePayment: normalizedTrans.source === "Précommande"
+            isFacturePayment: normalizedTrans.source === "facture"
           });
           
           return normalizedTrans;
@@ -268,13 +251,8 @@ export const useAllFinancialTransactions = () => {
         return dateB - dateA;
       });
       
-      console.log('💰 SYNCHRONISATION COMPLETE - Total transactions financières normalisées:', result.length);
-      console.log('💰 Répartition:', {
-        transactions: normalizedTransactions.length,
-        cashOps: normalizedCashOps.length,
-        expenses: normalizedExpenses.length
-      });
-      console.log('💰 Règlements de précommandes trouvés:', result.filter(r => r.source === "Précommande").length);
+      console.log('💰 Total transactions financières normalisées:', result.length);
+      console.log('💰 Règlements de factures trouvés:', result.filter(r => r.source === "facture").length);
       
       return result;
     }
