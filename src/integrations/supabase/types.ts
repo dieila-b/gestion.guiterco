@@ -1226,6 +1226,13 @@ export type Database = {
             referencedRelation: "precommandes"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "factures_precommandes_precommande_id_fkey"
+            columns: ["precommande_id"]
+            isOneToOne: false
+            referencedRelation: "vue_precommandes_pretes"
+            referencedColumns: ["id"]
+          },
         ]
       }
       factures_vente: {
@@ -1599,6 +1606,13 @@ export type Database = {
             referencedRelation: "precommandes"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "lignes_precommande_precommande_id_fkey"
+            columns: ["precommande_id"]
+            isOneToOne: false
+            referencedRelation: "vue_precommandes_pretes"
+            referencedColumns: ["id"]
+          },
         ]
       }
       notifications_precommandes: {
@@ -1641,6 +1655,13 @@ export type Database = {
             columns: ["precommande_id"]
             isOneToOne: false
             referencedRelation: "precommandes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notifications_precommandes_precommande_id_fkey"
+            columns: ["precommande_id"]
+            isOneToOne: false
+            referencedRelation: "vue_precommandes_pretes"
             referencedColumns: ["id"]
           },
         ]
@@ -1718,6 +1739,7 @@ export type Database = {
           notification_envoyee: boolean | null
           numero_precommande: string
           observations: string | null
+          prete_pour_conversion: boolean | null
           reste_a_payer: number | null
           statut: string
           taux_tva: number | null
@@ -1740,6 +1762,7 @@ export type Database = {
           notification_envoyee?: boolean | null
           numero_precommande: string
           observations?: string | null
+          prete_pour_conversion?: boolean | null
           reste_a_payer?: number | null
           statut?: string
           taux_tva?: number | null
@@ -1762,6 +1785,7 @@ export type Database = {
           notification_envoyee?: boolean | null
           numero_precommande?: string
           observations?: string | null
+          prete_pour_conversion?: boolean | null
           reste_a_payer?: number | null
           statut?: string
           taux_tva?: number | null
@@ -2556,6 +2580,52 @@ export type Database = {
           updated_at: string | null
         }
         Relationships: []
+      }
+      vue_precommandes_pretes: {
+        Row: {
+          acompte_verse: number | null
+          bon_livraison_genere: boolean | null
+          bon_livraison_id: string | null
+          client_email: string | null
+          client_id: string | null
+          client_nom: string | null
+          created_at: string | null
+          date_livraison_prevue: string | null
+          date_notification: string | null
+          date_precommande: string | null
+          id: string | null
+          montant_ht: number | null
+          montant_total: number | null
+          montant_ttc: number | null
+          nb_lignes: number | null
+          nb_lignes_livrees: number | null
+          notification_envoyee: boolean | null
+          numero_precommande: string | null
+          observations: string | null
+          prete_pour_conversion: boolean | null
+          reste_a_payer: number | null
+          statut: string | null
+          taux_tva: number | null
+          total_commande: number | null
+          tva: number | null
+          updated_at: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "precommandes_bon_livraison_id_fkey"
+            columns: ["bon_livraison_id"]
+            isOneToOne: false
+            referencedRelation: "bons_de_livraison"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "precommandes_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       vue_solde_caisse: {
         Row: {

@@ -1,9 +1,13 @@
+
 import React, { useState, useMemo } from 'react';
 import { usePrecommandesComplete } from '@/hooks/precommandes/usePrecommandesComplete';
 import PrecommandesTable from './precommandes/PrecommandesTable';
 import PrecommandesFilters from './precommandes/PrecommandesFilters';
 import CreatePrecommandeDialog from './precommandes/CreatePrecommandeDialog';
+import PrecommandesManagementTabs from './precommandes/PrecommandesManagementTabs';
 import { useToast } from '@/hooks/use-toast';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Package, List, Settings } from 'lucide-react';
 
 const Precommandes = () => {
   const { data: precommandes, isLoading } = usePrecommandesComplete();
@@ -52,39 +56,60 @@ const Precommandes = () => {
     <div className="space-y-6">
       <h1 className="text-2xl font-bold">Précommandes</h1>
       
-      <PrecommandesFilters
-        searchTerm={searchTerm}
-        onSearchChange={setSearchTerm}
-        statusFilter={statusFilter}
-        onStatusFilterChange={setStatusFilter}
-        onNouvellePrecommande={() => setShowCreateDialog(true)}
-      />
+      <Tabs defaultValue="list" className="w-full">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="list" className="flex items-center gap-2">
+            <List className="h-4 w-4" />
+            Liste des précommandes
+          </TabsTrigger>
+          <TabsTrigger value="management" className="flex items-center gap-2">
+            <Settings className="h-4 w-4" />
+            Gestion automatique
+          </TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="list" className="mt-6">
+          <div className="space-y-6">
+            <PrecommandesFilters
+              searchTerm={searchTerm}
+              onSearchChange={setSearchTerm}
+              statusFilter={statusFilter}
+              onStatusFilterChange={setStatusFilter}
+              onNouvellePrecommande={() => setShowCreateDialog(true)}
+            />
 
-      {filteredPrecommandes.length === 0 ? (
-        <div className="text-center py-12">
-          <p className="text-gray-500 text-lg mb-4">
-            {searchTerm || statusFilter !== 'tous' 
-              ? 'Aucune précommande ne correspond aux critères de recherche.'
-              : 'Aucune précommande trouvée.'
-            }
-          </p>
-          {!searchTerm && statusFilter === 'tous' && (
-            <button
-              onClick={() => setShowCreateDialog(true)}
-              className="text-blue-600 hover:text-blue-700 underline"
-            >
-              Créer votre première précommande
-            </button>
-          )}
-        </div>
-      ) : (
-        <PrecommandesTable precommandes={filteredPrecommandes} />
-      )}
+            {filteredPrecommandes.length === 0 ? (
+              <div className="text-center py-12">
+                <p className="text-gray-500 text-lg mb-4">
+                  {searchTerm || statusFilter !== 'tous' 
+                    ? 'Aucune précommande ne correspond aux critères de recherche.'
+                    : 'Aucune précommande trouvée.'
+                  }
+                </p>
+                {!searchTerm && statusFilter === 'tous' && (
+                  <button
+                    onClick={() => setShowCreateDialog(true)}
+                    className="text-blue-600 hover:text-blue-700 underline"
+                  >
+                    Créer votre première précommande
+                  </button>
+                )}
+              </div>
+            ) : (
+              <PrecommandesTable precommandes={filteredPrecommandes} />
+            )}
 
-      <CreatePrecommandeDialog 
-        open={showCreateDialog}
-        onClose={() => setShowCreateDialog(false)}
-      />
+            <CreatePrecommandeDialog 
+              open={showCreateDialog}
+              onClose={() => setShowCreateDialog(false)}
+            />
+          </div>
+        </TabsContent>
+        
+        <TabsContent value="management" className="mt-6">
+          <PrecommandesManagementTabs />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };
