@@ -17,6 +17,9 @@ export const useUpdatePrecommande = () => {
         observations?: string;
         acompte_verse?: number;
         date_livraison_prevue?: string;
+        montant_ht?: number;
+        tva?: number;
+        montant_ttc?: number;
       };
     }) => {
       const { data, error } = await supabase

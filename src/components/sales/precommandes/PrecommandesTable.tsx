@@ -3,7 +3,6 @@ import React, { useState } from 'react';
 import { Table, TableBody } from '@/components/ui/table';
 import type { PrecommandeComplete } from '@/types/precommandes';
 import { useConvertPrecommandeToSale } from '@/hooks/precommandes/useConvertPrecommandeToSale';
-import PaymentDialog from './PaymentDialog';
 import EditPrecommandeDialog from './EditPrecommandeDialog';
 import DeletePrecommandeDialog from './DeletePrecommandeDialog';
 import PrecommandeFactureDialog from './PrecommandeFactureDialog';
@@ -16,10 +15,6 @@ interface PrecommandesTableProps {
 
 const PrecommandesTable = ({ precommandes }: PrecommandesTableProps) => {
   const convertToSale = useConvertPrecommandeToSale();
-  const [paymentDialog, setPaymentDialog] = useState<{
-    precommande: PrecommandeComplete;
-    type: 'acompte' | 'solde';
-  } | null>(null);
   
   const [editDialog, setEditDialog] = useState<PrecommandeComplete | null>(null);
   const [deleteDialog, setDeleteDialog] = useState<PrecommandeComplete | null>(null);
@@ -41,10 +36,6 @@ const PrecommandesTable = ({ precommandes }: PrecommandesTableProps) => {
     setDeleteDialog(precommande);
   };
 
-  const handleFinaliserPaiement = (precommande: PrecommandeComplete) => {
-    setPaymentDialog({ precommande, type: 'solde' });
-  };
-
   return (
     <>
       <div className="border rounded-lg">
@@ -59,7 +50,6 @@ const PrecommandesTable = ({ precommandes }: PrecommandesTableProps) => {
                 onEditer={handleEditer}
                 onFacture={handleFacture}
                 onSupprimer={handleSupprimer}
-                onFinaliserPaiement={handleFinaliserPaiement}
                 isConverting={convertToSale.isPending}
               />
             ))}
@@ -68,15 +58,6 @@ const PrecommandesTable = ({ precommandes }: PrecommandesTableProps) => {
       </div>
 
       {/* Dialogs */}
-      {paymentDialog && (
-        <PaymentDialog
-          precommande={paymentDialog.precommande}
-          type={paymentDialog.type}
-          open={true}
-          onClose={() => setPaymentDialog(null)}
-        />
-      )}
-
       <EditPrecommandeDialog
         precommande={editDialog}
         open={!!editDialog}

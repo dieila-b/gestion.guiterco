@@ -1,9 +1,9 @@
 
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { Edit, FileText, Trash2, ArrowRightLeft, CheckCircle } from 'lucide-react';
+import { Edit, FileText, Trash2, ArrowRightLeft } from 'lucide-react';
 import type { PrecommandeComplete } from '@/types/precommandes';
-import { peutConvertirEnVente, peutFinaliserPaiement } from './PrecommandesTableUtils';
+import { peutConvertirEnVente } from './PrecommandesTableUtils';
 
 interface PrecommandesTableActionsProps {
   precommande: PrecommandeComplete;
@@ -11,7 +11,6 @@ interface PrecommandesTableActionsProps {
   onEditer: (precommande: PrecommandeComplete) => void;
   onFacture: (precommande: PrecommandeComplete) => void;
   onSupprimer: (precommande: PrecommandeComplete) => void;
-  onFinaliserPaiement: (precommande: PrecommandeComplete) => void;
   isConverting: boolean;
 }
 
@@ -21,24 +20,12 @@ const PrecommandesTableActions = ({
   onEditer,
   onFacture,
   onSupprimer,
-  onFinaliserPaiement,
   isConverting
 }: PrecommandesTableActionsProps) => {
   const estConvertieEnVente = precommande.statut === 'convertie_en_vente';
 
   return (
     <div className="flex gap-1 flex-wrap">
-      {peutFinaliserPaiement(precommande) && (
-        <Button
-          size="sm"
-          variant="outline"
-          onClick={() => onFinaliserPaiement(precommande)}
-          title="Finaliser le paiement"
-          className="text-blue-600 hover:text-blue-700"
-        >
-          <CheckCircle className="h-4 w-4" />
-        </Button>
-      )}
       {peutConvertirEnVente(precommande.statut) && (
         <Button
           size="sm"

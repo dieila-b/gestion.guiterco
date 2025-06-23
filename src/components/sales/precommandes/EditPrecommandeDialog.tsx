@@ -5,16 +5,12 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
 } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import type { PrecommandeComplete } from '@/types/precommandes';
-import { formatCurrency } from '@/lib/currency';
-import { calculerTotalPrecommande } from './PrecommandesTableUtils';
 import { useUpdatePrecommande } from '@/hooks/precommandes/useUpdatePrecommande';
+import { useStockDisponibilite } from '@/hooks/precommandes/useStockDisponibilite';
+import DeliveryStatusBadge from './DeliveryStatusBadge';
+import EditPrecommandeForm from './EditPrecommandeForm';
 
 interface EditPrecommandeDialogProps {
   precommande: PrecommandeComplete | null;
@@ -24,37 +20,32 @@ interface EditPrecommandeDialogProps {
 
 const EditPrecommandeDialog = ({ precommande, open, onClose }: EditPrecommandeDialogProps) => {
   const updatePrecommande = useUpdatePrecommande();
-  const [formData, setFormData] = useState({
-    observations: '',
-    acompte_verse: 0,
-    date_livraison_prevue: '',
+  
+  // Créer un mapping des stocks pour tous les articles de la précommande
+  const stockQueries = precommande?.lignes_precommande?.map(ligne => ligne.article_id) || [];
+  const stockDisponibilite: Record<string, { total: number }> = {};
+  
+  // Pour chaque article, récupérer son stock (simplifié ici)
+  stockQueries.forEach(articleId => {
+    const { data: stock } = useStockDisponibilite(articleId);
+    if (stock) {
+      stockDisponibilite[articleId] = stock;
+    }
   });
 
-  useEffect(() => {
-    if (precommande) {
-      setFormData({
-        observations: precommande.observations || '',
-        acompte_verse: 0, // Toujours vide pour permettre la saisie d'un nouvel acompte
-        date_livraison_prevue: precommande.date_livraison_prevue 
-          ? new Date(precommande.date_livraison_prevue).toISOString().split('T')[0] 
-          : '',
-      });
-    }
-  }, [precommande]);
-
-  const handleSave = async () => {
+  const handleSave = async (updates: any) => {
     if (!precommande) return;
 
     try {
-      // Si un nouvel acompte est saisi, l'ajouter à l'acompte existant
-      const nouvelAcompteTotal = (precommande.acompte_verse || 0) + formData.acompte_verse;
-      
       await updatePrecommande.mutateAsync({
         id: precommande.id,
         updates: {
-          observations: formData.observations,
-          acompte_verse: nouvelAcompteTotal,
-          date_livraison_prevue: formData.date_livraison_prevue || null,
+          observations: updates.observations,
+          date_livraison_prevue: updates.date_livraison_prevue || null,
+          montant_ht: updates.montant_ht,
+          tva: updates.tva,
+          montant_ttc: updates.montant_ttc,
+          // Les lignes seront mises à jour séparément si nécessaire
         }
       });
       onClose();
@@ -63,17 +54,21 @@ const EditPrecommandeDialog = ({ precommande, open, onClose }: EditPrecommandeDi
     }
   };
 
-  const totalPrecommande = precommande ? calculerTotalPrecommande(precommande) : 0;
-  const acompteActuel = precommande?.acompte_verse || 0;
-  const resteAPayer = totalPrecommande - acompteActuel;
-
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>
-            Éditer la précommande {precommande?.numero_precommande}
-          </DialogTitle>
+          <div className="flex items-center justify-between">
+            <DialogTitle>
+              Éditer la précommande {precommande?.numero_precommande}
+            </DialogTitle>
+            {precommande && (
+              <DeliveryStatusBadge 
+                lignes={precommande.lignes_precommande || []}
+                stockDisponibilite={stockDisponibilite}
+              />
+            )}
+          </div>
         </DialogHeader>
 
         {precommande && (
@@ -82,93 +77,23 @@ const EditPrecommandeDialog = ({ precommande, open, onClose }: EditPrecommandeDi
             <div className="border rounded-lg p-4">
               <h3 className="font-semibold mb-2">Client</h3>
               <p>{precommande.client?.nom || 'Client non spécifié'}</p>
-            </div>
-
-            {/* Articles */}
-            <div className="border rounded-lg p-4">
-              <h3 className="font-semibold mb-2">Articles commandés</h3>
-              <div className="space-y-2">
-                {precommande.lignes_precommande?.map((ligne) => (
-                  <div key={ligne.id} className="flex justify-between items-center text-sm">
-                    <span>{ligne.article?.nom || 'Article'}</span>
-                    <span>Qté: {ligne.quantite} × {formatCurrency(ligne.prix_unitaire)}</span>
-                  </div>
-                ))}
-              </div>
-              <div className="mt-2 pt-2 border-t font-semibold">
-                Total: {formatCurrency(totalPrecommande)}
-              </div>
-            </div>
-
-            {/* Statut des paiements */}
-            <div className="border rounded-lg p-4 bg-blue-50">
-              <h3 className="font-semibold mb-2">État des paiements</h3>
-              <div className="space-y-1 text-sm">
-                <div className="flex justify-between">
-                  <span>Total précommande:</span>
-                  <span className="font-semibold">{formatCurrency(totalPrecommande)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Acompte déjà versé:</span>
-                  <span className="font-semibold text-green-600">{formatCurrency(acompteActuel)}</span>
-                </div>
-                <div className="flex justify-between border-t pt-1">
-                  <span>Reste à payer:</span>
-                  <span className="font-semibold text-blue-600">{formatCurrency(resteAPayer)}</span>
-                </div>
-              </div>
+              {precommande.client?.email && (
+                <p className="text-sm text-gray-600">{precommande.client.email}</p>
+              )}
+              {precommande.client?.telephone && (
+                <p className="text-sm text-gray-600">{precommande.client.telephone}</p>
+              )}
             </div>
 
             {/* Formulaire d'édition */}
-            <div className="space-y-4">
-              <div>
-                <Label htmlFor="date_livraison">Date de livraison prévue</Label>
-                <Input
-                  id="date_livraison"
-                  type="date"
-                  value={formData.date_livraison_prevue}
-                  onChange={(e) => setFormData({ ...formData, date_livraison_prevue: e.target.value })}
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="acompte">Nouvel acompte à ajouter (GNF)</Label>
-                <Input
-                  id="acompte"
-                  type="number"
-                  step="1"
-                  min="0"
-                  max={resteAPayer}
-                  value={formData.acompte_verse}
-                  onChange={(e) => setFormData({ ...formData, acompte_verse: parseFloat(e.target.value) || 0 })}
-                  placeholder="Saisir le montant du nouvel acompte"
-                />
-                <p className="text-sm text-gray-500 mt-1">
-                  Maximum: {formatCurrency(resteAPayer)}
-                </p>
-              </div>
-
-              <div>
-                <Label htmlFor="observations">Observations</Label>
-                <Textarea
-                  id="observations"
-                  value={formData.observations}
-                  onChange={(e) => setFormData({ ...formData, observations: e.target.value })}
-                  placeholder="Observations sur cette précommande..."
-                />
-              </div>
-            </div>
+            <EditPrecommandeForm
+              precommande={precommande}
+              onSave={handleSave}
+              onCancel={onClose}
+              isLoading={updatePrecommande.isPending}
+            />
           </div>
         )}
-
-        <DialogFooter>
-          <Button variant="outline" onClick={onClose} disabled={updatePrecommande.isPending}>
-            Annuler
-          </Button>
-          <Button onClick={handleSave} disabled={updatePrecommande.isPending}>
-            {updatePrecommande.isPending ? 'Enregistrement...' : 'Enregistrer'}
-          </Button>
-        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
