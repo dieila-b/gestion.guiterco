@@ -8,7 +8,6 @@ import {
 } from '@/components/ui/dialog';
 import type { PrecommandeComplete } from '@/types/precommandes';
 import { useUpdatePrecommande } from '@/hooks/precommandes/useUpdatePrecommande';
-import { useStockDisponibilite } from '@/hooks/precommandes/useStockDisponibilite';
 import DeliveryStatusBadge from './DeliveryStatusBadge';
 import EditPrecommandeForm from './EditPrecommandeForm';
 
@@ -20,18 +19,6 @@ interface EditPrecommandeDialogProps {
 
 const EditPrecommandeDialog = ({ precommande, open, onClose }: EditPrecommandeDialogProps) => {
   const updatePrecommande = useUpdatePrecommande();
-  
-  // Créer un mapping des stocks pour tous les articles de la précommande
-  const stockQueries = precommande?.lignes_precommande?.map(ligne => ligne.article_id) || [];
-  const stockDisponibilite: Record<string, { total: number }> = {};
-  
-  // Pour chaque article, récupérer son stock (simplifié ici)
-  stockQueries.forEach(articleId => {
-    const { data: stock } = useStockDisponibilite(articleId);
-    if (stock) {
-      stockDisponibilite[articleId] = stock;
-    }
-  });
 
   const handleSave = async (updates: any) => {
     if (!precommande) return;
@@ -45,7 +32,6 @@ const EditPrecommandeDialog = ({ precommande, open, onClose }: EditPrecommandeDi
           montant_ht: updates.montant_ht,
           tva: updates.tva,
           montant_ttc: updates.montant_ttc,
-          // Les lignes seront mises à jour séparément si nécessaire
         }
       });
       onClose();
@@ -65,7 +51,6 @@ const EditPrecommandeDialog = ({ precommande, open, onClose }: EditPrecommandeDi
             {precommande && (
               <DeliveryStatusBadge 
                 lignes={precommande.lignes_precommande || []}
-                stockDisponibilite={stockDisponibilite}
               />
             )}
           </div>
