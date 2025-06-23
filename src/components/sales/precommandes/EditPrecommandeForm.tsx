@@ -144,7 +144,7 @@ const EditPrecommandeForm = ({ precommande, onSave, onCancel, isLoading }: EditP
           <Label htmlFor="statut">Statut de la précommande</Label>
           <Select 
             value={getValidStatutValue(formData.statut)} 
-            onValueChange={(value) => setFormData({ ...formData, statut: value })}
+            onValueChange={(value) => setFormData({ ...formData, statut: getValidStatutValue(value) })}
           >
             <SelectTrigger>
               <SelectValue placeholder="Sélectionner un statut" />
