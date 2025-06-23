@@ -2732,6 +2732,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: string
       }
+      generate_precommande_number: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
       generate_product_reference: {
         Args: Record<PropertyKey, never>
         Returns: string
