@@ -24,6 +24,8 @@ const EditPrecommandeDialog = ({ precommande, open, onClose }: EditPrecommandeDi
     if (!precommande) return;
 
     try {
+      console.log('Sauvegarde précommande avec données:', updates);
+      
       await updatePrecommande.mutateAsync({
         id: precommande.id,
         updates: {
@@ -32,6 +34,9 @@ const EditPrecommandeDialog = ({ precommande, open, onClose }: EditPrecommandeDi
           montant_ht: updates.montant_ht,
           tva: updates.tva,
           montant_ttc: updates.montant_ttc,
+          acompte_verse: updates.acompte_verse,
+          reste_a_payer: updates.reste_a_payer,
+          statut: updates.statut
         }
       });
       onClose();
@@ -51,6 +56,7 @@ const EditPrecommandeDialog = ({ precommande, open, onClose }: EditPrecommandeDi
             {precommande && (
               <DeliveryStatusBadge 
                 lignes={precommande.lignes_precommande || []}
+                statut={precommande.statut}
               />
             )}
           </div>
@@ -60,13 +66,13 @@ const EditPrecommandeDialog = ({ precommande, open, onClose }: EditPrecommandeDi
           <div className="space-y-6">
             {/* Informations client */}
             <div className="border rounded-lg p-4">
-              <h3 className="font-semibold mb-2">Client</h3>
-              <p>{precommande.client?.nom || 'Client non spécifié'}</p>
+              <h3 className="font-semibold mb-2">👤 Informations client</h3>
+              <p className="font-medium">{precommande.client?.nom || 'Client non spécifié'}</p>
               {precommande.client?.email && (
-                <p className="text-sm text-gray-600">{precommande.client.email}</p>
+                <p className="text-sm text-gray-600">📧 {precommande.client.email}</p>
               )}
               {precommande.client?.telephone && (
-                <p className="text-sm text-gray-600">{precommande.client.telephone}</p>
+                <p className="text-sm text-gray-600">📞 {precommande.client.telephone}</p>
               )}
             </div>
 

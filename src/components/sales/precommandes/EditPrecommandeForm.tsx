@@ -24,6 +24,8 @@ const EditPrecommandeForm = ({ precommande, onSave, onCancel, isLoading }: EditP
     date_livraison_prevue: precommande.date_livraison_prevue 
       ? new Date(precommande.date_livraison_prevue).toISOString().split('T')[0] 
       : '',
+    acompte_verse: precommande.acompte_verse || 0,
+    statut: precommande.statut || 'confirmee'
   });
 
   const [lignes, setLignes] = useState<LignePrecommandeComplete[]>(
@@ -77,15 +79,17 @@ const EditPrecommandeForm = ({ precommande, onSave, onCancel, isLoading }: EditP
       lignes_precommande: lignes,
       montant_ht: totals.montantHT,
       tva: totals.tva,
-      montant_ttc: totals.montantTTC
+      montant_ttc: totals.montantTTC,
+      reste_a_payer: totals.montantTTC - formData.acompte_verse
     });
   };
 
   const { montantHT, tva, montantTTC } = calculateTotals();
+  const resteAPayer = montantTTC - formData.acompte_verse;
 
   return (
     <div className="space-y-6">
-      {/* Informations générales */}
+      {/* Section Informations générales */}
       <div className="grid grid-cols-2 gap-4">
         <div>
           <Label htmlFor="date_livraison">Date de livraison prévue</Label>
@@ -96,12 +100,62 @@ const EditPrecommandeForm = ({ precommande, onSave, onCancel, isLoading }: EditP
             onChange={(e) => setFormData({ ...formData, date_livraison_prevue: e.target.value })}
           />
         </div>
+        <div>
+          <Label htmlFor="statut">Statut de la précommande</Label>
+          <Select 
+            value={formData.statut} 
+            onValueChange={(value) => setFormData({ ...formData, statut: value })}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Sélectionner un statut" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="confirmee">🟡 Confirmée</SelectItem>
+              <SelectItem value="en_preparation">🔄 En préparation</SelectItem>
+              <SelectItem value="prete">🔵 Prête</SelectItem>
+              <SelectItem value="partiellement_livree">🟠 Partiellement livrée</SelectItem>
+              <SelectItem value="livree">🟢 Livrée</SelectItem>
+              <SelectItem value="annulee">❌ Annulée</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      {/* Section Paiement */}
+      <div className="border rounded-lg p-4 bg-blue-50">
+        <h3 className="font-semibold mb-3 text-blue-800">💳 Gestion des paiements</h3>
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <Label htmlFor="acompte_verse">Acompte versé</Label>
+            <Input
+              id="acompte_verse"
+              type="number"
+              step="0.01"
+              min="0"
+              max={montantTTC}
+              value={formData.acompte_verse}
+              onChange={(e) => setFormData({ ...formData, acompte_verse: parseFloat(e.target.value) || 0 })}
+              placeholder="Montant de l'acompte"
+            />
+          </div>
+          <div className="space-y-2">
+            <div className="text-sm">
+              <span className="font-medium">Montant TTC:</span> {formatCurrency(montantTTC)}
+            </div>
+            <div className="text-sm">
+              <span className="font-medium">Acompte versé:</span> {formatCurrency(formData.acompte_verse)}
+            </div>
+            <div className="text-sm font-bold text-blue-600">
+              <span>Reste à payer:</span> {formatCurrency(resteAPayer)}
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Articles de la précommande */}
       <div className="space-y-4">
         <div className="flex justify-between items-center">
-          <h3 className="font-semibold">Articles</h3>
+          <h3 className="font-semibold">Articles de la précommande</h3>
           <Button type="button" variant="outline" size="sm" onClick={handleAddLigne}>
             <Plus className="h-4 w-4 mr-2" />
             Ajouter un article
@@ -111,7 +165,7 @@ const EditPrecommandeForm = ({ precommande, onSave, onCancel, isLoading }: EditP
         <div className="space-y-3">
           {lignes.map((ligne, index) => (
             <div key={ligne.id} className="grid grid-cols-12 gap-2 items-center p-3 border rounded">
-              <div className="col-span-4">
+              <div className="col-span-3">
                 <Select 
                   value={ligne.article_id} 
                   onValueChange={(value) => {
@@ -141,7 +195,8 @@ const EditPrecommandeForm = ({ precommande, onSave, onCancel, isLoading }: EditP
                   min="1"
                   value={ligne.quantite}
                   onChange={(e) => handleLigneChange(index, 'quantite', parseInt(e.target.value) || 1)}
-                  placeholder="Qté"
+                  placeholder="Qté cmd"
+                  title="Quantité commandée"
                 />
               </div>
               
@@ -149,9 +204,11 @@ const EditPrecommandeForm = ({ precommande, onSave, onCancel, isLoading }: EditP
                 <Input
                   type="number"
                   min="0"
+                  max={ligne.quantite}
                   value={ligne.quantite_livree || 0}
                   onChange={(e) => handleLigneChange(index, 'quantite_livree', parseInt(e.target.value) || 0)}
                   placeholder="Qté livrée"
+                  title="Quantité livrée"
                 />
               </div>
               
@@ -165,7 +222,7 @@ const EditPrecommandeForm = ({ precommande, onSave, onCancel, isLoading }: EditP
                 />
               </div>
               
-              <div className="col-span-1 text-right text-sm font-medium">
+              <div className="col-span-2 text-right text-sm font-medium">
                 {formatCurrency(ligne.montant_ligne)}
               </div>
               
@@ -176,6 +233,7 @@ const EditPrecommandeForm = ({ precommande, onSave, onCancel, isLoading }: EditP
                   size="sm"
                   onClick={() => handleDeleteLigne(index)}
                   className="text-red-600 hover:text-red-700"
+                  title="Supprimer cette ligne"
                 >
                   <Trash2 className="h-4 w-4" />
                 </Button>
@@ -200,6 +258,10 @@ const EditPrecommandeForm = ({ precommande, onSave, onCancel, isLoading }: EditP
             <span className="font-bold">Montant TTC:</span>
             <span className="font-bold text-lg">{formatCurrency(montantTTC)}</span>
           </div>
+          <div className="flex justify-between text-blue-600">
+            <span className="font-bold">Reste à payer:</span>
+            <span className="font-bold">{formatCurrency(resteAPayer)}</span>
+          </div>
         </div>
       </div>
 
@@ -220,7 +282,7 @@ const EditPrecommandeForm = ({ precommande, onSave, onCancel, isLoading }: EditP
           Annuler
         </Button>
         <Button onClick={handleSubmit} disabled={isLoading}>
-          {isLoading ? 'Enregistrement...' : 'Enregistrer'}
+          {isLoading ? 'Enregistrement...' : 'Enregistrer les modifications'}
         </Button>
       </div>
     </div>

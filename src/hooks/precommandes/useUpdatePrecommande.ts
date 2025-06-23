@@ -20,8 +20,12 @@ export const useUpdatePrecommande = () => {
         montant_ht?: number;
         tva?: number;
         montant_ttc?: number;
+        reste_a_payer?: number;
+        statut?: string;
       };
     }) => {
+      console.log('🔄 Mise à jour précommande:', { id, updates });
+      
       const { data, error } = await supabase
         .from('precommandes')
         .update({
@@ -32,7 +36,12 @@ export const useUpdatePrecommande = () => {
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Erreur mise à jour précommande:', error);
+        throw error;
+      }
+      
+      console.log('✅ Précommande mise à jour:', data);
       return data;
     },
     onSuccess: () => {
