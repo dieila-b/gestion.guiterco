@@ -26,8 +26,7 @@ const EditPrecommandeForm = ({ precommande, onSave, onCancel, isLoading }: EditP
       : '',
     acompte_verse: precommande.acompte_verse || 0,
     statut: precommande.statut || 'confirmee',
-    taux_tva: precommande.taux_tva || 0,
-    statut_livraison: precommande.statut_livraison || 'en_attente'
+    taux_tva: precommande.taux_tva || 0
   });
 
   const [lignes, setLignes] = useState<LignePrecommandeComplete[]>(
@@ -89,15 +88,27 @@ const EditPrecommandeForm = ({ precommande, onSave, onCancel, isLoading }: EditP
   const { montantHT, tva, montantTTC } = calculateTotals();
   const resteAPayer = montantTTC - formData.acompte_verse;
 
-  const getValidStatutValue = (statut: string) => {
-    const validStatuts = ['confirmee', 'en_preparation', 'prete', 'partiellement_livree', 'livree', 'annulee', 'convertie_en_vente'];
-    return validStatuts.includes(statut) ? statut : 'confirmee';
+  const getValidStatutValue = (statut: string): 'confirmee' | 'en_preparation' | 'prete' | 'partiellement_livree' | 'livree' | 'annulee' | 'convertie_en_vente' => {
+    const validStatuts = ['confirmee', 'en_preparation', 'prete', 'partiellement_livree', 'livree', 'annulee', 'convertie_en_vente'] as const;
+    return validStatuts.includes(statut as any) ? statut as any : 'confirmee';
   };
 
-  const getValidStatutLivraisonValue = (statut: string) => {
-    const validStatuts = ['en_attente', 'partiellement_livree', 'livree'];
-    return validStatuts.includes(statut) ? statut : 'en_attente';
+  const calculateDeliveryStatus = () => {
+    if (!lignes || lignes.length === 0) return 'en_attente';
+
+    const totalQuantite = lignes.reduce((sum, ligne) => sum + ligne.quantite, 0);
+    const totalLivree = lignes.reduce((sum, ligne) => sum + (ligne.quantite_livree || 0), 0);
+
+    if (totalLivree === totalQuantite && totalQuantite > 0) {
+      return 'livree';
+    } else if (totalLivree > 0) {
+      return 'partiellement_livree';
+    } else {
+      return 'en_attente';
+    }
   };
+
+  const deliveryStatus = calculateDeliveryStatus();
 
   return (
     <div className="space-y-6">
@@ -149,20 +160,12 @@ const EditPrecommandeForm = ({ precommande, onSave, onCancel, isLoading }: EditP
           </Select>
         </div>
         <div>
-          <Label htmlFor="statut_livraison">Statut de livraison</Label>
-          <Select 
-            value={getValidStatutLivraisonValue(formData.statut_livraison)} 
-            onValueChange={(value) => setFormData({ ...formData, statut_livraison: value })}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Sélectionner un statut" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="en_attente">🟡 En attente</SelectItem>
-              <SelectItem value="partiellement_livree">🟠 Partiellement livrée</SelectItem>
-              <SelectItem value="livree">🟢 Livrée</SelectItem>
-            </SelectContent>
-          </Select>
+          <Label htmlFor="statut_livraison">Statut de livraison (calculé)</Label>
+          <div className="h-10 flex items-center px-3 py-2 border border-input bg-gray-50 rounded-md text-sm">
+            {deliveryStatus === 'livree' && '🟢 Livrée'}
+            {deliveryStatus === 'partiellement_livree' && '🟠 Partiellement livrée'}
+            {deliveryStatus === 'en_attente' && '🟡 En attente'}
+          </div>
         </div>
       </div>
 
