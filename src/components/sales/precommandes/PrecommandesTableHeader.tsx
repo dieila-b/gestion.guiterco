@@ -7,7 +7,6 @@ const PrecommandesTableHeader = () => {
     <TableHeader>
       <TableRow>
         <TableHead>N° Précommande</TableHead>
-        <TableHead>Date</TableHead>
         <TableHead>Client</TableHead>
         <TableHead>Produit</TableHead>
         <TableHead>Qté demandée</TableHead>

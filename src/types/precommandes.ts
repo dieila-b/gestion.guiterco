@@ -53,11 +53,10 @@ export interface LignePrecommandeComplete {
   article_id: string;
   quantite: number;
   quantite_livree?: number;
-  statut_ligne?: 'en_attente' | 'partiellement_livree' | 'livree' | 'disponible';
+  statut_ligne?: string;
   prix_unitaire: number;
   montant_ligne: number;
   created_at: string;
-  updated_at?: string;
   article?: {
     id: string;
     nom: string;

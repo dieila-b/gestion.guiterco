@@ -5,7 +5,6 @@ import type { PrecommandeComplete } from '@/types/precommandes';
 import { useConvertPrecommandeToSale } from '@/hooks/precommandes/useConvertPrecommandeToSale';
 import PaymentDialog from './PaymentDialog';
 import EditPrecommandeDialog from './EditPrecommandeDialog';
-import EditLignesPrecommandeDialog from './EditLignesPrecommandeDialog';
 import DeletePrecommandeDialog from './DeletePrecommandeDialog';
 import PrecommandeFactureDialog from './PrecommandeFactureDialog';
 import PrecommandesTableHeader from './PrecommandesTableHeader';
@@ -23,7 +22,6 @@ const PrecommandesTable = ({ precommandes }: PrecommandesTableProps) => {
   } | null>(null);
   
   const [editDialog, setEditDialog] = useState<PrecommandeComplete | null>(null);
-  const [editArticlesDialog, setEditArticlesDialog] = useState<PrecommandeComplete | null>(null);
   const [deleteDialog, setDeleteDialog] = useState<PrecommandeComplete | null>(null);
   const [factureDialog, setFactureDialog] = useState<PrecommandeComplete | null>(null);
 
@@ -33,10 +31,6 @@ const PrecommandesTable = ({ precommandes }: PrecommandesTableProps) => {
 
   const handleEditer = (precommande: PrecommandeComplete) => {
     setEditDialog(precommande);
-  };
-
-  const handleEditerArticles = (precommande: PrecommandeComplete) => {
-    setEditArticlesDialog(precommande);
   };
 
   const handleFacture = (precommande: PrecommandeComplete) => {
@@ -63,7 +57,6 @@ const PrecommandesTable = ({ precommandes }: PrecommandesTableProps) => {
                 precommande={precommande}
                 onConvertirEnVente={handleConvertirEnVente}
                 onEditer={handleEditer}
-                onEditerArticles={handleEditerArticles}
                 onFacture={handleFacture}
                 onSupprimer={handleSupprimer}
                 onFinaliserPaiement={handleFinaliserPaiement}
@@ -88,12 +81,6 @@ const PrecommandesTable = ({ precommandes }: PrecommandesTableProps) => {
         precommande={editDialog}
         open={!!editDialog}
         onClose={() => setEditDialog(null)}
-      />
-
-      <EditLignesPrecommandeDialog
-        precommande={editArticlesDialog}
-        open={!!editArticlesDialog}
-        onClose={() => setEditArticlesDialog(null)}
       />
 
       <DeletePrecommandeDialog
