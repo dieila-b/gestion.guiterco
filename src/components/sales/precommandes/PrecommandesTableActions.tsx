@@ -1,14 +1,15 @@
 
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { Edit, FileText, Trash2, ArrowRightLeft, CheckCircle } from 'lucide-react';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { MoreHorizontal, Edit, FileText, Trash2, CreditCard, CheckCircle, Package } from 'lucide-react';
 import type { PrecommandeComplete } from '@/types/precommandes';
-import { peutConvertirEnVente, peutFinaliserPaiement } from './PrecommandesTableUtils';
 
 interface PrecommandesTableActionsProps {
   precommande: PrecommandeComplete;
   onConvertirEnVente: (precommande: PrecommandeComplete) => void;
   onEditer: (precommande: PrecommandeComplete) => void;
+  onEditerArticles: (precommande: PrecommandeComplete) => void;
   onFacture: (precommande: PrecommandeComplete) => void;
   onSupprimer: (precommande: PrecommandeComplete) => void;
   onFinaliserPaiement: (precommande: PrecommandeComplete) => void;
@@ -19,71 +20,66 @@ const PrecommandesTableActions = ({
   precommande,
   onConvertirEnVente,
   onEditer,
+  onEditerArticles,
   onFacture,
   onSupprimer,
   onFinaliserPaiement,
   isConverting
 }: PrecommandesTableActionsProps) => {
-  const estConvertieEnVente = precommande.statut === 'convertie_en_vente';
+  const canConvert = precommande.statut === 'prete' || precommande.statut === 'livree';
+  const canFinalizePaiement = precommande.statut === 'livree' && 
+    (precommande.reste_a_payer || 0) > 0;
 
   return (
-    <div className="flex gap-1 flex-wrap">
-      {peutFinaliserPaiement(precommande) && (
-        <Button
-          size="sm"
-          variant="outline"
-          onClick={() => onFinaliserPaiement(precommande)}
-          title="Finaliser le paiement"
-          className="text-blue-600 hover:text-blue-700"
-        >
-          <CheckCircle className="h-4 w-4" />
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost" className="h-8 w-8 p-0">
+          <span className="sr-only">Ouvrir le menu</span>
+          <MoreHorizontal className="h-4 w-4" />
         </Button>
-      )}
-      {peutConvertirEnVente(precommande.statut) && (
-        <Button
-          size="sm"
-          variant="outline"
-          onClick={() => onConvertirEnVente(precommande)}
-          title="Convertir en vente"
-          disabled={isConverting}
-        >
-          <ArrowRightLeft className="h-4 w-4" />
-        </Button>
-      )}
-      {/* Bouton Éditer : masqué si convertie en vente */}
-      {!estConvertieEnVente && (
-        <Button
-          size="sm"
-          variant="outline"
-          onClick={() => onEditer(precommande)}
-          title="Éditer la précommande"
-          className="text-green-600 hover:text-green-700"
-        >
-          <Edit className="h-4 w-4" />
-        </Button>
-      )}
-      <Button
-        size="sm"
-        variant="outline"
-        onClick={() => onFacture(precommande)}
-        title="Voir la facture"
-        className="text-blue-600 hover:text-blue-700"
-      >
-        <FileText className="h-4 w-4" />
-      </Button>
-      {/* Bouton Supprimer : masqué si convertie en vente */}
-      {!estConvertieEnVente && (
-        <Button
-          size="sm"
-          variant="outline"
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        <DropdownMenuItem onClick={() => onEditer(precommande)}>
+          <Edit className="mr-2 h-4 w-4" />
+          Éditer
+        </DropdownMenuItem>
+        
+        <DropdownMenuItem onClick={() => onEditerArticles(precommande)}>
+          <Package className="mr-2 h-4 w-4" />
+          Éditer articles
+        </DropdownMenuItem>
+        
+        <DropdownMenuItem onClick={() => onFacture(precommande)}>
+          <FileText className="mr-2 h-4 w-4" />
+          Facture
+        </DropdownMenuItem>
+        
+        {canConvert && (
+          <DropdownMenuItem 
+            onClick={() => onConvertirEnVente(precommande)}
+            disabled={isConverting}
+          >
+            <CheckCircle className="mr-2 h-4 w-4" />
+            {isConverting ? 'Conversion...' : 'Convertir en vente'}
+          </DropdownMenuItem>
+        )}
+        
+        {canFinalizePaiement && (
+          <DropdownMenuItem onClick={() => onFinaliserPaiement(precommande)}>
+            <CreditCard className="mr-2 h-4 w-4" />
+            Finaliser paiement
+          </DropdownMenuItem>
+        )}
+        
+        <DropdownMenuItem 
           onClick={() => onSupprimer(precommande)}
-          title="Supprimer la précommande"
-          className="text-red-600 hover:text-red-700"
+          className="text-red-600"
         >
-          <Trash2 className="h-4 w-4" />
-        </Button>
-      )}
-    </div>
+          <Trash2 className="mr-2 h-4 w-4" />
+          Supprimer
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 };
 

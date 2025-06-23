@@ -4,6 +4,7 @@ import { TableCell, TableRow } from '@/components/ui/table';
 import { formatCurrency } from '@/lib/currency';
 import type { PrecommandeComplete } from '@/types/precommandes';
 import PrecommandesStatusBadge from './PrecommandesStatusBadge';
+import StatutLivraisonBadge from './StatutLivraisonBadge';
 import PrecommandesTableActions from './PrecommandesTableActions';
 import {
   getDisponibiliteEstimee,
@@ -15,6 +16,7 @@ interface PrecommandesTableRowProps {
   precommande: PrecommandeComplete;
   onConvertirEnVente: (precommande: PrecommandeComplete) => void;
   onEditer: (precommande: PrecommandeComplete) => void;
+  onEditerArticles: (precommande: PrecommandeComplete) => void;
   onFacture: (precommande: PrecommandeComplete) => void;
   onSupprimer: (precommande: PrecommandeComplete) => void;
   onFinaliserPaiement: (precommande: PrecommandeComplete) => void;
@@ -25,6 +27,7 @@ const PrecommandesTableRow = ({
   precommande,
   onConvertirEnVente,
   onEditer,
+  onEditerArticles,
   onFacture,
   onSupprimer,
   onFinaliserPaiement,
@@ -46,7 +49,18 @@ const PrecommandesTableRow = ({
                 </TableCell>
               </>
             )}
-            <TableCell>{ligne.article?.nom || 'Article non trouvé'}</TableCell>
+            <TableCell>
+              <div>
+                <div className="font-medium">{ligne.article?.nom || 'Article non trouvé'}</div>
+                <div className="text-sm text-gray-500">
+                  <StatutLivraisonBadge 
+                    statut={ligne.statut_ligne || 'en_attente'}
+                    quantite={ligne.quantite}
+                    quantite_livree={ligne.quantite_livree || 0}
+                  />
+                </div>
+              </div>
+            </TableCell>
             <TableCell className="text-center">{ligne.quantite}</TableCell>
             {index === 0 && (
               <>
@@ -70,6 +84,7 @@ const PrecommandesTableRow = ({
                     precommande={precommande}
                     onConvertirEnVente={onConvertirEnVente}
                     onEditer={onEditer}
+                    onEditerArticles={onEditerArticles}
                     onFacture={onFacture}
                     onSupprimer={onSupprimer}
                     onFinaliserPaiement={onFinaliserPaiement}
@@ -103,6 +118,7 @@ const PrecommandesTableRow = ({
           precommande={precommande}
           onConvertirEnVente={onConvertirEnVente}
           onEditer={onEditer}
+          onEditerArticles={onEditerArticles}
           onFacture={onFacture}
           onSupprimer={onSupprimer}
           onFinaliserPaiement={onFinaliserPaiement}

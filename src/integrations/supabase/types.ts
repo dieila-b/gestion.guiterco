@@ -1561,6 +1561,7 @@ export type Database = {
           quantite: number
           quantite_livree: number | null
           statut_ligne: string | null
+          updated_at: string | null
         }
         Insert: {
           article_id?: string | null
@@ -1572,6 +1573,7 @@ export type Database = {
           quantite: number
           quantite_livree?: number | null
           statut_ligne?: string | null
+          updated_at?: string | null
         }
         Update: {
           article_id?: string | null
@@ -1583,6 +1585,7 @@ export type Database = {
           quantite?: number
           quantite_livree?: number | null
           statut_ligne?: string | null
+          updated_at?: string | null
         }
         Relationships: [
           {
