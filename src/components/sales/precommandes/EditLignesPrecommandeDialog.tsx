@@ -37,7 +37,7 @@ interface LigneEdition {
 }
 
 const EditLignesPrecommandeDialog = ({ precommande, open, onClose }: EditLignesPrecommandeDialogProps) => {
-  const { data: catalogue } = useCatalogue();
+  const { articles: catalogue } = useCatalogue();
   const updateLignes = useUpdateLignesPrecommande();
   const [lignes, setLignes] = useState<LigneEdition[]>([]);
   const [nouvelleArticle, setNouvelleArticle] = useState('');
