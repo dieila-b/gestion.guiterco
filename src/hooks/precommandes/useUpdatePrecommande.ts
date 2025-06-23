@@ -22,6 +22,8 @@ export const useUpdatePrecommande = () => {
         montant_ttc?: number;
         reste_a_payer?: number;
         statut?: string;
+        taux_tva?: number;
+        statut_livraison?: string;
       };
     }) => {
       console.log('🔄 Mise à jour précommande:', { id, updates });

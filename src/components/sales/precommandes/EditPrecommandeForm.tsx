@@ -25,7 +25,9 @@ const EditPrecommandeForm = ({ precommande, onSave, onCancel, isLoading }: EditP
       ? new Date(precommande.date_livraison_prevue).toISOString().split('T')[0] 
       : '',
     acompte_verse: precommande.acompte_verse || 0,
-    statut: precommande.statut || 'confirmee'
+    statut: precommande.statut || 'confirmee',
+    taux_tva: precommande.taux_tva || 0,
+    statut_livraison: precommande.statut_livraison || 'en_attente'
   });
 
   const [lignes, setLignes] = useState<LignePrecommandeComplete[]>(
@@ -67,7 +69,7 @@ const EditPrecommandeForm = ({ precommande, onSave, onCancel, isLoading }: EditP
 
   const calculateTotals = () => {
     const montantHT = lignes.reduce((sum, ligne) => sum + ligne.montant_ligne, 0);
-    const tva = montantHT * 0.20;
+    const tva = montantHT * (formData.taux_tva / 100);
     const montantTTC = montantHT + tva;
     return { montantHT, tva, montantTTC };
   };
@@ -87,6 +89,16 @@ const EditPrecommandeForm = ({ precommande, onSave, onCancel, isLoading }: EditP
   const { montantHT, tva, montantTTC } = calculateTotals();
   const resteAPayer = montantTTC - formData.acompte_verse;
 
+  const getValidStatutValue = (statut: string) => {
+    const validStatuts = ['confirmee', 'en_preparation', 'prete', 'partiellement_livree', 'livree', 'annulee', 'convertie_en_vente'];
+    return validStatuts.includes(statut) ? statut : 'confirmee';
+  };
+
+  const getValidStatutLivraisonValue = (statut: string) => {
+    const validStatuts = ['en_attente', 'partiellement_livree', 'livree'];
+    return validStatuts.includes(statut) ? statut : 'en_attente';
+  };
+
   return (
     <div className="space-y-6">
       {/* Section Informations générales */}
@@ -101,9 +113,26 @@ const EditPrecommandeForm = ({ precommande, onSave, onCancel, isLoading }: EditP
           />
         </div>
         <div>
+          <Label htmlFor="taux_tva">Taux de TVA (%)</Label>
+          <Input
+            id="taux_tva"
+            type="number"
+            step="0.01"
+            min="0"
+            max="100"
+            value={formData.taux_tva}
+            onChange={(e) => setFormData({ ...formData, taux_tva: parseFloat(e.target.value) || 0 })}
+            placeholder="0"
+          />
+        </div>
+      </div>
+
+      {/* Section Statut */}
+      <div className="grid grid-cols-2 gap-4">
+        <div>
           <Label htmlFor="statut">Statut de la précommande</Label>
           <Select 
-            value={formData.statut} 
+            value={getValidStatutValue(formData.statut)} 
             onValueChange={(value) => setFormData({ ...formData, statut: value })}
           >
             <SelectTrigger>
@@ -119,6 +148,22 @@ const EditPrecommandeForm = ({ precommande, onSave, onCancel, isLoading }: EditP
             </SelectContent>
           </Select>
         </div>
+        <div>
+          <Label htmlFor="statut_livraison">Statut de livraison</Label>
+          <Select 
+            value={getValidStatutLivraisonValue(formData.statut_livraison)} 
+            onValueChange={(value) => setFormData({ ...formData, statut_livraison: value })}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Sélectionner un statut" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="en_attente">🟡 En attente</SelectItem>
+              <SelectItem value="partiellement_livree">🟠 Partiellement livrée</SelectItem>
+              <SelectItem value="livree">🟢 Livrée</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       {/* Section Paiement */}
@@ -126,7 +171,7 @@ const EditPrecommandeForm = ({ precommande, onSave, onCancel, isLoading }: EditP
         <h3 className="font-semibold mb-3 text-blue-800">💳 Gestion des paiements</h3>
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <Label htmlFor="acompte_verse">Acompte versé</Label>
+            <Label htmlFor="acompte_verse">Acompte versé (GNF)</Label>
             <Input
               id="acompte_verse"
               type="number"
@@ -135,10 +180,16 @@ const EditPrecommandeForm = ({ precommande, onSave, onCancel, isLoading }: EditP
               max={montantTTC}
               value={formData.acompte_verse}
               onChange={(e) => setFormData({ ...formData, acompte_verse: parseFloat(e.target.value) || 0 })}
-              placeholder="Montant de l'acompte"
+              placeholder="0"
             />
           </div>
           <div className="space-y-2">
+            <div className="text-sm">
+              <span className="font-medium">Montant HT:</span> {formatCurrency(montantHT)}
+            </div>
+            <div className="text-sm">
+              <span className="font-medium">TVA ({formData.taux_tva}%):</span> {formatCurrency(tva)}
+            </div>
             <div className="text-sm">
               <span className="font-medium">Montant TTC:</span> {formatCurrency(montantTTC)}
             </div>
@@ -251,7 +302,7 @@ const EditPrecommandeForm = ({ precommande, onSave, onCancel, isLoading }: EditP
             <span className="font-semibold">{formatCurrency(montantHT)}</span>
           </div>
           <div className="flex justify-between">
-            <span>TVA (20%):</span>
+            <span>TVA ({formData.taux_tva}%):</span>
             <span className="font-semibold">{formatCurrency(tva)}</span>
           </div>
           <div className="flex justify-between border-t pt-2">
