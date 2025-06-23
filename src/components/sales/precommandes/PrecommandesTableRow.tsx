@@ -17,7 +17,6 @@ interface PrecommandesTableRowProps {
   onEditer: (precommande: PrecommandeComplete) => void;
   onFacture: (precommande: PrecommandeComplete) => void;
   onSupprimer: (precommande: PrecommandeComplete) => void;
-  onFinaliserPaiement: (precommande: PrecommandeComplete) => void;
   isConverting: boolean;
 }
 
@@ -27,7 +26,6 @@ const PrecommandesTableRow = ({
   onEditer,
   onFacture,
   onSupprimer,
-  onFinaliserPaiement,
   isConverting
 }: PrecommandesTableRowProps) => {
   // Si la précommande a des lignes, on les affiche
@@ -72,7 +70,6 @@ const PrecommandesTableRow = ({
                     onEditer={onEditer}
                     onFacture={onFacture}
                     onSupprimer={onSupprimer}
-                    onFinaliserPaiement={onFinaliserPaiement}
                     isConverting={isConverting}
                   />
                 </TableCell>
@@ -105,7 +102,6 @@ const PrecommandesTableRow = ({
           onEditer={onEditer}
           onFacture={onFacture}
           onSupprimer={onSupprimer}
-          onFinaliserPaiement={onFinaliserPaiement}
           isConverting={isConverting}
         />
       </TableCell>
