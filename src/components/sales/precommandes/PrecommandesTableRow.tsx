@@ -5,6 +5,7 @@ import { formatCurrency } from '@/lib/currency';
 import type { PrecommandeComplete } from '@/types/precommandes';
 import PrecommandesStatusBadge from './PrecommandesStatusBadge';
 import PrecommandesTableActions from './PrecommandesTableActions';
+import { PrecommandesPaymentInfo } from './PrecommandesPaymentInfo';
 import {
   getDisponibiliteEstimee,
   calculerTotalPrecommande,
@@ -48,14 +49,8 @@ const PrecommandesTableRow = ({
             <TableCell className="text-center">{ligne.quantite}</TableCell>
             {index === 0 && (
               <>
-                <TableCell rowSpan={precommande.lignes_precommande?.length || 1} className="font-semibold">
-                  {formatCurrency(calculerTotalPrecommande(precommande))}
-                </TableCell>
                 <TableCell rowSpan={precommande.lignes_precommande?.length || 1}>
-                  {precommande.acompte_verse ? formatCurrency(precommande.acompte_verse) : '0 GNF'}
-                </TableCell>
-                <TableCell rowSpan={precommande.lignes_precommande?.length || 1} className="font-semibold text-blue-600">
-                  {formatCurrency(calculerResteAPayer(precommande))}
+                  <PrecommandesPaymentInfo precommande={precommande} />
                 </TableCell>
                 <TableCell rowSpan={precommande.lignes_precommande?.length || 1}>
                   {getDisponibiliteEstimee(precommande)}
@@ -88,9 +83,9 @@ const PrecommandesTableRow = ({
       <TableCell>{precommande.client?.nom || 'Client non spécifié'}</TableCell>
       <TableCell>Aucun produit</TableCell>
       <TableCell className="text-center">0</TableCell>
-      <TableCell className="font-semibold">{formatCurrency(0)}</TableCell>
-      <TableCell>{precommande.acompte_verse ? formatCurrency(precommande.acompte_verse) : '0 GNF'}</TableCell>
-      <TableCell className="font-semibold text-blue-600">{formatCurrency(0)}</TableCell>
+      <TableCell>
+        <PrecommandesPaymentInfo precommande={precommande} />
+      </TableCell>
       <TableCell>{getDisponibiliteEstimee(precommande)}</TableCell>
       <TableCell>
         <PrecommandesStatusBadge statut={precommande.statut} />

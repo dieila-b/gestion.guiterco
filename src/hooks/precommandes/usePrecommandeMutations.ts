@@ -1,4 +1,3 @@
-
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
@@ -74,10 +73,12 @@ export const useCreatePrecommande = () => {
     }) => {
       const { lignes, ...precommandeData } = precommande;
       
-      // Calculer les montants
+      // Calculer les montants avec TVA par défaut à 0%
       const montant_ht = lignes.reduce((sum, ligne) => sum + (ligne.quantite * ligne.prix_unitaire), 0);
-      const tva = montant_ht * 0.20; // 20% de TVA
+      const taux_tva = 0; // TVA par défaut à 0%
+      const tva = montant_ht * (taux_tva / 100);
       const montant_ttc = montant_ht + tva;
+      const reste_a_payer = montant_ttc - (precommandeData.acompte_verse || 0);
 
       // Créer la précommande
       const { data: newPrecommande, error: precommandeError } = await supabase
@@ -87,6 +88,8 @@ export const useCreatePrecommande = () => {
           montant_ht,
           tva,
           montant_ttc,
+          taux_tva,
+          reste_a_payer,
           statut: 'confirmee'
         })
         .select()
@@ -111,6 +114,7 @@ export const useCreatePrecommande = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['precommandes-complete'] });
+      queryClient.refetchQueries({ queryKey: ['precommandes-complete'] });
       toast({
         title: "Précommande créée",
         description: "La précommande a été créée avec succès.",

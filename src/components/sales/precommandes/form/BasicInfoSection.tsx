@@ -39,6 +39,7 @@ export const BasicInfoSection = ({
           onChange={(e) => onTauxTvaChange(parseFloat(e.target.value) || 0)}
           placeholder="0"
         />
+        <div className="text-xs text-gray-500 mt-1">Par défaut: 0%</div>
       </div>
     </div>
   );

@@ -22,6 +22,8 @@ export const PaymentSection = ({
   onAcompteChange
 }: PaymentSectionProps) => {
   const resteAPayer = montantTTC - acompteVerse;
+  const statutPaiement = acompteVerse === 0 ? 'Non payé' : 
+                        acompteVerse >= montantTTC ? 'Payé' : 'Partiel';
 
   return (
     <div className="border rounded-lg p-4 bg-blue-50">
@@ -55,6 +57,16 @@ export const PaymentSection = ({
           </div>
           <div className="text-sm font-bold text-blue-600">
             <span>Reste à payer:</span> {formatCurrency(resteAPayer)}
+          </div>
+          <div className="text-sm">
+            <span className="font-medium">Statut paiement:</span> 
+            <span className={`ml-2 px-2 py-1 rounded text-xs ${
+              statutPaiement === 'Payé' ? 'bg-green-100 text-green-800' :
+              statutPaiement === 'Partiel' ? 'bg-orange-100 text-orange-800' :
+              'bg-red-100 text-red-800'
+            }`}>
+              {statutPaiement}
+            </span>
           </div>
         </div>
       </div>

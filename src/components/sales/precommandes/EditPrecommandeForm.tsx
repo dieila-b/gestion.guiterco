@@ -28,7 +28,7 @@ const EditPrecommandeForm = ({ precommande, onSave, onCancel, isLoading }: EditP
       : '',
     acompte_verse: precommande.acompte_verse || 0,
     statut: precommande.statut || 'confirmee',
-    taux_tva: precommande.taux_tva || 0
+    taux_tva: precommande.taux_tva || 0 // Défaut à 0%
   });
 
   const [lignes, setLignes] = useState<LignePrecommandeComplete[]>(
@@ -92,13 +92,22 @@ const EditPrecommandeForm = ({ precommande, onSave, onCancel, isLoading }: EditP
 
   const handleSubmit = () => {
     const totals = calculateTotals();
+    const resteAPayer = totals.montantTTC - formData.acompte_verse;
+    
+    // Déterminer le statut de paiement
+    let statutPaiement = 'en_attente';
+    if (formData.acompte_verse > 0) {
+      statutPaiement = formData.acompte_verse >= totals.montantTTC ? 'paye' : 'partiel';
+    }
+
     onSave({
       ...formData,
       lignes_precommande: lignes,
       montant_ht: totals.montantHT,
       tva: totals.tva,
       montant_ttc: totals.montantTTC,
-      reste_a_payer: totals.montantTTC - formData.acompte_verse
+      reste_a_payer: resteAPayer,
+      statut_paiement: statutPaiement
     });
   };
 

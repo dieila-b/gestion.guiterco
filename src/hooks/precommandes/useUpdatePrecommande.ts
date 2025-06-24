@@ -24,6 +24,7 @@ export const useUpdatePrecommande = () => {
         statut?: string;
         taux_tva?: number;
         statut_livraison?: string;
+        statut_paiement?: string;
       };
     }) => {
       console.log('🔄 Mise à jour précommande:', { id, updates });
@@ -47,7 +48,14 @@ export const useUpdatePrecommande = () => {
       return data;
     },
     onSuccess: () => {
+      // Invalider toutes les queries liées aux précommandes pour forcer le rafraîchissement
       queryClient.invalidateQueries({ queryKey: ['precommandes-complete'] });
+      queryClient.invalidateQueries({ queryKey: ['precommandes'] });
+      queryClient.invalidateQueries({ queryKey: ['notifications-precommandes'] });
+      
+      // Forcer un rafraîchissement immédiat
+      queryClient.refetchQueries({ queryKey: ['precommandes-complete'] });
+      
       toast({
         title: "Précommande modifiée",
         description: "Les modifications ont été enregistrées avec succès.",
@@ -88,6 +96,9 @@ export const useDeletePrecommande = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['precommandes-complete'] });
+      queryClient.invalidateQueries({ queryKey: ['precommandes'] });
+      queryClient.refetchQueries({ queryKey: ['precommandes-complete'] });
+      
       toast({
         title: "Précommande supprimée",
         description: "La précommande a été supprimée avec succès.",

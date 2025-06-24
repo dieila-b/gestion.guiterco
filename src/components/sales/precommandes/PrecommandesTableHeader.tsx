@@ -6,16 +6,14 @@ const PrecommandesTableHeader = () => {
   return (
     <TableHeader>
       <TableRow>
-        <TableHead>N° Précommande</TableHead>
-        <TableHead>Client</TableHead>
-        <TableHead>Produit</TableHead>
-        <TableHead>Qté demandée</TableHead>
-        <TableHead>Total</TableHead>
-        <TableHead>Acompte</TableHead>
-        <TableHead>Reste à payer</TableHead>
-        <TableHead>Disponibilité estimée</TableHead>
-        <TableHead>Statut</TableHead>
-        <TableHead className="w-40">Actions</TableHead>
+        <TableHead className="font-semibold">N° Précommande</TableHead>
+        <TableHead className="font-semibold">Client</TableHead>
+        <TableHead className="font-semibold">Produit</TableHead>
+        <TableHead className="font-semibold text-center">Qté</TableHead>
+        <TableHead className="font-semibold">Paiement</TableHead>
+        <TableHead className="font-semibold">Disponibilité</TableHead>
+        <TableHead className="font-semibold">Statut</TableHead>
+        <TableHead className="font-semibold">Actions</TableHead>
       </TableRow>
     </TableHeader>
   );
