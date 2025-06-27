@@ -1,6 +1,6 @@
 
 import React from 'react';
-import type { PrecommandeComplete } from '@/types/precommandes';
+import type { PrecommandeComplete, LignePrecommandeComplete } from '@/types/precommandes';
 import { useCatalogue } from '@/hooks/useCatalogue';
 import { BasicInfoSection } from './form/BasicInfoSection';
 import { PaymentSection } from './form/PaymentSection';
