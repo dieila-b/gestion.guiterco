@@ -7,7 +7,7 @@ import EditPrecommandeDialog from './EditPrecommandeDialog';
 import DeletePrecommandeDialog from './DeletePrecommandeDialog';
 import PrecommandeFactureDialog from './PrecommandeFactureDialog';
 import PrecommandesTableHeader from './PrecommandesTableHeader';
-import PrecommandesTableRow from './PrecommandesTableRow';
+import PrecommandesTableRowRestructured from './PrecommandesTableRowRestructured';
 
 interface PrecommandesTableProps {
   precommandes: PrecommandeComplete[];
@@ -38,12 +38,12 @@ const PrecommandesTable = ({ precommandes }: PrecommandesTableProps) => {
 
   return (
     <>
-      <div className="border rounded-lg">
+      <div className="border rounded-lg overflow-hidden">
         <Table>
           <PrecommandesTableHeader />
           <TableBody>
             {precommandes.map((precommande) => (
-              <PrecommandesTableRow
+              <PrecommandesTableRowRestructured
                 key={precommande.id}
                 precommande={precommande}
               />
@@ -52,24 +52,30 @@ const PrecommandesTable = ({ precommandes }: PrecommandesTableProps) => {
         </Table>
       </div>
 
-      {/* Dialogs */}
-      <EditPrecommandeDialog
-        precommande={editDialog}
-        open={!!editDialog}
-        onClose={() => setEditDialog(null)}
-      />
+      {/* Dialogs globaux (au cas où certains composants en auraient besoin) */}
+      {editDialog && (
+        <EditPrecommandeDialog
+          precommande={editDialog}
+          open={!!editDialog}
+          onClose={() => setEditDialog(null)}
+        />
+      )}
 
-      <DeletePrecommandeDialog
-        precommande={deleteDialog}
-        open={!!deleteDialog}
-        onClose={() => setDeleteDialog(null)}
-      />
+      {deleteDialog && (
+        <DeletePrecommandeDialog
+          precommande={deleteDialog}
+          open={!!deleteDialog}
+          onClose={() => setDeleteDialog(null)}
+        />
+      )}
 
-      <PrecommandeFactureDialog
-        precommande={factureDialog}
-        open={!!factureDialog}
-        onClose={() => setFactureDialog(null)}
-      />
+      {factureDialog && (
+        <PrecommandeFactureDialog
+          precommande={factureDialog}
+          open={!!factureDialog}
+          onClose={() => setFactureDialog(null)}
+        />
+      )}
     </>
   );
 };
