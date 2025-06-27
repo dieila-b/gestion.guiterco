@@ -135,7 +135,7 @@ export const updateStockOnDelivery = async (lignes: LignePrecommandeComplete[], 
             throw new Error(`Impossible de mettre à jour le stock PDV pour l'article ${ligne.article_id}`);
           }
 
-          console.log(`✅ Stock PDV mis à jour - Article: ${ligne.article_id}, ${stock.quantite_disponible} → ${nouvelleQuantité}`);
+          console.log(`✅ Stock PDV mis à jour - Article: ${ligne.article_id}, ${stock.quantite_disponible} → ${nouvelleQuantite}`);
           quantiteRestante -= quantiteADeduire;
         }
       }
