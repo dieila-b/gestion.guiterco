@@ -1,4 +1,3 @@
-
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -41,30 +40,15 @@ export const useUpdatePrecommande = () => {
         updated_at: new Date().toISOString()
       };
 
-      // Mettre à jour les lignes de précommande AVANT la gestion du stock
+      // ÉTAPE 1: Mettre à jour les lignes de précommande AVANT la gestion du stock
       if (lignes_precommande && lignes_precommande.length > 0) {
         console.log('📦 Mise à jour des lignes de précommande...');
-        
-        // Récupérer les anciennes valeurs des quantités livrées pour calculer la différence
-        const { data: anciennesLignes, error: fetchError } = await supabase
-          .from('lignes_precommande')
-          .select('id, quantite_livree')
-          .in('id', lignes_precommande.map(l => l.id).filter(id => id && !id.startsWith('temp-')));
-
-        if (fetchError) {
-          console.error('❌ Erreur récupération anciennes quantités:', fetchError);
-        }
-
-        const anciennesQuantites = new Map(
-          (anciennesLignes || []).map(ligne => [ligne.id, ligne.quantite_livree || 0])
-        );
         
         for (const ligne of lignes_precommande) {
           if (ligne.id && !ligne.id.startsWith('temp-')) {
             const nouvelleQuantiteLivree = ligne.quantite_livree || 0;
-            const ancienneQuantiteLivree = anciennesQuantites.get(ligne.id) || 0;
             
-            console.log(`🔍 Ligne ${ligne.id}: ${ancienneQuantiteLivree} → ${nouvelleQuantiteLivree}`);
+            console.log(`🔍 Mise à jour ligne ${ligne.id}: quantité livrée = ${nouvelleQuantiteLivree}`);
             
             // Mise à jour de la ligne existante avec la nouvelle quantité livrée
             const { error: ligneError } = await supabase
@@ -108,10 +92,11 @@ export const useUpdatePrecommande = () => {
           }
         }
 
-        // Maintenant gérer le stock APRÈS avoir mis à jour les lignes
+        // ÉTAPE 2: Maintenant gérer le stock APRÈS avoir mis à jour les lignes
+        console.log('🏭 Mise à jour du stock...');
         await updateStockOnDelivery(lignes_precommande, id);
 
-        // Recalculer le statut de livraison global
+        // ÉTAPE 3: Recalculer le statut de livraison global
         const totalQuantite = lignes_precommande.reduce((sum, ligne) => sum + ligne.quantite, 0);
         const totalLivree = lignes_precommande.reduce((sum, ligne) => sum + (ligne.quantite_livree || 0), 0);
         
@@ -122,11 +107,13 @@ export const useUpdatePrecommande = () => {
           statutLivraison = 'partiellement_livree';
         }
 
+        console.log(`📊 Statut calculé: ${statutLivraison} (${totalLivree}/${totalQuantite})`);
+
         // Ajouter le statut de livraison aux données à mettre à jour
         updatedData.statut = statutLivraison;
       }
 
-      // Mettre à jour la précommande
+      // ÉTAPE 4: Mettre à jour la précommande
       const { data: precommandeData, error: precommandeError } = await supabase
         .from('precommandes')
         .update(updatedData)
@@ -160,7 +147,7 @@ export const useUpdatePrecommande = () => {
       
       toast({
         title: "Précommande modifiée",
-        description: "Les modifications ont été enregistrées et le stock a été mis à jour automatiquement.",
+        description: "Les modifications ont été enregistrées et le stock a été mis à jour automatiquement (différence uniquement).",
       });
     },
     onError: (error) => {

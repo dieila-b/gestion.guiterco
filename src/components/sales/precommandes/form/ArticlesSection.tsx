@@ -34,10 +34,12 @@ export const ArticlesSection = ({
         </Button>
       </div>
 
-      <Alert className="bg-blue-50 border-blue-200">
-        <AlertTriangle className="h-4 w-4 text-blue-600" />
-        <AlertDescription className="text-blue-800">
+      <Alert className="bg-orange-50 border-orange-200">
+        <AlertTriangle className="h-4 w-4 text-orange-600" />
+        <AlertDescription className="text-orange-800">
           <strong>Important :</strong> La saisie de la quantité livrée déduira automatiquement le stock de l'entrepôt ou du point de vente.
+          <br />
+          <strong>Seule la différence</strong> avec la quantité précédemment livrée sera déduite du stock.
         </AlertDescription>
       </Alert>
 
@@ -45,17 +47,21 @@ export const ArticlesSection = ({
         <div className="grid grid-cols-12 gap-2 items-center p-2 bg-gray-50 rounded text-sm font-medium">
           <div className="col-span-3">Article</div>
           <div className="col-span-2">Qté commandée</div>
-          <div className="col-span-2">Qté livrée</div>
+          <div className="col-span-2">Qté livrée (cumulée)</div>
           <div className="col-span-2">Prix unitaire</div>
           <div className="col-span-2 text-right">Montant</div>
           <div className="col-span-1">Actions</div>
         </div>
         
         {lignes.map((ligne, index) => {
-          const quantiteRestante = ligne.quantite - (ligne.quantite_livree || 0);
+          const quantiteLivreeCumulee = ligne.quantite_livree || 0;
+          const quantiteRestante = ligne.quantite - quantiteLivreeCumulee;
+          const isCompletelyDelivered = quantiteRestante <= 0;
           
           return (
-            <div key={ligne.id} className="grid grid-cols-12 gap-2 items-center p-3 border rounded">
+            <div key={ligne.id} className={`grid grid-cols-12 gap-2 items-center p-3 border rounded ${
+              isCompletelyDelivered ? 'bg-green-50 border-green-200' : 'bg-white'
+            }`}>
               <div className="col-span-3">
                 <Select 
                   value={ligne.article_id} 
@@ -90,8 +96,13 @@ export const ArticlesSection = ({
                   title="Quantité commandée"
                 />
                 {quantiteRestante > 0 && (
-                  <div className="text-xs text-blue-600 mt-1">
-                    Reste à livrer: {quantiteRestante}
+                  <div className="text-xs text-blue-600 mt-1 font-medium">
+                    Reste: {quantiteRestante}
+                  </div>
+                )}
+                {isCompletelyDelivered && (
+                  <div className="text-xs text-green-600 mt-1 font-medium">
+                    ✅ Complètement livrée
                   </div>
                 )}
               </div>
@@ -101,14 +112,16 @@ export const ArticlesSection = ({
                   type="number"
                   min="0"
                   max={ligne.quantite}
-                  value={ligne.quantite_livree || 0}
+                  value={quantiteLivreeCumulee}
                   onChange={(e) => onLigneChange(index, 'quantite_livree', parseInt(e.target.value) || 0)}
                   placeholder="Qté livrée"
-                  title="Quantité livrée - ATTENTION: Ceci déduira automatiquement le stock !"
-                  className="border-red-300 focus:border-red-500 bg-red-50"
+                  title="Quantité livrée cumulée - ATTENTION: Seule la différence sera déduite du stock !"
+                  className={`border-orange-300 focus:border-orange-500 bg-orange-50 ${
+                    isCompletelyDelivered ? 'bg-green-100 border-green-300' : ''
+                  }`}
                 />
-                <div className="text-xs text-red-600 mt-1">
-                  ⚠️ Déduit le stock automatiquement
+                <div className="text-xs text-orange-600 mt-1">
+                  ⚠️ Cumul livré (diff. déduite)
                 </div>
               </div>
               

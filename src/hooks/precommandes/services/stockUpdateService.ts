@@ -11,14 +11,14 @@ export const updateStockOnDelivery = async (lignes: LignePrecommandeComplete[], 
       continue;
     }
 
-    const quantiteLivreeActuelle = ligne.quantite_livree || 0;
+    const nouvelleQuantiteLivree = ligne.quantite_livree || 0;
     
-    // Récupérer l'ancienne quantité livrée pour calculer la différence
+    // Récupérer l'ancienne quantité livrée DEPUIS LA BASE DE DONNÉES
     const { data: ancienneLigne, error: fetchError } = await supabase
       .from('lignes_precommande')
       .select('quantite_livree')
       .eq('id', ligne.id)
-      .maybeSingle();
+      .single();
 
     if (fetchError) {
       console.error('❌ Erreur récupération ancienne quantité:', fetchError);
@@ -26,10 +26,14 @@ export const updateStockOnDelivery = async (lignes: LignePrecommandeComplete[], 
     }
 
     const ancienneQuantiteLivree = ancienneLigne?.quantite_livree || 0;
-    const differenceQuantite = quantiteLivreeActuelle - ancienneQuantiteLivree;
+    const differenceQuantite = nouvelleQuantiteLivree - ancienneQuantiteLivree;
     
-    console.log(`📊 Article ${ligne.article_id}: Ancienne qté: ${ancienneQuantiteLivree}, Nouvelle qté: ${quantiteLivreeActuelle}, Différence: ${differenceQuantite}`);
+    console.log(`📊 Article ${ligne.article_id}:`);
+    console.log(`   - Ancienne qté livrée (DB): ${ancienneQuantiteLivree}`);
+    console.log(`   - Nouvelle qté livrée: ${nouvelleQuantiteLivree}`);
+    console.log(`   - Différence à déduire: ${differenceQuantite}`);
 
+    // Si pas de nouvelle quantité à déduire, passer à l'article suivant
     if (differenceQuantite <= 0) {
       console.log('ℹ️ Pas de nouvelle quantité à déduire pour l\'article:', ligne.article_id);
       continue;
@@ -86,7 +90,7 @@ export const updateStockOnDelivery = async (lignes: LignePrecommandeComplete[], 
             quantite: quantiteADeduire,
             type_sortie: 'livraison_precommande',
             destination: 'Client',
-            observations: `Livraison précommande ${precommandeId} - Ligne: ${ligne.id}`,
+            observations: `Livraison précommande ${precommandeId} - Ligne: ${ligne.id} - Diff: ${quantiteADeduire}`,
             created_by: 'system'
           });
 
