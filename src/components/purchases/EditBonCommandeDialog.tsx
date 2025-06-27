@@ -1,20 +1,18 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Edit } from 'lucide-react';
 import { EditBonCommandeForm } from './EditBonCommandeForm';
 
 interface EditBonCommandeDialogProps {
   bon: any;
+  open: boolean;
+  onClose: () => void;
   onSuccess?: () => void;
 }
 
-export const EditBonCommandeDialog = ({ bon, onSuccess }: EditBonCommandeDialogProps) => {
-  const [open, setOpen] = useState(false);
-
+export const EditBonCommandeDialog = ({ bon, open, onClose, onSuccess }: EditBonCommandeDialogProps) => {
   const handleSuccess = () => {
-    setOpen(false);
+    onClose();
     onSuccess?.();
   };
 
@@ -24,16 +22,7 @@ export const EditBonCommandeDialog = ({ bon, onSuccess }: EditBonCommandeDialogP
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <Button
-        variant="ghost"
-        size="sm"
-        className="h-8 w-8 p-0 text-orange-400 hover:bg-orange-500/20 hover:text-orange-300"
-        onClick={() => setOpen(true)}
-        title="Éditer"
-      >
-        <Edit className="h-4 w-4" />
-      </Button>
+    <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Éditer le bon de commande {bon.numero_bon}</DialogTitle>

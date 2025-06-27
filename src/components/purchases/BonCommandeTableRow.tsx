@@ -15,6 +15,10 @@ import { formatCurrency } from '@/lib/currency';
 import type { BonCommande } from '@/types/purchases';
 import { useBonLivraisonValidation } from '@/hooks/purchases/useBonLivraisonValidation';
 import PrecommandeAlertDialog from './PrecommandeAlertDialog';
+import { EditBonCommandeDialog } from './EditBonCommandeDialog';
+import { PrintBonCommandeDialog } from './PrintBonCommandeDialog';
+import { ViewBonCommandeDialog } from './ViewBonCommandeDialog';
+import { DeleteBonCommandeDialog } from './DeleteBonCommandeDialog';
 
 interface BonCommandeTableRowProps {
   bonCommande: BonCommande;
@@ -29,8 +33,10 @@ const BonCommandeTableRow = ({
   onDelete, 
   articlesCount = 0 
 }: BonCommandeTableRowProps) => {
+  const [showView, setShowView] = useState(false);
   const [showEdit, setShowEdit] = useState(false);
   const [showPrint, setShowPrint] = useState(false);
+  const [showDelete, setShowDelete] = useState(false);
   const [showApproval, setShowApproval] = useState(false);
 
   const {
@@ -65,11 +71,37 @@ const BonCommandeTableRow = ({
     );
   };
 
-  const handleApprovalClick = () => {
-    // Simuler une vérification des précommandes
+  const handleView = () => {
+    console.log('Viewing bon commande:', bonCommande);
+    setShowView(true);
+    onView(bonCommande);
+  };
+
+  const handleEdit = () => {
+    console.log('Editing bon commande:', bonCommande);
+    setShowEdit(true);
+  };
+
+  const handleDelete = () => {
+    console.log('Deleting bon commande:', bonCommande);
+    setShowDelete(true);
+  };
+
+  const handlePrint = () => {
+    console.log('Printing bon commande:', bonCommande);
+    setShowPrint(true);
+  };
+
+  const handleApproval = () => {
+    console.log('Approving bon commande:', bonCommande);
     checkPrecommandesBeforeValidation('article-id-example', () => {
       setShowApproval(true);
     });
+  };
+
+  const handleDeleteConfirm = () => {
+    onDelete(bonCommande);
+    setShowDelete(false);
   };
 
   return (
@@ -102,7 +134,7 @@ const BonCommandeTableRow = ({
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => onView(bonCommande)}
+              onClick={handleView}
               title="Voir les détails"
               className="h-8 w-8 p-0"
             >
@@ -113,7 +145,7 @@ const BonCommandeTableRow = ({
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => setShowEdit(true)}
+                onClick={handleEdit}
                 title="Modifier"
                 className="h-8 w-8 p-0"
               >
@@ -124,7 +156,7 @@ const BonCommandeTableRow = ({
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => setShowPrint(true)}
+              onClick={handlePrint}
               title="Imprimer"
               className="h-8 w-8 p-0"
             >
@@ -132,31 +164,58 @@ const BonCommandeTableRow = ({
             </Button>
             
             {bonCommande.statut === 'en_cours' && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleApprovalClick}
-                title="Approuver et créer bon de livraison"
-                className="h-8 w-8 p-0 text-green-600 hover:text-green-800"
-              >
-                <Check className="h-4 w-4" />
-              </Button>
-            )}
-            
-            {bonCommande.statut === 'en_cours' && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => onDelete(bonCommande)}
-                title="Supprimer"
-                className="h-8 w-8 p-0 text-red-600 hover:text-red-800"
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
+              <>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleApproval}
+                  title="Approuver et créer bon de livraison"
+                  className="h-8 w-8 p-0 text-green-600 hover:text-green-800"
+                >
+                  <Check className="h-4 w-4" />
+                </Button>
+                
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleDelete}
+                  title="Supprimer"
+                  className="h-8 w-8 p-0 text-red-600 hover:text-red-800"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </>
             )}
           </div>
         </TableCell>
       </TableRow>
+
+      {/* Dialogs */}
+      <ViewBonCommandeDialog 
+        bonCommande={bonCommande}
+        open={showView}
+        onClose={() => setShowView(false)}
+      />
+
+      <EditBonCommandeDialog 
+        bon={bonCommande}
+        open={showEdit}
+        onClose={() => setShowEdit(false)}
+        onSuccess={() => setShowEdit(false)}
+      />
+
+      <PrintBonCommandeDialog 
+        bon={bonCommande}
+        open={showPrint}
+        onClose={() => setShowPrint(false)}
+      />
+
+      <DeleteBonCommandeDialog 
+        bonCommande={bonCommande}
+        open={showDelete}
+        onClose={() => setShowDelete(false)}
+        onConfirm={handleDeleteConfirm}
+      />
 
       <PrecommandeAlertDialog
         open={showAlert}

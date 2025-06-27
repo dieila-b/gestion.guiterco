@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Table, TableBody, TableHead, TableHeader, TableRow, TableCell } from '@/components/ui/table';
@@ -18,10 +19,11 @@ export const BonCommandeTable = ({
 }: BonCommandeTableProps) => {
   const handleView = (bon: any) => {
     console.log('Viewing bon:', bon);
-    // Ici on pourrait ouvrir un modal de détails
+    // La logique de visualisation est maintenant gérée dans le composant row
   };
 
   const handleDelete = (bon: any) => {
+    console.log('Deleting bon:', bon);
     onDelete(bon.id);
   };
 
