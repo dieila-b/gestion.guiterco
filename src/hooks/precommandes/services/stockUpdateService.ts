@@ -13,7 +13,7 @@ export const updateStockOnDelivery = async (lignes: LignePrecommandeComplete[], 
 
     const nouvelleQuantiteLivree = ligne.quantite_livree || 0;
     
-    // Récupérer l'ancienne quantité livrée DEPUIS LA BASE DE DONNÉES
+    // Récupérer l'ancienne quantité livrée DEPUIS LA BASE DE DONNÉES (version actuelle)
     const { data: ancienneLigne, error: fetchError } = await supabase
       .from('lignes_precommande')
       .select('quantite_livree')
@@ -22,7 +22,8 @@ export const updateStockOnDelivery = async (lignes: LignePrecommandeComplete[], 
 
     if (fetchError) {
       console.error('❌ Erreur récupération ancienne quantité:', fetchError);
-      continue;
+      // Si on ne peut pas récupérer l'ancienne valeur, on considère qu'elle était 0
+      console.warn('⚠️ Impossible de récupérer ancienne quantité, on assume 0');
     }
 
     const ancienneQuantiteLivree = ancienneLigne?.quantite_livree || 0;

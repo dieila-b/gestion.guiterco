@@ -1,3 +1,4 @@
+
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -40,23 +41,7 @@ export const useUpdatePrecommande = () => {
         updated_at: new Date().toISOString()
       };
 
-      // ÉTAPE 1 : Récupérer les anciennes valeurs des lignes AVANT toute modification
-      let anciennesLignes = [];
-      if (lignes_precommande && lignes_precommande.length > 0) {
-        const { data: currentLignes, error: fetchError } = await supabase
-          .from('lignes_precommande')
-          .select('id, quantite_livree')
-          .eq('precommande_id', id);
-
-        if (fetchError) {
-          console.error('❌ Erreur récupération anciennes lignes:', fetchError);
-        } else {
-          anciennesLignes = currentLignes || [];
-          console.log('📋 Anciennes quantités livrées récupérées:', anciennesLignes);
-        }
-      }
-
-      // ÉTAPE 2: Mettre à jour les lignes de précommande
+      // ÉTAPE 1 : Mettre à jour les lignes de précommande AVANT la gestion du stock
       if (lignes_precommande && lignes_precommande.length > 0) {
         console.log('📦 Mise à jour des lignes de précommande...');
         
@@ -108,11 +93,11 @@ export const useUpdatePrecommande = () => {
           }
         }
 
-        // ÉTAPE 3: Maintenant gérer le stock APRÈS avoir mis à jour les lignes
+        // ÉTAPE 2: Maintenant gérer le stock APRÈS avoir mis à jour les lignes
         console.log('🏭 Mise à jour du stock...');
         await updateStockOnDelivery(lignes_precommande, id);
 
-        // ÉTAPE 4: Recalculer le statut de livraison global
+        // ÉTAPE 3: Recalculer le statut de livraison global
         const totalQuantite = lignes_precommande.reduce((sum, ligne) => sum + ligne.quantite, 0);
         const totalLivree = lignes_precommande.reduce((sum, ligne) => sum + (ligne.quantite_livree || 0), 0);
         
@@ -129,7 +114,7 @@ export const useUpdatePrecommande = () => {
         updatedData.statut = statutLivraison;
       }
 
-      // ÉTAPE 5: Mettre à jour la précommande
+      // ÉTAPE 4: Mettre à jour la précommande
       const { data: precommandeData, error: precommandeError } = await supabase
         .from('precommandes')
         .update(updatedData)
