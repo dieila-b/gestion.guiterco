@@ -1,7 +1,7 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Check, Trash } from 'lucide-react';
+import { Check, Trash, Edit, FileText } from 'lucide-react';
 import { EditBonCommandeDialog } from './EditBonCommandeDialog';
 import { PrintBonCommandeDialog } from './PrintBonCommandeDialog';
 
@@ -12,10 +12,21 @@ interface ActionButtonsProps {
 }
 
 export const BonCommandeActionButtons = ({ bon, onApprove, onDelete }: ActionButtonsProps) => {
+  const [showEdit, setShowEdit] = useState(false);
+  const [showPrint, setShowPrint] = useState(false);
+
   if (bon.statut === 'en_cours') {
     return (
       <div className="flex items-center justify-center space-x-1">
-        <EditBonCommandeDialog bon={bon} />
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-8 w-8 p-0"
+          onClick={() => setShowEdit(true)}
+          title="Modifier"
+        >
+          <Edit className="h-4 w-4" />
+        </Button>
         <Button
           variant="ghost"
           size="sm"
@@ -34,13 +45,48 @@ export const BonCommandeActionButtons = ({ bon, onApprove, onDelete }: ActionBut
         >
           <Trash className="h-4 w-4" />
         </Button>
-        <PrintBonCommandeDialog bon={bon} />
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-8 w-8 p-0"
+          onClick={() => setShowPrint(true)}
+          title="Imprimer"
+        >
+          <FileText className="h-4 w-4" />
+        </Button>
+
+        <EditBonCommandeDialog 
+          bon={bon}
+          open={showEdit}
+          onClose={() => setShowEdit(false)}
+          onSuccess={() => setShowEdit(false)}
+        />
+
+        <PrintBonCommandeDialog 
+          bon={bon}
+          open={showPrint}
+          onClose={() => setShowPrint(false)}
+        />
       </div>
     );
   } else {
     return (
       <div className="flex items-center justify-center">
-        <PrintBonCommandeDialog bon={bon} />
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-8 w-8 p-0"
+          onClick={() => setShowPrint(true)}
+          title="Imprimer"
+        >
+          <FileText className="h-4 w-4" />
+        </Button>
+
+        <PrintBonCommandeDialog 
+          bon={bon}
+          open={showPrint}
+          onClose={() => setShowPrint(false)}
+        />
       </div>
     );
   }
