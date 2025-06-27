@@ -29,12 +29,18 @@ export const useUpdatePrecommande = () => {
     }) => {
       console.log('🔄 Mise à jour précommande:', { id, updates });
       
+      // Assurer la cohérence des montants sans TVA
+      const updatedData = {
+        ...updates,
+        tva: 0,
+        taux_tva: 0,
+        montant_ht: updates.montant_ttc || updates.montant_ht || 0,
+        updated_at: new Date().toISOString()
+      };
+
       const { data, error } = await supabase
         .from('precommandes')
-        .update({
-          ...updates,
-          updated_at: new Date().toISOString()
-        })
+        .update(updatedData)
         .eq('id', id)
         .select()
         .single();
@@ -48,17 +54,19 @@ export const useUpdatePrecommande = () => {
       return data;
     },
     onSuccess: () => {
-      // Invalider toutes les queries liées aux précommandes pour forcer le rafraîchissement
+      // Invalider et rafraîchir toutes les queries liées aux précommandes
       queryClient.invalidateQueries({ queryKey: ['precommandes-complete'] });
       queryClient.invalidateQueries({ queryKey: ['precommandes'] });
       queryClient.invalidateQueries({ queryKey: ['notifications-precommandes'] });
+      queryClient.invalidateQueries({ queryKey: ['factures_precommandes'] });
       
-      // Forcer un rafraîchissement immédiat
+      // Forcer un rafraîchissement immédiat de toutes les données
       queryClient.refetchQueries({ queryKey: ['precommandes-complete'] });
+      queryClient.refetchQueries({ queryKey: ['precommandes'] });
       
       toast({
         title: "Précommande modifiée",
-        description: "Les modifications ont été enregistrées avec succès.",
+        description: "Les modifications ont été enregistrées et synchronisées avec succès.",
       });
     },
     onError: (error) => {

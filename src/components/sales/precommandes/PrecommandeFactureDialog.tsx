@@ -11,7 +11,6 @@ import { Button } from '@/components/ui/button';
 import { Printer, Download } from 'lucide-react';
 import type { PrecommandeComplete } from '@/types/precommandes';
 import { formatCurrency } from '@/lib/currency';
-import { calculerTotalPrecommande, calculerResteAPayer } from './PrecommandesTableUtils';
 
 interface PrecommandeFactureDialogProps {
   precommande: PrecommandeComplete | null;
@@ -25,14 +24,14 @@ const PrecommandeFactureDialog = ({ precommande, open, onClose }: PrecommandeFac
   };
 
   const handleDownload = () => {
-    // TODO: Implementer la génération PDF
     console.log('Téléchargement de la facture pour:', precommande?.numero_precommande);
   };
 
   if (!precommande) return null;
 
-  const totalPrecommande = calculerTotalPrecommande(precommande);
-  const resteAPayer = calculerResteAPayer(precommande);
+  const montantTotal = precommande.montant_ttc || 0;
+  const acompteVerse = precommande.acompte_verse || 0;
+  const resteAPayer = montantTotal - acompteVerse;
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
@@ -107,23 +106,15 @@ const PrecommandeFactureDialog = ({ precommande, open, onClose }: PrecommandeFac
 
           {/* Totaux */}
           <div className="space-y-2 text-right">
-            <div className="text-lg">
-              <span className="font-semibold">Total HT: </span>
-              {formatCurrency(precommande.montant_ht)}
-            </div>
-            <div className="text-lg">
-              <span className="font-semibold">TVA ({precommande.taux_tva || 20}%): </span>
-              {formatCurrency(precommande.tva)}
-            </div>
             <div className="text-xl font-bold border-t pt-2">
-              <span>Total TTC: </span>
-              {formatCurrency(totalPrecommande)}
+              <span>Total: </span>
+              {formatCurrency(montantTotal)}
             </div>
-            {precommande.acompte_verse && precommande.acompte_verse > 0 && (
+            {acompteVerse > 0 && (
               <>
                 <div className="text-lg text-green-600">
                   <span className="font-semibold">Acompte versé: </span>
-                  {formatCurrency(precommande.acompte_verse)}
+                  {formatCurrency(acompteVerse)}
                 </div>
                 <div className="text-lg text-blue-600 font-semibold">
                   <span>Reste à payer: </span>

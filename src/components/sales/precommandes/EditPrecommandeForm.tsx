@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import type { PrecommandeComplete, LignePrecommandeComplete } from '@/types/precommandes';
@@ -26,8 +27,7 @@ const EditPrecommandeForm = ({ precommande, onSave, onCancel, isLoading }: EditP
       ? new Date(precommande.date_livraison_prevue).toISOString().split('T')[0] 
       : '',
     acompte_verse: precommande.acompte_verse || 0,
-    statut: precommande.statut || 'confirmee',
-    taux_tva: precommande.taux_tva || 0 // Défaut à 0%
+    statut: precommande.statut || 'confirmee'
   });
 
   const [nouvelAcompte, setNouvelAcompte] = useState(0);
@@ -70,10 +70,8 @@ const EditPrecommandeForm = ({ precommande, onSave, onCancel, isLoading }: EditP
   };
 
   const calculateTotals = () => {
-    const montantHT = lignes.reduce((sum, ligne) => sum + ligne.montant_ligne, 0);
-    const tva = montantHT * (formData.taux_tva / 100);
-    const montantTTC = montantHT + tva;
-    return { montantHT, tva, montantTTC };
+    const montantTTC = lignes.reduce((sum, ligne) => sum + ligne.montant_ligne, 0);
+    return { montantTTC };
   };
 
   const calculateDeliveryStatus = () => {
@@ -104,7 +102,7 @@ const EditPrecommandeForm = ({ precommande, onSave, onCancel, isLoading }: EditP
       statutPaiement = nouveauMontantPaye >= totals.montantTTC ? 'paye' : 'partiel';
     }
 
-    console.log('Calcul acompte:', {
+    console.log('Sauvegarde précommande:', {
       ancienAcompte: formData.acompte_verse,
       nouvelAcompte: nouvelAcompte,
       nouveauMontantPaye: nouveauMontantPaye,
@@ -116,25 +114,24 @@ const EditPrecommandeForm = ({ precommande, onSave, onCancel, isLoading }: EditP
     onSave({
       ...formData,
       lignes_precommande: lignes,
-      montant_ht: totals.montantHT,
-      tva: totals.tva,
+      montant_ht: totals.montantTTC, // Plus de distinction HT/TTC sans TVA
+      tva: 0,
       montant_ttc: totals.montantTTC,
-      acompte_verse: nouveauMontantPaye, // Le nouveau montant total payé
+      taux_tva: 0,
+      acompte_verse: nouveauMontantPaye,
       reste_a_payer: resteAPayer,
       statut_paiement: statutPaiement
     });
   };
 
-  const { montantHT, tva, montantTTC } = calculateTotals();
+  const { montantTTC } = calculateTotals();
   const deliveryStatus = calculateDeliveryStatus();
 
   return (
     <div className="space-y-6">
       <BasicInfoSection
         dateLivraisonPrevue={formData.date_livraison_prevue}
-        tauxTva={formData.taux_tva}
         onDateLivraisonChange={(value) => setFormData({ ...formData, date_livraison_prevue: value })}
-        onTauxTvaChange={(value) => setFormData({ ...formData, taux_tva: value })}
       />
 
       <StatusSection
@@ -145,10 +142,7 @@ const EditPrecommandeForm = ({ precommande, onSave, onCancel, isLoading }: EditP
 
       <PaymentSection
         acompteVerse={formData.acompte_verse}
-        montantHT={montantHT}
-        tva={tva}
         montantTTC={montantTTC}
-        tauxTva={formData.taux_tva}
         onNouvelAcompteChange={setNouvelAcompte}
       />
 
@@ -161,11 +155,8 @@ const EditPrecommandeForm = ({ precommande, onSave, onCancel, isLoading }: EditP
       />
 
       <TotalsSection
-        montantHT={montantHT}
-        tva={tva}
         montantTTC={montantTTC}
         resteAPayer={montantTTC - (formData.acompte_verse + nouvelAcompte)}
-        tauxTva={formData.taux_tva}
       />
 
       <ObservationsSection

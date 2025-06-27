@@ -6,19 +6,13 @@ import { formatCurrency } from '@/lib/currency';
 
 interface PaymentSectionProps {
   acompteVerse: number;
-  montantHT: number;
-  tva: number;
   montantTTC: number;
-  tauxTva: number;
   onNouvelAcompteChange: (value: number) => void;
 }
 
 export const PaymentSection = ({
   acompteVerse,
-  montantHT,
-  tva,
   montantTTC,
-  tauxTva,
   onNouvelAcompteChange
 }: PaymentSectionProps) => {
   const resteAPayer = montantTTC - acompteVerse;
@@ -34,13 +28,7 @@ export const PaymentSection = ({
             <div className="font-medium text-gray-700 mb-2">Situation actuelle :</div>
             <div className="space-y-1">
               <div>
-                <span className="font-medium">Montant HT:</span> {formatCurrency(montantHT)}
-              </div>
-              <div>
-                <span className="font-medium">TVA ({tauxTva}%):</span> {formatCurrency(tva)}
-              </div>
-              <div>
-                <span className="font-medium">Montant TTC:</span> {formatCurrency(montantTTC)}
+                <span className="font-medium">Montant Total:</span> {formatCurrency(montantTTC)}
               </div>
               <div className="border-t pt-1">
                 <span className="font-medium">Déjà payé:</span> {formatCurrency(acompteVerse)}
