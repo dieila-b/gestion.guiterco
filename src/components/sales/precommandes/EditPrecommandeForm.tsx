@@ -3,7 +3,6 @@ import React from 'react';
 import type { PrecommandeComplete } from '@/types/precommandes';
 import { useCatalogue } from '@/hooks/useCatalogue';
 import { BasicInfoSection } from './form/BasicInfoSection';
-import { StatusSection } from './form/StatusSection';
 import { PaymentSection } from './form/PaymentSection';
 import { DeliveryStatusSection } from './form/DeliveryStatusSection';
 import { ArticlesSection } from './form/ArticlesSection';
@@ -107,17 +106,13 @@ const EditPrecommandeForm = ({ precommande, onSave, onCancel, isLoading }: EditP
         resteAPayer={montantTTC - (formData.acompte_verse + nouvelAcompte)}
       />
 
-      {/* Sections Statuts - Maintenant en bas */}
+      {/* Section Paiement et Statut de livraison côte à côte */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="space-y-4">
-          <h3 className="font-semibold text-lg">📊 Statuts de la précommande</h3>
-          <StatusSection
-            statut={formData.statut}
-            statutLivraison={formData.statut_livraison}
-            onStatutChange={(value: StatutType) => setFormData({ ...formData, statut: value })}
-            onStatutLivraisonChange={(value: StatutLivraisonType) => setFormData({ ...formData, statut_livraison: value })}
-          />
-        </div>
+        <PaymentSection
+          acompteVerse={formData.acompte_verse}
+          montantTTC={montantTTC}
+          onNouvelAcompteChange={setNouvelAcompte}
+        />
 
         <DeliveryStatusSection
           statutLivraison={formData.statut_livraison}
@@ -126,13 +121,6 @@ const EditPrecommandeForm = ({ precommande, onSave, onCancel, isLoading }: EditP
           isLoadingLignes={isLoadingLignes}
         />
       </div>
-
-      {/* Section Paiement */}
-      <PaymentSection
-        acompteVerse={formData.acompte_verse}
-        montantTTC={montantTTC}
-        onNouvelAcompteChange={setNouvelAcompte}
-      />
 
       <ObservationsSection
         observations={formData.observations}
