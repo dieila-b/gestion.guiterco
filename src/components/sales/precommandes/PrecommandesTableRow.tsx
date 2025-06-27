@@ -1,106 +1,169 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { TableCell, TableRow } from '@/components/ui/table';
+import { Button } from '@/components/ui/button';
+import { Eye, Edit, Trash2, FileText, Truck, CreditCard } from 'lucide-react';
 import { formatCurrency } from '@/lib/currency';
+import { formatDate } from '@/lib/date-utils';
 import type { PrecommandeComplete } from '@/types/precommandes';
 import PrecommandesStatusBadge from './PrecommandesStatusBadge';
-import PrecommandesTableActions from './PrecommandesTableActions';
-import { PrecommandesPaymentInfo } from './PrecommandesPaymentInfo';
-import {
-  getDisponibiliteEstimee,
-  calculerTotalPrecommande,
-  calculerResteAPayer
-} from './PrecommandesTableUtils';
+import DeliveryStatusBadge from './DeliveryStatusBadge';
+import PrecommandeDetails from './PrecommandeDetails';
+import EditPrecommandeDialog from './EditPrecommandeDialog';
+import DeletePrecommandeDialog from './DeletePrecommandeDialog';
+import PrecommandeFactureDialog from './PrecommandeFactureDialog';
+import PaymentDialog from './PaymentDialog';
+import PrecommandeNotificationBadge from './PrecommandeNotificationBadge';
 
 interface PrecommandesTableRowProps {
   precommande: PrecommandeComplete;
-  onConvertirEnVente: (precommande: PrecommandeComplete) => void;
-  onEditer: (precommande: PrecommandeComplete) => void;
-  onFacture: (precommande: PrecommandeComplete) => void;
-  onSupprimer: (precommande: PrecommandeComplete) => void;
-  isConverting: boolean;
 }
 
-const PrecommandesTableRow = ({
-  precommande,
-  onConvertirEnVente,
-  onEditer,
-  onFacture,
-  onSupprimer,
-  isConverting
-}: PrecommandesTableRowProps) => {
-  // Si la précommande a des lignes, on les affiche
-  if (precommande.lignes_precommande && precommande.lignes_precommande.length > 0) {
-    return (
-      <>
-        {precommande.lignes_precommande.map((ligne, index) => (
-          <TableRow key={`${precommande.id}-${ligne.id}`}>
-            {index === 0 && (
-              <>
-                <TableCell rowSpan={precommande.lignes_precommande?.length || 1} className="font-medium">
-                  {precommande.numero_precommande}
-                </TableCell>
-                <TableCell rowSpan={precommande.lignes_precommande?.length || 1}>
-                  {precommande.client?.nom || 'Client non spécifié'}
-                </TableCell>
-              </>
-            )}
-            <TableCell>{ligne.article?.nom || 'Article non trouvé'}</TableCell>
-            <TableCell className="text-center">{ligne.quantite}</TableCell>
-            {index === 0 && (
-              <>
-                <TableCell rowSpan={precommande.lignes_precommande?.length || 1}>
-                  <PrecommandesPaymentInfo precommande={precommande} />
-                </TableCell>
-                <TableCell rowSpan={precommande.lignes_precommande?.length || 1}>
-                  {getDisponibiliteEstimee(precommande)}
-                </TableCell>
-                <TableCell rowSpan={precommande.lignes_precommande?.length || 1}>
-                  <PrecommandesStatusBadge statut={precommande.statut} />
-                </TableCell>
-                <TableCell rowSpan={precommande.lignes_precommande?.length || 1}>
-                  <PrecommandesTableActions
-                    precommande={precommande}
-                    onConvertirEnVente={onConvertirEnVente}
-                    onEditer={onEditer}
-                    onFacture={onFacture}
-                    onSupprimer={onSupprimer}
-                    isConverting={isConverting}
-                  />
-                </TableCell>
-              </>
-            )}
-          </TableRow>
-        ))}
-      </>
-    );
-  }
+const PrecommandesTableRow = ({ precommande }: PrecommandesTableRowProps) => {
+  const [showDetails, setShowDetails] = useState(false);
+  const [showEdit, setShowEdit] = useState(false);
+  const [showDelete, setShowDelete] = useState(false);
+  const [showFacture, setShowFacture] = useState(false);
+  const [showPayment, setShowPayment] = useState(false);
 
-  // Si pas de lignes, on affiche une ligne vide
+  const calculateDeliveryStatus = () => {
+    if (!precommande.lignes_precommande || precommande.lignes_precommande.length === 0) {
+      return 'en_attente';
+    }
+
+    const totalQuantite = precommande.lignes_precommande.reduce((sum, ligne) => sum + ligne.quantite, 0);
+    const totalLivree = precommande.lignes_precommande.reduce((sum, ligne) => sum + (ligne.quantite_livree || 0), 0);
+
+    if (totalLivree === totalQuantite && totalQuantite > 0) {
+      return 'livree';
+    } else if (totalLivree > 0) {
+      return 'partiellement_livree';
+    } else {
+      return 'en_attente';
+    }
+  };
+
+  const deliveryStatus = calculateDeliveryStatus();
+  const resteAPayer = (precommande.montant_ttc || 0) - (precommande.acompte_verse || 0);
+
   return (
-    <TableRow key={precommande.id}>
-      <TableCell className="font-medium">{precommande.numero_precommande}</TableCell>
-      <TableCell>{precommande.client?.nom || 'Client non spécifié'}</TableCell>
-      <TableCell>Aucun produit</TableCell>
-      <TableCell className="text-center">0</TableCell>
-      <TableCell>
-        <PrecommandesPaymentInfo precommande={precommande} />
-      </TableCell>
-      <TableCell>{getDisponibiliteEstimee(precommande)}</TableCell>
-      <TableCell>
-        <PrecommandesStatusBadge statut={precommande.statut} />
-      </TableCell>
-      <TableCell>
-        <PrecommandesTableActions
-          precommande={precommande}
-          onConvertirEnVente={onConvertirEnVente}
-          onEditer={onEditer}
-          onFacture={onFacture}
-          onSupprimer={onSupprimer}
-          isConverting={isConverting}
-        />
-      </TableCell>
-    </TableRow>
+    <>
+      <TableRow className="hover:bg-gray-50">
+        <TableCell className="font-medium">
+          <div className="space-y-1">
+            <div>{precommande.numero_precommande}</div>
+            {precommande.notifications && precommande.notifications.length > 0 && (
+              <PrecommandeNotificationBadge notifications={precommande.notifications} />
+            )}
+          </div>
+        </TableCell>
+        <TableCell>{formatDate(precommande.date_precommande)}</TableCell>
+        <TableCell>
+          <div className="font-medium">{precommande.client?.nom}</div>
+          {precommande.client?.email && (
+            <div className="text-sm text-gray-500">{precommande.client.email}</div>
+          )}
+        </TableCell>
+        <TableCell>
+          <div className="space-y-1">
+            <PrecommandesStatusBadge statut={precommande.statut} />
+            <DeliveryStatusBadge statut={deliveryStatus} />
+          </div>
+        </TableCell>
+        <TableCell className="text-right">
+          <div className="space-y-1">
+            <div className="font-medium">{formatCurrency(precommande.montant_ttc)}</div>
+            {(precommande.acompte_verse || 0) > 0 && (
+              <div className="text-sm text-green-600">
+                Acompte: {formatCurrency(precommande.acompte_verse || 0)}
+              </div>
+            )}
+            {resteAPayer > 0 && (
+              <div className="text-sm text-blue-600">
+                Reste: {formatCurrency(resteAPayer)}
+              </div>
+            )}
+          </div>
+        </TableCell>
+        <TableCell>
+          <div className="flex space-x-1">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowDetails(true)}
+              title="Voir les détails"
+            >
+              <Eye className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowEdit(true)}
+              title="Modifier"
+            >
+              <Edit className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowFacture(true)}
+              title="Voir la facture"
+            >
+              <FileText className="h-4 w-4" />
+            </Button>
+            {resteAPayer > 0 && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowPayment(true)}
+                title="Effectuer un paiement"
+              >
+                <CreditCard className="h-4 w-4" />
+              </Button>
+            )}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowDelete(true)}
+              title="Supprimer"
+              className="text-red-600 hover:text-red-800"
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </div>
+        </TableCell>
+      </TableRow>
+
+      <PrecommandeDetails
+        precommande={precommande}
+        open={showDetails}
+        onClose={() => setShowDetails(false)}
+      />
+
+      <EditPrecommandeDialog
+        precommande={precommande}
+        open={showEdit}
+        onClose={() => setShowEdit(false)}
+      />
+
+      <DeletePrecommandeDialog
+        precommande={precommande}
+        open={showDelete}
+        onClose={() => setShowDelete(false)}
+      />
+
+      <PrecommandeFactureDialog
+        precommande={precommande}
+        open={showFacture}
+        onClose={() => setShowFacture(false)}
+      />
+
+      <PaymentDialog
+        precommande={precommande}
+        open={showPayment}
+        onClose={() => setShowPayment(false)}
+      />
+    </>
   );
 };
 

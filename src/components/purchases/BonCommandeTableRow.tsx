@@ -1,74 +1,174 @@
-
-import React from 'react';
+import React, { useState } from 'react';
 import { TableCell, TableRow } from '@/components/ui/table';
+import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { format } from 'date-fns';
-import { fr } from 'date-fns/locale';
+import { 
+  Eye, 
+  Edit, 
+  Trash2, 
+  FileText, 
+  Truck, 
+  Check,
+  AlertTriangle
+} from 'lucide-react';
+import { formatDate } from '@/lib/date-utils';
 import { formatCurrency } from '@/lib/currency';
-import { BonCommandeActionButtons } from './BonCommandeActionButtons';
+import type { BonCommande } from '@/types/purchases';
+import EditBonCommandeDialog from './EditBonCommandeDialog';
+import PrintBonCommandeDialog from './PrintBonCommandeDialog';
+import ApprovalDialog from './ApprovalDialog';
+import MultipleDestinationApprovalDialog from './MultipleDestinationApprovalDialog';
+import PrecommandeAlertDialog from './PrecommandeAlertDialog';
+import { useBonLivraisonValidation } from '@/hooks/purchases/useBonLivraisonValidation';
 
 interface BonCommandeTableRowProps {
-  bon: any;
-  articlesCount: number;
-  onApprove: (id: string, bon: any) => void;
-  onDelete: (id: string) => void;
+  bonCommande: BonCommande;
+  onView: (bon: BonCommande) => void;
+  onDelete: (bon: BonCommande) => void;
 }
 
-export const BonCommandeTableRow = ({ bon, articlesCount, onApprove, onDelete }: BonCommandeTableRowProps) => {
-  const getStatusBadgeColor = (statut: string) => {
-    switch (statut) {
-      case 'en_cours': return 'bg-orange-100 text-orange-800 border-orange-300';
-      case 'valide': return 'bg-green-100 text-green-800 border-green-300';
-      case 'livre': return 'bg-blue-100 text-blue-800 border-blue-300';
-      case 'annule': return 'bg-red-100 text-red-800 border-red-300';
-      default: return 'bg-gray-100 text-gray-800 border-gray-300';
-    }
+const BonCommandeTableRow = ({ bonCommande, onView, onDelete }: BonCommandeTableRowProps) => {
+  const [showEdit, setShowEdit] = useState(false);
+  const [showPrint, setShowPrint] = useState(false);
+  const [showApproval, setShowApproval] = useState(false);
+  const [showMultipleDestination, setShowMultipleDestination] = useState(false);
+
+  const {
+    alertInfo,
+    showAlert,
+    checkPrecommandesBeforeValidation,
+    confirmValidation,
+    cancelValidation
+  } = useBonLivraisonValidation();
+
+  const getStatutBadge = (statut: string) => {
+    const variants = {
+      'en_cours': 'secondary',
+      'approuve': 'default',
+      'livre': 'outline',
+      'receptionne': 'outline',
+      'annule': 'destructive'
+    } as const;
+
+    return (
+      <Badge variant={variants[statut as keyof typeof variants] || 'secondary'}>
+        {statut}
+      </Badge>
+    );
   };
 
-  const getStatusLabel = (statut: string) => {
-    switch (statut) {
-      case 'en_cours': return 'En attente';
-      case 'valide': return 'Approuvé';
-      case 'livre': return 'Livré';
-      case 'annule': return 'Annulé';
-      default: return statut;
+  const handleApprovalClick = () => {
+    if (bonCommande.articles && bonCommande.articles.some(article => article.article_id)) {
+      // Vérifier s'il y a des précommandes pour les articles de ce bon de commande
+      const firstArticleId = bonCommande.articles[0].article_id;
+      checkPrecommandesBeforeValidation(firstArticleId, () => {
+        setShowApproval(true);
+      });
+    } else {
+      setShowApproval(true);
     }
   };
 
   return (
-    <TableRow className="hover:bg-gray-50 transition-colors divide-x divide-gray-200">
-      <TableCell className="text-gray-800 font-medium text-sm px-4 py-3">
-        {bon.numero_bon}
-      </TableCell>
-      <TableCell className="text-gray-500 text-sm px-4 py-3">
-        {format(new Date(bon.date_commande), 'dd/MM/yyyy', { locale: fr })}
-      </TableCell>
-      <TableCell className="text-gray-800 text-sm px-4 py-3">
-        {bon.fournisseur}
-      </TableCell>
-      <TableCell className="px-4 py-3 text-center">
-        <span className="inline-flex items-center rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-medium text-blue-800">
-          {articlesCount}
-        </span>
-      </TableCell>
-      <TableCell className="px-4 py-3 text-center">
-        <Badge 
-          variant="outline" 
-          className={`${getStatusBadgeColor(bon.statut)} font-medium text-xs px-2.5 py-0.5`}
-        >
-          {getStatusLabel(bon.statut)}
-        </Badge>
-      </TableCell>
-      <TableCell className="text-gray-800 font-semibold text-sm px-4 py-3 text-right">
-        {formatCurrency(bon.montant_total)}
-      </TableCell>
-      <TableCell className="px-4 py-3 text-center">
-        <BonCommandeActionButtons
-          bon={bon}
-          onApprove={onApprove}
-          onDelete={onDelete}
-        />
-      </TableCell>
-    </TableRow>
+    <>
+      <TableRow className="hover:bg-gray-50">
+        <TableCell className="font-medium">{bonCommande.numero_bon}</TableCell>
+        <TableCell>{formatDate(bonCommande.date_commande)}</TableCell>
+        <TableCell>{bonCommande.fournisseur}</TableCell>
+        <TableCell>{getStatutBadge(bonCommande.statut)}</TableCell>
+        <TableCell className="text-right font-medium">
+          {formatCurrency(bonCommande.montant_total)}
+        </TableCell>
+        <TableCell>
+          <div className="flex space-x-1">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => onView(bonCommande)}
+              title="Voir les détails"
+            >
+              <Eye className="h-4 w-4" />
+            </Button>
+            
+            {bonCommande.statut === 'en_cours' && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowEdit(true)}
+                title="Modifier"
+              >
+                <Edit className="h-4 w-4" />
+              </Button>
+            )}
+            
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowPrint(true)}
+              title="Imprimer"
+            >
+              <FileText className="h-4 w-4" />
+            </Button>
+            
+            {bonCommande.statut === 'en_cours' && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleApprovalClick}
+                title="Approuver et créer bon de livraison"
+                className="text-green-600 hover:text-green-800"
+              >
+                <Check className="h-4 w-4" />
+              </Button>
+            )}
+            
+            {bonCommande.statut === 'en_cours' && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => onDelete(bonCommande)}
+                title="Supprimer"
+                className="text-red-600 hover:text-red-800"
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            )}
+          </div>
+        </TableCell>
+      </TableRow>
+
+      <EditBonCommandeDialog
+        bonCommande={bonCommande}
+        open={showEdit}
+        onClose={() => setShowEdit(false)}
+      />
+
+      <PrintBonCommandeDialog
+        bonCommande={bonCommande}
+        open={showPrint}
+        onClose={() => setShowPrint(false)}
+      />
+
+      <ApprovalDialog
+        bonCommande={bonCommande}
+        open={showApproval}
+        onClose={() => setShowApproval(false)}
+      />
+
+      <MultipleDestinationApprovalDialog
+        bonCommande={bonCommande}
+        open={showMultipleDestination}
+        onClose={() => setShowMultipleDestination(false)}
+      />
+
+      <PrecommandeAlertDialog
+        open={showAlert}
+        onClose={cancelValidation}
+        alertInfo={alertInfo}
+        onConfirm={confirmValidation}
+      />
+    </>
   );
 };
+
+export default BonCommandeTableRow;

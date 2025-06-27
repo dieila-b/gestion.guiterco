@@ -2790,6 +2790,16 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: Json
       }
+      get_precommandes_info_for_article: {
+        Args: { p_article_id: string }
+        Returns: {
+          article_nom: string
+          total_en_precommande: number
+          total_deja_livre: number
+          reste_a_livrer: number
+          nb_precommandes: number
+        }[]
+      }
       get_rapport_marges_periode: {
         Args: { date_debut: string; date_fin: string }
         Returns: {
