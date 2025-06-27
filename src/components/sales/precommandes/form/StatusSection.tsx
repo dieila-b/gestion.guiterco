@@ -30,7 +30,7 @@ export const StatusSection = ({
   onStatutLivraisonChange
 }: StatusSectionProps) => {
   return (
-    <div className="grid grid-cols-2 gap-4">
+    <div className="space-y-4 p-4 border rounded-lg bg-gray-50">
       <div>
         <Label htmlFor="statut">Statut de la précommande</Label>
         <Select 
@@ -50,6 +50,7 @@ export const StatusSection = ({
           </SelectContent>
         </Select>
       </div>
+      
       <div>
         <Label htmlFor="statut_livraison">Statut de livraison</Label>
         <Select 
@@ -65,9 +66,6 @@ export const StatusSection = ({
             <SelectItem value="livree">🟢 Livrée</SelectItem>
           </SelectContent>
         </Select>
-        <div className="mt-2 text-sm text-amber-600 bg-amber-50 p-2 rounded">
-          💡 Vous pouvez compléter ou modifier les quantités dans la section Articles
-        </div>
       </div>
     </div>
   );

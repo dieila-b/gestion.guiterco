@@ -3,7 +3,7 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Trash2, Plus, AlertTriangle } from 'lucide-react';
+import { Trash2, Plus, AlertTriangle, Package } from 'lucide-react';
 import type { LignePrecommandeComplete } from '@/types/precommandes';
 import type { Article } from '@/hooks/useCatalogue';
 import { formatCurrency } from '@/lib/currency';
@@ -27,7 +27,10 @@ export const ArticlesSection = ({
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
-        <h3 className="font-semibold">Articles de la précommande</h3>
+        <h3 className="font-semibold text-lg flex items-center gap-2">
+          <Package className="h-5 w-5" />
+          Articles de la précommande
+        </h3>
         <Button type="button" variant="outline" size="sm" onClick={onAddLigne}>
           <Plus className="h-4 w-4 mr-2" />
           Ajouter un article
@@ -44,12 +47,13 @@ export const ArticlesSection = ({
       </Alert>
 
       <div className="space-y-3">
-        <div className="grid grid-cols-12 gap-2 items-center p-2 bg-gray-50 rounded text-sm font-medium">
+        <div className="grid grid-cols-12 gap-2 items-center p-3 bg-gray-50 rounded text-sm font-medium">
           <div className="col-span-3">Article</div>
           <div className="col-span-2">Qté commandée</div>
-          <div className="col-span-2">Qté livrée (cumulée)</div>
+          <div className="col-span-2">Qté livrée</div>
+          <div className="col-span-1">Reste</div>
           <div className="col-span-2">Prix unitaire</div>
-          <div className="col-span-2 text-right">Montant</div>
+          <div className="col-span-1 text-right">Montant</div>
           <div className="col-span-1">Actions</div>
         </div>
         
@@ -59,8 +63,8 @@ export const ArticlesSection = ({
           const isCompletelyDelivered = quantiteRestante <= 0;
           
           return (
-            <div key={ligne.id} className={`grid grid-cols-12 gap-2 items-center p-3 border rounded ${
-              isCompletelyDelivered ? 'bg-green-50 border-green-200' : 'bg-white'
+            <div key={ligne.id} className={`grid grid-cols-12 gap-2 items-center p-3 border rounded-lg ${
+              isCompletelyDelivered ? 'bg-green-50 border-green-200' : 'bg-white border-gray-200'
             }`}>
               <div className="col-span-3">
                 <Select 
@@ -73,7 +77,7 @@ export const ArticlesSection = ({
                     }
                   }}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className="text-sm">
                     <SelectValue placeholder="Sélectionner un article" />
                   </SelectTrigger>
                   <SelectContent>
@@ -92,19 +96,9 @@ export const ArticlesSection = ({
                   min="1"
                   value={ligne.quantite}
                   onChange={(e) => onLigneChange(index, 'quantite', parseInt(e.target.value) || 1)}
-                  placeholder="Qté cmd"
-                  title="Quantité commandée"
+                  placeholder="Qté"
+                  className="text-sm"
                 />
-                {quantiteRestante > 0 && (
-                  <div className="text-xs text-blue-600 mt-1 font-medium">
-                    Reste: {quantiteRestante}
-                  </div>
-                )}
-                {isCompletelyDelivered && (
-                  <div className="text-xs text-green-600 mt-1 font-medium">
-                    ✅ Complètement livrée
-                  </div>
-                )}
               </div>
               
               <div className="col-span-2">
@@ -115,13 +109,20 @@ export const ArticlesSection = ({
                   value={quantiteLivreeCumulee}
                   onChange={(e) => onLigneChange(index, 'quantite_livree', parseInt(e.target.value) || 0)}
                   placeholder="Qté livrée"
-                  title="Quantité livrée cumulée - ATTENTION: Seule la différence sera déduite du stock !"
-                  className={`border-orange-300 focus:border-orange-500 bg-orange-50 ${
+                  className={`text-sm border-orange-300 focus:border-orange-500 bg-orange-50 ${
                     isCompletelyDelivered ? 'bg-green-100 border-green-300' : ''
                   }`}
+                  title="Quantité livrée cumulée - Seule la différence sera déduite du stock"
                 />
-                <div className="text-xs text-orange-600 mt-1">
-                  ⚠️ Cumul livré (diff. déduite)
+              </div>
+
+              <div className="col-span-1">
+                <div className={`text-xs font-medium p-2 rounded text-center ${
+                  quantiteRestante === 0 ? 'bg-green-100 text-green-700' : 
+                  quantiteRestante < ligne.quantite ? 'bg-blue-100 text-blue-700' : 
+                  'bg-gray-100 text-gray-700'
+                }`}>
+                  {quantiteRestante}
                 </div>
               </div>
               
@@ -131,11 +132,12 @@ export const ArticlesSection = ({
                   step="0.01"
                   value={ligne.prix_unitaire}
                   onChange={(e) => onLigneChange(index, 'prix_unitaire', parseFloat(e.target.value) || 0)}
-                  placeholder="Prix unitaire"
+                  placeholder="Prix"
+                  className="text-sm"
                 />
               </div>
               
-              <div className="col-span-2 text-right text-sm font-medium">
+              <div className="col-span-1 text-right text-sm font-medium">
                 {formatCurrency(ligne.montant_ligne)}
               </div>
               
@@ -145,7 +147,7 @@ export const ArticlesSection = ({
                   variant="outline"
                   size="sm"
                   onClick={() => onDeleteLigne(index)}
-                  className="text-red-600 hover:text-red-700"
+                  className="text-red-600 hover:text-red-700 p-1 h-8 w-8"
                   title="Supprimer cette ligne"
                 >
                   <Trash2 className="h-4 w-4" />
@@ -157,8 +159,10 @@ export const ArticlesSection = ({
       </div>
 
       {lignes.length === 0 && (
-        <div className="text-center py-8 text-gray-500">
-          <p>Aucun article ajouté à cette précommande.</p>
+        <div className="text-center py-8 text-gray-500 border-2 border-dashed border-gray-200 rounded-lg">
+          <Package className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+          <p className="text-lg font-medium">Aucun article ajouté à cette précommande</p>
+          <p className="text-sm mb-4">Commencez par ajouter un article pour continuer</p>
           <Button 
             type="button" 
             variant="outline" 

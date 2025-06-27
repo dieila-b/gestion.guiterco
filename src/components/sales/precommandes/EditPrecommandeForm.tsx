@@ -92,20 +92,32 @@ const EditPrecommandeForm = ({ precommande, onSave, onCancel, isLoading }: EditP
         onDateLivraisonChange={(value) => setFormData({ ...formData, date_livraison_prevue: value })}
       />
 
-      <StatusSection
-        statut={formData.statut}
-        statutLivraison={formData.statut_livraison}
-        onStatutChange={(value: StatutType) => setFormData({ ...formData, statut: value })}
-        onStatutLivraisonChange={(value: StatutLivraisonType) => setFormData({ ...formData, statut_livraison: value })}
+      {/* Section Articles - Maintenant juste après la date de livraison */}
+      <ArticlesSection
+        lignes={lignes}
+        articles={articles}
+        onLigneChange={handleLigneChange}
+        onDeleteLigne={handleDeleteLigne}
+        onAddLigne={handleAddLigne}
       />
 
-      {/* Section paiement et statut de livraison côte à côte */}
+      {/* Section Totaux */}
+      <TotalsSection
+        montantTTC={montantTTC}
+        resteAPayer={montantTTC - (formData.acompte_verse + nouvelAcompte)}
+      />
+
+      {/* Sections Statuts - Maintenant en bas */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <PaymentSection
-          acompteVerse={formData.acompte_verse}
-          montantTTC={montantTTC}
-          onNouvelAcompteChange={setNouvelAcompte}
-        />
+        <div className="space-y-4">
+          <h3 className="font-semibold text-lg">📊 Statuts de la précommande</h3>
+          <StatusSection
+            statut={formData.statut}
+            statutLivraison={formData.statut_livraison}
+            onStatutChange={(value: StatutType) => setFormData({ ...formData, statut: value })}
+            onStatutLivraisonChange={(value: StatutLivraisonType) => setFormData({ ...formData, statut_livraison: value })}
+          />
+        </div>
 
         <DeliveryStatusSection
           statutLivraison={formData.statut_livraison}
@@ -115,17 +127,11 @@ const EditPrecommandeForm = ({ precommande, onSave, onCancel, isLoading }: EditP
         />
       </div>
 
-      <ArticlesSection
-        lignes={lignes}
-        articles={articles}
-        onLigneChange={handleLigneChange}
-        onDeleteLigne={handleDeleteLigne}
-        onAddLigne={handleAddLigne}
-      />
-
-      <TotalsSection
+      {/* Section Paiement */}
+      <PaymentSection
+        acompteVerse={formData.acompte_verse}
         montantTTC={montantTTC}
-        resteAPayer={montantTTC - (formData.acompte_verse + nouvelAcompte)}
+        onNouvelAcompteChange={setNouvelAcompte}
       />
 
       <ObservationsSection
