@@ -3,10 +3,11 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Trash2, Plus } from 'lucide-react';
+import { Trash2, Plus, AlertTriangle } from 'lucide-react';
 import type { LignePrecommandeComplete } from '@/types/precommandes';
 import type { Article } from '@/hooks/useCatalogue';
 import { formatCurrency } from '@/lib/currency';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface ArticlesSectionProps {
   lignes: LignePrecommandeComplete[];
@@ -32,6 +33,13 @@ export const ArticlesSection = ({
           Ajouter un article
         </Button>
       </div>
+
+      <Alert className="bg-blue-50 border-blue-200">
+        <AlertTriangle className="h-4 w-4 text-blue-600" />
+        <AlertDescription className="text-blue-800">
+          <strong>Important :</strong> La saisie de la quantité livrée déduira automatiquement le stock de l'entrepôt ou du point de vente.
+        </AlertDescription>
+      </Alert>
 
       <div className="space-y-3">
         <div className="grid grid-cols-12 gap-2 items-center p-2 bg-gray-50 rounded text-sm font-medium">
@@ -88,9 +96,12 @@ export const ArticlesSection = ({
                 value={ligne.quantite_livree || 0}
                 onChange={(e) => onLigneChange(index, 'quantite_livree', parseInt(e.target.value) || 0)}
                 placeholder="Qté livrée"
-                title="Quantité livrée (saisie manuelle)"
-                className="border-blue-300 focus:border-blue-500"
+                title="Quantité livrée - ATTENTION: Ceci déduira automatiquement le stock !"
+                className="border-red-300 focus:border-red-500 bg-red-50"
               />
+              <div className="text-xs text-red-600 mt-1">
+                ⚠️ Déduit le stock automatiquement
+              </div>
             </div>
             
             <div className="col-span-2">

@@ -1,6 +1,8 @@
+
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { updateStockOnDelivery } from './services/stockUpdateService';
 
 export const useUpdatePrecommande = () => {
   const queryClient = useQueryClient();
@@ -52,8 +54,11 @@ export const useUpdatePrecommande = () => {
         throw precommandeError;
       }
 
-      // Mettre à jour les lignes de précommande si fournies
+      // Mettre à jour les lignes de précommande et gérer le stock
       if (lignes_precommande && lignes_precommande.length > 0) {
+        // Mettre à jour le stock AVANT de mettre à jour les lignes
+        await updateStockOnDelivery(lignes_precommande, id);
+
         for (const ligne of lignes_precommande) {
           if (ligne.id && !ligne.id.startsWith('temp-')) {
             // Mise à jour d'une ligne existante
@@ -106,16 +111,20 @@ export const useUpdatePrecommande = () => {
       return precommandeData;
     },
     onSuccess: () => {
-      // Invalider et rafraîchir toutes les queries liées aux précommandes
+      // Invalider et rafraîchir toutes les queries liées aux précommandes ET au stock
       queryClient.invalidateQueries({ queryKey: ['precommandes-complete'] });
       queryClient.invalidateQueries({ queryKey: ['precommandes'] });
       queryClient.invalidateQueries({ queryKey: ['notifications-precommandes'] });
       queryClient.invalidateQueries({ queryKey: ['factures_precommandes'] });
       queryClient.invalidateQueries({ queryKey: ['stock-disponibilite-multiple'] });
+      queryClient.invalidateQueries({ queryKey: ['stock-principal'] });
+      queryClient.invalidateQueries({ queryKey: ['stock-pdv'] });
       
       // Forcer un rafraîchissement immédiat de toutes les données
       queryClient.refetchQueries({ queryKey: ['precommandes-complete'] });
       queryClient.refetchQueries({ queryKey: ['precommandes'] });
+      queryClient.refetchQueries({ queryKey: ['stock-principal'] });
+      queryClient.refetchQueries({ queryKey: ['stock-pdv'] });
       
       toast({
         title: "Précommande modifiée",
