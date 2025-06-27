@@ -31,6 +31,7 @@ const EditPrecommandeForm = ({ precommande, onSave, onCancel, isLoading }: EditP
     nouvelAcompte,
     setNouvelAcompte,
     lignes,
+    setLignes,
     isLoadingLignes,
     handleLigneChange,
     handleDeleteLigne,
@@ -43,6 +44,11 @@ const EditPrecommandeForm = ({ precommande, onSave, onCancel, isLoading }: EditP
     quantite: l.quantite,
     quantite_livree: l.quantite_livree
   })));
+
+  const handleLignesUpdate = (updatedLignes: LignePrecommandeComplete[]) => {
+    console.log('🔄 Mise à jour des lignes depuis le modal:', updatedLignes);
+    setLignes(updatedLignes);
+  };
 
   const handleSubmit = () => {
     const totals = calculateTotals();
@@ -118,6 +124,7 @@ const EditPrecommandeForm = ({ precommande, onSave, onCancel, isLoading }: EditP
           statutLivraison={formData.statut_livraison}
           lignes={lignes}
           onStatutLivraisonChange={(value: StatutLivraisonType) => setFormData({ ...formData, statut_livraison: value })}
+          onLignesUpdate={handleLignesUpdate}
           isLoadingLignes={isLoadingLignes}
         />
       </div>
