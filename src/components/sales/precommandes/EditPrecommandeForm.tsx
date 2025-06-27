@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import type { PrecommandeComplete, LignePrecommandeComplete } from '@/types/precommandes';
 import { useCatalogue } from '@/hooks/useCatalogue';
@@ -9,6 +9,7 @@ import { PaymentSection } from './form/PaymentSection';
 import { ArticlesSection } from './form/ArticlesSection';
 import { TotalsSection } from './form/TotalsSection';
 import { ObservationsSection } from './form/ObservationsSection';
+import { supabase } from '@/integrations/supabase/client';
 
 interface EditPrecommandeFormProps {
   precommande: PrecommandeComplete;
@@ -31,17 +32,44 @@ const EditPrecommandeForm = ({ precommande, onSave, onCancel, isLoading }: EditP
   });
 
   const [nouvelAcompte, setNouvelAcompte] = useState(0);
+  const [lignes, setLignes] = useState<LignePrecommandeComplete[]>([]);
+  const [isLoadingLignes, setIsLoadingLignes] = useState(true);
 
-  // Initialiser les lignes avec les vraies quantités livrées depuis la base
-  const [lignes, setLignes] = useState<LignePrecommandeComplete[]>(
-    (precommande.lignes_precommande || []).map(ligne => ({
-      ...ligne,
-      // S'assurer que quantite_livree est bien récupérée de la base
-      quantite_livree: ligne.quantite_livree || 0
-    }))
-  );
+  // Charger les lignes avec les vraies quantités livrées depuis la base
+  useEffect(() => {
+    const loadLignesFromDB = async () => {
+      if (!precommande.id) return;
+      
+      setIsLoadingLignes(true);
+      console.log('🔄 Chargement des lignes depuis la base pour précommande:', precommande.id);
+      
+      try {
+        const { data: lignesDB, error } = await supabase
+          .from('lignes_precommande')
+          .select('*')
+          .eq('precommande_id', precommande.id)
+          .order('created_at');
 
-  console.log('📋 Initialisation formulaire avec lignes:', lignes.map(l => ({
+        if (error) {
+          console.error('❌ Erreur chargement lignes:', error);
+          // Fallback vers les données de la prop
+          setLignes(precommande.lignes_precommande || []);
+        } else {
+          console.log('✅ Lignes chargées depuis DB:', lignesDB);
+          setLignes(lignesDB || []);
+        }
+      } catch (error) {
+        console.error('❌ Erreur critique chargement lignes:', error);
+        setLignes(precommande.lignes_precommande || []);
+      } finally {
+        setIsLoadingLignes(false);
+      }
+    };
+
+    loadLignesFromDB();
+  }, [precommande.id, precommande.lignes_precommande]);
+
+  console.log('📋 Lignes actuelles dans le formulaire:', lignes.map(l => ({
     id: l.id,
     quantite: l.quantite,
     quantite_livree: l.quantite_livree
@@ -59,6 +87,9 @@ const EditPrecommandeForm = ({ precommande, onSave, onCancel, isLoading }: EditP
     };
     
     console.log(`🔄 Modification ligne ${index}, champ ${field}:`, value);
+    if (field === 'quantite_livree') {
+      console.log(`📦 Nouvelle quantité livrée pour ligne ${newLignes[index].id}: ${value}`);
+    }
     setLignes(newLignes);
   };
 
@@ -137,6 +168,17 @@ const EditPrecommandeForm = ({ precommande, onSave, onCancel, isLoading }: EditP
 
   const { montantTTC } = calculateTotals();
   const deliveryStatus = calculateDeliveryStatus();
+
+  if (isLoadingLignes) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-2"></div>
+          <p className="text-gray-600">Chargement des données...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
