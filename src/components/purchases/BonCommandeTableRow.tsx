@@ -13,8 +13,7 @@ import {
 import { formatDate } from '@/lib/date-utils';
 import { formatCurrency } from '@/lib/currency';
 import type { BonCommande } from '@/types/purchases';
-import { useBonLivraisonValidation } from '@/hooks/purchases/useBonLivraisonValidation';
-import PrecommandeAlertDialog from './PrecommandeAlertDialog';
+import { useBonCommandeApproval } from '@/hooks/useBonCommandeApproval';
 import { EditBonCommandeDialog } from './EditBonCommandeDialog';
 import { PrintBonCommandeDialog } from './PrintBonCommandeDialog';
 import { ViewBonCommandeDialog } from './ViewBonCommandeDialog';
@@ -37,15 +36,7 @@ const BonCommandeTableRow = ({
   const [showEdit, setShowEdit] = useState(false);
   const [showPrint, setShowPrint] = useState(false);
   const [showDelete, setShowDelete] = useState(false);
-  const [showApproval, setShowApproval] = useState(false);
-
-  const {
-    alertInfo,
-    showAlert,
-    checkPrecommandesBeforeValidation,
-    confirmValidation,
-    cancelValidation
-  } = useBonLivraisonValidation();
+  const { handleApprove } = useBonCommandeApproval();
 
   const getStatutBadge = (statut: string) => {
     const variants = {
@@ -92,11 +83,13 @@ const BonCommandeTableRow = ({
     setShowPrint(true);
   };
 
-  const handleApproval = () => {
+  const handleApprovalClick = async () => {
     console.log('Approving bon commande:', bonCommande);
-    checkPrecommandesBeforeValidation('article-id-example', () => {
-      setShowApproval(true);
-    });
+    try {
+      await handleApprove(bonCommande.id, bonCommande);
+    } catch (error) {
+      console.error('Erreur lors de l\'approbation:', error);
+    }
   };
 
   const handleDeleteConfirm = () => {
@@ -168,7 +161,7 @@ const BonCommandeTableRow = ({
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={handleApproval}
+                  onClick={handleApprovalClick}
                   title="Approuver et créer bon de livraison"
                   className="h-8 w-8 p-0 text-green-600 hover:text-green-800"
                 >
@@ -215,13 +208,6 @@ const BonCommandeTableRow = ({
         open={showDelete}
         onClose={() => setShowDelete(false)}
         onConfirm={handleDeleteConfirm}
-      />
-
-      <PrecommandeAlertDialog
-        open={showAlert}
-        onClose={cancelValidation}
-        alertInfo={alertInfo}
-        onConfirm={confirmValidation}
       />
     </>
   );

@@ -67,7 +67,7 @@ export const useBonCommandeApproval = () => {
         fournisseur: bon.fournisseur,
         date_livraison: new Date().toISOString(),
         statut: 'en_transit',
-        taux_tva: bon.taux_tva || 0, // Utiliser 0 par défaut comme demandé
+        taux_tva: bon.taux_tva || 0,
         transit_douane: bon.transit_douane || 0
       };
 
