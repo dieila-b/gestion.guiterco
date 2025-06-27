@@ -69,28 +69,32 @@ export const PartialDeliveryModal = ({
         <div className="space-y-6">
           {/* Résumé global */}
           <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
-            <h3 className="font-semibold text-blue-800 mb-2">📊 Résumé de la livraison</h3>
+            <h3 className="font-semibold text-blue-800 mb-3">📊 Résumé de la livraison</h3>
             <div className="grid grid-cols-3 gap-4 text-sm">
-              <div>
-                <span className="text-blue-600">Total commandé:</span>
-                <div className="font-medium">{totalCommande} articles</div>
+              <div className="text-center">
+                <div className="text-blue-600 font-medium">Total commandé</div>
+                <div className="text-xl font-bold text-blue-800">{totalCommande}</div>
+                <div className="text-xs text-blue-600">articles</div>
               </div>
-              <div>
-                <span className="text-orange-600">Actuellement livré:</span>
-                <div className="font-medium">{totalLivreActuel} articles</div>
+              <div className="text-center">
+                <div className="text-orange-600 font-medium">Déjà livré</div>
+                <div className="text-xl font-bold text-orange-700">{totalLivreActuel}</div>
+                <div className="text-xs text-orange-600">articles</div>
               </div>
-              <div>
-                <span className="text-green-600">Nouveau total livré:</span>
-                <div className="font-medium">{nouveauTotalLivre} articles</div>
+              <div className="text-center">
+                <div className="text-green-600 font-medium">Reste à livrer</div>
+                <div className="text-xl font-bold text-green-700">{totalCommande - totalLivreActuel}</div>
+                <div className="text-xs text-green-600">articles</div>
               </div>
             </div>
           </div>
 
-          <Alert className="bg-orange-50 border-orange-200">
-            <AlertTriangle className="h-4 w-4 text-orange-600" />
-            <AlertDescription className="text-orange-800">
-              <strong>Important :</strong> La nouvelle quantité livrée remplacera la valeur précédente (cumul total livré).
-              Seule la différence avec la quantité précédemment livrée sera déduite du stock.
+          <Alert className="bg-amber-50 border-amber-200">
+            <AlertTriangle className="h-4 w-4 text-amber-600" />
+            <AlertDescription className="text-amber-800">
+              <strong>Important :</strong> La nouvelle quantité livrée que vous saisissez remplacera entièrement la valeur précédente (cumul total livré).
+              <br />
+              <strong>Seule la différence</strong> avec la quantité précédemment livrée sera déduite du stock automatiquement.
             </AlertDescription>
           </Alert>
 
@@ -112,31 +116,31 @@ export const PartialDeliveryModal = ({
                         {ligne.article?.nom || 'Article non spécifié'}
                       </h4>
                       <div className="text-sm text-gray-600 space-y-1">
-                        <div>Référence: {ligne.article?.reference || 'N/A'}</div>
-                        <div>Prix unitaire: {formatCurrency(ligne.prix_unitaire)}</div>
-                        <div>Montant ligne: {formatCurrency(ligne.montant_ligne)}</div>
+                        <div><strong>Référence:</strong> {ligne.article?.reference || 'N/A'}</div>
+                        <div><strong>Prix unitaire:</strong> {formatCurrency(ligne.prix_unitaire)}</div>
+                        <div><strong>Montant ligne:</strong> {formatCurrency(ligne.montant_ligne)}</div>
                       </div>
                     </div>
 
                     {/* Quantités et saisie */}
-                    <div className="space-y-3">
-                      <div className="grid grid-cols-3 gap-2 text-sm">
-                        <div className="text-center">
-                          <div className="text-gray-600">Commandé</div>
-                          <div className="font-medium text-lg">{ligne.quantite}</div>
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-3 gap-3 text-sm">
+                        <div className="text-center p-3 bg-blue-100 rounded">
+                          <div className="text-blue-600 font-medium">Commandé</div>
+                          <div className="text-xl font-bold text-blue-800">{ligne.quantite}</div>
                         </div>
-                        <div className="text-center">
-                          <div className="text-orange-600">Déjà livré</div>
-                          <div className="font-medium text-lg text-orange-600">{quantiteLivreeCumul}</div>
+                        <div className="text-center p-3 bg-orange-100 rounded">
+                          <div className="text-orange-600 font-medium">Déjà livré</div>
+                          <div className="text-xl font-bold text-orange-700">{quantiteLivreeCumul}</div>
                         </div>
-                        <div className="text-center">
-                          <div className="text-green-600">Reste</div>
-                          <div className="font-medium text-lg text-green-600">{quantiteRestante}</div>
+                        <div className="text-center p-3 bg-green-100 rounded">
+                          <div className="text-green-600 font-medium">Reste</div>
+                          <div className="text-xl font-bold text-green-700">{quantiteRestante}</div>
                         </div>
                       </div>
 
                       <div className="space-y-2">
-                        <Label htmlFor={`qty-${ligne.id}`}>
+                        <Label htmlFor={`qty-${ligne.id}`} className="text-sm font-medium">
                           Nouvelle quantité livrée (cumul total)
                         </Label>
                         <Input
@@ -146,10 +150,11 @@ export const PartialDeliveryModal = ({
                           max={ligne.quantite}
                           value={nouvelleQuantite}
                           onChange={(e) => handleQuantityChange(ligne.id, parseInt(e.target.value) || 0)}
-                          className="w-full border-orange-300 focus:border-orange-500"
+                          className="w-full text-center font-medium border-2 border-orange-300 focus:border-orange-500"
                         />
-                        <div className="text-xs text-orange-600">
-                          Cette valeur remplace l'ancienne ({quantiteLivreeCumul})
+                        <div className="text-xs text-orange-600 bg-orange-50 p-2 rounded">
+                          💡 Cette valeur remplace l'ancienne ({quantiteLivreeCumul}). 
+                          Seule la différence sera déduite du stock.
                         </div>
                       </div>
                     </div>
@@ -162,10 +167,10 @@ export const PartialDeliveryModal = ({
           {/* Actions */}
           <div className="flex justify-end gap-3 pt-4 border-t">
             <Button variant="outline" onClick={onClose}>
-              Annuler
+              🚫 Annuler
             </Button>
             <Button onClick={handleConfirm} className="bg-blue-600 hover:bg-blue-700">
-              Enregistrer les modifications
+              💾 Enregistrer les modifications
             </Button>
           </div>
         </div>

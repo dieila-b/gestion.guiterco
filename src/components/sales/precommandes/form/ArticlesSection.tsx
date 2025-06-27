@@ -3,11 +3,10 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Trash2, Plus, AlertTriangle, Package } from 'lucide-react';
+import { Trash2, Plus, Package } from 'lucide-react';
 import type { LignePrecommandeComplete } from '@/types/precommandes';
 import type { Article } from '@/hooks/useCatalogue';
 import { formatCurrency } from '@/lib/currency';
-import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface ArticlesSectionProps {
   lignes: LignePrecommandeComplete[];
@@ -37,125 +36,81 @@ export const ArticlesSection = ({
         </Button>
       </div>
 
-      <Alert className="bg-orange-50 border-orange-200">
-        <AlertTriangle className="h-4 w-4 text-orange-600" />
-        <AlertDescription className="text-orange-800">
-          <strong>Important :</strong> La saisie de la quantité livrée déduira automatiquement le stock de l'entrepôt ou du point de vente.
-          <br />
-          <strong>Seule la différence</strong> avec la quantité précédemment livrée sera déduite du stock.
-        </AlertDescription>
-      </Alert>
-
       <div className="space-y-3">
         <div className="grid grid-cols-12 gap-2 items-center p-3 bg-gray-50 rounded text-sm font-medium">
-          <div className="col-span-3">Article</div>
-          <div className="col-span-2">Qté commandée</div>
-          <div className="col-span-2">Qté livrée</div>
-          <div className="col-span-1">Reste</div>
+          <div className="col-span-4">Article</div>
+          <div className="col-span-2">Quantité</div>
           <div className="col-span-2">Prix unitaire</div>
-          <div className="col-span-1 text-right">Montant</div>
+          <div className="col-span-3 text-right">Montant</div>
           <div className="col-span-1">Actions</div>
         </div>
         
-        {lignes.map((ligne, index) => {
-          const quantiteLivreeCumulee = ligne.quantite_livree || 0;
-          const quantiteRestante = ligne.quantite - quantiteLivreeCumulee;
-          const isCompletelyDelivered = quantiteRestante <= 0;
-          
-          return (
-            <div key={ligne.id} className={`grid grid-cols-12 gap-2 items-center p-3 border rounded-lg ${
-              isCompletelyDelivered ? 'bg-green-50 border-green-200' : 'bg-white border-gray-200'
-            }`}>
-              <div className="col-span-3">
-                <Select 
-                  value={ligne.article_id} 
-                  onValueChange={(value) => {
-                    const article = articles?.find(a => a.id === value);
-                    if (article) {
-                      onLigneChange(index, 'article_id', value);
-                      onLigneChange(index, 'prix_unitaire', article.prix_vente || 0);
-                    }
-                  }}
-                >
-                  <SelectTrigger className="text-sm">
-                    <SelectValue placeholder="Sélectionner un article" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {articles?.map((article) => (
-                      <SelectItem key={article.id} value={article.id}>
-                        {article.nom}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div className="col-span-2">
-                <Input
-                  type="number"
-                  min="1"
-                  value={ligne.quantite}
-                  onChange={(e) => onLigneChange(index, 'quantite', parseInt(e.target.value) || 1)}
-                  placeholder="Qté"
-                  className="text-sm"
-                />
-              </div>
-              
-              <div className="col-span-2">
-                <Input
-                  type="number"
-                  min="0"
-                  max={ligne.quantite}
-                  value={quantiteLivreeCumulee}
-                  onChange={(e) => onLigneChange(index, 'quantite_livree', parseInt(e.target.value) || 0)}
-                  placeholder="Qté livrée"
-                  className={`text-sm border-orange-300 focus:border-orange-500 bg-orange-50 ${
-                    isCompletelyDelivered ? 'bg-green-100 border-green-300' : ''
-                  }`}
-                  title="Quantité livrée cumulée - Seule la différence sera déduite du stock"
-                />
-              </div>
-
-              <div className="col-span-1">
-                <div className={`text-xs font-medium p-2 rounded text-center ${
-                  quantiteRestante === 0 ? 'bg-green-100 text-green-700' : 
-                  quantiteRestante < ligne.quantite ? 'bg-blue-100 text-blue-700' : 
-                  'bg-gray-100 text-gray-700'
-                }`}>
-                  {quantiteRestante}
-                </div>
-              </div>
-              
-              <div className="col-span-2">
-                <Input
-                  type="number"
-                  step="0.01"
-                  value={ligne.prix_unitaire}
-                  onChange={(e) => onLigneChange(index, 'prix_unitaire', parseFloat(e.target.value) || 0)}
-                  placeholder="Prix"
-                  className="text-sm"
-                />
-              </div>
-              
-              <div className="col-span-1 text-right text-sm font-medium">
-                {formatCurrency(ligne.montant_ligne)}
-              </div>
-              
-              <div className="col-span-1">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => onDeleteLigne(index)}
-                  className="text-red-600 hover:text-red-700 p-1 h-8 w-8"
-                  title="Supprimer cette ligne"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </div>
+        {lignes.map((ligne, index) => (
+          <div key={ligne.id} className="grid grid-cols-12 gap-2 items-center p-3 border rounded-lg bg-white border-gray-200">
+            <div className="col-span-4">
+              <Select 
+                value={ligne.article_id} 
+                onValueChange={(value) => {
+                  const article = articles?.find(a => a.id === value);
+                  if (article) {
+                    onLigneChange(index, 'article_id', value);
+                    onLigneChange(index, 'prix_unitaire', article.prix_vente || 0);
+                  }
+                }}
+              >
+                <SelectTrigger className="text-sm">
+                  <SelectValue placeholder="Sélectionner un article" />
+                </SelectTrigger>
+                <SelectContent>
+                  {articles?.map((article) => (
+                    <SelectItem key={article.id} value={article.id}>
+                      {article.nom}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
-          );
-        })}
+            
+            <div className="col-span-2">
+              <Input
+                type="number"
+                min="1"
+                value={ligne.quantite}
+                onChange={(e) => onLigneChange(index, 'quantite', parseInt(e.target.value) || 1)}
+                placeholder="Qté"
+                className="text-sm"
+              />
+            </div>
+            
+            <div className="col-span-2">
+              <Input
+                type="number"
+                step="0.01"
+                value={ligne.prix_unitaire}
+                onChange={(e) => onLigneChange(index, 'prix_unitaire', parseFloat(e.target.value) || 0)}
+                placeholder="Prix"
+                className="text-sm"
+              />
+            </div>
+            
+            <div className="col-span-3 text-right text-sm font-medium">
+              {formatCurrency(ligne.montant_ligne)}
+            </div>
+            
+            <div className="col-span-1">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => onDeleteLigne(index)}
+                className="text-red-600 hover:text-red-700 p-1 h-8 w-8"
+                title="Supprimer cette ligne"
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        ))}
       </div>
 
       {lignes.length === 0 && (
