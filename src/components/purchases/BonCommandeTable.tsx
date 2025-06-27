@@ -11,35 +11,75 @@ interface BonCommandeTableProps {
   onDelete: (id: string) => void;
 }
 
-export const BonCommandeTable = ({ bons, articlesCounts, onApprove, onDelete }: BonCommandeTableProps) => {
+export const BonCommandeTable = ({ 
+  bons, 
+  articlesCounts, 
+  onApprove, 
+  onDelete 
+}: BonCommandeTableProps) => {
+  const handleView = (bon: any) => {
+    console.log('Viewing bon:', bon);
+    // Ici on pourrait ouvrir un modal de détails
+  };
+
+  const handleDelete = (bon: any) => {
+    onDelete(bon.id);
+  };
+
   return (
     <Card className="bg-white shadow-sm">
       <CardContent className="p-0">
-        <div className="overflow-hidden rounded-lg">
+        <div className="overflow-x-auto">
           <Table>
             <TableHeader>
-              <TableRow className="bg-white border-b border-gray-200 divide-x divide-gray-200">
-                <TableHead className="text-gray-700 font-semibold text-sm px-4 py-3">N° Commande</TableHead>
-                <TableHead className="text-gray-700 font-semibold text-sm px-4 py-3">Date</TableHead>
-                <TableHead className="text-gray-700 font-semibold text-sm px-4 py-3">Fournisseur</TableHead>
-                <TableHead className="text-gray-700 font-semibold text-sm px-4 py-3 text-center">Articles</TableHead>
-                <TableHead className="text-gray-700 font-semibold text-sm px-4 py-3 text-center">Statut</TableHead>
-                <TableHead className="text-gray-700 font-semibold text-sm px-4 py-3 text-right">Total</TableHead>
-                <TableHead className="text-gray-700 font-semibold text-sm px-4 py-3 text-center">Actions</TableHead>
+              <TableRow className="bg-gray-50 border-b border-gray-200">
+                <TableHead className="text-gray-700 font-semibold text-sm px-4 py-3 min-w-[120px]">
+                  N° Commande
+                </TableHead>
+                <TableHead className="text-gray-700 font-semibold text-sm px-4 py-3 min-w-[100px]">
+                  Date
+                </TableHead>
+                <TableHead className="text-gray-700 font-semibold text-sm px-4 py-3 min-w-[150px]">
+                  Fournisseur
+                </TableHead>
+                <TableHead className="text-gray-700 font-semibold text-sm px-4 py-3 text-center min-w-[80px]">
+                  Articles
+                </TableHead>
+                <TableHead className="text-gray-700 font-semibold text-sm px-4 py-3 text-center min-w-[100px]">
+                  Statut
+                </TableHead>
+                <TableHead className="text-gray-700 font-semibold text-sm px-4 py-3 text-right min-w-[120px]">
+                  Montant Total
+                </TableHead>
+                <TableHead className="text-gray-700 font-semibold text-sm px-4 py-3 text-center min-w-[120px]">
+                  Actions
+                </TableHead>
               </TableRow>
             </TableHeader>
-            <TableBody className="divide-y divide-gray-200">
-              {bons.map((bon) => {
-                const articlesCount = articlesCounts[bon.id] || 0;
-                return (
-                  <BonCommandeTableRow
-                    key={bon.id}
-                    bonCommande={bon}
-                    onView={() => {}}
-                    onDelete={() => onDelete(bon.id)}
-                  />
-                );
-              })}
+            <TableBody className="divide-y divide-gray-100">
+              {bons && bons.length > 0 ? (
+                bons.map((bon) => {
+                  const articlesCount = articlesCounts[bon.id] || 0;
+                  return (
+                    <BonCommandeTableRow
+                      key={bon.id}
+                      bonCommande={bon}
+                      onView={handleView}
+                      onDelete={handleDelete}
+                      articlesCount={articlesCount}
+                    />
+                  );
+                })
+              ) : (
+                <TableRow>
+                  <TableCell 
+                    colSpan={7} 
+                    className="text-center py-8 text-gray-500"
+                  >
+                    Aucun bon de commande trouvé
+                  </TableCell>
+                </TableRow>
+              )}
             </TableBody>
           </Table>
         </div>

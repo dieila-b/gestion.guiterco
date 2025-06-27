@@ -1,4 +1,3 @@
-
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
@@ -10,28 +9,43 @@ export const useBonsCommande = () => {
   const { data: bonsCommande, isLoading, error, refetch } = useQuery({
     queryKey: ['bons-commande'],
     queryFn: async () => {
-      console.log('Fetching bons de commande...');
+      console.log('🔍 Fetching bons de commande with full relations...');
+      
       const { data, error } = await supabase
         .from('bons_de_commande')
         .select(`
           *,
-          fournisseur_data:fournisseur_id (
+          fournisseur_data:fournisseurs!bons_de_commande_fournisseur_id_fkey (
             id,
             nom_entreprise,
             nom,
-            email
+            email,
+            telephone
           )
         `)
         .order('created_at', { ascending: false });
 
       if (error) {
-        console.error('Error fetching bons de commande:', error);
+        console.error('❌ Error fetching bons de commande:', error);
         throw error;
       }
       
-      console.log('Fetched bons de commande with relations:', data);
-      return data as BonCommande[];
+      console.log('✅ Fetched bons de commande:', data?.length || 0, 'records');
+      console.log('📋 Sample data:', data?.[0]);
+      
+      // Transformer les données pour s'assurer que le nom du fournisseur est correct
+      const transformedData = data?.map(bon => ({
+        ...bon,
+        fournisseur: bon.fournisseur_data?.nom_entreprise || 
+                    bon.fournisseur_data?.nom || 
+                    bon.fournisseur || 
+                    'Fournisseur inconnu'
+      })) || [];
+      
+      return transformedData as BonCommande[];
     },
+    retry: 3,
+    retryDelay: 1000,
   });
 
   const createBonCommande = useMutation({
