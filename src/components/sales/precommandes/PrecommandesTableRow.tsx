@@ -67,7 +67,10 @@ const PrecommandesTableRow = ({ precommande }: PrecommandesTableRowProps) => {
         <TableCell>
           <div className="space-y-1">
             <PrecommandesStatusBadge statut={precommande.statut} />
-            <DeliveryStatusBadge statut={deliveryStatus} />
+            <DeliveryStatusBadge 
+              lignes={precommande.lignes_precommande || []}
+              statut={deliveryStatus}
+            />
           </div>
         </TableCell>
         <TableCell className="text-right">
@@ -135,7 +138,7 @@ const PrecommandesTableRow = ({ precommande }: PrecommandesTableRowProps) => {
       </TableRow>
 
       <PrecommandeDetails
-        precommande={precommande}
+        precommandeId={precommande.id}
         open={showDetails}
         onClose={() => setShowDetails(false)}
       />
@@ -162,6 +165,7 @@ const PrecommandesTableRow = ({ precommande }: PrecommandesTableRowProps) => {
         precommande={precommande}
         open={showPayment}
         onClose={() => setShowPayment(false)}
+        type="acompte"
       />
     </>
   );

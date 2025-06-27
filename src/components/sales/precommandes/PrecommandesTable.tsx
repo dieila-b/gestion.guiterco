@@ -46,11 +46,6 @@ const PrecommandesTable = ({ precommandes }: PrecommandesTableProps) => {
               <PrecommandesTableRow
                 key={precommande.id}
                 precommande={precommande}
-                onConvertirEnVente={handleConvertirEnVente}
-                onEditer={handleEditer}
-                onFacture={handleFacture}
-                onSupprimer={handleSupprimer}
-                isConverting={convertToSale.isPending}
               />
             ))}
           </TableBody>

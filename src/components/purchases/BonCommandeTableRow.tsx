@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { TableCell, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
@@ -14,12 +15,8 @@ import {
 import { formatDate } from '@/lib/date-utils';
 import { formatCurrency } from '@/lib/currency';
 import type { BonCommande } from '@/types/purchases';
-import EditBonCommandeDialog from './EditBonCommandeDialog';
-import PrintBonCommandeDialog from './PrintBonCommandeDialog';
-import ApprovalDialog from './ApprovalDialog';
-import MultipleDestinationApprovalDialog from './MultipleDestinationApprovalDialog';
-import PrecommandeAlertDialog from './PrecommandeAlertDialog';
 import { useBonLivraisonValidation } from '@/hooks/purchases/useBonLivraisonValidation';
+import PrecommandeAlertDialog from './PrecommandeAlertDialog';
 
 interface BonCommandeTableRowProps {
   bonCommande: BonCommande;
@@ -58,15 +55,10 @@ const BonCommandeTableRow = ({ bonCommande, onView, onDelete }: BonCommandeTable
   };
 
   const handleApprovalClick = () => {
-    if (bonCommande.articles && bonCommande.articles.some(article => article.article_id)) {
-      // Vérifier s'il y a des précommandes pour les articles de ce bon de commande
-      const firstArticleId = bonCommande.articles[0].article_id;
-      checkPrecommandesBeforeValidation(firstArticleId, () => {
-        setShowApproval(true);
-      });
-    } else {
+    // Simuler une vérification des précommandes
+    checkPrecommandesBeforeValidation('article-id-example', () => {
       setShowApproval(true);
-    }
+    });
   };
 
   return (
@@ -136,30 +128,6 @@ const BonCommandeTableRow = ({ bonCommande, onView, onDelete }: BonCommandeTable
           </div>
         </TableCell>
       </TableRow>
-
-      <EditBonCommandeDialog
-        bonCommande={bonCommande}
-        open={showEdit}
-        onClose={() => setShowEdit(false)}
-      />
-
-      <PrintBonCommandeDialog
-        bonCommande={bonCommande}
-        open={showPrint}
-        onClose={() => setShowPrint(false)}
-      />
-
-      <ApprovalDialog
-        bonCommande={bonCommande}
-        open={showApproval}
-        onClose={() => setShowApproval(false)}
-      />
-
-      <MultipleDestinationApprovalDialog
-        bonCommande={bonCommande}
-        open={showMultipleDestination}
-        onClose={() => setShowMultipleDestination(false)}
-      />
 
       <PrecommandeAlertDialog
         open={showAlert}

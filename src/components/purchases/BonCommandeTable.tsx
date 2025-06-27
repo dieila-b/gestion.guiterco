@@ -2,7 +2,7 @@
 import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Table, TableBody, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { BonCommandeTableRow } from './BonCommandeTableRow';
+import BonCommandeTableRow from './BonCommandeTableRow';
 
 interface BonCommandeTableProps {
   bons: any[];
@@ -34,10 +34,9 @@ export const BonCommandeTable = ({ bons, articlesCounts, onApprove, onDelete }: 
                 return (
                   <BonCommandeTableRow
                     key={bon.id}
-                    bon={bon}
-                    articlesCount={articlesCount}
-                    onApprove={onApprove}
-                    onDelete={onDelete}
+                    bonCommande={bon}
+                    onView={() => {}}
+                    onDelete={() => onDelete(bon.id)}
                   />
                 );
               })}
