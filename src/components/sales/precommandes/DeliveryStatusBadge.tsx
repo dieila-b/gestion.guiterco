@@ -13,7 +13,7 @@ const DeliveryStatusBadge = ({ lignes, statut }: DeliveryStatusBadgeProps) => {
     // Si un statut est explicitement passé, l'utiliser
     if (statut) return statut;
     
-    if (!lignes || lignes.length === 0) return 'en_attente';
+    if (!lignes || lignes.length === 0) return 'en_preparation';
 
     const totalQuantite = lignes.reduce((sum, ligne) => sum + ligne.quantite, 0);
     const totalLivree = lignes.reduce((sum, ligne) => sum + (ligne.quantite_livree || 0), 0);
@@ -23,7 +23,7 @@ const DeliveryStatusBadge = ({ lignes, statut }: DeliveryStatusBadgeProps) => {
     } else if (totalLivree > 0) {
       return 'partiellement_livree';
     } else {
-      return 'en_attente';
+      return 'en_preparation';
     }
   };
 
@@ -60,11 +60,10 @@ const DeliveryStatusBadge = ({ lignes, statut }: DeliveryStatusBadgeProps) => {
           ❌ Annulée
         </Badge>
       );
-    case 'confirmee':
     default:
       return (
-        <Badge className="bg-yellow-100 text-yellow-800 hover:bg-yellow-200">
-          🟡 Confirmée
+        <Badge className="bg-purple-100 text-purple-800 hover:bg-purple-200">
+          🔄 En préparation
         </Badge>
       );
   }

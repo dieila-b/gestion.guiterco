@@ -34,6 +34,15 @@ export const ArticlesSection = ({
       </div>
 
       <div className="space-y-3">
+        <div className="grid grid-cols-12 gap-2 items-center p-2 bg-gray-50 rounded text-sm font-medium">
+          <div className="col-span-3">Article</div>
+          <div className="col-span-2">Qté commandée</div>
+          <div className="col-span-2">Qté livrée</div>
+          <div className="col-span-2">Prix unitaire</div>
+          <div className="col-span-2 text-right">Montant</div>
+          <div className="col-span-1">Actions</div>
+        </div>
+        
         {lignes.map((ligne, index) => (
           <div key={ligne.id} className="grid grid-cols-12 gap-2 items-center p-3 border rounded">
             <div className="col-span-3">
@@ -79,7 +88,8 @@ export const ArticlesSection = ({
                 value={ligne.quantite_livree || 0}
                 onChange={(e) => onLigneChange(index, 'quantite_livree', parseInt(e.target.value) || 0)}
                 placeholder="Qté livrée"
-                title="Quantité livrée"
+                title="Quantité livrée (saisie manuelle)"
+                className="border-blue-300 focus:border-blue-500"
               />
             </div>
             
@@ -112,6 +122,22 @@ export const ArticlesSection = ({
           </div>
         ))}
       </div>
+
+      {lignes.length === 0 && (
+        <div className="text-center py-8 text-gray-500">
+          <p>Aucun article ajouté à cette précommande.</p>
+          <Button 
+            type="button" 
+            variant="outline" 
+            size="sm" 
+            onClick={onAddLigne}
+            className="mt-2"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Ajouter le premier article
+          </Button>
+        </div>
+      )}
     </div>
   );
 };

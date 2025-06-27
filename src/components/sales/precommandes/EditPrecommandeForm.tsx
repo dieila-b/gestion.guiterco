@@ -12,7 +12,7 @@ import { ObservationsSection } from './form/ObservationsSection';
 
 interface EditPrecommandeFormProps {
   precommande: PrecommandeComplete;
-  onSave: (updates: any) => void;
+  onSave: (updates: any, lignes?: any[]) => void;
   onCancel: () => void;
   isLoading: boolean;
 }
@@ -75,7 +75,7 @@ const EditPrecommandeForm = ({ precommande, onSave, onCancel, isLoading }: EditP
   };
 
   const calculateDeliveryStatus = () => {
-    if (!lignes || lignes.length === 0) return 'en_attente';
+    if (!lignes || lignes.length === 0) return 'en_preparation';
 
     const totalQuantite = lignes.reduce((sum, ligne) => sum + ligne.quantite, 0);
     const totalLivree = lignes.reduce((sum, ligne) => sum + (ligne.quantite_livree || 0), 0);
@@ -85,7 +85,7 @@ const EditPrecommandeForm = ({ precommande, onSave, onCancel, isLoading }: EditP
     } else if (totalLivree > 0) {
       return 'partiellement_livree';
     } else {
-      return 'en_attente';
+      return 'en_preparation';
     }
   };
 
@@ -102,18 +102,18 @@ const EditPrecommandeForm = ({ precommande, onSave, onCancel, isLoading }: EditP
       statutPaiement = nouveauMontantPaye >= totals.montantTTC ? 'paye' : 'partiel';
     }
 
-    console.log('Sauvegarde précommande:', {
+    console.log('Sauvegarde précommande avec données:', {
       ancienAcompte: formData.acompte_verse,
       nouvelAcompte: nouvelAcompte,
       nouveauMontantPaye: nouveauMontantPaye,
       montantTTC: totals.montantTTC,
       resteAPayer: resteAPayer,
-      statutPaiement: statutPaiement
+      statutPaiement: statutPaiement,
+      lignes: lignes
     });
 
-    onSave({
+    const updates = {
       ...formData,
-      lignes_precommande: lignes,
       montant_ht: totals.montantTTC, // Plus de distinction HT/TTC sans TVA
       tva: 0,
       montant_ttc: totals.montantTTC,
@@ -121,7 +121,9 @@ const EditPrecommandeForm = ({ precommande, onSave, onCancel, isLoading }: EditP
       acompte_verse: nouveauMontantPaye,
       reste_a_payer: resteAPayer,
       statut_paiement: statutPaiement
-    });
+    };
+
+    onSave(updates, lignes);
   };
 
   const { montantTTC } = calculateTotals();

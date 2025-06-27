@@ -20,11 +20,11 @@ interface EditPrecommandeDialogProps {
 const EditPrecommandeDialog = ({ precommande, open, onClose }: EditPrecommandeDialogProps) => {
   const updatePrecommande = useUpdatePrecommande();
 
-  const handleSave = async (updates: any) => {
+  const handleSave = async (updates: any, lignes?: any[]) => {
     if (!precommande) return;
 
     try {
-      console.log('Sauvegarde précommande avec données:', updates);
+      console.log('Sauvegarde précommande avec données:', { updates, lignes });
       
       await updatePrecommande.mutateAsync({
         id: precommande.id,
@@ -37,7 +37,8 @@ const EditPrecommandeDialog = ({ precommande, open, onClose }: EditPrecommandeDi
           acompte_verse: updates.acompte_verse,
           reste_a_payer: updates.reste_a_payer,
           statut: updates.statut
-        }
+        },
+        lignes_precommande: lignes
       });
       onClose();
     } catch (error) {

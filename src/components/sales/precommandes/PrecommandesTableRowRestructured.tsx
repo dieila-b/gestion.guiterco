@@ -4,19 +4,16 @@ import { TableCell, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { Eye, Edit, FileText, Trash2, CreditCard, Package } from 'lucide-react';
+import { Eye, Edit, FileText, Trash2 } from 'lucide-react';
 import { formatCurrency } from '@/lib/currency';
 import { formatDate } from '@/lib/date-utils';
 import type { PrecommandeComplete } from '@/types/precommandes';
-import { useStockDisponibilite } from '@/hooks/precommandes/useStockDisponibilite';
 import PrecommandeDetails from './PrecommandeDetails';
 import EditPrecommandeDialog from './EditPrecommandeDialog';
 import DeletePrecommandeDialog from './DeletePrecommandeDialog';
 import PrecommandeFactureDialog from './PrecommandeFactureDialog';
-import PaymentDialog from './PaymentDialog';
-import PrecommandesStatusBadge from './PrecommandesStatusBadge';
 import DeliveryStatusBadge from './DeliveryStatusBadge';
-import { PrecommandesPaymentInfo } from './PrecommandesPaymentInfo';
+import AvailabilityStatusBadge from './AvailabilityStatusBadge';
 
 interface PrecommandesTableRowRestructuredProps {
   precommande: PrecommandeComplete;
@@ -27,7 +24,6 @@ const PrecommandesTableRowRestructured = ({ precommande }: PrecommandesTableRowR
   const [showEdit, setShowEdit] = useState(false);
   const [showDelete, setShowDelete] = useState(false);
   const [showFacture, setShowFacture] = useState(false);
-  const [showPayment, setShowPayment] = useState(false);
 
   // Calculer les totaux de quantité
   const totalQuantite = precommande.lignes_precommande?.reduce((sum, ligne) => sum + ligne.quantite, 0) || 0;
@@ -47,26 +43,13 @@ const PrecommandesTableRowRestructured = ({ precommande }: PrecommandesTableRowR
 
   // Obtenir le statut de livraison
   const getStatutLivraison = () => {
-    if (totalQuantiteLivree === 0) return 'en_attente';
+    if (totalQuantiteLivree === 0) return 'en_preparation';
     if (totalQuantiteLivree < totalQuantite) return 'partiellement_livree';
     return 'livree';
   };
 
   const statutPaiement = getStatutPaiement();
   const statutLivraison = getStatutLivraison();
-
-  // Résumé des produits
-  const getProduitsResume = () => {
-    if (!precommande.lignes_precommande || precommande.lignes_precommande.length === 0) {
-      return 'Aucun produit';
-    }
-    
-    if (precommande.lignes_precommande.length === 1) {
-      return precommande.lignes_precommande[0].article?.nom || 'Produit inconnu';
-    }
-    
-    return `${precommande.lignes_precommande.length} produits`;
-  };
 
   return (
     <TooltipProvider>
@@ -103,18 +86,20 @@ const PrecommandesTableRowRestructured = ({ precommande }: PrecommandesTableRowR
           </div>
         </TableCell>
 
-        {/* Statut */}
+        {/* Disponibilité */}
         <TableCell>
-          <div className="space-y-2">
-            <PrecommandesStatusBadge statut={precommande.statut} />
-            <DeliveryStatusBadge 
-              lignes={precommande.lignes_precommande || []}
-              statut={statutLivraison}
-            />
-            <Badge className={`text-xs ${statutPaiement.color}`}>
-              {statutPaiement.label}
-            </Badge>
-          </div>
+          <AvailabilityStatusBadge 
+            lignes={precommande.lignes_precommande || []}
+            dateLivraisonPrevue={precommande.date_livraison_prevue}
+          />
+        </TableCell>
+
+        {/* Statut de livraison uniquement */}
+        <TableCell>
+          <DeliveryStatusBadge 
+            lignes={precommande.lignes_precommande || []}
+            statut={statutLivraison}
+          />
         </TableCell>
 
         {/* Montant avec détails */}
@@ -134,6 +119,9 @@ const PrecommandesTableRowRestructured = ({ precommande }: PrecommandesTableRowR
             <div className="text-xs text-gray-500">
               Qté: {totalQuantiteLivree}/{totalQuantite}
             </div>
+            <Badge className={`text-xs ${statutPaiement.color}`}>
+              {statutPaiement.label}
+            </Badge>
           </div>
         </TableCell>
 
@@ -188,24 +176,6 @@ const PrecommandesTableRowRestructured = ({ precommande }: PrecommandesTableRowR
               </TooltipContent>
             </Tooltip>
 
-            {resteAPayer > 0 && (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setShowPayment(true)}
-                    className="h-8 w-8 p-0 text-purple-600 hover:text-purple-700"
-                  >
-                    <CreditCard className="h-4 w-4" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Effectuer un paiement</p>
-                </TooltipContent>
-              </Tooltip>
-            )}
-
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
@@ -248,13 +218,6 @@ const PrecommandesTableRowRestructured = ({ precommande }: PrecommandesTableRowR
         precommande={precommande}
         open={showFacture}
         onClose={() => setShowFacture(false)}
-      />
-
-      <PaymentDialog
-        precommande={precommande}
-        open={showPayment}
-        onClose={() => setShowPayment(false)}
-        type="acompte"
       />
     </TooltipProvider>
   );
