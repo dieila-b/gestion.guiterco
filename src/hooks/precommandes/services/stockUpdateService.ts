@@ -18,23 +18,24 @@ export const updateStockOnDelivery = async (lignes: LignePrecommandeComplete[], 
       .from('lignes_precommande')
       .select('quantite_livree')
       .eq('id', ligne.id)
-      .single();
+      .maybeSingle();
 
     if (fetchError) {
       console.error('❌ Erreur récupération ancienne quantité:', fetchError);
-      // Si on ne peut pas récupérer l'ancienne quantité, on considère qu'elle était 0
-      console.log('⚠️ Ancienne quantité non trouvée, on considère 0');
+      continue;
     }
 
     const ancienneQuantiteLivree = ancienneLigne?.quantite_livree || 0;
     const differenceQuantite = quantiteLivreeActuelle - ancienneQuantiteLivree;
     
+    console.log(`📊 Article ${ligne.article_id}: Ancienne qté: ${ancienneQuantiteLivree}, Nouvelle qté: ${quantiteLivreeActuelle}, Différence: ${differenceQuantite}`);
+
     if (differenceQuantite <= 0) {
       console.log('ℹ️ Pas de nouvelle quantité à déduire pour l\'article:', ligne.article_id);
       continue;
     }
 
-    console.log(`📦 Déduction stock - Article: ${ligne.article_id}, Quantité: ${differenceQuantite} (${quantiteLivreeActuelle} - ${ancienneQuantiteLivree})`);
+    console.log(`📦 Déduction stock - Article: ${ligne.article_id}, Quantité: ${differenceQuantite}`);
 
     // Essayer de déduire d'abord du stock entrepôt
     const { data: stockEntrepot, error: stockEntrepotError } = await supabase
@@ -85,7 +86,7 @@ export const updateStockOnDelivery = async (lignes: LignePrecommandeComplete[], 
             quantite: quantiteADeduire,
             type_sortie: 'livraison_precommande',
             destination: 'Client',
-            observations: `Livraison précommande - Ligne: ${ligne.id}`,
+            observations: `Livraison précommande ${precommandeId} - Ligne: ${ligne.id}`,
             created_by: 'system'
           });
 

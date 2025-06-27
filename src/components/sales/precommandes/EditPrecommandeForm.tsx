@@ -32,9 +32,20 @@ const EditPrecommandeForm = ({ precommande, onSave, onCancel, isLoading }: EditP
 
   const [nouvelAcompte, setNouvelAcompte] = useState(0);
 
+  // Initialiser les lignes avec les vraies quantités livrées depuis la base
   const [lignes, setLignes] = useState<LignePrecommandeComplete[]>(
-    precommande.lignes_precommande || []
+    (precommande.lignes_precommande || []).map(ligne => ({
+      ...ligne,
+      // S'assurer que quantite_livree est bien récupérée de la base
+      quantite_livree: ligne.quantite_livree || 0
+    }))
   );
+
+  console.log('📋 Initialisation formulaire avec lignes:', lignes.map(l => ({
+    id: l.id,
+    quantite: l.quantite,
+    quantite_livree: l.quantite_livree
+  })));
 
   const handleLigneChange = (index: number, field: string, value: any) => {
     const newLignes = [...lignes];
@@ -46,6 +57,8 @@ const EditPrecommandeForm = ({ precommande, onSave, onCancel, isLoading }: EditP
           (field === 'prix_unitaire' ? value : newLignes[index].prix_unitaire)
         : newLignes[index].montant_ligne
     };
+    
+    console.log(`🔄 Modification ligne ${index}, champ ${field}:`, value);
     setLignes(newLignes);
   };
 
@@ -102,15 +115,11 @@ const EditPrecommandeForm = ({ precommande, onSave, onCancel, isLoading }: EditP
       statutPaiement = nouveauMontantPaye >= totals.montantTTC ? 'paye' : 'partiel';
     }
 
-    console.log('Sauvegarde précommande avec données:', {
-      ancienAcompte: formData.acompte_verse,
-      nouvelAcompte: nouvelAcompte,
-      nouveauMontantPaye: nouveauMontantPaye,
-      montantTTC: totals.montantTTC,
-      resteAPayer: resteAPayer,
-      statutPaiement: statutPaiement,
-      lignes: lignes
-    });
+    console.log('💾 Sauvegarde précommande avec lignes:', lignes.map(l => ({
+      id: l.id,
+      quantite: l.quantite,
+      quantite_livree: l.quantite_livree
+    })));
 
     const updates = {
       ...formData,

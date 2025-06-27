@@ -1,3 +1,4 @@
+
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -44,9 +45,26 @@ export const useUpdatePrecommande = () => {
       if (lignes_precommande && lignes_precommande.length > 0) {
         console.log('📦 Mise à jour des lignes de précommande...');
         
+        // Récupérer les anciennes valeurs des quantités livrées pour calculer la différence
+        const { data: anciennesLignes, error: fetchError } = await supabase
+          .from('lignes_precommande')
+          .select('id, quantite_livree')
+          .in('id', lignes_precommande.map(l => l.id).filter(id => id && !id.startsWith('temp-')));
+
+        if (fetchError) {
+          console.error('❌ Erreur récupération anciennes quantités:', fetchError);
+        }
+
+        const anciennesQuantites = new Map(
+          (anciennesLignes || []).map(ligne => [ligne.id, ligne.quantite_livree || 0])
+        );
+        
         for (const ligne of lignes_precommande) {
           if (ligne.id && !ligne.id.startsWith('temp-')) {
             const nouvelleQuantiteLivree = ligne.quantite_livree || 0;
+            const ancienneQuantiteLivree = anciennesQuantites.get(ligne.id) || 0;
+            
+            console.log(`🔍 Ligne ${ligne.id}: ${ancienneQuantiteLivree} → ${nouvelleQuantiteLivree}`);
             
             // Mise à jour de la ligne existante avec la nouvelle quantité livrée
             const { error: ligneError } = await supabase
@@ -68,6 +86,25 @@ export const useUpdatePrecommande = () => {
             }
             
             console.log(`✅ Ligne mise à jour: ${ligne.id}, Qté livrée: ${nouvelleQuantiteLivree}`);
+          } else if (ligne.id && ligne.id.startsWith('temp-')) {
+            // Nouvelle ligne à créer
+            const { error: createError } = await supabase
+              .from('lignes_precommande')
+              .insert({
+                precommande_id: id,
+                article_id: ligne.article_id,
+                quantite: ligne.quantite,
+                quantite_livree: ligne.quantite_livree || 0,
+                prix_unitaire: ligne.prix_unitaire,
+                montant_ligne: ligne.montant_ligne,
+                statut_ligne: (ligne.quantite_livree || 0) >= ligne.quantite ? 'livree' : 
+                             (ligne.quantite_livree || 0) > 0 ? 'partiellement_livree' : 'en_attente'
+              });
+
+            if (createError) {
+              console.error('❌ Erreur création nouvelle ligne:', createError);
+              throw createError;
+            }
           }
         }
 
