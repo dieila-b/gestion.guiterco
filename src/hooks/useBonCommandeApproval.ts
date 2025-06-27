@@ -12,11 +12,11 @@ export const useBonCommandeApproval = () => {
     try {
       console.log('🔄 Début de l\'approbation du bon de commande:', id, bon);
       
-      // 1. Mettre à jour le statut du bon de commande à 'valide'
+      // 1. Mettre à jour le statut du bon de commande à 'approuve'
       console.log('📝 Mise à jour du statut du bon de commande...');
       await updateBonCommande.mutateAsync({
         id,
-        statut: 'valide'
+        statut: 'approuve'
       });
 
       // 2. Récupérer les articles du bon de commande avec la relation correcte
@@ -67,7 +67,7 @@ export const useBonCommandeApproval = () => {
         fournisseur: bon.fournisseur,
         date_livraison: new Date().toISOString(),
         statut: 'en_transit',
-        taux_tva: bon.taux_tva || 20,
+        taux_tva: bon.taux_tva || 0, // Utiliser 0 par défaut comme demandé
         transit_douane: bon.transit_douane || 0
       };
 

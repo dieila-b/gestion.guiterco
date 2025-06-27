@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Check, Trash, Edit, FileText } from 'lucide-react';
 import { EditBonCommandeDialog } from './EditBonCommandeDialog';
 import { PrintBonCommandeDialog } from './PrintBonCommandeDialog';
+import { useBonCommandeApproval } from '@/hooks/useBonCommandeApproval';
 
 interface ActionButtonsProps {
   bon: any;
@@ -14,6 +15,16 @@ interface ActionButtonsProps {
 export const BonCommandeActionButtons = ({ bon, onApprove, onDelete }: ActionButtonsProps) => {
   const [showEdit, setShowEdit] = useState(false);
   const [showPrint, setShowPrint] = useState(false);
+  const { handleApprove } = useBonCommandeApproval();
+
+  const handleApproveClick = async () => {
+    try {
+      await handleApprove(bon.id, bon);
+      onApprove(bon.id, bon); // Appeler la fonction parent pour rafraîchir la liste
+    } catch (error) {
+      console.error('Erreur lors de l\'approbation:', error);
+    }
+  };
 
   if (bon.statut === 'en_cours') {
     return (
@@ -31,7 +42,7 @@ export const BonCommandeActionButtons = ({ bon, onApprove, onDelete }: ActionBut
           variant="ghost"
           size="sm"
           className="h-8 w-8 p-0 text-green-600 hover:bg-green-50 hover:text-green-700 transition-colors"
-          onClick={() => onApprove(bon.id, bon)}
+          onClick={handleApproveClick}
           title="Approuver"
         >
           <Check className="h-4 w-4" />
