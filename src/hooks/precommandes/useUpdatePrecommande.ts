@@ -1,4 +1,3 @@
-
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -41,36 +40,24 @@ export const useUpdatePrecommande = () => {
         updated_at: new Date().toISOString()
       };
 
-      // Mettre à jour la précommande
-      const { data: precommandeData, error: precommandeError } = await supabase
-        .from('precommandes')
-        .update(updatedData)
-        .eq('id', id)
-        .select()
-        .single();
-
-      if (precommandeError) {
-        console.error('❌ Erreur mise à jour précommande:', precommandeError);
-        throw precommandeError;
-      }
-
-      // Mettre à jour les lignes de précommande et gérer le stock
+      // Mettre à jour les lignes de précommande AVANT la gestion du stock
       if (lignes_precommande && lignes_precommande.length > 0) {
-        // Mettre à jour le stock AVANT de mettre à jour les lignes
-        await updateStockOnDelivery(lignes_precommande, id);
-
+        console.log('📦 Mise à jour des lignes de précommande...');
+        
         for (const ligne of lignes_precommande) {
           if (ligne.id && !ligne.id.startsWith('temp-')) {
-            // Mise à jour d'une ligne existante
+            const nouvelleQuantiteLivree = ligne.quantite_livree || 0;
+            
+            // Mise à jour de la ligne existante avec la nouvelle quantité livrée
             const { error: ligneError } = await supabase
               .from('lignes_precommande')
               .update({
                 quantite: ligne.quantite,
-                quantite_livree: ligne.quantite_livree || 0,
+                quantite_livree: nouvelleQuantiteLivree,
                 prix_unitaire: ligne.prix_unitaire,
                 montant_ligne: ligne.montant_ligne,
-                statut_ligne: ligne.quantite_livree >= ligne.quantite ? 'livree' : 
-                             ligne.quantite_livree > 0 ? 'partiellement_livree' : 'en_attente',
+                statut_ligne: nouvelleQuantiteLivree >= ligne.quantite ? 'livree' : 
+                             nouvelleQuantiteLivree > 0 ? 'partiellement_livree' : 'en_attente',
                 updated_at: new Date().toISOString()
               })
               .eq('id', ligne.id);
@@ -79,8 +66,13 @@ export const useUpdatePrecommande = () => {
               console.error('❌ Erreur mise à jour ligne:', ligneError);
               throw ligneError;
             }
+            
+            console.log(`✅ Ligne mise à jour: ${ligne.id}, Qté livrée: ${nouvelleQuantiteLivree}`);
           }
         }
+
+        // Maintenant gérer le stock APRÈS avoir mis à jour les lignes
+        await updateStockOnDelivery(lignes_precommande, id);
 
         // Recalculer le statut de livraison global
         const totalQuantite = lignes_precommande.reduce((sum, ligne) => sum + ligne.quantite, 0);
@@ -93,18 +85,21 @@ export const useUpdatePrecommande = () => {
           statutLivraison = 'partiellement_livree';
         }
 
-        // Mettre à jour le statut de la précommande
-        const { error: statutError } = await supabase
-          .from('precommandes')
-          .update({ 
-            statut: statutLivraison,
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', id);
+        // Ajouter le statut de livraison aux données à mettre à jour
+        updatedData.statut = statutLivraison;
+      }
 
-        if (statutError) {
-          console.error('❌ Erreur mise à jour statut:', statutError);
-        }
+      // Mettre à jour la précommande
+      const { data: precommandeData, error: precommandeError } = await supabase
+        .from('precommandes')
+        .update(updatedData)
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (precommandeError) {
+        console.error('❌ Erreur mise à jour précommande:', precommandeError);
+        throw precommandeError;
       }
       
       console.log('✅ Précommande mise à jour:', precommandeData);

@@ -22,7 +22,8 @@ export const updateStockOnDelivery = async (lignes: LignePrecommandeComplete[], 
 
     if (fetchError) {
       console.error('❌ Erreur récupération ancienne quantité:', fetchError);
-      continue;
+      // Si on ne peut pas récupérer l'ancienne quantité, on considère qu'elle était 0
+      console.log('⚠️ Ancienne quantité non trouvée, on considère 0');
     }
 
     const ancienneQuantiteLivree = ancienneLigne?.quantite_livree || 0;
@@ -33,7 +34,7 @@ export const updateStockOnDelivery = async (lignes: LignePrecommandeComplete[], 
       continue;
     }
 
-    console.log(`📦 Déduction stock - Article: ${ligne.article_id}, Quantité: ${differenceQuantite}`);
+    console.log(`📦 Déduction stock - Article: ${ligne.article_id}, Quantité: ${differenceQuantite} (${quantiteLivreeActuelle} - ${ancienneQuantiteLivree})`);
 
     // Essayer de déduire d'abord du stock entrepôt
     const { data: stockEntrepot, error: stockEntrepotError } = await supabase
