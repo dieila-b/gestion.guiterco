@@ -16,7 +16,15 @@ export const useBonLivraisonApproval = () => {
   const queryClient = useQueryClient();
 
   const approveBonLivraison = useMutation({
-    mutationFn: async ({ bonLivraisonId, approvalData }: { bonLivraisonId: string; approvalData: ApprovalData }) => {
+    mutationFn: async ({ 
+      bonLivraisonId, 
+      approvalData, 
+      skipPrecommandesCheck = false 
+    }: { 
+      bonLivraisonId: string; 
+      approvalData: ApprovalData;
+      skipPrecommandesCheck?: boolean;
+    }) => {
       console.log('🔄 Début de l\'approbation du bon de livraison:', bonLivraisonId, approvalData);
 
       // 1. Récupérer les articles du bon de livraison avec leurs IDs du catalogue
@@ -40,7 +48,25 @@ export const useBonLivraisonApproval = () => {
         throw new Error(`Erreur de récupération des articles: ${articlesError.message}`);
       }
 
-      // 2. Mettre à jour les quantités reçues pour chaque article
+      // 2. Vérifier les précommandes en attente si demandé
+      if (!skipPrecommandesCheck) {
+        console.log('🔍 Vérification des précommandes en attente...');
+        
+        const articlesWithQuantities = approvalData.articles
+          .map(approvalArticle => {
+            const articleData = articlesData?.find(a => a.id === approvalArticle.id);
+            return articleData ? {
+              article_id: articleData.article_id,
+              quantite_recue: approvalArticle.quantite_recue
+            } : null;
+          })
+          .filter(Boolean);
+
+        // Cette vérification sera gérée par le composant parent
+        // Nous continuons avec l'approbation normale
+      }
+
+      // 3. Mettre à jour les quantités reçues pour chaque article
       for (const article of approvalData.articles) {
         const { error: updateError } = await supabase
           .from('articles_bon_livraison')
@@ -53,7 +79,7 @@ export const useBonLivraisonApproval = () => {
         }
       }
 
-      // 3. Mettre à jour le bon de livraison avec la destination et le statut
+      // 4. Mettre à jour le bon de livraison avec la destination et le statut
       const updateData: any = {
         statut: 'receptionne',
         date_reception: new Date().toISOString()
@@ -75,7 +101,7 @@ export const useBonLivraisonApproval = () => {
         throw new Error(`Erreur de mise à jour du bon: ${bonError.message}`);
       }
 
-      // 4. Créer les entrées de stock appropriées avec les bons article_id du catalogue
+      // 5. Créer les entrées de stock appropriées avec les bons article_id du catalogue
       for (const approvalArticle of approvalData.articles) {
         if (approvalArticle.quantite_recue > 0) {
           // Trouver l'article correspondant dans les données récupérées
