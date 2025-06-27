@@ -19,6 +19,7 @@ interface EditPrecommandeFormProps {
 }
 
 type StatutType = 'confirmee' | 'en_preparation' | 'prete' | 'partiellement_livree' | 'livree' | 'annulee' | 'convertie_en_vente';
+type StatutLivraisonType = 'en_attente' | 'partiellement_livree' | 'livree';
 
 const EditPrecommandeForm = ({ precommande, onSave, onCancel, isLoading }: EditPrecommandeFormProps) => {
   const { articles } = useCatalogue();
@@ -28,7 +29,8 @@ const EditPrecommandeForm = ({ precommande, onSave, onCancel, isLoading }: EditP
       ? new Date(precommande.date_livraison_prevue).toISOString().split('T')[0] 
       : '',
     acompte_verse: precommande.acompte_verse || 0,
-    statut: precommande.statut || 'confirmee'
+    statut: precommande.statut || 'confirmee',
+    statut_livraison: 'en_attente' as StatutLivraisonType
   });
 
   const [nouvelAcompte, setNouvelAcompte] = useState(0);
@@ -68,6 +70,33 @@ const EditPrecommandeForm = ({ precommande, onSave, onCancel, isLoading }: EditP
 
     loadLignesFromDB();
   }, [precommande.id, precommande.lignes_precommande]);
+
+  // Calculer le statut de livraison basé sur les quantités
+  const calculateDeliveryStatus = (): StatutLivraisonType => {
+    if (!lignes || lignes.length === 0) return 'en_attente';
+
+    const totalQuantite = lignes.reduce((sum, ligne) => sum + ligne.quantite, 0);
+    const totalLivree = lignes.reduce((sum, ligne) => sum + (ligne.quantite_livree || 0), 0);
+
+    if (totalLivree === 0) {
+      return 'en_attente';
+    } else if (totalLivree >= totalQuantite) {
+      return 'livree';
+    } else {
+      return 'partiellement_livree';
+    }
+  };
+
+  // Mettre à jour le statut de livraison quand les lignes changent
+  useEffect(() => {
+    if (!isLoadingLignes) {
+      const calculatedStatus = calculateDeliveryStatus();
+      setFormData(prev => ({
+        ...prev,
+        statut_livraison: calculatedStatus
+      }));
+    }
+  }, [lignes, isLoadingLignes]);
 
   console.log('📋 Lignes actuelles dans le formulaire:', lignes.map(l => ({
     id: l.id,
@@ -118,21 +147,6 @@ const EditPrecommandeForm = ({ precommande, onSave, onCancel, isLoading }: EditP
     return { montantTTC };
   };
 
-  const calculateDeliveryStatus = () => {
-    if (!lignes || lignes.length === 0) return 'en_preparation';
-
-    const totalQuantite = lignes.reduce((sum, ligne) => sum + ligne.quantite, 0);
-    const totalLivree = lignes.reduce((sum, ligne) => sum + (ligne.quantite_livree || 0), 0);
-
-    if (totalLivree === totalQuantite && totalQuantite > 0) {
-      return 'livree';
-    } else if (totalLivree > 0) {
-      return 'partiellement_livree';
-    } else {
-      return 'en_preparation';
-    }
-  };
-
   const handleSubmit = () => {
     const totals = calculateTotals();
     
@@ -160,14 +174,14 @@ const EditPrecommandeForm = ({ precommande, onSave, onCancel, isLoading }: EditP
       taux_tva: 0,
       acompte_verse: nouveauMontantPaye,
       reste_a_payer: resteAPayer,
-      statut_paiement: statutPaiement
+      statut_paiement: statutPaiement,
+      statut_livraison: formData.statut_livraison
     };
 
     onSave(updates, lignes);
   };
 
   const { montantTTC } = calculateTotals();
-  const deliveryStatus = calculateDeliveryStatus();
 
   if (isLoadingLignes) {
     return (
@@ -189,8 +203,9 @@ const EditPrecommandeForm = ({ precommande, onSave, onCancel, isLoading }: EditP
 
       <StatusSection
         statut={formData.statut}
-        deliveryStatus={deliveryStatus}
+        statutLivraison={formData.statut_livraison}
         onStatutChange={(value: StatutType) => setFormData({ ...formData, statut: value })}
+        onStatutLivraisonChange={(value: StatutLivraisonType) => setFormData({ ...formData, statut_livraison: value })}
       />
 
       <PaymentSection

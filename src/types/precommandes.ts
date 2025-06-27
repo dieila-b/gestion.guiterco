@@ -18,6 +18,7 @@ export interface PrecommandeComplete {
   date_precommande: string;
   date_livraison_prevue?: string;
   statut: 'confirmee' | 'en_preparation' | 'prete' | 'livree' | 'partiellement_livree' | 'annulee' | 'convertie_en_vente';
+  statut_livraison?: 'en_attente' | 'partiellement_livree' | 'livree';
   montant_ht: number;
   tva: number;
   montant_ttc: number;

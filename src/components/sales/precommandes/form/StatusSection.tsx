@@ -4,11 +4,13 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 type StatutType = 'confirmee' | 'en_preparation' | 'prete' | 'partiellement_livree' | 'livree' | 'annulee' | 'convertie_en_vente';
+type StatutLivraisonType = 'en_attente' | 'partiellement_livree' | 'livree';
 
 interface StatusSectionProps {
   statut: string;
-  deliveryStatus: string;
+  statutLivraison: string;
   onStatutChange: (value: StatutType) => void;
+  onStatutLivraisonChange: (value: StatutLivraisonType) => void;
 }
 
 const getValidStatutValue = (statut: string): StatutType => {
@@ -16,10 +18,16 @@ const getValidStatutValue = (statut: string): StatutType => {
   return validStatuts.includes(statut as any) ? statut as StatutType : 'confirmee';
 };
 
+const getValidStatutLivraisonValue = (statutLivraison: string): StatutLivraisonType => {
+  const validStatuts = ['en_attente', 'partiellement_livree', 'livree'] as const;
+  return validStatuts.includes(statutLivraison as any) ? statutLivraison as StatutLivraisonType : 'en_attente';
+};
+
 export const StatusSection = ({
   statut,
-  deliveryStatus,
-  onStatutChange
+  statutLivraison,
+  onStatutChange,
+  onStatutLivraisonChange
 }: StatusSectionProps) => {
   return (
     <div className="grid grid-cols-2 gap-4">
@@ -43,11 +51,22 @@ export const StatusSection = ({
         </Select>
       </div>
       <div>
-        <Label htmlFor="statut_livraison">Statut de livraison (calculé)</Label>
-        <div className="h-10 flex items-center px-3 py-2 border border-input bg-gray-50 rounded-md text-sm">
-          {deliveryStatus === 'livree' && '🟢 Livrée'}
-          {deliveryStatus === 'partiellement_livree' && '🟠 Partiellement livrée'}
-          {deliveryStatus === 'en_attente' && '🟡 En attente'}
+        <Label htmlFor="statut_livraison">Statut de livraison</Label>
+        <Select 
+          value={getValidStatutLivraisonValue(statutLivraison)} 
+          onValueChange={(value) => onStatutLivraisonChange(getValidStatutLivraisonValue(value))}
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="Sélectionner le statut de livraison" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="en_attente">🟡 En attente</SelectItem>
+            <SelectItem value="partiellement_livree">🟠 Partiellement livrée</SelectItem>
+            <SelectItem value="livree">🟢 Livrée</SelectItem>
+          </SelectContent>
+        </Select>
+        <div className="mt-2 text-sm text-amber-600 bg-amber-50 p-2 rounded">
+          💡 Vous pouvez compléter ou modifier les quantités dans la section Articles
         </div>
       </div>
     </div>

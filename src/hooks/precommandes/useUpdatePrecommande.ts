@@ -24,8 +24,8 @@ export const useUpdatePrecommande = () => {
         montant_ttc?: number;
         reste_a_payer?: number;
         statut?: string;
-        taux_tva?: number;
         statut_livraison?: string;
+        taux_tva?: number;
         statut_paiement?: string;
       };
       lignes_precommande?: any[];
@@ -97,21 +97,28 @@ export const useUpdatePrecommande = () => {
         console.log('🏭 Mise à jour du stock...');
         await updateStockOnDelivery(lignes_precommande, id);
 
-        // ÉTAPE 3: Recalculer le statut de livraison global
-        const totalQuantite = lignes_precommande.reduce((sum, ligne) => sum + ligne.quantite, 0);
-        const totalLivree = lignes_precommande.reduce((sum, ligne) => sum + (ligne.quantite_livree || 0), 0);
-        
-        let statutLivraison = 'en_preparation';
-        if (totalLivree === totalQuantite && totalQuantite > 0) {
-          statutLivraison = 'livree';
-        } else if (totalLivree > 0) {
-          statutLivraison = 'partiellement_livree';
+        // ÉTAPE 3: Recalculer le statut de livraison global si pas fourni explicitement
+        if (!updates.statut_livraison) {
+          const totalQuantite = lignes_precommande.reduce((sum, ligne) => sum + ligne.quantite, 0);
+          const totalLivree = lignes_precommande.reduce((sum, ligne) => sum + (ligne.quantite_livree || 0), 0);
+          
+          let statutLivraison = 'en_attente';
+          if (totalLivree === totalQuantite && totalQuantite > 0) {
+            statutLivraison = 'livree';
+          } else if (totalLivree > 0) {
+            statutLivraison = 'partiellement_livree';
+          }
+
+          console.log(`📊 Statut calculé: ${statutLivraison} (${totalLivree}/${totalQuantite})`);
+          updatedData.statut_livraison = statutLivraison;
         }
 
-        console.log(`📊 Statut calculé: ${statutLivraison} (${totalLivree}/${totalQuantite})`);
-
-        // Ajouter le statut de livraison aux données à mettre à jour
-        updatedData.statut = statutLivraison;
+        // Ajouter le statut global basé sur le statut de livraison
+        if (updatedData.statut_livraison === 'livree') {
+          updatedData.statut = 'livree';
+        } else if (updatedData.statut_livraison === 'partiellement_livree') {
+          updatedData.statut = 'partiellement_livree';
+        }
       }
 
       // ÉTAPE 4: Mettre à jour la précommande
