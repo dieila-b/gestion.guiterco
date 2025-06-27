@@ -5,6 +5,7 @@ import { useCatalogue } from '@/hooks/useCatalogue';
 import { BasicInfoSection } from './form/BasicInfoSection';
 import { StatusSection } from './form/StatusSection';
 import { PaymentSection } from './form/PaymentSection';
+import { DeliveryStatusSection } from './form/DeliveryStatusSection';
 import { ArticlesSection } from './form/ArticlesSection';
 import { TotalsSection } from './form/TotalsSection';
 import { ObservationsSection } from './form/ObservationsSection';
@@ -98,11 +99,21 @@ const EditPrecommandeForm = ({ precommande, onSave, onCancel, isLoading }: EditP
         onStatutLivraisonChange={(value: StatutLivraisonType) => setFormData({ ...formData, statut_livraison: value })}
       />
 
-      <PaymentSection
-        acompteVerse={formData.acompte_verse}
-        montantTTC={montantTTC}
-        onNouvelAcompteChange={setNouvelAcompte}
-      />
+      {/* Section paiement et statut de livraison côte à côte */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <PaymentSection
+          acompteVerse={formData.acompte_verse}
+          montantTTC={montantTTC}
+          onNouvelAcompteChange={setNouvelAcompte}
+        />
+
+        <DeliveryStatusSection
+          statutLivraison={formData.statut_livraison}
+          lignes={lignes}
+          onStatutLivraisonChange={(value: StatutLivraisonType) => setFormData({ ...formData, statut_livraison: value })}
+          isLoadingLignes={isLoadingLignes}
+        />
+      </div>
 
       <ArticlesSection
         lignes={lignes}

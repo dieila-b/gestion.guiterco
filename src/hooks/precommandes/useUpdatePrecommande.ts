@@ -113,7 +113,7 @@ export const useUpdatePrecommande = () => {
           updatedData.statut_livraison = statutLivraison;
         }
 
-        // Ajouter le statut global basé sur le statut de livraison
+        // Synchroniser le statut global avec le statut de livraison
         if (updatedData.statut_livraison === 'livree') {
           updatedData.statut = 'livree';
         } else if (updatedData.statut_livraison === 'partiellement_livree') {
@@ -155,7 +155,7 @@ export const useUpdatePrecommande = () => {
       
       toast({
         title: "Précommande modifiée",
-        description: "Les modifications ont été enregistrées et le stock a été mis à jour automatiquement (différence uniquement).",
+        description: "Les modifications ont été enregistrées et le statut de livraison a été mis à jour automatiquement.",
       });
     },
     onError: (error) => {
