@@ -69,8 +69,12 @@ export const FeesSection = ({ form }: FeesSectionProps) => {
             min="0"
             max="100"
             {...form.register('taux_tva', { valueAsNumber: true })}
-            placeholder="20.00"
+            placeholder="0.00"
+            defaultValue={0}
           />
+          <div className="text-xs text-gray-500 mt-1">
+            Laissez à 0 si la TVA n'est pas applicable
+          </div>
         </div>
       </CardContent>
     </Card>

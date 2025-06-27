@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -45,7 +44,7 @@ export const useBonCommandeForm = (onSuccess: () => void) => {
       frais_livraison: 0,
       frais_logistique: 0,
       transit_douane: 0,
-      taux_tva: 20,
+      taux_tva: 0, // Changed from 20 to 0
     },
   });
 
@@ -87,13 +86,13 @@ export const useBonCommandeForm = (onSuccess: () => void) => {
     setArticlesLignes(removeArticle(articlesLignes, index));
   };
 
-  // Calculs avec arrondissements
+  // Calculs avec arrondissements - TVA par défaut à 0
   const sousTotal = calculateSousTotal(articlesLignes);
   const remise = Math.round(form.watch('remise') || 0);
   const fraisLivraison = Math.round(form.watch('frais_livraison') || 0);
   const fraisLogistique = Math.round(form.watch('frais_logistique') || 0);
   const transitDouane = Math.round(form.watch('transit_douane') || 0);
-  const tauxTva = form.watch('taux_tva') || 20;
+  const tauxTva = form.watch('taux_tva') || 0; // Changed from 20 to 0
   const montantHT = calculateMontantHT(sousTotal, remise, fraisLivraison, fraisLogistique, transitDouane);
   const tva = calculateTVA(montantHT, tauxTva);
   const montantTTC = calculateMontantTTC(montantHT, tva);
@@ -156,7 +155,7 @@ export const useBonCommandeForm = (onSuccess: () => void) => {
         frais_livraison: Number(data.frais_livraison) || 0,
         frais_logistique: Number(data.frais_logistique) || 0,
         transit_douane: Number(data.transit_douane) || 0,
-        taux_tva: Number(data.taux_tva) || 20,
+        taux_tva: Number(data.taux_tva) || 0, // Changed from 20 to 0
         observations: data.observations || '',
         montant_ht: Number(montantHT),
         tva: Number(tva),
@@ -176,7 +175,7 @@ export const useBonCommandeForm = (onSuccess: () => void) => {
       
       console.log('✅ Bon de commande créé avec succès');
       
-      // Réinitialiser le formulaire
+      // Réinitialiser le formulaire avec TVA à 0
       form.reset({
         date_commande: new Date().toISOString().split('T')[0],
         statut: 'en_cours',
@@ -185,7 +184,7 @@ export const useBonCommandeForm = (onSuccess: () => void) => {
         frais_livraison: 0,
         frais_logistique: 0,
         transit_douane: 0,
-        taux_tva: 20,
+        taux_tva: 0, // Changed from 20 to 0
       });
       setArticlesLignes([]);
       setMontantPaye(0);

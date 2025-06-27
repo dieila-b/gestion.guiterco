@@ -48,7 +48,7 @@ export const useEditBonCommandeForm = (bon: any, onSuccess: () => void) => {
       frais_livraison: bon.frais_livraison || 0,
       frais_logistique: bon.frais_logistique || 0,
       transit_douane: bon.transit_douane || 0,
-      taux_tva: bon.taux_tva || 20,
+      taux_tva: bon.taux_tva || 0, // Changed from 20 to 0
       observations: bon.observations || '',
     },
   });
@@ -100,13 +100,13 @@ export const useEditBonCommandeForm = (bon: any, onSuccess: () => void) => {
     setArticlesLignes(removeArticle(articlesLignes, index));
   };
 
-  // Calculs avec arrondissements
+  // Calculs avec arrondissements - TVA par défaut à 0
   const sousTotal = calculateSousTotal(articlesLignes);
   const remise = Math.round(form.watch('remise') || 0);
   const fraisLivraison = Math.round(form.watch('frais_livraison') || 0);
   const fraisLogistique = Math.round(form.watch('frais_logistique') || 0);
   const transitDouane = Math.round(form.watch('transit_douane') || 0);
-  const tauxTva = form.watch('taux_tva') || 20;
+  const tauxTva = form.watch('taux_tva') || 0; // Changed from 20 to 0
   const montantHT = calculateMontantHT(sousTotal, remise, fraisLivraison, fraisLogistique, transitDouane);
   const tva = calculateTVA(montantHT, tauxTva);
   const montantTTC = calculateMontantTTC(montantHT, tva);

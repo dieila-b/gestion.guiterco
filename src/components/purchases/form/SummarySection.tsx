@@ -62,12 +62,19 @@ export const SummarySection = ({
           <span>Montant HT:</span>
           <span>{formatCurrency(montantHT)}</span>
         </div>
-        <div className="flex justify-between">
-          <span>TVA ({tauxTva}%):</span>
-          <span>{formatCurrency(tva)}</span>
-        </div>
+        {tauxTva > 0 ? (
+          <div className="flex justify-between">
+            <span>TVA ({tauxTva}%):</span>
+            <span>{formatCurrency(tva)}</span>
+          </div>
+        ) : (
+          <div className="flex justify-between text-gray-500">
+            <span>TVA (non applicable):</span>
+            <span>{formatCurrency(0)}</span>
+          </div>
+        )}
         <div className="flex justify-between font-bold">
-          <span>Total TTC:</span>
+          <span>Total {tauxTva > 0 ? 'TTC' : 'HT'}:</span>
           <span>{formatCurrency(montantTTC)}</span>
         </div>
         <Separator />
