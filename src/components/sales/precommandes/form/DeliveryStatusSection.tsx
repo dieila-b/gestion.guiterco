@@ -53,16 +53,12 @@ export const DeliveryStatusSection = ({
   const totalLivree = lignes.reduce((sum, ligne) => sum + (ligne.quantite_livree || 0), 0);
   const resteALivrer = totalQuantite - totalLivree;
 
-  // Ouvrir automatiquement le modal quand le statut devient "partiellement_livree"
-  useEffect(() => {
-    if (currentStatut === 'partiellement_livree' && !showPartialDeliveryModal) {
-      setShowPartialDeliveryModal(true);
-    }
-  }, [currentStatut, showPartialDeliveryModal]);
+  // ❌ SUPPRIMÉ : L'ouverture automatique de la modal lors du chargement
+  // La modal ne doit s'ouvrir que lors d'un changement manuel de statut
 
   const handleStatutChange = (value: StatutLivraisonType) => {
     if (value === 'partiellement_livree') {
-      // Ouvrir le modal pour gérer les livraisons partielles
+      // ✅ Ouvrir le modal UNIQUEMENT lors du changement manuel
       setShowPartialDeliveryModal(true);
       // Ne pas changer le statut tout de suite, attendre la confirmation du modal
     } else if (value === 'livree') {
@@ -103,10 +99,7 @@ export const DeliveryStatusSection = ({
 
   const handlePartialDeliveryCancel = () => {
     setShowPartialDeliveryModal(false);
-    // Si on annule et qu'on était pas déjà en partiellement_livree, revenir à l'état précédent
-    if (currentStatut !== 'partiellement_livree') {
-      // Le statut reste inchangé
-    }
+    // Le statut reste inchangé - pas de modification
   };
 
   return (
@@ -171,14 +164,14 @@ export const DeliveryStatusSection = ({
             <strong>💡 Aide :</strong>
             <ul className="mt-1 space-y-1 text-xs">
               <li>• <strong>En attente :</strong> Aucun article livré</li>
-              <li>• <strong>Partiellement livrée :</strong> Ouvre automatiquement la fenêtre de saisie</li>
+              <li>• <strong>Partiellement livrée :</strong> Ouvre la fenêtre de saisie des quantités</li>
               <li>• <strong>Entièrement livrée :</strong> Marque tous les articles comme livrés</li>
             </ul>
           </div>
         </div>
       </div>
 
-      {/* Modal de livraison partielle */}
+      {/* Modal de livraison partielle - ne s'ouvre que manuellement */}
       <PartialDeliveryModal
         open={showPartialDeliveryModal}
         onClose={handlePartialDeliveryCancel}
