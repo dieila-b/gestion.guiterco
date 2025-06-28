@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -28,6 +28,18 @@ export const PartialDeliveryModal = ({
   onConfirm
 }: PartialDeliveryModalProps) => {
   const [updatedQuantities, setUpdatedQuantities] = useState<Record<string, number>>({});
+
+  // Initialiser les quantités avec les valeurs actuelles lors de l'ouverture
+  useEffect(() => {
+    if (open && lignes.length > 0) {
+      const initialQuantities: Record<string, number> = {};
+      lignes.forEach(ligne => {
+        initialQuantities[ligne.id] = ligne.quantite_livree || 0;
+      });
+      setUpdatedQuantities(initialQuantities);
+      console.log('🔄 Initialisation des quantités dans le modal:', initialQuantities);
+    }
+  }, [open, lignes]);
 
   const handleQuantityChange = (ligneId: string, newQuantity: number) => {
     setUpdatedQuantities(prev => ({

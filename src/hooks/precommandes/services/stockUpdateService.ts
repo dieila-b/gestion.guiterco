@@ -4,6 +4,12 @@ import type { LignePrecommandeComplete } from '@/types/precommandes';
 
 export const updateStockOnDelivery = async (lignes: LignePrecommandeComplete[], precommandeId: string) => {
   console.log('🔄 Début mise à jour stock pour précommande:', precommandeId);
+  console.log('📦 Lignes reçues:', lignes.map(l => ({
+    id: l.id,
+    article_id: l.article_id,
+    quantite: l.quantite,
+    quantite_livree_nouvelle: l.quantite_livree
+  })));
   
   for (const ligne of lignes) {
     if (!ligne.article_id) {
@@ -13,7 +19,8 @@ export const updateStockOnDelivery = async (lignes: LignePrecommandeComplete[], 
 
     const nouvelleQuantiteLivree = ligne.quantite_livree || 0;
     
-    // Récupérer l'ancienne quantité livrée DEPUIS LA BASE DE DONNÉES (version actuelle)
+    // 🔍 CRUCIAL : Récupérer l'ancienne quantité livrée DEPUIS LA BASE DE DONNÉES
+    console.log(`🔍 Récupération ancienne quantité pour ligne ${ligne.id}...`);
     const { data: ancienneLigne, error: fetchError } = await supabase
       .from('lignes_precommande')
       .select('quantite_livree')
@@ -22,7 +29,6 @@ export const updateStockOnDelivery = async (lignes: LignePrecommandeComplete[], 
 
     if (fetchError) {
       console.error('❌ Erreur récupération ancienne quantité:', fetchError);
-      // Si on ne peut pas récupérer l'ancienne valeur, on considère qu'elle était 0
       console.warn('⚠️ Impossible de récupérer ancienne quantité, on assume 0');
     }
 

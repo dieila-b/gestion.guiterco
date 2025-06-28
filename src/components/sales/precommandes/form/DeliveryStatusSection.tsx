@@ -38,6 +38,13 @@ const getStatutColor = (statut: StatutLivraisonType): string => {
   }
 };
 
+// Fonction pour calculer le statut automatiquement selon les quantités
+const calculateAutoStatut = (totalQuantite: number, totalLivree: number): StatutLivraisonType => {
+  if (totalLivree === 0) return 'en_attente';
+  if (totalLivree >= totalQuantite) return 'livree';
+  return 'partiellement_livree';
+};
+
 export const DeliveryStatusSection = ({
   statutLivraison,
   lignes,
@@ -46,17 +53,37 @@ export const DeliveryStatusSection = ({
   isLoadingLignes
 }: DeliveryStatusSectionProps) => {
   const [showPartialDeliveryModal, setShowPartialDeliveryModal] = useState(false);
-  const currentStatut = getValidStatutLivraisonValue(statutLivraison);
   
   // Calculer les quantités totales
   const totalQuantite = lignes.reduce((sum, ligne) => sum + ligne.quantite, 0);
   const totalLivree = lignes.reduce((sum, ligne) => sum + (ligne.quantite_livree || 0), 0);
   const resteALivrer = totalQuantite - totalLivree;
 
-  // ❌ SUPPRIMÉ : L'ouverture automatique de la modal lors du chargement
-  // La modal ne doit s'ouvrir que lors d'un changement manuel de statut
+  // Calculer le statut automatique basé sur les quantités réelles
+  const statutAuto = calculateAutoStatut(totalQuantite, totalLivree);
+  
+  // Utiliser le statut automatique si différent du statut fourni
+  const currentStatut = statutAuto;
+
+  console.log('📊 Statuts de livraison:', {
+    statutFourni: statutLivraison,
+    statutCalcule: statutAuto,
+    totalQuantite,
+    totalLivree,
+    resteALivrer
+  });
+
+  // Synchroniser le statut calculé avec le parent si nécessaire
+  useEffect(() => {
+    if (statutAuto !== getValidStatutLivraisonValue(statutLivraison)) {
+      console.log(`🔄 Synchronisation statut: ${statutLivraison} → ${statutAuto}`);
+      onStatutLivraisonChange(statutAuto);
+    }
+  }, [statutAuto, statutLivraison, onStatutLivraisonChange]);
 
   const handleStatutChange = (value: StatutLivraisonType) => {
+    console.log('🔄 Changement de statut demandé:', value);
+    
     if (value === 'partiellement_livree') {
       // ✅ Ouvrir le modal UNIQUEMENT lors du changement manuel
       setShowPartialDeliveryModal(true);
@@ -92,8 +119,12 @@ export const DeliveryStatusSection = ({
       onLignesUpdate(updatedLignes);
     }
     
+    // Calculer le nouveau statut basé sur les nouvelles quantités
+    const newTotalLivree = updatedLignes.reduce((sum, ligne) => sum + (ligne.quantite_livree || 0), 0);
+    const newStatut = calculateAutoStatut(totalQuantite, newTotalLivree);
+    
     // Mettre à jour le statut
-    onStatutLivraisonChange('partiellement_livree');
+    onStatutLivraisonChange(newStatut);
     setShowPartialDeliveryModal(false);
   };
 
@@ -137,6 +168,26 @@ export const DeliveryStatusSection = ({
                   <div className="text-lg font-bold text-green-700">{resteALivrer}</div>
                 </div>
               </div>
+              
+              {/* Affichage des détails par article si livraison partielle */}
+              {currentStatut === 'partiellement_livree' && (
+                <div className="mt-3 pt-3 border-t">
+                  <div className="text-xs text-gray-600 mb-2">Détail par article :</div>
+                  {lignes.map((ligne, index) => {
+                    const quantiteLivree = ligne.quantite_livree || 0;
+                    const resteArticle = ligne.quantite - quantiteLivree;
+                    if (quantiteLivree > 0 || resteArticle !== ligne.quantite) {
+                      return (
+                        <div key={ligne.id || index} className="flex justify-between text-xs text-gray-600 mb-1">
+                          <span>{ligne.article?.nom || 'Article'}</span>
+                          <span>{quantiteLivree}/{ligne.quantite} (reste: {resteArticle})</span>
+                        </div>
+                      );
+                    }
+                    return null;
+                  })}
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -167,6 +218,14 @@ export const DeliveryStatusSection = ({
               <li>• <strong>Partiellement livrée :</strong> Ouvre la fenêtre de saisie des quantités</li>
               <li>• <strong>Entièrement livrée :</strong> Marque tous les articles comme livrés</li>
             </ul>
+            {totalLivree > 0 && (
+              <div className="mt-2 p-2 bg-blue-50 rounded border border-blue-200">
+                <strong>📊 Situation actuelle :</strong> {totalLivree}/{totalQuantite} articles livrés
+                {resteALivrer > 0 && (
+                  <span className="text-orange-600"> - {resteALivrer} restant(s)</span>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </div>
