@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import type { LignePrecommandeComplete } from '@/types/precommandes';
@@ -53,10 +53,18 @@ export const DeliveryStatusSection = ({
   const totalLivree = lignes.reduce((sum, ligne) => sum + (ligne.quantite_livree || 0), 0);
   const resteALivrer = totalQuantite - totalLivree;
 
+  // Ouvrir automatiquement le modal quand le statut devient "partiellement_livree"
+  useEffect(() => {
+    if (currentStatut === 'partiellement_livree' && !showPartialDeliveryModal) {
+      setShowPartialDeliveryModal(true);
+    }
+  }, [currentStatut, showPartialDeliveryModal]);
+
   const handleStatutChange = (value: StatutLivraisonType) => {
     if (value === 'partiellement_livree') {
       // Ouvrir le modal pour gérer les livraisons partielles
       setShowPartialDeliveryModal(true);
+      // Ne pas changer le statut tout de suite, attendre la confirmation du modal
     } else if (value === 'livree') {
       // Marquer tous les articles comme entièrement livrés
       const updatedLignes = lignes.map(ligne => ({
@@ -81,6 +89,8 @@ export const DeliveryStatusSection = ({
   };
 
   const handlePartialDeliveryConfirm = (updatedLignes: LignePrecommandeComplete[]) => {
+    console.log('🔄 Confirmation livraison partielle avec lignes:', updatedLignes);
+    
     // Mettre à jour les lignes
     if (onLignesUpdate) {
       onLignesUpdate(updatedLignes);
@@ -89,6 +99,14 @@ export const DeliveryStatusSection = ({
     // Mettre à jour le statut
     onStatutLivraisonChange('partiellement_livree');
     setShowPartialDeliveryModal(false);
+  };
+
+  const handlePartialDeliveryCancel = () => {
+    setShowPartialDeliveryModal(false);
+    // Si on annule et qu'on était pas déjà en partiellement_livree, revenir à l'état précédent
+    if (currentStatut !== 'partiellement_livree') {
+      // Le statut reste inchangé
+    }
   };
 
   return (
@@ -153,7 +171,7 @@ export const DeliveryStatusSection = ({
             <strong>💡 Aide :</strong>
             <ul className="mt-1 space-y-1 text-xs">
               <li>• <strong>En attente :</strong> Aucun article livré</li>
-              <li>• <strong>Partiellement livrée :</strong> Ouvre la fenêtre de saisie détaillée</li>
+              <li>• <strong>Partiellement livrée :</strong> Ouvre automatiquement la fenêtre de saisie</li>
               <li>• <strong>Entièrement livrée :</strong> Marque tous les articles comme livrés</li>
             </ul>
           </div>
@@ -163,7 +181,7 @@ export const DeliveryStatusSection = ({
       {/* Modal de livraison partielle */}
       <PartialDeliveryModal
         open={showPartialDeliveryModal}
-        onClose={() => setShowPartialDeliveryModal(false)}
+        onClose={handlePartialDeliveryCancel}
         lignes={lignes}
         onConfirm={handlePartialDeliveryConfirm}
       />
