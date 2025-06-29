@@ -1,5 +1,4 @@
 
-
 import { useState } from 'react';
 import { toast } from '@/hooks/use-toast';
 
@@ -79,26 +78,6 @@ export const useEntreeForm = () => {
       return false;
     }
 
-    // Validation spécifique pour éviter les types "Correction" sans justification
-    if (formData.type_entree === 'correction' && !formData.observations) {
-      toast({
-        title: "Erreur de validation",
-        description: "Une entrée de type 'Correction' nécessite des observations explicatives",
-        variant: "destructive",
-      });
-      return false;
-    }
-
-    // Validation pour s'assurer qu'un achat a un fournisseur
-    if (formData.type_entree === 'achat' && !formData.fournisseur) {
-      toast({
-        title: "Erreur de validation",
-        description: "Une entrée de type 'Achat' nécessite un fournisseur",
-        variant: "destructive",
-      });
-      return false;
-    }
-
     return true;
   };
 
@@ -129,4 +108,3 @@ export const useEntreeForm = () => {
     getEntreeData
   };
 };
-

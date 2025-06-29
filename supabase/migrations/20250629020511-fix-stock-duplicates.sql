@@ -1,5 +1,4 @@
 
-
 -- Analyser les doublons dans les entrées de stock
 WITH doublons_analyse AS (
     SELECT 
@@ -115,4 +114,3 @@ AS $$
            1 as nombre_lignes,
            'Protection anti-doublons activée' as details;
 $$;
-
