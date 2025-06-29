@@ -2711,6 +2711,20 @@ export type Database = {
           part_frais: number
         }[]
       }
+      debug_frais_repartition_unitaire: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          article_nom: string
+          article_id: string
+          bon_commande_numero: string
+          quantite_commandee: number
+          montant_ligne: number
+          part_montant_ligne_pct: number
+          frais_total_bc: number
+          frais_unitaire_reparti: number
+          frais_total_article: number
+        }[]
+      }
       debug_vue_marges_frais: {
         Args: Record<PropertyKey, never>
         Returns: {
