@@ -2832,6 +2832,14 @@ export type Database = {
         Args: { user_id: string }
         Returns: boolean
       }
+      rapport_nettoyage_doublons: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          statut: string
+          message: string
+          nombre: number
+        }[]
+      }
       refresh_marges_view: {
         Args: Record<PropertyKey, never>
         Returns: undefined

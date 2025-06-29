@@ -32,10 +32,16 @@ const initialFormData: FormData = {
 
 export const useEntreeForm = () => {
   const [formData, setFormData] = useState<FormData>(initialFormData);
+  const [duplicateWarning, setDuplicateWarning] = useState<string>('');
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
+    
+    // Réinitialiser l'avertissement si l'utilisateur modifie les données
+    if (duplicateWarning) {
+      setDuplicateWarning('');
+    }
   };
 
   const handleSelectChange = (name: string, value: string) => {
@@ -47,8 +53,36 @@ export const useEntreeForm = () => {
         newData.point_vente_id = '';
       }
       
+      // Validation spécifique pour le type d'entrée
+      if (name === 'type_entree') {
+        if (value === 'correction') {
+          // Pour les corrections, les observations sont fortement recommandées
+          if (!prev.observations) {
+            toast({
+              title: "Information",
+              description: "Pour une correction, veuillez indiquer le motif dans les observations",
+              variant: "default",
+            });
+          }
+        } else if (value === 'achat') {
+          // Pour les achats, un fournisseur est requis
+          if (!prev.fournisseur) {
+            toast({
+              title: "Information",
+              description: "Pour un achat, veuillez indiquer le fournisseur",
+              variant: "default",
+            });
+          }
+        }
+      }
+      
       return newData;
     });
+    
+    // Réinitialiser l'avertissement si l'utilisateur modifie le type
+    if (name === 'type_entree' && duplicateWarning) {
+      setDuplicateWarning('');
+    }
   };
 
   const handleEmplacementChange = (value: string) => {
@@ -78,11 +112,40 @@ export const useEntreeForm = () => {
       return false;
     }
 
+    // Validation spécifique selon le type d'entrée
+    if (formData.type_entree === 'achat' && !formData.fournisseur.trim()) {
+      toast({
+        title: "Erreur de validation",
+        description: "Un fournisseur est obligatoire pour un achat",
+        variant: "destructive",
+      });
+      return false;
+    }
+
+    if (formData.type_entree === 'correction' && !formData.observations.trim()) {
+      toast({
+        title: "Erreur de validation",
+        description: "Des observations sont obligatoires pour une correction de stock",
+        variant: "destructive",
+      });
+      return false;
+    }
+
+    if (formData.type_entree === 'transfert' && !formData.numero_bon.trim()) {
+      toast({
+        title: "Erreur de validation",
+        description: "Un numéro de bon est obligatoire pour un transfert",
+        variant: "destructive",
+      });
+      return false;
+    }
+
     return true;
   };
 
   const resetForm = () => {
     setFormData(initialFormData);
+    setDuplicateWarning('');
   };
 
   const getEntreeData = () => ({
@@ -100,6 +163,8 @@ export const useEntreeForm = () => {
 
   return {
     formData,
+    duplicateWarning,
+    setDuplicateWarning,
     handleInputChange,
     handleSelectChange,
     handleEmplacementChange,
