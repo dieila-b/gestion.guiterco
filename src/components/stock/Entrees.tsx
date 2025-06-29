@@ -1,4 +1,5 @@
 
+
 import React, { useState } from 'react';
 import { useEntreesStock } from '@/hooks/stock';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -7,6 +8,7 @@ import { RefreshCw } from 'lucide-react';
 import { AddEntreeDialog } from './entrees/AddEntreeDialog';
 import { EntreesSearchBar } from './entrees/EntreesSearchBar';
 import { EntreesTable } from './entrees/EntreesTable';
+import { DuplicateWarning } from './entrees/DuplicateWarning';
 
 const Entrees = () => {
   const { entrees, isLoading } = useEntreesStock();
@@ -39,6 +41,7 @@ const Entrees = () => {
         </div>
       </CardHeader>
       <CardContent>
+        <DuplicateWarning entrees={entrees} />
         <EntreesSearchBar 
           searchTerm={searchTerm}
           onSearchChange={setSearchTerm}
@@ -53,3 +56,4 @@ const Entrees = () => {
 };
 
 export default Entrees;
+
