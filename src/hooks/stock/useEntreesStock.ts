@@ -81,6 +81,11 @@ export const useEntreesStock = () => {
         throw new Error(`Une entrée similaire existe déjà aujourd'hui (types: ${duplicateTypes}). Veuillez vérifier avant de continuer.`);
       }
 
+      // Validation spécifique : empêcher les corrections automatiques lors d'achats
+      if (newEntree.type_entree === 'correction' && newEntree.observations?.includes('Réception automatique')) {
+        throw new Error('Les corrections automatiques ne sont pas autorisées. Utilisez uniquement le type "Achat" pour les réceptions de bons de livraison.');
+      }
+
       const { data, error } = await supabase
         .from('entrees_stock')
         .insert(newEntree)
@@ -101,6 +106,7 @@ export const useEntreesStock = () => {
       queryClient.invalidateQueries({ queryKey: ['stock-pdv'] });
       toast({
         title: "Entrée de stock créée avec succès",
+        description: "L'entrée a été enregistrée correctement sans doublon.",
         variant: "default",
       });
     },

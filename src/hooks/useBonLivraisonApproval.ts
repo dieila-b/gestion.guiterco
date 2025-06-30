@@ -101,59 +101,23 @@ export const useBonLivraisonApproval = () => {
         throw new Error(`Erreur de mise à jour du bon: ${bonError.message}`);
       }
 
-      // 5. Créer les entrées de stock appropriées avec les bons article_id du catalogue
-      for (const approvalArticle of approvalData.articles) {
-        if (approvalArticle.quantite_recue > 0) {
-          // Trouver l'article correspondant dans les données récupérées
-          const articleData = articlesData?.find(a => a.id === approvalArticle.id);
-          
-          if (!articleData || !articleData.article_id) {
-            console.error('❌ Article introuvable ou sans article_id:', approvalArticle.id);
-            continue;
-          }
-
-          const entreeData: any = {
-            article_id: articleData.article_id, // Utiliser l'ID du catalogue, pas l'ID de articles_bon_livraison
-            quantite: approvalArticle.quantite_recue,
-            type_entree: 'achat-livraison',
-            numero_bon: `Approbation-${bonLivraisonId.slice(0, 8)}`,
-            fournisseur: 'Réception bon livraison',
-            observations: `Réception depuis bon de livraison ${bonLivraisonId}`,
-            created_by: 'Système'
-          };
-
-          if (approvalData.destinationType === 'entrepot') {
-            entreeData.entrepot_id = approvalData.destinationId;
-          } else {
-            entreeData.point_vente_id = approvalData.destinationId;
-          }
-
-          console.log('🔄 Création entrée stock:', entreeData);
-
-          const { error: entreeError } = await supabase
-            .from('entrees_stock')
-            .insert(entreeData);
-
-          if (entreeError) {
-            console.error('❌ Erreur lors de la création de l\'entrée stock:', entreeError);
-            throw new Error(`Erreur d'entrée stock: ${entreeError.message}`);
-          }
-        }
-      }
-
-      console.log('✅ Approbation terminée avec succès');
+      // 5. Le trigger handle_bon_livraison_approval() se chargera automatiquement de créer
+      // les entrées de stock de type "achat" UNIQUEMENT (plus de doublons "correction")
+      
+      console.log('✅ Approbation terminée avec succès - Les entrées de stock seront créées automatiquement par le trigger');
       return bonLivraisonId;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['bons-livraison'] });
       queryClient.invalidateQueries({ queryKey: ['bon-livraison-articles'] });
       queryClient.invalidateQueries({ queryKey: ['factures-achat'] });
-      queryClient.invalidateQueries({ queryKey: ['stock_principal'] });
-      queryClient.invalidateQueries({ queryKey: ['stock_pdv'] });
+      queryClient.invalidateQueries({ queryKey: ['stock-principal'] });
+      queryClient.invalidateQueries({ queryKey: ['stock-pdv'] });
+      queryClient.invalidateQueries({ queryKey: ['entrees-stock'] });
       
       toast({
         title: "✅ Bon de livraison approuvé",
-        description: "Le bon de livraison a été approuvé et le stock mis à jour.",
+        description: "Le bon de livraison a été approuvé et le stock mis à jour correctement.",
         variant: "default",
       });
     },

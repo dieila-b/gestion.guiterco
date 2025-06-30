@@ -2860,6 +2860,16 @@ export type Database = {
         }
         Returns: undefined
       }
+      verifier_integrite_entrees_stock: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          article_nom: string
+          nombre_entrees: number
+          types_entrees: string
+          total_quantite: number
+          statut_verification: string
+        }[]
+      }
     }
     Enums: {
       payment_method: "cash" | "card" | "transfer" | "check"

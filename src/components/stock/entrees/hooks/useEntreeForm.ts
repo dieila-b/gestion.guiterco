@@ -73,6 +73,14 @@ export const useEntreeForm = () => {
               variant: "default",
             });
           }
+        } else if (value === 'achat-livraison') {
+          // Type réservé pour les approbations automatiques de bons de livraison
+          toast({
+            title: "Type d'entrée réservé",
+            description: "Le type 'achat-livraison' est réservé aux approbations automatiques de bons de livraison",
+            variant: "destructive",
+          });
+          return prev; // Ne pas changer le type
         }
       }
       
@@ -135,6 +143,16 @@ export const useEntreeForm = () => {
       toast({
         title: "Erreur de validation",
         description: "Un numéro de bon est obligatoire pour un transfert",
+        variant: "destructive",
+      });
+      return false;
+    }
+
+    // Empêcher la création manuelle d'entrées de type 'achat-livraison'
+    if (formData.type_entree === 'achat-livraison') {
+      toast({
+        title: "Type d'entrée non autorisé",
+        description: "Le type 'achat-livraison' est réservé aux approbations automatiques",
         variant: "destructive",
       });
       return false;
