@@ -63,7 +63,6 @@ export const useBonLivraisonApproval = () => {
           .filter(Boolean);
 
         // Cette vérification sera gérée par le composant parent
-        // Nous continuons avec l'approbation normale
       }
 
       // 3. Mettre à jour les quantités reçues pour chaque article
@@ -101,10 +100,11 @@ export const useBonLivraisonApproval = () => {
         throw new Error(`Erreur de mise à jour du bon: ${bonError.message}`);
       }
 
-      // 5. Le trigger handle_bon_livraison_approval() se chargera automatiquement de créer
-      // UNIQUEMENT les entrées de stock de type "achat" - JAMAIS de "correction"
+      // 5. Le trigger handle_bon_livraison_approval() se chargera automatiquement de:
+      // - Créer UNIQUEMENT les entrées de stock de type "achat"
+      // - Générer automatiquement la facture d'achat avec prise en compte de l'acompte
       
-      console.log('✅ Approbation terminée avec succès - Seules les entrées de type "achat" seront créées automatiquement par le trigger');
+      console.log('✅ Approbation terminée avec succès - Entrées de stock et facture générées automatiquement');
       return bonLivraisonId;
     },
     onSuccess: () => {
@@ -114,10 +114,12 @@ export const useBonLivraisonApproval = () => {
       queryClient.invalidateQueries({ queryKey: ['stock-principal'] });
       queryClient.invalidateQueries({ queryKey: ['stock-pdv'] });
       queryClient.invalidateQueries({ queryKey: ['entrees-stock'] });
+      queryClient.invalidateQueries({ queryKey: ['all-facture-achat-articles'] });
+      queryClient.invalidateQueries({ queryKey: ['all-bon-commande-articles-counts'] });
       
       toast({
         title: "✅ Bon de livraison approuvé",
-        description: "Le bon de livraison a été approuvé et le stock mis à jour avec des entrées de type 'Achat' uniquement.",
+        description: "Le bon de livraison a été approuvé, le stock mis à jour et la facture générée avec prise en compte de l'acompte.",
         variant: "default",
       });
     },

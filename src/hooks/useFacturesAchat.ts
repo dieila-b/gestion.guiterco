@@ -10,13 +10,23 @@ export const useFacturesAchat = () => {
   const { data: facturesAchat, isLoading, error } = useQuery({
     queryKey: ['factures-achat'],
     queryFn: async () => {
-      console.log('Fetching factures achat with enhanced relations...');
+      console.log('Fetching factures achat with enhanced relations and advance payments...');
       const { data, error } = await supabase
         .from('factures_achat')
         .select(`
           *,
-          bon_commande:bons_de_commande!factures_achat_bon_commande_id_fkey(*),
-          bon_livraison:bons_de_livraison!factures_achat_bon_livraison_id_fkey(*)
+          bon_commande:bons_de_commande!factures_achat_bon_commande_id_fkey(
+            *,
+            montant_paye
+          ),
+          bon_livraison:bons_de_livraison!factures_achat_bon_livraison_id_fkey(*),
+          reglements:reglements_achat(
+            id,
+            montant,
+            mode_paiement,
+            date_reglement,
+            reference_paiement
+          )
         `)
         .order('created_at', { ascending: false });
       
@@ -25,7 +35,7 @@ export const useFacturesAchat = () => {
         throw error;
       }
       
-      console.log('Fetched factures achat:', data);
+      console.log('Fetched factures achat with payments info:', data);
       return data as FactureAchat[];
     }
   });

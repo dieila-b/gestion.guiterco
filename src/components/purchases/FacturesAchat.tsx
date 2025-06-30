@@ -8,6 +8,8 @@ import { Badge } from '@/components/ui/badge';
 import { Search, Plus } from 'lucide-react';
 import { useFacturesAchat } from '@/hooks/useFacturesAchat';
 import { useAllFactureAchatArticles } from '@/hooks/useFactureAchatArticles';
+import { useBonsCommande } from '@/hooks/useBonsCommande';
+import { useAllBonCommandeArticles } from '@/hooks/useBonCommandeArticles';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { formatCurrency } from '@/lib/currency';
@@ -18,6 +20,7 @@ import { PrintFactureAchatDialog } from './PrintFactureAchatDialog';
 const FacturesAchat = () => {
   const { facturesAchat, isLoading } = useFacturesAchat();
   const { data: articlesCounts } = useAllFactureAchatArticles();
+  const { data: bonCommandeArticlesCounts } = useAllBonCommandeArticles();
   const [searchTerm, setSearchTerm] = useState('');
 
   const filteredFactures = facturesAchat?.filter(facture => 
@@ -47,22 +50,38 @@ const FacturesAchat = () => {
 
   // Calculate derived values for each invoice
   const getArticleCount = (facture: any) => {
-    return articlesCounts?.[facture.id] || 0;
+    // Priorité 1: Articles directement liés à la facture
+    const directArticles = articlesCounts?.[facture.id] || 0;
+    if (directArticles > 0) {
+      return directArticles;
+    }
+    
+    // Priorité 2: Articles du bon de commande lié (pour les factures auto-générées)
+    if (facture.bon_commande_id) {
+      const bonCommandeArticles = bonCommandeArticlesCounts?.[facture.bon_commande_id] || 0;
+      return bonCommandeArticles;
+    }
+    
+    return 0;
   };
 
   const getPaidAmount = (facture: any) => {
-    if (facture.statut_paiement === 'paye') {
-      return facture.montant_ttc;
-    }
-    return 0; // Could be calculated from actual payments
+    // Calculer le montant payé à partir des règlements
+    return 0; // À implémenter avec la table reglements_achat
   };
 
-  const getReturnAmount = (facture: any) => {
-    return 0; // Would be calculated from returns table
+  const getAdvanceAmount = (facture: any) => {
+    // Récupérer l'acompte du bon de commande si c'est une facture auto-générée
+    if (facture.bon_commande?.montant_paye) {
+      return facture.bon_commande.montant_paye;
+    }
+    return 0;
   };
 
   const getRemainingAmount = (facture: any) => {
-    return facture.montant_ttc - getPaidAmount(facture) - getReturnAmount(facture);
+    const advanceAmount = getAdvanceAmount(facture);
+    const paidAmount = getPaidAmount(facture);
+    return facture.montant_ttc - advanceAmount - paidAmount;
   };
 
   if (isLoading) {
@@ -103,8 +122,8 @@ const FacturesAchat = () => {
                   <TableHead className="font-semibold">Date</TableHead>
                   <TableHead className="font-semibold">Fournisseur</TableHead>
                   <TableHead className="font-semibold text-center">Articles</TableHead>
+                  <TableHead className="font-semibold text-right">Acompte</TableHead>
                   <TableHead className="font-semibold text-right">Payé</TableHead>
-                  <TableHead className="font-semibold text-right">Retour</TableHead>
                   <TableHead className="font-semibold text-right">Reste</TableHead>
                   <TableHead className="font-semibold text-right">Montant</TableHead>
                   <TableHead className="font-semibold text-center">Statut</TableHead>
@@ -113,54 +132,61 @@ const FacturesAchat = () => {
               </TableHeader>
               <TableBody>
                 {filteredFactures && filteredFactures.length > 0 ? (
-                  filteredFactures.map((facture) => (
-                    <TableRow key={facture.id} className="hover:bg-muted/30">
-                      <TableCell className="font-medium text-blue-600">
-                        {facture.numero_facture}
-                      </TableCell>
-                      <TableCell>
-                        {format(new Date(facture.date_facture), 'dd/MM/yyyy', { locale: fr })}
-                      </TableCell>
-                      <TableCell className="font-medium">
-                        {facture.fournisseur}
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <span className="font-medium">
-                          {getArticleCount(facture)}
-                        </span>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        {formatCurrency(getPaidAmount(facture))}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        {formatCurrency(getReturnAmount(facture))}
-                      </TableCell>
-                      <TableCell className="text-right font-medium">
-                        {formatCurrency(getRemainingAmount(facture))}
-                      </TableCell>
-                      <TableCell className="text-right font-medium">
-                        {formatCurrency(facture.montant_ttc)}
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <Badge 
-                          variant="outline" 
-                          className={`${getStatusBadgeColor(facture.statut_paiement)} font-medium`}
-                        >
-                          {getStatusLabel(facture.statut_paiement)}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <div className="flex justify-center space-x-1">
-                          <EditFactureAchatDialog facture={facture} />
-                          <DeleteFactureAchatDialog 
-                            factureId={facture.id} 
-                            numeroFacture={facture.numero_facture} 
-                          />
-                          <PrintFactureAchatDialog facture={facture} />
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))
+                  filteredFactures.map((facture) => {
+                    const articleCount = getArticleCount(facture);
+                    const advanceAmount = getAdvanceAmount(facture);
+                    const paidAmount = getPaidAmount(facture);
+                    const remainingAmount = getRemainingAmount(facture);
+                    
+                    return (
+                      <TableRow key={facture.id} className="hover:bg-muted/30">
+                        <TableCell className="font-medium text-blue-600">
+                          {facture.numero_facture}
+                        </TableCell>
+                        <TableCell>
+                          {format(new Date(facture.date_facture), 'dd/MM/yyyy', { locale: fr })}
+                        </TableCell>
+                        <TableCell className="font-medium">
+                          {facture.fournisseur}
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <span className={`font-medium text-lg ${articleCount > 0 ? 'text-blue-600' : 'text-gray-400'}`}>
+                            {articleCount}
+                          </span>
+                        </TableCell>
+                        <TableCell className="text-right text-blue-600">
+                          {formatCurrency(advanceAmount)}
+                        </TableCell>
+                        <TableCell className="text-right text-green-600">
+                          {formatCurrency(paidAmount)}
+                        </TableCell>
+                        <TableCell className="text-right font-medium text-orange-600">
+                          {formatCurrency(remainingAmount)}
+                        </TableCell>
+                        <TableCell className="text-right font-medium">
+                          {formatCurrency(facture.montant_ttc)}
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <Badge 
+                            variant="outline" 
+                            className={`${getStatusBadgeColor(facture.statut_paiement)} font-medium`}
+                          >
+                            {getStatusLabel(facture.statut_paiement)}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <div className="flex justify-center space-x-1">
+                            <EditFactureAchatDialog facture={facture} />
+                            <DeleteFactureAchatDialog 
+                              factureId={facture.id} 
+                              numeroFacture={facture.numero_facture} 
+                            />
+                            <PrintFactureAchatDialog facture={facture} />
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })
                 ) : (
                   <TableRow>
                     <TableCell colSpan={10} className="text-center py-8">
