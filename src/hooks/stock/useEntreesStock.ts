@@ -73,13 +73,16 @@ export const useEntreesStock = () => {
 
   const createEntree = useMutation({
     mutationFn: async (newEntree: Omit<EntreeStock, 'id' | 'created_at'>) => {
-      // Bloquer toute tentative de création de correction automatique
+      // PROTECTION RENFORCÉE: Bloquer TOUTE tentative de création de correction automatique
       if (newEntree.type_entree === 'correction' && (
-        newEntree.fournisseur?.includes('Réception bon livraison') ||
-        newEntree.observations?.includes('Réception automatique') ||
-        newEntree.observations?.includes('Achat automatique')
+        newEntree.fournisseur?.includes('Réception') ||
+        newEntree.fournisseur?.includes('bon') ||
+        newEntree.observations?.includes('automatique') ||
+        newEntree.observations?.includes('Réception') ||
+        newEntree.observations?.includes('BL') ||
+        newEntree.numero_bon?.startsWith('BL-')
       )) {
-        throw new Error('Création de correction automatique interdite. Utilisez uniquement le type "achat" pour les réceptions de bons de livraison.');
+        throw new Error('CRÉATION DE CORRECTION AUTOMATIQUE INTERDITE - Utilisez uniquement le type "achat" pour les réceptions de bons de livraison');
       }
 
       // Vérifier les doublons potentiels avant l'insertion

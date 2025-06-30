@@ -140,15 +140,18 @@ export const useEntreeForm = () => {
       return false;
     }
 
-    // Empêcher toute tentative de correction automatique
+    // PROTECTION RENFORCÉE: Empêcher toute tentative de correction automatique
     if (formData.type_entree === 'correction' && (
-      formData.fournisseur.includes('Réception bon livraison') ||
-      formData.observations.includes('Réception automatique') ||
-      formData.observations.includes('Achat automatique')
+        formData.fournisseur.includes('Réception') ||
+        formData.fournisseur.includes('bon') ||
+        formData.observations.includes('automatique') ||
+        formData.observations.includes('Réception') ||
+        formData.observations.includes('BL') ||
+        formData.numero_bon.startsWith('BL-')
     )) {
       toast({
         title: "❌ Type d'entrée non autorisé",
-        description: "Les corrections automatiques sont interdites. Utilisez uniquement le type 'achat' pour les réceptions de bons de livraison.",
+        description: "CRÉATION DE CORRECTION AUTOMATIQUE INTERDITE - Utilisez uniquement le type 'achat' pour les réceptions de bons de livraison.",
         variant: "destructive",
       });
       return false;

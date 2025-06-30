@@ -2878,6 +2878,14 @@ export type Database = {
           statut_verification: string
         }[]
       }
+      verifier_nettoyage_corrections: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          type_verification: string
+          nombre: number
+          statut: string
+        }[]
+      }
     }
     Enums: {
       payment_method: "cash" | "card" | "transfer" | "check"

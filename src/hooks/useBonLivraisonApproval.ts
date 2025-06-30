@@ -102,9 +102,9 @@ export const useBonLivraisonApproval = () => {
       }
 
       // 5. Le trigger handle_bon_livraison_approval() se chargera automatiquement de créer
-      // les entrées de stock de type "achat" UNIQUEMENT (plus jamais de "correction")
+      // UNIQUEMENT les entrées de stock de type "achat" - JAMAIS de "correction"
       
-      console.log('✅ Approbation terminée avec succès - Les entrées de stock de type "achat" seront créées automatiquement par le trigger');
+      console.log('✅ Approbation terminée avec succès - Seules les entrées de type "achat" seront créées automatiquement par le trigger');
       return bonLivraisonId;
     },
     onSuccess: () => {
