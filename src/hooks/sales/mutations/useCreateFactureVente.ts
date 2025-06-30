@@ -3,6 +3,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { processDelivery } from './services/deliveryProcessingService';
+import { updateStockPDV } from './services/stockUpdateService';
 
 export const useCreateFactureVente = () => {
   const queryClient = useQueryClient();
@@ -108,6 +109,19 @@ export const useCreateFactureVente = () => {
 
       console.log('✅ Lignes facture créées:', lignesCreees?.length);
 
+      // CRUCIAL: Mettre à jour le stock PDV RÉELLEMENT dans la base de données
+      if (data.point_vente_id) {
+        console.log('📦 DÉBUT MISE À JOUR STOCK PDV RÉEL pour:', data.point_vente_id);
+        try {
+          await updateStockPDV(data, facture);
+          console.log('✅ Stock PDV mis à jour avec succès dans la base de données');
+        } catch (stockError) {
+          console.error('❌ ERREUR CRITIQUE lors de la mise à jour du stock PDV:', stockError);
+          // Ne pas interrompre la transaction pour le stock, mais signaler l'erreur
+          toast.error('Attention: La vente est créée mais le stock n\'a pas pu être mis à jour automatiquement');
+        }
+      }
+
       // Traiter la livraison si nécessaire (pour les cas complexes)
       if (data.payment_data && data.payment_data.statut_livraison === 'partiel') {
         await processDelivery(data.payment_data, facture, lignesCreees);
@@ -152,16 +166,19 @@ export const useCreateFactureVente = () => {
       return { facture, lignes: lignesCreees };
     },
     onSuccess: () => {
-      // Invalider toutes les queries liées aux factures pour forcer le rafraîchissement
+      // Invalider toutes les queries liées aux factures et au stock pour forcer le rafraîchissement
       queryClient.invalidateQueries({ queryKey: ['factures_vente'] });
       queryClient.invalidateQueries({ queryKey: ['factures-vente-details'] });
+      queryClient.invalidateQueries({ queryKey: ['stock_pdv'] });
+      queryClient.invalidateQueries({ queryKey: ['stock-pdv'] });
       
       // Force le refetch immédiat
       queryClient.refetchQueries({ queryKey: ['factures_vente'] });
+      queryClient.refetchQueries({ queryKey: ['stock_pdv'] });
       
-      console.log('✅ Queries invalidées et données rafraîchies');
+      console.log('✅ Queries invalidées et données rafraîchies (factures + stock)');
       
-      toast.success('Facture créée avec succès');
+      toast.success('Vente finalisée avec succès - Stock mis à jour');
     },
     onError: (error: Error) => {
       console.error('❌ Erreur création facture vente:', error);
