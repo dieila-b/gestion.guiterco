@@ -5,12 +5,12 @@ import { DollarSign, Target, TrendingUp, BarChart } from 'lucide-react';
 import { formatCurrency } from '@/lib/currency';
 import type { RapportMargePeriode } from '@/types/margins';
 
-interface MarginStatsCardsProps {
+interface GlobalMarginStatsCardsProps {
   rapport: RapportMargePeriode;
   isLoading: boolean;
 }
 
-const MarginStatsCards = ({ rapport, isLoading }: MarginStatsCardsProps) => {
+const GlobalMarginStatsCards = ({ rapport, isLoading }: GlobalMarginStatsCardsProps) => {
   if (isLoading) {
     return (
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -32,32 +32,36 @@ const MarginStatsCards = ({ rapport, isLoading }: MarginStatsCardsProps) => {
 
   const stats = [
     {
-      title: "Total Ventes",
+      title: "Chiffre d'affaires",
       value: formatCurrency(rapport.total_ventes || 0),
       icon: DollarSign,
       color: "text-blue-600",
-      bgColor: "bg-blue-50"
+      bgColor: "bg-blue-50",
+      description: `${rapport.nombre_factures || 0} factures`
     },
     {
-      title: "Total Coûts",
+      title: "Coûts totaux",
       value: formatCurrency(rapport.total_couts || 0),
       icon: Target,
       color: "text-red-600",
-      bgColor: "bg-red-50"
+      bgColor: "bg-red-50",
+      description: "Coûts d'achat"
     },
     {
-      title: "Bénéfice Total",
+      title: "Bénéfice",
       value: formatCurrency(rapport.benefice_total || 0),
       icon: TrendingUp,
       color: "text-green-600",
-      bgColor: "bg-green-50"
+      bgColor: "bg-green-50",
+      description: "CA - Coûts"
     },
     {
-      title: "Taux de Marge",
+      title: "Taux de marge",
       value: `${rapport.taux_marge_moyen || 0}%`,
       icon: BarChart,
       color: "text-purple-600",
-      bgColor: "bg-purple-50"
+      bgColor: "bg-purple-50",
+      description: "Marge globale"
     }
   ];
 
@@ -66,9 +70,9 @@ const MarginStatsCards = ({ rapport, isLoading }: MarginStatsCardsProps) => {
       {stats.map((stat, index) => {
         const Icon = stat.icon;
         return (
-          <Card key={index}>
+          <Card key={index} className="hover:shadow-md transition-shadow">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
+              <CardTitle className="text-sm font-medium text-gray-600">
                 {stat.title}
               </CardTitle>
               <div className={`p-2 rounded-full ${stat.bgColor}`}>
@@ -76,9 +80,12 @@ const MarginStatsCards = ({ rapport, isLoading }: MarginStatsCardsProps) => {
               </div>
             </CardHeader>
             <CardContent>
-              <div className={`text-2xl font-bold ${stat.color}`}>
+              <div className={`text-2xl font-bold ${stat.color} mb-1`}>
                 {stat.value}
               </div>
+              <p className="text-xs text-muted-foreground">
+                {stat.description}
+              </p>
             </CardContent>
           </Card>
         );
@@ -87,4 +94,4 @@ const MarginStatsCards = ({ rapport, isLoading }: MarginStatsCardsProps) => {
   );
 };
 
-export default MarginStatsCards;
+export default GlobalMarginStatsCards;

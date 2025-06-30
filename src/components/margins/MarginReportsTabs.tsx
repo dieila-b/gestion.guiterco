@@ -2,9 +2,10 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { FileText } from 'lucide-react';
+import { FileText, BarChart } from 'lucide-react';
 import ArticleMarginTable from './ArticleMarginTable';
 import FactureMarginTable from './FactureMarginTable';
+import GlobalMarginAnalysis from './GlobalMarginAnalysis';
 import type { ArticleWithMargin, FactureWithMargin } from '@/types/margins';
 
 interface MarginReportsTabsProps {
@@ -21,11 +22,16 @@ const MarginReportsTabs = ({
   facturesLoading 
 }: MarginReportsTabsProps) => {
   return (
-    <Tabs defaultValue="articles" className="w-full">
-      <TabsList className="grid w-full grid-cols-2">
+    <Tabs defaultValue="global" className="w-full">
+      <TabsList className="grid w-full grid-cols-3">
+        <TabsTrigger value="global">Analyse Globale</TabsTrigger>
         <TabsTrigger value="articles">Marges par Article</TabsTrigger>
         <TabsTrigger value="factures">Marges par Facture</TabsTrigger>
       </TabsList>
+
+      <TabsContent value="global" className="mt-6">
+        <GlobalMarginAnalysis />
+      </TabsContent>
 
       <TabsContent value="articles" className="mt-6">
         <Card>
