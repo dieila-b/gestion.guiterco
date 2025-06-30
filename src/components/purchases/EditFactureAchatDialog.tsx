@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -10,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Edit } from 'lucide-react';
 import { useFacturesAchat } from '@/hooks/useFacturesAchat';
+import { useReglementsAchat } from '@/hooks/useReglementsAchat';
 import { toast } from '@/hooks/use-toast';
 import { formatCurrency } from '@/lib/currency';
 
@@ -20,6 +20,7 @@ interface EditFactureAchatDialogProps {
 export const EditFactureAchatDialog = ({ facture }: EditFactureAchatDialogProps) => {
   const [open, setOpen] = useState(false);
   const { updateFactureAchat } = useFacturesAchat();
+  const { reglements, createReglement } = useReglementsAchat(facture.id);
   
   const [formData, setFormData] = useState({
     numero_facture: facture.numero_facture || '',
@@ -36,11 +37,11 @@ export const EditFactureAchatDialog = ({ facture }: EditFactureAchatDialogProps)
 
   // Calculs des montants
   const acompteVerse = facture.bon_commande?.montant_paye || 0;
-  const reglementsTotal = facture.reglements?.reduce((sum: number, reglement: any) => {
+  const reglementsTotal = reglements?.reduce((sum: number, reglement: any) => {
     return sum + (reglement.montant || 0);
   }, 0) || 0;
   const montantPaye = acompteVerse + reglementsTotal;
-  const montantRestant = formData.montant_ttc - montantPaye;
+  const montantRestant = Math.max(0, formData.montant_ttc - montantPaye);
 
   // État pour les nouveaux paiements
   const [nouveauPaiement, setNouveauPaiement] = useState({
@@ -54,9 +55,21 @@ export const EditFactureAchatDialog = ({ facture }: EditFactureAchatDialogProps)
     e.preventDefault();
     
     try {
+      // Si un nouveau paiement est ajouté, créer d'abord le règlement
+      if (nouveauPaiement.montant > 0) {
+        await createReglement.mutateAsync({
+          facture_achat_id: facture.id,
+          montant: nouveauPaiement.montant,
+          mode_paiement: nouveauPaiement.mode_paiement,
+          date_reglement: new Date(nouveauPaiement.date_reglement).toISOString(),
+          reference_paiement: nouveauPaiement.reference || undefined,
+          created_by: 'user'
+        });
+      }
+
       // Déterminer le statut de paiement automatiquement
-      let nouveauStatut = 'en_attente';
       const totalPaye = montantPaye + nouveauPaiement.montant;
+      let nouveauStatut = 'en_attente';
       
       if (totalPaye >= formData.montant_ttc) {
         nouveauStatut = 'paye';
@@ -71,14 +84,15 @@ export const EditFactureAchatDialog = ({ facture }: EditFactureAchatDialogProps)
         date_facture: formData.date_facture ? new Date(formData.date_facture).toISOString() : undefined,
         date_echeance: formData.date_echeance ? new Date(formData.date_echeance).toISOString() : undefined
       });
-
-      // Si un nouveau paiement est ajouté, créer un règlement
-      if (nouveauPaiement.montant > 0) {
-        // TODO: Créer l'entrée dans reglements_achat
-        console.log('Nouveau paiement à enregistrer:', nouveauPaiement);
-      }
       
       setOpen(false);
+      setNouveauPaiement({
+        montant: 0,
+        mode_paiement: 'virement',
+        reference: '',
+        date_reglement: new Date().toISOString().split('T')[0]
+      });
+      
       toast({
         title: "Facture d'achat modifiée",
         description: "La facture d'achat a été mise à jour avec succès.",
@@ -312,8 +326,8 @@ export const EditFactureAchatDialog = ({ facture }: EditFactureAchatDialogProps)
             <Button type="button" variant="outline" onClick={() => setOpen(false)}>
               Annuler
             </Button>
-            <Button type="submit" disabled={updateFactureAchat.isPending}>
-              {updateFactureAchat.isPending ? 'Mise à jour...' : 'Enregistrer'}
+            <Button type="submit" disabled={updateFactureAchat.isPending || createReglement.isPending}>
+              {(updateFactureAchat.isPending || createReglement.isPending) ? 'Mise à jour...' : 'Enregistrer'}
             </Button>
           </div>
         </form>

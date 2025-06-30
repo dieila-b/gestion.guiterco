@@ -10,7 +10,7 @@ export const useFacturesAchat = () => {
   const { data: facturesAchat, isLoading, error } = useQuery({
     queryKey: ['factures-achat'],
     queryFn: async () => {
-      console.log('Fetching factures achat with enhanced relations and advance payments...');
+      console.log('Fetching factures achat with enhanced relations and payments...');
       const { data, error } = await supabase
         .from('factures_achat')
         .select(`
@@ -60,6 +60,7 @@ export const useFacturesAchat = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['factures-achat'] });
       queryClient.invalidateQueries({ queryKey: ['all-facture-achat-articles'] });
+      queryClient.invalidateQueries({ queryKey: ['all-reglements-achat'] });
       toast({
         title: "Facture d'achat créée avec succès",
         variant: "default",
@@ -87,6 +88,7 @@ export const useFacturesAchat = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['factures-achat'] });
+      queryClient.invalidateQueries({ queryKey: ['all-reglements-achat'] });
       toast({
         title: "Facture d'achat mise à jour avec succès",
         variant: "default",
@@ -112,6 +114,7 @@ export const useFacturesAchat = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['factures-achat'] });
       queryClient.invalidateQueries({ queryKey: ['all-facture-achat-articles'] });
+      queryClient.invalidateQueries({ queryKey: ['all-reglements-achat'] });
       toast({
         title: "Facture d'achat supprimée avec succès",
         variant: "default",

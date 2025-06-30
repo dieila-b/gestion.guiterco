@@ -9,6 +9,7 @@ import { Search, Plus } from 'lucide-react';
 import { useFacturesAchat } from '@/hooks/useFacturesAchat';
 import { useAllFactureAchatArticles } from '@/hooks/useFactureAchatArticles';
 import { useAllBonCommandeArticles } from '@/hooks/useBonCommandeArticles';
+import { useAllReglementsAchat } from '@/hooks/useReglementsAchat';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { formatCurrency } from '@/lib/currency';
@@ -20,6 +21,7 @@ const FacturesAchat = () => {
   const { facturesAchat, isLoading } = useFacturesAchat();
   const { data: articlesCounts } = useAllFactureAchatArticles();
   const { data: bonCommandeArticlesCounts } = useAllBonCommandeArticles();
+  const { data: reglementsAchat } = useAllReglementsAchat();
   const [searchTerm, setSearchTerm] = useState('');
 
   const filteredFactures = facturesAchat?.filter(facture => 
@@ -73,7 +75,12 @@ const FacturesAchat = () => {
       totalPaid += facture.bon_commande.montant_paye;
     }
     
-    // Ajouter les règlements additionnels
+    // Ajouter les règlements de la table reglements_achat
+    if (reglementsAchat && reglementsAchat[facture.id]) {
+      totalPaid += reglementsAchat[facture.id];
+    }
+    
+    // Fallback: Ajouter les règlements depuis la relation (si disponible)
     if (facture.reglements && Array.isArray(facture.reglements)) {
       const reglementsTotal = facture.reglements.reduce((sum: number, reglement: any) => {
         return sum + (reglement.montant || 0);
@@ -86,7 +93,7 @@ const FacturesAchat = () => {
 
   const getRemainingAmount = (facture: any) => {
     const paidAmount = getPaidAmount(facture);
-    return facture.montant_ttc - paidAmount;
+    return Math.max(0, facture.montant_ttc - paidAmount);
   };
 
   if (isLoading) {
