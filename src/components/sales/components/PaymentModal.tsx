@@ -1,158 +1,260 @@
+
 import React, { useState, useEffect } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Button } from "@/components/ui/button";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Textarea } from "@/components/ui/textarea";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Textarea } from '@/components/ui/textarea';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { formatCurrency } from '@/lib/currency';
-import type { CartItem } from '@/hooks/useVenteComptoir';
 
 interface PaymentModalProps {
   isOpen: boolean;
   onClose: () => void;
-  cart: CartItem[];
-  client: any;
-  totals: {
-    montant_ht: number;
-    tva: number;
-    montant_ttc: number;
-  };
-  onConfirm: (paymentData: any) => void;
+  onConfirm: (paymentData: PaymentData) => void;
+  totalAmount: number;
+  cartItems: any[];
   isLoading: boolean;
 }
 
-// Ensure the status values sent match the expected values in the backend
-const PaymentModal = ({ isOpen, onClose, cart, client, totals, onConfirm, isLoading }: PaymentModalProps) => {
-  const [montantPaye, setMontantPaye] = useState(totals.montant_ttc.toFixed(2));
-  const [statutLivraison, setStatutLivraison] = useState('livraison_complete'); // Default to complete
+interface PaymentData {
+  montant_paye: number;
+  mode_paiement: string;
+  statut_livraison: string;
+  quantite_livree?: { [key: string]: number };
+  notes?: string;
+}
+
+const PaymentModal: React.FC<PaymentModalProps> = ({
+  isOpen,
+  onClose,
+  onConfirm,
+  totalAmount,
+  cartItems,
+  isLoading
+}) => {
+  const [montantPaye, setMontantPaye] = useState(0);
+  const [modePaiement, setModePaiement] = useState('especes');
+  // CORRECTION: Statut par défaut en_attente au lieu de livre
+  const [statutLivraison, setStatutLivraison] = useState('en_attente');
   const [notes, setNotes] = useState('');
+  const [quantitesLivrees, setQuantitesLivrees] = useState<{ [key: string]: number }>({});
 
+  // Préremplir le montant payé à 0 par défaut (pas le total)
   useEffect(() => {
-    if (totals) {
-      setMontantPaye(totals.montant_ttc.toFixed(2));
+    if (isOpen) {
+      setMontantPaye(0);
+      setStatutLivraison('en_attente');
+      setQuantitesLivrees({});
     }
-  }, [totals]);
+  }, [isOpen]);
 
-  const handleSubmit = () => {
-    const paymentData = {
-      montant_paye: parseFloat(montantPaye),
-      statut_livraison: statutLivraison, // This should be 'livraison_complete' or 'livraison_partielle'
-      notes: notes.trim() || undefined
+  // Calcul dynamique du reste à payer
+  const restePayer = Math.max(0, totalAmount - montantPaye);
+
+  const handleMontantPayeChange = (value: string) => {
+    const amount = parseFloat(value) || 0;
+    setMontantPaye(amount);
+  };
+
+  const handleConfirm = () => {
+    const paymentData: PaymentData = {
+      montant_paye: montantPaye,
+      mode_paiement: modePaiement,
+      statut_livraison: statutLivraison,
+      notes: notes
     };
 
-    console.log('💳 Données de paiement envoyées:', paymentData);
+    if (statutLivraison === 'partiel') {
+      paymentData.quantite_livree = quantitesLivrees;
+    }
+
     onConfirm(paymentData);
   };
 
+  const handleQuantiteLivreeChange = (itemId: string, quantite: number) => {
+    setQuantitesLivrees(prev => ({
+      ...prev,
+      [itemId]: quantite
+    }));
+  };
+
+  // Réinitialiser les valeurs à la fermeture
+  const handleClose = () => {
+    setMontantPaye(0);
+    setModePaiement('especes');
+    setStatutLivraison('en_attente');
+    setNotes('');
+    setQuantitesLivrees({});
+    onClose();
+  };
+
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Finaliser la vente</DialogTitle>
           <DialogDescription>
-            Entrez le montant payé par le client et confirmez la vente.
+            Gérer le paiement et la livraison de cette vente
           </DialogDescription>
         </DialogHeader>
 
-        {client && (
-          <div className="border rounded-md p-4 mb-4">
-            <h3 className="text-lg font-semibold">Client</h3>
-            <p>Nom: {client.nom}</p>
-            {client.telephone && <p>Téléphone: {client.telephone}</p>}
-            {client.adresse && <p>Adresse: {client.adresse}</p>}
-          </div>
-        )}
+        <Tabs defaultValue="paiement" className="w-full">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="paiement">Paiement</TabsTrigger>
+            <TabsTrigger value="livraison">Livraison</TabsTrigger>
+          </TabsList>
 
-        <div className="space-y-6">
-          {/* Section Montant à payer */}
-          <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-3 items-center gap-4">
-              <Label htmlFor="montant_ht" className="text-right">
-                Montant HT
-              </Label>
-              <Input
-                id="montant_ht"
-                value={formatCurrency(totals.montant_ht)}
-                className="col-span-2 cursor-not-allowed"
-                readOnly
-              />
-            </div>
-            <div className="grid grid-cols-3 items-center gap-4">
-              <Label htmlFor="tva" className="text-right">
-                TVA
-              </Label>
-              <Input
-                id="tva"
-                value={formatCurrency(totals.tva)}
-                className="col-span-2 cursor-not-allowed"
-                readOnly
-              />
-            </div>
-            <div className="grid grid-cols-3 items-center gap-4">
-              <Label htmlFor="montant_ttc" className="text-right">
-                Montant TTC
-              </Label>
-              <Input
-                id="montant_ttc"
-                value={formatCurrency(totals.montant_ttc)}
-                className="col-span-2 cursor-not-allowed"
-                readOnly
-              />
-            </div>
-          </div>
-
-          {/* Section Montant Payé */}
-          <div className="space-y-2">
-            <Label htmlFor="montant_paye" className="text-sm font-medium">Montant Payé</Label>
-            <Input
-              id="montant_paye"
-              type="number"
-              value={montantPaye}
-              onChange={(e) => setMontantPaye(e.target.value)}
-              placeholder="Montant payé par le client"
-            />
-          </div>
-
-          {/* Section Statut de livraison */}
-          <div className="space-y-3">
-            <Label className="text-sm font-medium">Statut de livraison</Label>
-            <RadioGroup value={statutLivraison} onValueChange={setStatutLivraison}>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="livraison_complete" id="complete" />
-                <Label htmlFor="complete" className="cursor-pointer">
-                  Livraison complète
-                </Label>
+          <TabsContent value="paiement" className="space-y-4">
+            <div className="bg-slate-800 text-white p-4 rounded-lg">
+              <div className="flex justify-between items-center mb-4">
+                <span className="text-lg">Montant total:</span>
+                <span className="text-xl font-bold">{formatCurrency(totalAmount)}</span>
               </div>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="livraison_partielle" id="partielle" />
-                <Label htmlFor="partielle" className="cursor-pointer">
-                  Livraison partielle
-                </Label>
+              
+              <div className="flex justify-between items-center mb-2">
+                <span>Montant payé:</span>
+                <span className="font-bold text-green-400">{formatCurrency(montantPaye)}</span>
               </div>
-            </RadioGroup>
-          </div>
+              
+              <div className="flex justify-between items-center">
+                <span className={`${restePayer > 0 ? 'text-yellow-400' : 'text-green-400'}`}>
+                  Reste à payer:
+                </span>
+                <span className={`font-bold text-lg ${restePayer > 0 ? 'text-yellow-400' : 'text-green-400'}`}>
+                  {formatCurrency(restePayer)}
+                </span>
+              </div>
+              
+              {restePayer === 0 && montantPaye > 0 && (
+                <div className="mt-2 p-2 bg-green-600 rounded text-center text-sm">
+                  ✓ Facture entièrement réglée
+                </div>
+              )}
+              
+              {montantPaye > 0 && restePayer > 0 && (
+                <div className="mt-2 p-2 bg-yellow-600 rounded text-center text-sm">
+                  ⚠️ Paiement partiel
+                </div>
+              )}
+            </div>
 
-          {/* Section Notes */}
-          <div className="space-y-2">
-            <Label htmlFor="notes" className="text-sm font-medium">Notes</Label>
-            <Textarea
-              id="notes"
-              placeholder="Ajouter des notes (optionnel)"
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-            />
-          </div>
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="montant-paye">Montant encaissé</Label>
+                <Input
+                  id="montant-paye"
+                  type="number"
+                  value={montantPaye}
+                  onChange={(e) => handleMontantPayeChange(e.target.value)}
+                  className="text-lg font-bold"
+                  placeholder="0"
+                  step="0.01"
+                  min="0"
+                  max={totalAmount}
+                />
+                <div className="text-sm text-gray-500 mt-1">
+                  Saisir 0 si aucun paiement reçu maintenant
+                </div>
+              </div>
 
-          {/* Footer Buttons */}
-          <DialogFooter>
-            <Button type="button" variant="secondary" onClick={onClose}>
-              Annuler
-            </Button>
-            <Button type="button" onClick={handleSubmit} disabled={isLoading}>
-              {isLoading ? "Confirmation..." : "Confirmer la vente"}
-            </Button>
-          </DialogFooter>
+              <div>
+                <Label>Méthode de paiement:</Label>
+                <RadioGroup value={modePaiement} onValueChange={setModePaiement} className="mt-2">
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="especes" id="especes" />
+                    <Label htmlFor="especes">Espèces</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="carte" id="carte" />
+                    <Label htmlFor="carte">Carte</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="virement" id="virement" />
+                    <Label htmlFor="virement">Virement</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="mobile_money" id="mobile_money" />
+                    <Label htmlFor="mobile_money">Mobile Money</Label>
+                  </div>
+                </RadioGroup>
+              </div>
+
+              <div>
+                <Label htmlFor="notes">Notes:</Label>
+                <Textarea
+                  id="notes"
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  placeholder="Ajouter des notes supplémentaires..."
+                  className="mt-1"
+                />
+              </div>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="livraison" className="space-y-4">
+            <div className="bg-blue-50 p-4 rounded-lg border">
+              <h4 className="font-medium text-blue-900 mb-2">État de la livraison</h4>
+              <p className="text-sm text-blue-700">
+                Choisissez le statut de livraison approprié selon la situation réelle.
+              </p>
+            </div>
+
+            <div>
+              <Label>Statut de livraison:</Label>
+              <RadioGroup value={statutLivraison} onValueChange={setStatutLivraison} className="mt-2">
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="en_attente" id="en_attente" />
+                  <Label htmlFor="en_attente">En attente de livraison</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="partiel" id="partiel" />
+                  <Label htmlFor="partiel">Livraison partielle</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="livre" id="livre" />
+                  <Label htmlFor="livre">Livraison complète</Label>
+                </div>
+              </RadioGroup>
+            </div>
+
+            {statutLivraison === 'partiel' && (
+              <div className="space-y-3">
+                <Label>Quantités livrées:</Label>
+                {cartItems.map((item) => (
+                  <div key={item.id} className="flex items-center justify-between p-2 border rounded">
+                    <span className="font-medium">{item.nom}</span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-gray-500">/ {item.quantite}</span>
+                      <Input
+                        type="number"
+                        value={quantitesLivrees[item.id] || 0}
+                        onChange={(e) => handleQuantiteLivreeChange(item.id, Number(e.target.value))}
+                        className="w-20"
+                        min="0"
+                        max={item.quantite}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </TabsContent>
+        </Tabs>
+
+        <div className="flex justify-end space-x-2 pt-4 border-t">
+          <Button variant="outline" onClick={handleClose}>
+            Annuler
+          </Button>
+          <Button 
+            onClick={handleConfirm}
+            disabled={isLoading}
+            className="bg-purple-600 hover:bg-purple-700"
+          >
+            {isLoading ? 'Traitement...' : 'Créer la facture'}
+          </Button>
         </div>
       </DialogContent>
     </Dialog>

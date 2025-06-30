@@ -113,21 +113,27 @@ export const getActualDeliveryStatus = (facture: FactureVente) => {
   }
   
   // PRIORITÉ 1 : Respecter le statut explicite de la facture dans la BDD
-  // Si le statut est explicitement défini, on le respecte TOUJOURS
-  if (facture.statut_livraison && facture.statut_livraison !== 'en_attente') {
-    console.log('🚚 Statut direct BDD (non en_attente):', facture.statut_livraison, '- RESPECTÉ');
+  // Si le statut est explicitement défini comme 'livree', on le respecte
+  if (facture.statut_livraison === 'livree') {
+    console.log('🚚 Statut direct BDD: livree - RESPECTÉ');
+    return 'livree';
+  }
+  
+  // PRIORITÉ 2 : Si le statut est défini comme 'en_attente' et qu'il n'y a pas de lignes,
+  // cela signifie que c'était une livraison complète validée
+  if (facture.statut_livraison === 'en_attente' && (!facture.lignes_facture || facture.lignes_facture.length === 0)) {
+    console.log('🚚 Facture sans lignes détaillées - utilisation statut BDD:', facture.statut_livraison);
     return facture.statut_livraison;
   }
   
-  // PRIORITÉ 2 : Si le statut est 'en_attente', vérifier s'il y a des lignes pour calculer le statut réel
+  // PRIORITÉ 3 : Si pas de lignes de facture détaillées, utiliser le statut de la facture
   if (!facture.lignes_facture || !Array.isArray(facture.lignes_facture) || facture.lignes_facture.length === 0) {
-    // Pas de lignes détaillées, utiliser le statut de la facture tel quel
     const statutFinal = facture.statut_livraison || 'en_attente';
     console.log('🚚 Pas de lignes facture - utilisation statut facture:', statutFinal);
     return statutFinal;
   }
   
-  // PRIORITÉ 3 : Calcul basé sur les quantités réellement livrées (pour livraisons partielles)
+  // PRIORITÉ 4 : Calcul basé sur les quantités réellement livrées (pour livraisons partielles)
   const totalQuantiteCommandee = facture.lignes_facture.reduce((sum, ligne) => sum + ligne.quantite, 0);
   const totalQuantiteLivree = facture.lignes_facture.reduce((sum, ligne) => sum + (ligne.quantite_livree || 0), 0);
   
