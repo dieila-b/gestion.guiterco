@@ -63,6 +63,7 @@ const VenteComptoirResponsive = () => {
         cartItems={state.venteComptoir.cart}
         isLoading={state.venteComptoir.isLoading}
         lastFacture={state.lastFacture}
+        selectedClient={state.selectedClient}
       />
     </div>
   );
