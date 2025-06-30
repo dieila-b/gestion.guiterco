@@ -24,11 +24,13 @@ export const useCreateFactureVente = () => {
           case 'livre':
           case 'livree':
           case 'complete':
+          case 'livraison_complete':
             statutLivraison = 'livree';
             console.log('✅ Livraison complète - Statut défini: livree');
             break;
           case 'partiel':
           case 'partiellement_livree':
+          case 'livraison_partielle':
             statutLivraison = 'partiellement_livree';
             console.log('📦 Livraison partielle - Statut défini: partiellement_livree');
             break;
@@ -122,9 +124,26 @@ export const useCreateFactureVente = () => {
         }
       }
 
-      // Traiter la livraison si nécessaire (pour les cas complexes)
-      if (data.payment_data && data.payment_data.statut_livraison === 'partiel') {
-        await processDelivery(data.payment_data, facture, lignesCreees);
+      // IMPORTANT: Vérifier et corriger le statut de livraison final après création des lignes
+      if (statutLivraison !== 'en_attente') {
+        console.log('🔄 Vérification finale du statut de livraison...');
+        
+        // Forcer la mise à jour du statut si nécessaire
+        const { error: updateError } = await supabase
+          .from('factures_vente')
+          .update({ 
+            statut_livraison: statutLivraison,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', facture.id);
+
+        if (updateError) {
+          console.error('❌ Erreur mise à jour statut livraison:', updateError);
+        } else {
+          console.log('✅ Statut livraison forcé à:', statutLivraison);
+          // Mettre à jour l'objet facture local
+          facture.statut_livraison = statutLivraison;
+        }
       }
 
       // Créer le versement si paiement immédiat
