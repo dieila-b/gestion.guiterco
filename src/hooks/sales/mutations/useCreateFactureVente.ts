@@ -1,68 +1,125 @@
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import type { CreateFactureVenteData } from './types';
-import { createFactureAndLines } from './services/factureCreationService';
-import { processPayment } from './services/paymentProcessingService';
 import { processDelivery } from './services/deliveryProcessingService';
-import { updateStockPDV } from './services/stockUpdateService';
 
 export const useCreateFactureVente = () => {
   const queryClient = useQueryClient();
-
+  
   return useMutation({
-    mutationFn: async (data: CreateFactureVenteData & { payment_data?: any }) => {
-      console.log('🔄 Création facture de vente - début du processus');
-      
-      // PROTECTION: Vérifier qu'on ne crée pas de doublons
-      const timestamp = Date.now();
-      const uniqueRef = `creation-${timestamp}`;
-      console.log('🆔 Référence unique pour cette création:', uniqueRef);
+    mutationFn: async (data: any) => {
+      console.log('🚀 Début création facture vente avec données:', data);
 
-      // 1. Créer la facture et ses lignes
-      const { facture, lignes: lignesCreees } = await createFactureAndLines(data);
-      console.log('✅ Facture créée:', facture.id);
+      // Créer la facture principale
+      const factureData = {
+        client_id: data.client_id,
+        montant_ht: data.montant_ht,
+        tva: data.tva,
+        montant_ttc: data.montant_ttc,
+        mode_paiement: data.mode_paiement,
+        statut_paiement: 'en_attente',
+        // Définir le statut de livraison selon les données de paiement
+        statut_livraison: data.payment_data?.statut_livraison === 'livre' || 
+                         data.payment_data?.statut_livraison === 'livree' ? 'livree' : 'en_attente'
+      };
 
-      // 2. Traiter le paiement SEULEMENT s'il y en a un
-      if (data.payment_data) {
-        console.log('💰 Traitement du paiement...');
-        await processPayment(data.payment_data, facture);
+      const { data: facture, error: factureError } = await supabase
+        .from('factures_vente')
+        .insert(factureData)
+        .select()
+        .single();
+
+      if (factureError) {
+        console.error('❌ Erreur création facture:', factureError);
+        throw factureError;
       }
 
-      // 3. Traiter la livraison SEULEMENT si confirmée
-      if (data.payment_data?.confirm_delivery) {
-        console.log('📦 Traitement de la livraison...');
+      console.log('✅ Facture créée avec ID:', facture.id, 'Statut livraison:', facture.statut_livraison);
+
+      // Créer les lignes de facture
+      const lignesFacture = data.cart.map((item: any) => ({
+        facture_vente_id: facture.id,
+        article_id: item.article_id,
+        quantite: item.quantite,
+        prix_unitaire: item.prix_unitaire,
+        montant_ligne: item.quantite * item.prix_unitaire,
+        // Définir quantite_livree et statut_livraison selon le type de livraison
+        quantite_livree: data.payment_data?.statut_livraison === 'livre' || 
+                        data.payment_data?.statut_livraison === 'livree' ? item.quantite : 0,
+        statut_livraison: data.payment_data?.statut_livraison === 'livre' || 
+                         data.payment_data?.statut_livraison === 'livree' ? 'livree' : 'en_attente'
+      }));
+
+      const { data: lignesCreees, error: lignesError } = await supabase
+        .from('lignes_facture_vente')
+        .insert(lignesFacture)
+        .select();
+
+      if (lignesError) {
+        console.error('❌ Erreur création lignes facture:', lignesError);
+        throw lignesError;
+      }
+
+      console.log('✅ Lignes facture créées:', lignesCreees?.length);
+
+      // Traiter la livraison si nécessaire
+      if (data.payment_data) {
         await processDelivery(data.payment_data, facture, lignesCreees);
       }
 
-      // 4. Mettre à jour le stock PDV seulement si spécifié
-      if (data.point_vente_id) {
-        console.log('📦 Mise à jour stock PDV...');
-        await updateStockPDV(data, facture);
+      // Créer le versement si paiement immédiat
+      if (data.payment_data?.montant_paye > 0) {
+        const versementData = {
+          client_id: data.client_id,
+          facture_id: facture.id,
+          montant: data.payment_data.montant_paye,
+          mode_paiement: data.mode_paiement,
+          numero_versement: `VERS-${facture.numero_facture}`,
+          date_versement: new Date().toISOString(),
+        };
+
+        const { error: versementError } = await supabase
+          .from('versements_clients')
+          .insert(versementData);
+
+        if (versementError) {
+          console.error('❌ Erreur création versement:', versementError);
+          throw versementError;
+        }
+
+        // Mettre à jour le statut de paiement
+        const nouveauStatutPaiement = data.payment_data.montant_paye >= data.montant_ttc ? 'payee' : 'partiellement_payee';
+        
+        await supabase
+          .from('factures_vente')
+          .update({ statut_paiement: nouveauStatutPaiement })
+          .eq('id', facture.id);
+
+        console.log('✅ Versement créé et statut paiement mis à jour:', nouveauStatutPaiement);
       }
 
-      console.log('🎉 Processus de création terminé avec succès');
+      console.log('🎉 Facture vente créée avec succès - Statut final:', {
+        paiement: facture.statut_paiement,
+        livraison: facture.statut_livraison
+      });
+
       return { facture, lignes: lignesCreees };
     },
     onSuccess: () => {
-      console.log('✅ Facture de vente créée avec statuts corrects');
-      
-      // Invalider toutes les queries liées
+      // Invalider toutes les queries liées aux factures pour forcer le rafraîchissement
       queryClient.invalidateQueries({ queryKey: ['factures_vente'] });
-      queryClient.invalidateQueries({ queryKey: ['stock-pdv'] });
-      queryClient.invalidateQueries({ queryKey: ['transactions'] });
-      queryClient.invalidateQueries({ queryKey: ['cash_registers'] });
-      queryClient.invalidateQueries({ queryKey: ['all-financial-transactions'] });
-      queryClient.invalidateQueries({ queryKey: ['cash-register-balance'] });
-      queryClient.invalidateQueries({ queryKey: ['complete-transaction-history'] });
+      queryClient.invalidateQueries({ queryKey: ['factures-vente-details'] });
       
-      // Forcer le refetch immédiat des données critiques
-      queryClient.refetchQueries({ queryKey: ['complete-transaction-history'] });
+      // Force le refetch immédiat
+      queryClient.refetchQueries({ queryKey: ['factures_vente'] });
+      
+      console.log('✅ Queries invalidées et données rafraîchies');
       
       toast.success('Facture créée avec succès');
     },
     onError: (error: Error) => {
-      console.error('❌ Erreur lors de la création de la facture:', error);
+      console.error('❌ Erreur création facture vente:', error);
       toast.error('Erreur lors de la création de la facture');
     }
   });
