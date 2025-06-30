@@ -8,7 +8,6 @@ import { Badge } from '@/components/ui/badge';
 import { Search, Plus } from 'lucide-react';
 import { useFacturesAchat } from '@/hooks/useFacturesAchat';
 import { useAllFactureAchatArticles } from '@/hooks/useFactureAchatArticles';
-import { useBonsCommande } from '@/hooks/useBonsCommande';
 import { useAllBonCommandeArticles } from '@/hooks/useBonCommandeArticles';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
@@ -66,22 +65,28 @@ const FacturesAchat = () => {
   };
 
   const getPaidAmount = (facture: any) => {
-    // Calculer le montant payé à partir des règlements
-    return 0; // À implémenter avec la table reglements_achat
-  };
-
-  const getAdvanceAmount = (facture: any) => {
-    // Récupérer l'acompte du bon de commande si c'est une facture auto-générée
+    // Calculer le montant total payé (acomptes + règlements)
+    let totalPaid = 0;
+    
+    // Ajouter l'acompte du bon de commande si disponible
     if (facture.bon_commande?.montant_paye) {
-      return facture.bon_commande.montant_paye;
+      totalPaid += facture.bon_commande.montant_paye;
     }
-    return 0;
+    
+    // Ajouter les règlements additionnels
+    if (facture.reglements && Array.isArray(facture.reglements)) {
+      const reglementsTotal = facture.reglements.reduce((sum: number, reglement: any) => {
+        return sum + (reglement.montant || 0);
+      }, 0);
+      totalPaid += reglementsTotal;
+    }
+    
+    return totalPaid;
   };
 
   const getRemainingAmount = (facture: any) => {
-    const advanceAmount = getAdvanceAmount(facture);
     const paidAmount = getPaidAmount(facture);
-    return facture.montant_ttc - advanceAmount - paidAmount;
+    return facture.montant_ttc - paidAmount;
   };
 
   if (isLoading) {
@@ -122,7 +127,6 @@ const FacturesAchat = () => {
                   <TableHead className="font-semibold">Date</TableHead>
                   <TableHead className="font-semibold">Fournisseur</TableHead>
                   <TableHead className="font-semibold text-center">Articles</TableHead>
-                  <TableHead className="font-semibold text-right">Acompte</TableHead>
                   <TableHead className="font-semibold text-right">Payé</TableHead>
                   <TableHead className="font-semibold text-right">Reste</TableHead>
                   <TableHead className="font-semibold text-right">Montant</TableHead>
@@ -134,7 +138,6 @@ const FacturesAchat = () => {
                 {filteredFactures && filteredFactures.length > 0 ? (
                   filteredFactures.map((facture) => {
                     const articleCount = getArticleCount(facture);
-                    const advanceAmount = getAdvanceAmount(facture);
                     const paidAmount = getPaidAmount(facture);
                     const remainingAmount = getRemainingAmount(facture);
                     
@@ -154,10 +157,7 @@ const FacturesAchat = () => {
                             {articleCount}
                           </span>
                         </TableCell>
-                        <TableCell className="text-right text-blue-600">
-                          {formatCurrency(advanceAmount)}
-                        </TableCell>
-                        <TableCell className="text-right text-green-600">
+                        <TableCell className="text-right text-green-600 font-medium">
                           {formatCurrency(paidAmount)}
                         </TableCell>
                         <TableCell className="text-right font-medium text-orange-600">
@@ -189,7 +189,7 @@ const FacturesAchat = () => {
                   })
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={10} className="text-center py-8">
+                    <TableCell colSpan={9} className="text-center py-8">
                       <div className="text-muted-foreground">
                         Aucune facture d'achat trouvée
                       </div>

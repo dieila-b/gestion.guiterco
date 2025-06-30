@@ -36,8 +36,11 @@ export const EditFactureAchatDialog = ({ facture }: EditFactureAchatDialogProps)
 
   // Calculs des montants
   const acompteVerse = facture.bon_commande?.montant_paye || 0;
-  const montantPaye = 0; // À calculer depuis la table reglements_achat
-  const montantRestant = formData.montant_ttc - acompteVerse - montantPaye;
+  const reglementsTotal = facture.reglements?.reduce((sum: number, reglement: any) => {
+    return sum + (reglement.montant || 0);
+  }, 0) || 0;
+  const montantPaye = acompteVerse + reglementsTotal;
+  const montantRestant = formData.montant_ttc - montantPaye;
 
   // État pour les nouveaux paiements
   const [nouveauPaiement, setNouveauPaiement] = useState({
@@ -53,7 +56,7 @@ export const EditFactureAchatDialog = ({ facture }: EditFactureAchatDialogProps)
     try {
       // Déterminer le statut de paiement automatiquement
       let nouveauStatut = 'en_attente';
-      const totalPaye = acompteVerse + montantPaye + nouveauPaiement.montant;
+      const totalPaye = montantPaye + nouveauPaiement.montant;
       
       if (totalPaye >= formData.montant_ttc) {
         nouveauStatut = 'paye';
@@ -217,16 +220,22 @@ export const EditFactureAchatDialog = ({ facture }: EditFactureAchatDialogProps)
                     <span>Montant total TTC:</span>
                     <span className="font-medium">{formatCurrency(formData.montant_ttc)}</span>
                   </div>
-                  {acompteVerse > 0 && (
-                    <div className="flex justify-between text-sm text-blue-600">
-                      <span>Acompte versé:</span>
-                      <span className="font-medium">{formatCurrency(acompteVerse)}</span>
-                    </div>
-                  )}
                   <div className="flex justify-between text-sm text-green-600">
-                    <span>Déjà payé:</span>
+                    <span>Total payé:</span>
                     <span className="font-medium">{formatCurrency(montantPaye)}</span>
                   </div>
+                  {acompteVerse > 0 && (
+                    <div className="flex justify-between text-xs text-blue-600 ml-4">
+                      <span>• Acompte BC:</span>
+                      <span>{formatCurrency(acompteVerse)}</span>
+                    </div>
+                  )}
+                  {reglementsTotal > 0 && (
+                    <div className="flex justify-between text-xs text-blue-600 ml-4">
+                      <span>• Règlements:</span>
+                      <span>{formatCurrency(reglementsTotal)}</span>
+                    </div>
+                  )}
                   <Separator />
                   <div className="flex justify-between text-sm font-bold text-orange-600">
                     <span>Reste à payer:</span>
