@@ -73,17 +73,21 @@ export const useEntreesStock = () => {
 
   const createEntree = useMutation({
     mutationFn: async (newEntree: Omit<EntreeStock, 'id' | 'created_at'>) => {
+      // Bloquer toute tentative de création de correction automatique
+      if (newEntree.type_entree === 'correction' && (
+        newEntree.fournisseur?.includes('Réception bon livraison') ||
+        newEntree.observations?.includes('Réception automatique') ||
+        newEntree.observations?.includes('Achat automatique')
+      )) {
+        throw new Error('Création de correction automatique interdite. Utilisez uniquement le type "achat" pour les réceptions de bons de livraison.');
+      }
+
       // Vérifier les doublons potentiels avant l'insertion
       const duplicates = await checkForDuplicates(newEntree);
       
       if (duplicates.length > 0) {
         const duplicateTypes = duplicates.map(d => d.type_entree).join(', ');
         throw new Error(`Une entrée similaire existe déjà aujourd'hui (types: ${duplicateTypes}). Veuillez vérifier avant de continuer.`);
-      }
-
-      // Validation spécifique : empêcher les corrections automatiques lors d'achats
-      if (newEntree.type_entree === 'correction' && newEntree.observations?.includes('Réception automatique')) {
-        throw new Error('Les corrections automatiques ne sont pas autorisées. Utilisez uniquement le type "Achat" pour les réceptions de bons de livraison.');
       }
 
       const { data, error } = await supabase
@@ -105,7 +109,7 @@ export const useEntreesStock = () => {
       queryClient.invalidateQueries({ queryKey: ['stock-principal'] });
       queryClient.invalidateQueries({ queryKey: ['stock-pdv'] });
       toast({
-        title: "Entrée de stock créée avec succès",
+        title: "✅ Entrée de stock créée avec succès",
         description: "L'entrée a été enregistrée correctement sans doublon.",
         variant: "default",
       });
@@ -113,7 +117,7 @@ export const useEntreesStock = () => {
     onError: (error) => {
       console.error('Erreur lors de la création de l\'entrée:', error);
       toast({
-        title: "Erreur lors de la création de l'entrée de stock",
+        title: "❌ Erreur lors de la création de l'entrée de stock",
         description: error.message,
         variant: "destructive",
       });

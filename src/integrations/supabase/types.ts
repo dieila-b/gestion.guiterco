@@ -2641,6 +2641,14 @@ export type Database = {
       }
     }
     Functions: {
+      audit_entrees_stock_propres: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          rapport: string
+          nombre_entrees: number
+          details: string
+        }[]
+      }
       complete_precommande_payment: {
         Args: {
           precommande_uuid: string

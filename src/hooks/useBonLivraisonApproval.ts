@@ -102,9 +102,9 @@ export const useBonLivraisonApproval = () => {
       }
 
       // 5. Le trigger handle_bon_livraison_approval() se chargera automatiquement de créer
-      // les entrées de stock de type "achat" UNIQUEMENT (plus de doublons "correction")
+      // les entrées de stock de type "achat" UNIQUEMENT (plus jamais de "correction")
       
-      console.log('✅ Approbation terminée avec succès - Les entrées de stock seront créées automatiquement par le trigger');
+      console.log('✅ Approbation terminée avec succès - Les entrées de stock de type "achat" seront créées automatiquement par le trigger');
       return bonLivraisonId;
     },
     onSuccess: () => {
@@ -117,7 +117,7 @@ export const useBonLivraisonApproval = () => {
       
       toast({
         title: "✅ Bon de livraison approuvé",
-        description: "Le bon de livraison a été approuvé et le stock mis à jour correctement.",
+        description: "Le bon de livraison a été approuvé et le stock mis à jour avec des entrées de type 'Achat' uniquement.",
         variant: "default",
       });
     },

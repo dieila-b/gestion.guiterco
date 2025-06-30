@@ -53,7 +53,7 @@ export const useEntreeForm = () => {
         newData.point_vente_id = '';
       }
       
-      // Validation spécifique pour le type d'entrée
+      // Validation renforcée pour le type d'entrée
       if (name === 'type_entree') {
         if (value === 'correction') {
           // Pour les corrections, les observations sont fortement recommandées
@@ -73,14 +73,6 @@ export const useEntreeForm = () => {
               variant: "default",
             });
           }
-        } else if (value === 'achat-livraison') {
-          // Type réservé pour les approbations automatiques de bons de livraison
-          toast({
-            title: "Type d'entrée réservé",
-            description: "Le type 'achat-livraison' est réservé aux approbations automatiques de bons de livraison",
-            variant: "destructive",
-          });
-          return prev; // Ne pas changer le type
         }
       }
       
@@ -148,11 +140,15 @@ export const useEntreeForm = () => {
       return false;
     }
 
-    // Empêcher la création manuelle d'entrées de type 'achat-livraison'
-    if (formData.type_entree === 'achat-livraison') {
+    // Empêcher toute tentative de correction automatique
+    if (formData.type_entree === 'correction' && (
+      formData.fournisseur.includes('Réception bon livraison') ||
+      formData.observations.includes('Réception automatique') ||
+      formData.observations.includes('Achat automatique')
+    )) {
       toast({
-        title: "Type d'entrée non autorisé",
-        description: "Le type 'achat-livraison' est réservé aux approbations automatiques",
+        title: "❌ Type d'entrée non autorisé",
+        description: "Les corrections automatiques sont interdites. Utilisez uniquement le type 'achat' pour les réceptions de bons de livraison.",
         variant: "destructive",
       });
       return false;
