@@ -104,32 +104,27 @@ export const getArticleCount = (facture: FactureVente) => {
 
 export const getActualDeliveryStatus = (facture: FactureVente) => {
   console.log('🚚 getActualDeliveryStatus - Facture:', facture.numero_facture);
-  console.log('🚚 Statut BDD facture:', facture.statut_livraison);
+  console.log('🚚 Statut BDD facture direct:', facture.statut_livraison);
   
-  // PRIORITÉ ABSOLUE : Utiliser le statut calculé si disponible (depuis la fonction RPC)
+  // PRIORITÉ 1 : TOUJOURS UTILISER LE STATUT DE LA BDD DIRECTEMENT
+  // CORRECTION CRITIQUE : Ne plus calculer ou interpréter, juste utiliser ce qui est en base
+  const statutBDD = facture.statut_livraison;
+  
+  if (statutBDD) {
+    console.log('🚚 UTILISATION DIRECTE STATUT BDD:', statutBDD);
+    return statutBDD;
+  }
+  
+  // PRIORITÉ 2 : Utiliser le statut calculé si disponible (depuis la fonction RPC)
   if ((facture as any).statut_livraison_calcule) {
     console.log('🚚 Utilisation statut calculé RPC:', (facture as any).statut_livraison_calcule);
     return (facture as any).statut_livraison_calcule;
   }
   
-  // PRIORITÉ 1 : Respecter le statut explicite de la facture dans la BDD
-  // Si le statut est explicitement défini comme 'livree', on le respecte
-  if (facture.statut_livraison === 'livree') {
-    console.log('🚚 Statut direct BDD: livree - RESPECTÉ');
-    return 'livree';
-  }
-  
-  // PRIORITÉ 2 : Si le statut est défini comme 'en_attente' et qu'il n'y a pas de lignes,
-  // cela signifie que c'était une livraison complète validée
-  if (facture.statut_livraison === 'en_attente' && (!facture.lignes_facture || facture.lignes_facture.length === 0)) {
-    console.log('🚚 Facture sans lignes détaillées - utilisation statut BDD:', facture.statut_livraison);
-    return facture.statut_livraison;
-  }
-  
-  // PRIORITÉ 3 : Si pas de lignes de facture détaillées, utiliser le statut de la facture
+  // PRIORITÉ 3 : Si pas de lignes de facture détaillées, utiliser le statut par défaut
   if (!facture.lignes_facture || !Array.isArray(facture.lignes_facture) || facture.lignes_facture.length === 0) {
-    const statutFinal = facture.statut_livraison || 'en_attente';
-    console.log('🚚 Pas de lignes facture - utilisation statut facture:', statutFinal);
+    const statutFinal = 'en_attente'; // Valeur par défaut si rien n'est défini
+    console.log('🚚 Pas de lignes facture - utilisation statut par défaut:', statutFinal);
     return statutFinal;
   }
   
@@ -148,6 +143,6 @@ export const getActualDeliveryStatus = (facture: FactureVente) => {
     status = 'partiellement_livree';
   }
   
-  console.log('🚚 Statut livraison calculé final:', status);
+  console.log('🚚 Statut livraison calculé final (fallback):', status);
   return status;
 };

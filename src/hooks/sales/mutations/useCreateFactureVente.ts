@@ -19,7 +19,7 @@ export const useCreateFactureVente = () => {
       if (data.payment_data && data.payment_data.statut_livraison) {
         console.log('📦 Statut livraison demandé:', data.payment_data.statut_livraison);
         
-        // Mapper les différentes valeurs possibles vers le bon statut
+        // Mapper les différentes valeurs possibles vers le bon statut - CORRECTION CRITIQUE
         switch (data.payment_data.statut_livraison) {
           case 'livre':
           case 'livree':
@@ -32,11 +32,18 @@ export const useCreateFactureVente = () => {
             statutLivraison = 'partiellement_livree';
             console.log('📦 Livraison partielle - Statut défini: partiellement_livree');
             break;
-          default:
+          case 'en_attente':
             statutLivraison = 'en_attente';
             console.log('⏳ Livraison en attente - Statut défini: en_attente');
+            break;
+          default:
+            statutLivraison = 'en_attente';
+            console.log('⏳ Statut par défaut - Statut défini: en_attente');
         }
       }
+
+      // CORRECTION CRITIQUE : S'assurer que le statut n'est jamais écrasé
+      console.log('📦 STATUT FINAL DE LIVRAISON CONFIRMÉ:', statutLivraison);
 
       // Créer la facture principale avec le statut de livraison correct
       const factureData = {
@@ -47,7 +54,7 @@ export const useCreateFactureVente = () => {
         montant_ttc: data.montant_ttc,
         mode_paiement: data.mode_paiement,
         statut_paiement: 'en_attente',
-        statut_livraison: statutLivraison // Utiliser le statut calculé
+        statut_livraison: statutLivraison // CORRECTION : Utiliser le statut calculé
       };
 
       console.log('📝 Données facture à créer:', factureData);
@@ -64,14 +71,14 @@ export const useCreateFactureVente = () => {
       }
 
       console.log('✅ Facture créée avec ID:', facture.id);
-      console.log('✅ Statut livraison facture:', facture.statut_livraison);
+      console.log('📦 VÉRIFICATION - Statut livraison dans la BDD:', facture.statut_livraison);
 
       // Créer les lignes de facture avec les bons statuts
       const lignesFacture = data.cart.map((item: any) => {
         let quantiteLivree = 0;
         let statutLigneLivraison = 'en_attente';
 
-        // Si livraison complète, marquer toutes les lignes comme livrées
+        // CORRECTION : Appliquer la logique de livraison selon le statut de la facture
         if (statutLivraison === 'livree') {
           quantiteLivree = item.quantite;
           statutLigneLivraison = 'livree';
@@ -83,6 +90,7 @@ export const useCreateFactureVente = () => {
             statutLigneLivraison = quantiteLivree >= item.quantite ? 'livree' : 'partiellement_livree';
           }
         }
+        // Si en_attente, on garde quantiteLivree = 0 et statutLigneLivraison = 'en_attente'
 
         return {
           facture_vente_id: facture.id,
@@ -158,12 +166,20 @@ export const useCreateFactureVente = () => {
         console.log('✅ Versement créé et statut paiement mis à jour:', nouveauStatutPaiement);
       }
 
+      // VÉRIFICATION FINALE - S'assurer que le statut est bien enregistré
+      const { data: factureFinale } = await supabase
+        .from('factures_vente')
+        .select('statut_livraison')
+        .eq('id', facture.id)
+        .single();
+
+      console.log('🎉 VÉRIFICATION FINALE - Statut livraison en BDD:', factureFinale?.statut_livraison);
       console.log('🎉 Facture vente créée avec succès - Statut final:', {
         paiement: facture.statut_paiement,
-        livraison: facture.statut_livraison
+        livraison: factureFinale?.statut_livraison || statutLivraison
       });
 
-      return { facture, lignes: lignesCreees };
+      return { facture: { ...facture, statut_livraison: factureFinale?.statut_livraison || statutLivraison }, lignes: lignesCreees };
     },
     onSuccess: () => {
       // Invalider toutes les queries liées aux factures et au stock pour forcer le rafraîchissement

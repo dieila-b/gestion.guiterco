@@ -9,10 +9,15 @@ interface VenteModalsProps {
   showPostPaymentActions: boolean;
   handlePaymentConfirm: (paymentData: any) => Promise<void>;
   handlePostPaymentClose: () => void;
-  totalAmount: number;
+  totals: {
+    subtotal: number;
+    tva: number;
+    total: number;
+  };
   cartItems: any[];
   isLoading: boolean;
   lastFacture: any;
+  selectedClient: any;
 }
 
 const VenteModals: React.FC<VenteModalsProps> = ({
@@ -21,10 +26,11 @@ const VenteModals: React.FC<VenteModalsProps> = ({
   showPostPaymentActions,
   handlePaymentConfirm,
   handlePostPaymentClose,
-  totalAmount,
+  totals,
   cartItems,
   isLoading,
-  lastFacture
+  lastFacture,
+  selectedClient
 }) => {
   return (
     <>
@@ -33,9 +39,10 @@ const VenteModals: React.FC<VenteModalsProps> = ({
         isOpen={showPaymentModal}
         onClose={() => setShowPaymentModal(false)}
         onConfirm={handlePaymentConfirm}
-        totalAmount={totalAmount}
+        totals={totals}
         cartItems={cartItems}
         isLoading={isLoading}
+        selectedClient={selectedClient}
       />
 
       {/* Actions post-paiement améliorées */}

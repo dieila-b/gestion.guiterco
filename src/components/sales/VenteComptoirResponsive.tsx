@@ -59,10 +59,11 @@ const VenteComptoirResponsive = () => {
         showPostPaymentActions={state.showPostPaymentActions}
         handlePaymentConfirm={handlers.handlePaymentConfirm}
         handlePostPaymentClose={handlers.handlePostPaymentClose}
-        totalAmount={state.cartTotals.total}
+        totals={state.cartTotals}
         cartItems={state.venteComptoir.cart}
         isLoading={state.venteComptoir.isLoading}
         lastFacture={state.lastFacture}
+        selectedClient={state.selectedClient}
       />
     </div>
   );
