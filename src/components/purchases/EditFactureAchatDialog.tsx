@@ -51,6 +51,11 @@ export const EditFactureAchatDialog = ({ facture }: EditFactureAchatDialogProps)
     date_reglement: new Date().toISOString().split('T')[0]
   });
 
+  // Calcul du nouveau solde en temps réel - MISE À JOUR PRINCIPALE
+  const nouveauSoldeApresReglement = Math.max(0, montantRestant - (nouveauPaiement.montant || 0));
+  const pourcentagePaye = formData.montant_ttc > 0 ? 
+    ((montantPaye + (nouveauPaiement.montant || 0)) / formData.montant_ttc) * 100 : 0;
+
   // Validation en temps réel du montant de paiement
   const handleMontantChange = (value: string) => {
     const montant = parseFloat(value) || 0;
@@ -67,11 +72,6 @@ export const EditFactureAchatDialog = ({ facture }: EditFactureAchatDialogProps)
       setNouveauPaiement(prev => ({ ...prev, montant }));
     }
   };
-
-  // Calcul du nouveau solde en temps réel
-  const nouveauSoldeApresReglement = montantRestant - nouveauPaiement.montant;
-  const pourcentagePaye = formData.montant_ttc > 0 ? 
-    ((montantPaye + nouveauPaiement.montant) / formData.montant_ttc) * 100 : 0;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -163,6 +163,7 @@ export const EditFactureAchatDialog = ({ facture }: EditFactureAchatDialogProps)
                 <CardTitle className="text-lg">Informations générales</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
+                
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="numero_facture">N° Facture</Label>
@@ -254,7 +255,7 @@ export const EditFactureAchatDialog = ({ facture }: EditFactureAchatDialogProps)
               </CardContent>
             </Card>
 
-            {/* Section Paiements améliorée */}
+            {/* Section Paiements améliorée avec mise à jour en temps réel */}
             <Card>
               <CardHeader>
                 <CardTitle className="text-lg">Gestion des paiements</CardTitle>
@@ -297,6 +298,7 @@ export const EditFactureAchatDialog = ({ facture }: EditFactureAchatDialogProps)
                   
                   <Separator />
                   
+                  {/* AFFICHAGE EN TEMPS RÉEL DU MONTANT RESTANT */}
                   <div className="flex justify-between text-sm font-bold">
                     <span className={nouveauSoldeApresReglement > 0 ? 'text-orange-600' : 'text-green-600'}>
                       Reste à payer:
@@ -306,7 +308,7 @@ export const EditFactureAchatDialog = ({ facture }: EditFactureAchatDialogProps)
                     </span>
                   </div>
                   
-                  {/* Barre de progression */}
+                  {/* Barre de progression en temps réel */}
                   <div className="mt-3">
                     <div className="flex justify-between text-xs mb-1">
                       <span>Progression du paiement</span>
@@ -340,7 +342,7 @@ export const EditFactureAchatDialog = ({ facture }: EditFactureAchatDialogProps)
                   </Select>
                 </div>
 
-                {/* Nouveau paiement avec validation en temps réel */}
+                {/* Nouveau paiement avec validation et mise à jour en temps réel */}
                 {montantRestant > 0 && (
                   <div className="border-t pt-4">
                     <h4 className="font-medium mb-3 text-green-700">💰 Nouveau règlement</h4>
@@ -364,9 +366,17 @@ export const EditFactureAchatDialog = ({ facture }: EditFactureAchatDialogProps)
                             placeholder="0"
                             className={nouveauPaiement.montant > montantRestant ? 'border-red-500' : ''}
                           />
+                          {/* AFFICHAGE TEMPS RÉEL DU NOUVEAU SOLDE */}
                           {nouveauPaiement.montant > 0 && (
-                            <div className="text-xs mt-1 text-green-600">
-                              Nouveau solde: {formatCurrency(nouveauSoldeApresReglement)}
+                            <div className="text-sm mt-2 p-2 bg-green-50 border border-green-200 rounded">
+                              <div className="text-green-700 font-medium">
+                                Reste à payer : {formatCurrency(nouveauSoldeApresReglement)}
+                              </div>
+                              {nouveauSoldeApresReglement === 0 && (
+                                <div className="text-green-600 text-xs mt-1">
+                                  ✅ Facture entièrement réglée
+                                </div>
+                              )}
                             </div>
                           )}
                         </div>
