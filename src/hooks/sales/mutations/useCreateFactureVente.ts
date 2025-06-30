@@ -13,6 +13,7 @@ export const useCreateFactureVente = () => {
 
       // Créer la facture principale
       const factureData = {
+        numero_facture: '', // Sera généré automatiquement par le trigger
         client_id: data.client_id,
         montant_ht: data.montant_ht,
         tva: data.tva,
