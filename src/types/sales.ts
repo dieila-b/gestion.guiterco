@@ -1,3 +1,4 @@
+
 export interface Client {
   id: string;
   nom: string;
@@ -80,12 +81,7 @@ export interface FactureVente {
   lignes_facture?: LigneFactureVente[];
   versements?: VersementClient[];
   nb_articles?: number;
-  // Utiliser UNIQUEMENT statut_livraison_id et la relation
-  statut_livraison_id: number;
-  livraison_statut: {
-    id: number;
-    nom: string;
-  };
+  statut_livraison?: string;
 }
 
 export interface Precommande {
