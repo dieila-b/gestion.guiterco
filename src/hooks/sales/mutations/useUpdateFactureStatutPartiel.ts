@@ -2,6 +2,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { mapDeliveryStatusNameToId } from './services/statusMappingService';
 
 export const useUpdateFactureStatutPartiel = () => {
   const queryClient = useQueryClient();
@@ -38,7 +39,6 @@ export const useUpdateFactureStatutPartiel = () => {
       // Mettre à jour chaque ligne avec les quantités livrées ET le statut
       const updates = [];
       for (const ligne of lignesFacture) {
-        // IMPORTANT: Les quantités saisies sont les nouvelles valeurs absolues (pas des cumuls)
         const nouvelleQuantiteLivree = quantitesLivrees[ligne.article_id] || 0;
         let nouveauStatut = 'en_attente';
         
@@ -48,7 +48,6 @@ export const useUpdateFactureStatutPartiel = () => {
 
         console.log(`📦 Ligne ${ligne.id}: ${nouvelleQuantiteLivree}/${ligne.quantite} → ${nouveauStatut}`);
 
-        // CRUCIAL: Remplacer (pas ajouter) la quantité livrée
         const { error: updateError } = await supabase
           .from('lignes_facture_vente')
           .update({ 
@@ -87,10 +86,16 @@ export const useUpdateFactureStatutPartiel = () => {
         statutGlobal
       });
 
-      // Mettre à jour le statut global de la facture
+      // Convertir le statut global en ID
+      const statutGlobalId = await mapDeliveryStatusNameToId(statutGlobal);
+
+      // Mettre à jour le statut global de la facture AVEC L'ID
       const { data: facture, error: factureError } = await supabase
         .from('factures_vente')
-        .update({ statut_livraison: statutGlobal })
+        .update({ 
+          statut_livraison_id: statutGlobalId,
+          statut_livraison: statutGlobal // Garder pour compatibilité temporaire
+        })
         .eq('id', factureId)
         .select()
         .single();
@@ -100,10 +105,11 @@ export const useUpdateFactureStatutPartiel = () => {
         throw factureError;
       }
 
-      console.log('✅ Livraison partielle mise à jour avec succès');
+      console.log('✅ Livraison partielle mise à jour avec succès - ID:', statutGlobalId);
       console.log('📊 Résumé des mises à jour:', {
         factureId,
         nouveauStatutFacture: statutGlobal,
+        statutId: statutGlobalId,
         lignesModifiees: updates.length,
         updates
       });
@@ -117,9 +123,8 @@ export const useUpdateFactureStatutPartiel = () => {
     onSuccess: (result) => {
       // Invalider toutes les queries liées aux factures pour forcer le rechargement
       queryClient.invalidateQueries({ queryKey: ['factures_vente'] });
-      
-      // Invalider aussi les queries spécifiques si elles existent
       queryClient.invalidateQueries({ queryKey: ['facture', result.facture.id] });
+      queryClient.invalidateQueries({ queryKey: ['factures-vente-details'] });
       
       // Forcer le refetch immédiat
       queryClient.refetchQueries({ queryKey: ['factures_vente'] });

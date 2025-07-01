@@ -119,6 +119,11 @@ const DeliverySection = ({ facture }: DeliverySectionProps) => {
             <p className="text-xs text-muted-foreground">
               Quantités : {totalLivree}/{totalCommande} articles livrés
             </p>
+            {facture.statut_livraison_id && (
+              <p className="text-xs text-blue-600">
+                ID statut: {facture.statut_livraison_id}
+              </p>
+            )}
           </div>
         </CardHeader>
         <CardContent className="space-y-4">

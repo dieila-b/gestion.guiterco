@@ -2,6 +2,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { mapDeliveryStatusNameToId } from './services/statusMappingService';
 
 export const useUpdateFactureStatut = () => {
   const queryClient = useQueryClient();
@@ -9,6 +10,10 @@ export const useUpdateFactureStatut = () => {
   return useMutation({
     mutationFn: async ({ factureId, statut_livraison }: { factureId: string, statut_livraison: string }) => {
       console.log('🚚 Mise à jour statut livraison pour facture:', factureId, 'vers:', statut_livraison);
+
+      // Convertir le nom du statut en ID
+      const statutId = await mapDeliveryStatusNameToId(statut_livraison);
+      console.log('🔄 Statut converti en ID:', statutId);
 
       // Récupérer les lignes de facture pour mise à jour cohérente
       const { data: lignesFacture, error: lignesError } = await supabase
@@ -76,10 +81,13 @@ export const useUpdateFactureStatut = () => {
 
       console.log('📦 Mise à jour des lignes de facture vers statut:', nouveauStatutLigne);
 
-      // Mettre à jour le statut de la facture principale
+      // Mettre à jour le statut de la facture principale AVEC L'ID
       const { data: facture, error: factureError } = await supabase
         .from('factures_vente')
-        .update({ statut_livraison })
+        .update({ 
+          statut_livraison_id: statutId,
+          statut_livraison: statut_livraison // Garder pour compatibilité temporaire
+        })
         .eq('id', factureId)
         .select()
         .single();
@@ -89,15 +97,13 @@ export const useUpdateFactureStatut = () => {
         throw factureError;
       }
 
-      console.log('✅ Statut livraison mis à jour avec succès pour facture et lignes');
+      console.log('✅ Statut livraison mis à jour avec succès - ID:', statutId);
       return facture;
     },
     onSuccess: (facture) => {
       // Invalider TOUTES les queries liées aux factures
       queryClient.invalidateQueries({ queryKey: ['factures_vente'] });
       queryClient.invalidateQueries({ queryKey: ['facture', facture.id] });
-      
-      // Utiliser la fonction Supabase pour recharger les données
       queryClient.invalidateQueries({ queryKey: ['factures-vente-details'] });
       
       // Forcer le refetch immédiat

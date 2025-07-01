@@ -51,7 +51,7 @@ export const mapDeliveryStatus = async (paymentData: any): Promise<number> => {
   let statutId = statuts['en_attente']; // Valeur par défaut
   
   if (paymentData && paymentData.statut_livraison) {
-    // CORRECTION : Mapper exactement les valeurs sélectionnées vers les IDs
+    // Mapper exactement les valeurs sélectionnées vers les IDs
     switch (paymentData.statut_livraison) {
       case 'livree':
       case 'livre':
@@ -73,4 +73,37 @@ export const mapDeliveryStatus = async (paymentData: any): Promise<number> => {
 
   console.log('📦 STATUT FINAL DE LIVRAISON ID CONFIRMÉ:', statutId);
   return statutId;
+};
+
+// Nouvelle fonction pour mapper les IDs vers les noms
+export const mapDeliveryStatusIdToName = async (statutId: number): Promise<string> => {
+  const { data, error } = await supabase
+    .from('livraison_statut')
+    .select('nom')
+    .eq('id', statutId)
+    .single();
+
+  if (error || !data) {
+    console.error('❌ Erreur lors de la récupération du nom du statut:', error);
+    return 'En attente'; // Fallback
+  }
+
+  return data.nom;
+};
+
+// Fonction pour mapper les noms vers les IDs (pour les mises à jour)
+export const mapDeliveryStatusNameToId = async (statutNom: string): Promise<number> => {
+  const statuts = await loadLivraisonStatuts();
+  
+  switch (statutNom.toLowerCase()) {
+    case 'livree':
+    case 'livrée':
+      return statuts['livree'];
+    case 'partiellement_livree':
+    case 'partiellement livrée':
+      return statuts['partiellement_livree'];
+    case 'en_attente':
+    default:
+      return statuts['en_attente'];
+  }
 };
