@@ -7,7 +7,7 @@ export const useFacturesVenteQuery = () => {
   return useQuery({
     queryKey: ['factures_vente', 'factures-vente-details'],
     queryFn: async () => {
-      console.log('🔍 Récupération des factures de vente avec détails complets...');
+      console.log('🔍 Récupération des factures de vente avec relation livraison_statut...');
 
       const { data, error } = await supabase
         .from('factures_vente')
@@ -15,7 +15,7 @@ export const useFacturesVenteQuery = () => {
           *,
           client:clients(*),
           commande:commandes_clients(*),
-          livraison_statut!statut_livraison_id(
+          livraison_statut!inner(
             id,
             nom
           ),
@@ -58,7 +58,7 @@ export const useFacturesVenteQuery = () => {
           statutPaiementReel = 'partiellement_payee';
         }
 
-        // Utiliser UNIQUEMENT le statut depuis la table livraison_statut
+        // Utiliser EXCLUSIVEMENT le statut depuis la table livraison_statut
         const statutLivraisonFromDB = facture.livraison_statut?.nom;
         let statutLivraisonFinal = 'en_attente';
         
@@ -78,10 +78,12 @@ export const useFacturesVenteQuery = () => {
           }
         }
 
+        console.log(`🚚 Facture ${facture.numero_facture} - Statut DB: "${statutLivraisonFromDB}" → Interface: "${statutLivraisonFinal}"`);
+
         return {
           ...facture,
           statut_paiement_calcule: statutPaiementReel,
-          statut_livraison: statutLivraisonFinal, // Utiliser le statut depuis la relation
+          statut_livraison: statutLivraisonFinal, // Statut formaté pour l'interface
           statut_livraison_nom: statutLivraisonFromDB || 'En attente', // Nom original pour affichage
           montant_paye_calcule: montantPaye,
           montant_restant_calcule: Math.max(0, facture.montant_ttc - montantPaye),
