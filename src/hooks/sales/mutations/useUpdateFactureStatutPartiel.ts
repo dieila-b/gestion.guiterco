@@ -89,12 +89,11 @@ export const useUpdateFactureStatutPartiel = () => {
       // Convertir le statut global en ID
       const statutGlobalId = await mapDeliveryStatusNameToId(statutGlobal);
 
-      // Mettre à jour le statut global de la facture AVEC L'ID
+      // Mettre à jour le statut global de la facture avec l'ID uniquement
       const { data: facture, error: factureError } = await supabase
         .from('factures_vente')
         .update({ 
-          statut_livraison_id: statutGlobalId,
-          statut_livraison: statutGlobal // Garder pour compatibilité temporaire
+          statut_livraison_id: statutGlobalId
         })
         .eq('id', factureId)
         .select()

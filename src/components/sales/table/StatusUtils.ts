@@ -105,8 +105,8 @@ export const getArticleCount = (facture: FactureVente) => {
 export const getActualDeliveryStatus = (facture: FactureVente) => {
   console.log('🚚 getActualDeliveryStatus - Facture:', facture.numero_facture);
   
-  // PRIORITÉ 1 : Utiliser le statut depuis la relation livraison_statut
-  const statutFromDB = (facture as any).livraison_statut?.nom || (facture as any).statut_livraison_nom;
+  // Utiliser EXCLUSIVEMENT le statut depuis la relation livraison_statut
+  const statutFromDB = facture.livraison_statut?.nom;
   
   if (statutFromDB) {
     console.log('🚚 ✅ UTILISATION STATUT depuis livraison_statut.nom:', statutFromDB);
@@ -123,7 +123,7 @@ export const getActualDeliveryStatus = (facture: FactureVente) => {
     }
   }
   
-  // PRIORITÉ 2 : Fallback par défaut
+  // Fallback par défaut
   console.log('🚚 Utilisation statut par défaut (fallback)');
   return 'en_attente';
 };

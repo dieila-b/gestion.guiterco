@@ -9,7 +9,7 @@ interface DeliveryStatusBadgeProps {
 
 const DeliveryStatusBadge = ({ facture }: DeliveryStatusBadgeProps) => {
   // Utiliser UNIQUEMENT le statut depuis la relation livraison_statut
-  const statutNomFromDB = (facture as any).livraison_statut?.nom || (facture as any).statut_livraison_nom;
+  const statutNomFromDB = facture.livraison_statut?.nom;
   
   console.log('🚚 DeliveryStatusBadge - Facture:', facture.numero_facture);
   console.log('🚚 Statut depuis livraison_statut.nom:', statutNomFromDB);

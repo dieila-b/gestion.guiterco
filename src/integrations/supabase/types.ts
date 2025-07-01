@@ -1249,8 +1249,7 @@ export type Database = {
           montant_ttc: number
           numero_facture: string
           observations: string | null
-          statut_livraison: string | null
-          statut_livraison_id: number | null
+          statut_livraison_id: number
           statut_paiement: string
           taux_tva: number | null
           tva: number
@@ -1269,8 +1268,7 @@ export type Database = {
           montant_ttc?: number
           numero_facture: string
           observations?: string | null
-          statut_livraison?: string | null
-          statut_livraison_id?: number | null
+          statut_livraison_id: number
           statut_paiement?: string
           taux_tva?: number | null
           tva?: number
@@ -1289,8 +1287,7 @@ export type Database = {
           montant_ttc?: number
           numero_facture?: string
           observations?: string | null
-          statut_livraison?: string | null
-          statut_livraison_id?: number | null
+          statut_livraison_id?: number
           statut_paiement?: string
           taux_tva?: number | null
           tva?: number
@@ -1312,14 +1309,7 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "fk_facture_statut_livraison"
-            columns: ["statut_livraison_id"]
-            isOneToOne: false
-            referencedRelation: "livraison_statut"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "fk_statut_livraison"
+            foreignKeyName: "fk_factures_vente_statut_livraison"
             columns: ["statut_livraison_id"]
             isOneToOne: false
             referencedRelation: "livraison_statut"

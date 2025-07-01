@@ -28,7 +28,6 @@ export const useUpdateFactureStatut = () => {
 
       // Déterminer les nouvelles valeurs selon le statut choisi
       let nouveauStatutLigne;
-      let nouvelleQuantiteLivree = null;
 
       switch (statut_livraison) {
         case 'livree':
@@ -81,12 +80,11 @@ export const useUpdateFactureStatut = () => {
 
       console.log('📦 Mise à jour des lignes de facture vers statut:', nouveauStatutLigne);
 
-      // Mettre à jour le statut de la facture principale AVEC L'ID
+      // Mettre à jour le statut de la facture principale avec l'ID uniquement
       const { data: facture, error: factureError } = await supabase
         .from('factures_vente')
         .update({ 
-          statut_livraison_id: statutId,
-          statut_livraison: statut_livraison // Garder pour compatibilité temporaire
+          statut_livraison_id: statutId
         })
         .eq('id', factureId)
         .select()
