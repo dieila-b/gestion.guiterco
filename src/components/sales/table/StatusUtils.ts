@@ -106,12 +106,11 @@ export const getActualDeliveryStatus = (facture: FactureVente) => {
   console.log('🚚 getActualDeliveryStatus - Facture:', facture.numero_facture);
   console.log('🚚 Statut BDD facture direct:', facture.statut_livraison);
   
-  // PRIORITÉ 1 : TOUJOURS UTILISER LE STATUT DE LA BDD DIRECTEMENT
-  // CORRECTION CRITIQUE : Ne plus calculer ou interpréter, juste utiliser ce qui est en base
+  // CORRECTION CRITIQUE : TOUJOURS UTILISER LE STATUT DE LA BDD EN PRIORITÉ ABSOLUE
   const statutBDD = facture.statut_livraison;
   
   if (statutBDD) {
-    console.log('🚚 UTILISATION DIRECTE STATUT BDD:', statutBDD);
+    console.log('🚚 ✅ UTILISATION DIRECTE STATUT BDD:', statutBDD);
     return statutBDD;
   }
   
@@ -121,28 +120,8 @@ export const getActualDeliveryStatus = (facture: FactureVente) => {
     return (facture as any).statut_livraison_calcule;
   }
   
-  // PRIORITÉ 3 : Si pas de lignes de facture détaillées, utiliser le statut par défaut
-  if (!facture.lignes_facture || !Array.isArray(facture.lignes_facture) || facture.lignes_facture.length === 0) {
-    const statutFinal = 'en_attente'; // Valeur par défaut si rien n'est défini
-    console.log('🚚 Pas de lignes facture - utilisation statut par défaut:', statutFinal);
-    return statutFinal;
-  }
-  
-  // PRIORITÉ 4 : Calcul basé sur les quantités réellement livrées (pour livraisons partielles)
-  const totalQuantiteCommandee = facture.lignes_facture.reduce((sum, ligne) => sum + ligne.quantite, 0);
-  const totalQuantiteLivree = facture.lignes_facture.reduce((sum, ligne) => sum + (ligne.quantite_livree || 0), 0);
-  
-  console.log('🚚 Calcul basé sur quantités - Commandé:', totalQuantiteCommandee, 'Livré:', totalQuantiteLivree);
-  
-  let status;
-  if (totalQuantiteLivree === 0) {
-    status = 'en_attente';
-  } else if (totalQuantiteLivree >= totalQuantiteCommandee) {
-    status = 'livree';
-  } else {
-    status = 'partiellement_livree';
-  }
-  
-  console.log('🚚 Statut livraison calculé final (fallback):', status);
-  return status;
+  // PRIORITÉ 3 : Valeur par défaut si aucun statut n'est défini
+  const statutFinal = 'en_attente';
+  console.log('🚚 Utilisation statut par défaut:', statutFinal);
+  return statutFinal;
 };

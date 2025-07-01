@@ -13,36 +13,32 @@ export const useCreateFactureVente = () => {
       console.log('🚀 Début création facture vente avec données:', data);
       console.log('🚀 Données de paiement reçues:', data.payment_data);
 
-      // Déterminer le statut de livraison selon les données de paiement
+      // CORRECTION CRITIQUE : Déterminer le statut de livraison selon les données de paiement
       let statutLivraison = 'en_attente'; // Valeur par défaut
       
       if (data.payment_data && data.payment_data.statut_livraison) {
         console.log('📦 Statut livraison demandé:', data.payment_data.statut_livraison);
         
-        // Mapper les différentes valeurs possibles vers le bon statut - CORRECTION CRITIQUE
+        // CORRECTION : Mapper exactement les valeurs sélectionnées
         switch (data.payment_data.statut_livraison) {
-          case 'livre':
           case 'livree':
+          case 'livre':
           case 'complete':
             statutLivraison = 'livree';
             console.log('✅ Livraison complète - Statut défini: livree');
             break;
-          case 'partiel':
           case 'partiellement_livree':
+          case 'partielle':
             statutLivraison = 'partiellement_livree';
             console.log('📦 Livraison partielle - Statut défini: partiellement_livree');
             break;
           case 'en_attente':
-            statutLivraison = 'en_attente';
-            console.log('⏳ Livraison en attente - Statut défini: en_attente');
-            break;
           default:
             statutLivraison = 'en_attente';
-            console.log('⏳ Statut par défaut - Statut défini: en_attente');
+            console.log('⏳ Livraison en attente - Statut défini: en_attente');
         }
       }
 
-      // CORRECTION CRITIQUE : S'assurer que le statut n'est jamais écrasé
       console.log('📦 STATUT FINAL DE LIVRAISON CONFIRMÉ:', statutLivraison);
 
       // Créer la facture principale avec le statut de livraison correct
@@ -130,11 +126,6 @@ export const useCreateFactureVente = () => {
         }
       }
 
-      // Traiter la livraison si nécessaire (pour les cas complexes)
-      if (data.payment_data && data.payment_data.statut_livraison === 'partiel') {
-        await processDelivery(data.payment_data, facture, lignesCreees);
-      }
-
       // Créer le versement si paiement immédiat
       if (data.payment_data?.montant_paye > 0) {
         const versementData = {
@@ -166,12 +157,16 @@ export const useCreateFactureVente = () => {
         console.log('✅ Versement créé et statut paiement mis à jour:', nouveauStatutPaiement);
       }
 
-      // VÉRIFICATION FINALE - S'assurer que le statut est bien enregistré
-      const { data: factureFinale } = await supabase
+      // VÉRIFICATION FINALE CRITIQUE - S'assurer que le statut est bien enregistré
+      const { data: factureFinale, error: verificationError } = await supabase
         .from('factures_vente')
         .select('statut_livraison')
         .eq('id', facture.id)
         .single();
+
+      if (verificationError) {
+        console.error('❌ Erreur vérification finale:', verificationError);
+      }
 
       console.log('🎉 VÉRIFICATION FINALE - Statut livraison en BDD:', factureFinale?.statut_livraison);
       console.log('🎉 Facture vente créée avec succès - Statut final:', {
@@ -179,7 +174,14 @@ export const useCreateFactureVente = () => {
         livraison: factureFinale?.statut_livraison || statutLivraison
       });
 
-      return { facture: { ...facture, statut_livraison: factureFinale?.statut_livraison || statutLivraison }, lignes: lignesCreees };
+      // CORRECTION CRITIQUE : Retourner la facture avec le statut vérifié
+      return { 
+        facture: { 
+          ...facture, 
+          statut_livraison: factureFinale?.statut_livraison || statutLivraison 
+        }, 
+        lignes: lignesCreees 
+      };
     },
     onSuccess: () => {
       // Invalider toutes les queries liées aux factures et au stock pour forcer le rafraîchissement

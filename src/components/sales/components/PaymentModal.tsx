@@ -42,12 +42,12 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
 }) => {
   const [montantPaye, setMontantPaye] = useState(0);
   const [modePaiement, setModePaiement] = useState('especes');
-  // CORRECTION CRITIQUE : Statut par défaut en_attente au lieu de livre
+  // CORRECTION CRITIQUE : Statut par défaut en_attente
   const [statutLivraison, setStatutLivraison] = useState('en_attente');
   const [notes, setNotes] = useState('');
   const [quantitesLivrees, setQuantitesLivrees] = useState<{ [key: string]: number }>({});
 
-  // Préremplir le montant payé à 0 par défaut (pas le total)
+  // Préremplir le montant payé à 0 par défaut
   useEffect(() => {
     if (isOpen) {
       setMontantPaye(0);
@@ -259,19 +259,19 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
               </div>
             )}
 
-            {/* Indicateur visuel du statut sélectionné */}
-            <div className="p-3 bg-gray-50 border rounded">
-              <div className="text-sm font-medium text-gray-700">
-                Statut sélectionné: 
-                <span className={`ml-2 px-2 py-1 rounded text-xs font-bold ${
-                  statutLivraison === 'livree' ? 'bg-green-100 text-green-800' :
-                  statutLivraison === 'partiellement_livree' ? 'bg-yellow-100 text-yellow-800' :
-                  'bg-orange-100 text-orange-800'
-                }`}>
-                  {statutLivraison === 'livree' ? 'Livrée' :
-                   statutLivraison === 'partiellement_livree' ? 'Partiellement livrée' :
-                   'En attente'}
-                </span>
+            {/* CORRECTION : Indicateur visuel CLAIR du statut sélectionné */}
+            <div className="p-4 bg-gray-50 border rounded-lg">
+              <div className="text-sm font-medium text-gray-700 mb-2">
+                Statut de livraison sélectionné: 
+              </div>
+              <div className={`inline-block px-3 py-1 rounded-full text-sm font-bold ${
+                statutLivraison === 'livree' ? 'bg-green-100 text-green-800 border border-green-300' :
+                statutLivraison === 'partiellement_livree' ? 'bg-yellow-100 text-yellow-800 border border-yellow-300' :
+                'bg-orange-100 text-orange-800 border border-orange-300'
+              }`}>
+                {statutLivraison === 'livree' ? '✅ Livrée' :
+                 statutLivraison === 'partiellement_livree' ? '📦 Partiellement livrée' :
+                 '⏳ En attente de livraison'}
               </div>
             </div>
           </TabsContent>
