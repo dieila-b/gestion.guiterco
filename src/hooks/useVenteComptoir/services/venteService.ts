@@ -90,17 +90,32 @@ export const createVenteComptoir = async (data: VenteComptoirData) => {
   // 5. Mettre à jour le stock si un point de vente est spécifié
   if (data.point_vente_id) {
     for (const item of data.cart) {
-      const { error: stockError } = await supabase
+      // Récupérer la quantité actuelle
+      const { data: currentStock, error: fetchError } = await supabase
         .from('stock_pdv')
-        .update({
-          quantite_disponible: supabase.sql`quantite_disponible - ${item.quantite}`
-        })
+        .select('quantite_disponible')
         .eq('article_id', item.article_id)
-        .eq('point_vente_id', data.point_vente_id);
+        .eq('point_vente_id', data.point_vente_id)
+        .single();
 
-      if (stockError) {
-        console.error('❌ Erreur mise à jour stock:', stockError);
-        // Ne pas faire échouer toute la transaction pour une erreur de stock
+      if (fetchError) {
+        console.error('❌ Erreur récupération stock:', fetchError);
+        continue; // Ne pas faire échouer toute la transaction pour une erreur de stock
+      }
+
+      if (currentStock && currentStock.quantite_disponible >= item.quantite) {
+        const { error: stockError } = await supabase
+          .from('stock_pdv')
+          .update({
+            quantite_disponible: currentStock.quantite_disponible - item.quantite
+          })
+          .eq('article_id', item.article_id)
+          .eq('point_vente_id', data.point_vente_id);
+
+        if (stockError) {
+          console.error('❌ Erreur mise à jour stock:', stockError);
+          // Ne pas faire échouer toute la transaction pour une erreur de stock
+        }
       }
     }
   }
