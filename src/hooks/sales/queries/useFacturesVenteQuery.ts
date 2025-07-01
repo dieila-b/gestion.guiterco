@@ -15,7 +15,7 @@ export const useFacturesVenteQuery = () => {
           *,
           client:clients(*),
           commande:commandes_clients(*),
-          livraison_statut:livraison_statut(
+          livraison_statut!statut_livraison_id(
             id,
             nom
           ),
@@ -58,13 +58,13 @@ export const useFacturesVenteQuery = () => {
           statutPaiementReel = 'partiellement_payee';
         }
 
-        // Gestion du statut de livraison avec fallback
+        // Utiliser UNIQUEMENT le statut depuis la table livraison_statut
+        const statutLivraisonFromDB = facture.livraison_statut?.nom;
         let statutLivraisonFinal = 'en_attente';
         
-        // Priorité 1: Utiliser le statut depuis la table liée si disponible
-        if (facture.livraison_statut?.nom) {
-          const statutNom = facture.livraison_statut.nom.toLowerCase();
-          switch (statutNom) {
+        if (statutLivraisonFromDB) {
+          // Mapper le nom de la table livraison_statut vers le format attendu
+          switch (statutLivraisonFromDB.toLowerCase()) {
             case 'livrée':
               statutLivraisonFinal = 'livree';
               break;
@@ -77,27 +77,19 @@ export const useFacturesVenteQuery = () => {
               break;
           }
         }
-        // Priorité 2: Utiliser le statut texte existant si disponible
-        else if (facture.statut_livraison) {
-          statutLivraisonFinal = facture.statut_livraison;
-        }
-        // Priorité 3: Fallback par défaut
-        else {
-          statutLivraisonFinal = 'en_attente';
-        }
 
         return {
           ...facture,
           statut_paiement_calcule: statutPaiementReel,
-          statut_livraison: statutLivraisonFinal,
-          statut_livraison_nom: facture.livraison_statut?.nom || 'En attente',
+          statut_livraison: statutLivraisonFinal, // Utiliser le statut depuis la relation
+          statut_livraison_nom: statutLivraisonFromDB || 'En attente', // Nom original pour affichage
           montant_paye_calcule: montantPaye,
           montant_restant_calcule: Math.max(0, facture.montant_ttc - montantPaye),
           nb_articles: facture.lignes_facture?.length || 0
         };
       });
 
-      console.log('✅ Factures traitées avec statuts calculés:', facturesTraitees.length);
+      console.log('✅ Factures traitées avec statuts depuis livraison_statut:', facturesTraitees.length);
       return facturesTraitees as FactureVente[];
     },
     staleTime: 1000 * 30, // 30 secondes

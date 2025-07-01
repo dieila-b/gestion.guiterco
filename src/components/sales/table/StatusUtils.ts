@@ -104,17 +104,26 @@ export const getArticleCount = (facture: FactureVente) => {
 
 export const getActualDeliveryStatus = (facture: FactureVente) => {
   console.log('🚚 getActualDeliveryStatus - Facture:', facture.numero_facture);
-  console.log('🚚 Statut livraison direct:', facture.statut_livraison);
-  console.log('🚚 Statut livraison ID:', facture.statut_livraison_id);
   
-  // PRIORITÉ 1 : Utiliser le statut calculé depuis la query (qui vient de la table livraison_statut)
-  if (facture.statut_livraison) {
-    console.log('🚚 ✅ UTILISATION STATUT CALCULÉ depuis query:', facture.statut_livraison);
-    return facture.statut_livraison;
+  // PRIORITÉ 1 : Utiliser le statut depuis la relation livraison_statut
+  const statutFromDB = (facture as any).livraison_statut?.nom || (facture as any).statut_livraison_nom;
+  
+  if (statutFromDB) {
+    console.log('🚚 ✅ UTILISATION STATUT depuis livraison_statut.nom:', statutFromDB);
+    
+    // Mapper le nom vers le format attendu par l'interface
+    switch (statutFromDB.toLowerCase()) {
+      case 'livrée':
+        return 'livree';
+      case 'partiellement livrée':
+        return 'partiellement_livree';
+      case 'en attente':
+      default:
+        return 'en_attente';
+    }
   }
   
-  // PRIORITÉ 2 : Fallback vers en_attente même si statut_livraison_id est null
-  const statutFinal = 'en_attente';
-  console.log('🚚 Utilisation statut par défaut (fallback):', statutFinal);
-  return statutFinal;
+  // PRIORITÉ 2 : Fallback par défaut
+  console.log('🚚 Utilisation statut par défaut (fallback)');
+  return 'en_attente';
 };
