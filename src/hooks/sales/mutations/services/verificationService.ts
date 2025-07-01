@@ -6,7 +6,7 @@ export const verifyFactureStatus = async (factureId: string, statutLivraisonIdAt
     .from('factures_vente')
     .select(`
       statut_livraison_id,
-      livraison_statut!inner(nom)
+      livraison_statut!statut_livraison_id(nom)
     `)
     .eq('id', factureId)
     .single();
