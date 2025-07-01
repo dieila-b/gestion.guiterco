@@ -9,8 +9,28 @@ export const useFacturesVenteQuery = () => {
     queryFn: async () => {
       console.log('🔍 Récupération des factures de vente avec détails complets...');
 
-      // Utiliser la fonction Supabase pour récupérer toutes les données
-      const { data, error } = await supabase.rpc('get_factures_vente_with_details');
+      const { data, error } = await supabase
+        .from('factures_vente')
+        .select(`
+          *,
+          client:clients(*),
+          commande:commandes_clients(*),
+          livraison_statut!statut_livraison_id(
+            id,
+            nom
+          ),
+          lignes_facture:lignes_facture_vente(
+            *,
+            article:catalogue(
+              id,
+              nom,
+              reference
+            )
+          ),
+          versements:versements_clients(*)
+        `)
+        .order('date_facture', { ascending: false })
+        .order('created_at', { ascending: false });
 
       if (error) {
         console.error('❌ Erreur lors de la récupération des factures:', error);
@@ -22,13 +42,11 @@ export const useFacturesVenteQuery = () => {
         return [];
       }
 
-      const factures = Array.isArray(data) ? data : [data];
-      
-      console.log('✅ Factures récupérées avec succès:', factures.length);
-      console.log('🔍 Première facture (pour debug):', factures[0]);
+      console.log('✅ Factures récupérées avec succès:', data.length);
+      console.log('🔍 Première facture (pour debug):', data[0]);
 
       // Traitement des données pour s'assurer de la cohérence
-      const facturesTraitees = factures.map((facture: any) => {
+      const facturesTraitees = data.map((facture: any) => {
         // Calcul du montant payé basé sur les versements
         const montantPaye = facture.versements?.reduce((sum: number, v: any) => sum + Number(v.montant || 0), 0) || 0;
         
@@ -40,27 +58,32 @@ export const useFacturesVenteQuery = () => {
           statutPaiementReel = 'partiellement_payee';
         }
 
-        // Calcul du statut de livraison réel basé sur les lignes
-        let statutLivraisonReel = facture.statut_livraison || 'en_attente';
-        if (facture.lignes_facture && facture.lignes_facture.length > 0) {
-          const totalQuantite = facture.lignes_facture.reduce((sum: number, ligne: any) => sum + ligne.quantite, 0);
-          const totalLivree = facture.lignes_facture.reduce((sum: number, ligne: any) => sum + (ligne.quantite_livree || 0), 0);
-          
-          if (totalLivree === 0) {
-            statutLivraisonReel = 'en_attente';
-          } else if (totalLivree >= totalQuantite) {
-            statutLivraisonReel = 'livree';
-          } else {
-            statutLivraisonReel = 'partiellement_livree';
-          }
+        // Utiliser le nom du statut de livraison depuis la table liée
+        const statutLivraisonNom = facture.livraison_statut?.nom || 'En attente';
+        
+        // Convertir le nom en format compatible avec l'affichage
+        let statutLivraisonFinal = 'en_attente';
+        switch (statutLivraisonNom.toLowerCase()) {
+          case 'livrée':
+            statutLivraisonFinal = 'livree';
+            break;
+          case 'partiellement livrée':
+            statutLivraisonFinal = 'partiellement_livree';
+            break;
+          case 'en attente':
+          default:
+            statutLivraisonFinal = 'en_attente';
+            break;
         }
 
         return {
           ...facture,
           statut_paiement_calcule: statutPaiementReel,
-          statut_livraison_calcule: statutLivraisonReel,
+          statut_livraison: statutLivraisonFinal, // Utiliser le statut converti
+          statut_livraison_nom: statutLivraisonNom, // Garder le nom original pour debug
           montant_paye_calcule: montantPaye,
-          montant_restant_calcule: Math.max(0, facture.montant_ttc - montantPaye)
+          montant_restant_calcule: Math.max(0, facture.montant_ttc - montantPaye),
+          nb_articles: facture.lignes_facture?.length || 0
         };
       });
 

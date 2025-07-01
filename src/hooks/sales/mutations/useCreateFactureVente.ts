@@ -20,14 +20,14 @@ export const useCreateFactureVente = () => {
       // Validation des données
       validateFactureData(data);
 
-      // Déterminer le statut de livraison
-      const statutLivraison = mapDeliveryStatus(data.payment_data);
+      // Déterminer le statut de livraison ID (CORRECTION: retourne maintenant un ID)
+      const statutLivraisonId = await mapDeliveryStatus(data.payment_data);
 
-      // Créer la facture principale
-      const facture = await createFactureVente(data, statutLivraison);
+      // Créer la facture principale avec l'ID de statut
+      const facture = await createFactureVente(data, statutLivraisonId);
 
-      // Créer les lignes de facture
-      const lignesCreees = await createLignesFacture(data, facture.id, statutLivraison);
+      // Créer les lignes de facture avec l'ID de statut
+      const lignesCreees = await createLignesFacture(data, facture.id, statutLivraisonId);
 
       // Mettre à jour le stock PDV si nécessaire
       if (data.point_vente_id) {
@@ -44,18 +44,18 @@ export const useCreateFactureVente = () => {
       // Traiter le paiement si nécessaire
       await processPayment(data, facture);
 
-      // Vérification finale du statut
-      const statutFinal = await verifyFactureStatus(facture.id, statutLivraison);
+      // Vérification finale du statut (maintenant avec l'ID)
+      const statutFinal = await verifyFactureStatus(facture.id, statutLivraisonId);
 
-      console.log('🎉 Facture vente créée avec succès - Statut final:', {
+      console.log('🎉 Facture vente créée avec succès - Statut final ID:', {
         paiement: facture.statut_paiement,
-        livraison: statutFinal
+        livraison_id: statutFinal
       });
 
       return { 
         facture: { 
           ...facture, 
-          statut_livraison: statutFinal 
+          statut_livraison_id: statutFinal 
         }, 
         lignes: lignesCreees 
       };

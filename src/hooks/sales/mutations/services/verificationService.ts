@@ -1,18 +1,18 @@
 
 import { supabase } from '@/integrations/supabase/client';
 
-export const verifyFactureStatus = async (factureId: string, statutLivraisonAttendu: string) => {
+export const verifyFactureStatus = async (factureId: string, statutLivraisonIdAttendu: number) => {
   const { data: factureFinale, error: verificationError } = await supabase
     .from('factures_vente')
-    .select('statut_livraison')
+    .select('statut_livraison_id')
     .eq('id', factureId)
     .single();
 
   if (verificationError) {
     console.error('❌ Erreur vérification finale:', verificationError);
-    return statutLivraisonAttendu;
+    return statutLivraisonIdAttendu;
   }
 
-  console.log('🎉 VÉRIFICATION FINALE - Statut livraison en BDD:', factureFinale?.statut_livraison);
-  return factureFinale?.statut_livraison || statutLivraisonAttendu;
+  console.log('🎉 VÉRIFICATION FINALE - Statut livraison ID en BDD:', factureFinale?.statut_livraison_id);
+  return factureFinale?.statut_livraison_id || statutLivraisonIdAttendu;
 };

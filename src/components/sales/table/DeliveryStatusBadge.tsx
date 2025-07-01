@@ -9,18 +9,19 @@ interface DeliveryStatusBadgeProps {
 }
 
 const DeliveryStatusBadge = ({ facture }: DeliveryStatusBadgeProps) => {
-  // CORRECTION CRITIQUE : Calculer le statut réel basé sur les données actuelles
-  const statut = getActualDeliveryStatus(facture);
+  // Utiliser le statut calculé depuis la query
+  const statut = facture.statut_livraison || getActualDeliveryStatus(facture);
   
   console.log('🚚 DeliveryStatusBadge - Rendu pour facture:', facture.numero_facture);
-  console.log('🚚 Statut BDD facture:', facture.statut_livraison);
+  console.log('🚚 Statut livraison ID:', facture.statut_livraison_id);
+  console.log('🚚 Statut livraison nom:', (facture as any).statut_livraison_nom);
   console.log('🚚 Statut calculé final:', statut);
   
   switch (statut) {
     case 'en_attente':
       return (
         <Badge variant="outline" className="bg-orange-100 text-orange-800 border-orange-300">
-          Non livrée
+          En attente
         </Badge>
       );
     case 'partiellement_livree':

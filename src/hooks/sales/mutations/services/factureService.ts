@@ -2,7 +2,7 @@
 import { supabase } from '@/integrations/supabase/client';
 import type { CreateFactureVenteData } from '../types';
 
-export const createFactureVente = async (data: CreateFactureVenteData, statutLivraison: string) => {
+export const createFactureVente = async (data: CreateFactureVenteData, statutLivraisonId: number) => {
   const factureData = {
     numero_facture: '', // Sera généré automatiquement par le trigger
     client_id: data.client_id,
@@ -11,7 +11,7 @@ export const createFactureVente = async (data: CreateFactureVenteData, statutLiv
     montant_ttc: data.montant_ttc,
     mode_paiement: data.mode_paiement,
     statut_paiement: 'en_attente',
-    statut_livraison: statutLivraison
+    statut_livraison_id: statutLivraisonId // Utiliser l'ID au lieu du nom
   };
 
   console.log('📝 Données facture à créer:', factureData);
@@ -28,7 +28,7 @@ export const createFactureVente = async (data: CreateFactureVenteData, statutLiv
   }
 
   console.log('✅ Facture créée avec ID:', facture.id);
-  console.log('📦 VÉRIFICATION - Statut livraison dans la BDD:', facture.statut_livraison);
+  console.log('📦 VÉRIFICATION - Statut livraison ID dans la BDD:', facture.statut_livraison_id);
 
   return facture;
 };
