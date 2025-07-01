@@ -1250,7 +1250,6 @@ export type Database = {
           numero_facture: string
           observations: string | null
           statut_livraison: string | null
-          statut_livraison_id: number | null
           statut_paiement: string
           taux_tva: number | null
           tva: number
@@ -1270,7 +1269,6 @@ export type Database = {
           numero_facture: string
           observations?: string | null
           statut_livraison?: string | null
-          statut_livraison_id?: number | null
           statut_paiement?: string
           taux_tva?: number | null
           tva?: number
@@ -1290,7 +1288,6 @@ export type Database = {
           numero_facture?: string
           observations?: string | null
           statut_livraison?: string | null
-          statut_livraison_id?: number | null
           statut_paiement?: string
           taux_tva?: number | null
           tva?: number
@@ -1309,20 +1306,6 @@ export type Database = {
             columns: ["commande_id"]
             isOneToOne: false
             referencedRelation: "commandes_clients"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "fk_facture_statut_livraison"
-            columns: ["statut_livraison_id"]
-            isOneToOne: false
-            referencedRelation: "livraison_statut"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "fk_statut_livraison"
-            columns: ["statut_livraison_id"]
-            isOneToOne: false
-            referencedRelation: "livraison_statut"
             referencedColumns: ["id"]
           },
         ]
@@ -1634,21 +1617,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
-      }
-      livraison_statut: {
-        Row: {
-          id: number
-          nom: string
-        }
-        Insert: {
-          id?: number
-          nom: string
-        }
-        Update: {
-          id?: number
-          nom?: string
-        }
-        Relationships: []
       }
       notifications_precommandes: {
         Row: {

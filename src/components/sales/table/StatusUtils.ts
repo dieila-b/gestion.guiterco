@@ -104,31 +104,23 @@ export const getArticleCount = (facture: FactureVente) => {
 
 export const getActualDeliveryStatus = (facture: FactureVente) => {
   console.log('🚚 getActualDeliveryStatus - Facture:', facture.numero_facture);
+  console.log('🚚 Statut BDD facture direct:', facture.statut_livraison);
   
-  // PRIORITÉ 1 : Utiliser le nom réel depuis la relation livraison_statut
-  if ((facture as any).statut_livraison_nom) {
-    const statutNom = (facture as any).statut_livraison_nom;
-    console.log('🚚 ✅ UTILISATION NOM STATUT DEPUIS RELATION:', statutNom);
-    
-    // Mapper vers les valeurs attendues par l'interface
-    switch (statutNom.toLowerCase()) {
-      case 'livrée':
-        return 'livree';
-      case 'partiellement livrée':
-        return 'partiellement_livree';
-      case 'en attente':
-      default:
-        return 'en_attente';
-    }
+  // CORRECTION CRITIQUE : TOUJOURS UTILISER LE STATUT DE LA BDD EN PRIORITÉ ABSOLUE
+  const statutBDD = facture.statut_livraison;
+  
+  if (statutBDD) {
+    console.log('🚚 ✅ UTILISATION DIRECTE STATUT BDD:', statutBDD);
+    return statutBDD;
   }
   
-  // PRIORITÉ 2 : Utiliser le statut direct si disponible
-  if (facture.statut_livraison) {
-    console.log('🚚 Utilisation statut direct:', facture.statut_livraison);
-    return facture.statut_livraison;
+  // PRIORITÉ 2 : Utiliser le statut calculé si disponible (depuis la fonction RPC)
+  if ((facture as any).statut_livraison_calcule) {
+    console.log('🚚 Utilisation statut calculé RPC:', (facture as any).statut_livraison_calcule);
+    return (facture as any).statut_livraison_calcule;
   }
   
-  // PRIORITÉ 3 : Valeur par défaut
+  // PRIORITÉ 3 : Valeur par défaut si aucun statut n'est défini
   const statutFinal = 'en_attente';
   console.log('🚚 Utilisation statut par défaut:', statutFinal);
   return statutFinal;
