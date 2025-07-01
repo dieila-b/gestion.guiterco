@@ -113,8 +113,8 @@ export const getActualDeliveryStatus = (facture: FactureVente) => {
     return facture.statut_livraison;
   }
   
-  // PRIORITÉ 2 : Fallback vers en_attente
+  // PRIORITÉ 2 : Fallback vers en_attente même si statut_livraison_id est null
   const statutFinal = 'en_attente';
-  console.log('🚚 Utilisation statut par défaut:', statutFinal);
+  console.log('🚚 Utilisation statut par défaut (fallback):', statutFinal);
   return statutFinal;
 };

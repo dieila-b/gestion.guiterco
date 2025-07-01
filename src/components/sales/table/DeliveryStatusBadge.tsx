@@ -9,7 +9,7 @@ interface DeliveryStatusBadgeProps {
 }
 
 const DeliveryStatusBadge = ({ facture }: DeliveryStatusBadgeProps) => {
-  // Utiliser le statut calculé depuis la query
+  // Utiliser le statut calculé depuis la query avec fallback
   const statut = facture.statut_livraison || getActualDeliveryStatus(facture);
   
   console.log('🚚 DeliveryStatusBadge - Rendu pour facture:', facture.numero_facture);

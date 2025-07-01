@@ -15,7 +15,7 @@ export const useFacturesVenteQuery = () => {
           *,
           client:clients(*),
           commande:commandes_clients(*),
-          livraison_statut!statut_livraison_id(
+          livraison_statut:livraison_statut(
             id,
             nom
           ),
@@ -58,29 +58,39 @@ export const useFacturesVenteQuery = () => {
           statutPaiementReel = 'partiellement_payee';
         }
 
-        // Utiliser le nom du statut de livraison depuis la table liée
-        const statutLivraisonNom = facture.livraison_statut?.nom || 'En attente';
-        
-        // Convertir le nom en format compatible avec l'affichage
+        // Gestion du statut de livraison avec fallback
         let statutLivraisonFinal = 'en_attente';
-        switch (statutLivraisonNom.toLowerCase()) {
-          case 'livrée':
-            statutLivraisonFinal = 'livree';
-            break;
-          case 'partiellement livrée':
-            statutLivraisonFinal = 'partiellement_livree';
-            break;
-          case 'en attente':
-          default:
-            statutLivraisonFinal = 'en_attente';
-            break;
+        
+        // Priorité 1: Utiliser le statut depuis la table liée si disponible
+        if (facture.livraison_statut?.nom) {
+          const statutNom = facture.livraison_statut.nom.toLowerCase();
+          switch (statutNom) {
+            case 'livrée':
+              statutLivraisonFinal = 'livree';
+              break;
+            case 'partiellement livrée':
+              statutLivraisonFinal = 'partiellement_livree';
+              break;
+            case 'en attente':
+            default:
+              statutLivraisonFinal = 'en_attente';
+              break;
+          }
+        }
+        // Priorité 2: Utiliser le statut texte existant si disponible
+        else if (facture.statut_livraison) {
+          statutLivraisonFinal = facture.statut_livraison;
+        }
+        // Priorité 3: Fallback par défaut
+        else {
+          statutLivraisonFinal = 'en_attente';
         }
 
         return {
           ...facture,
           statut_paiement_calcule: statutPaiementReel,
-          statut_livraison: statutLivraisonFinal, // Utiliser le statut converti
-          statut_livraison_nom: statutLivraisonNom, // Garder le nom original pour debug
+          statut_livraison: statutLivraisonFinal,
+          statut_livraison_nom: facture.livraison_statut?.nom || 'En attente',
           montant_paye_calcule: montantPaye,
           montant_restant_calcule: Math.max(0, facture.montant_ttc - montantPaye),
           nb_articles: facture.lignes_facture?.length || 0
