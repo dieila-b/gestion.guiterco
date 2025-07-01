@@ -9,11 +9,11 @@ interface DeliveryStatusBadgeProps {
 }
 
 const DeliveryStatusBadge = ({ facture }: DeliveryStatusBadgeProps) => {
-  // CORRECTION CRITIQUE : Calculer le statut réel basé sur les données actuelles
+  // Utiliser le statut réel basé sur la relation livraison_statut
   const statut = getActualDeliveryStatus(facture);
   
   console.log('🚚 DeliveryStatusBadge - Rendu pour facture:', facture.numero_facture);
-  console.log('🚚 Statut BDD facture:', facture.statut_livraison);
+  console.log('🚚 Nom statut depuis relation:', (facture as any).statut_livraison_nom);
   console.log('🚚 Statut calculé final:', statut);
   
   switch (statut) {
