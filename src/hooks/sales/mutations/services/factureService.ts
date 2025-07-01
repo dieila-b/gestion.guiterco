@@ -31,3 +31,4 @@ export const createFactureVente = async (data: CreateFactureVenteData, statutLiv
   console.log('📦 VÉRIFICATION - Statut livraison ID dans la BDD:', facture.statut_livraison_id);
 
   return facture;
+};
