@@ -1,4 +1,3 @@
-
 export interface Client {
   id: string;
   nom: string;
@@ -82,6 +81,7 @@ export interface FactureVente {
   versements?: VersementClient[];
   nb_articles?: number;
   statut_livraison?: string;
+  statut_livraison_id?: number; // Ajout de cette propriété
 }
 
 export interface Precommande {
