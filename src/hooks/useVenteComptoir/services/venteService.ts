@@ -1,127 +1,110 @@
 
 import { supabase } from '@/integrations/supabase/client';
-import { generateFactureNumber, determineStatutPaiement } from '../utils/formatUtils';
+import type { VenteComptoirData } from '../types';
 
-// Service for creating sales-related database entries
-export const createVenteEntries = async (venteData: any, pdvSelected: any) => {
-  const montantTotal = Number(venteData.montant_total);
-  const montantPaye = Number(venteData.montant_paye || 0);
-  
-  // Calculer le statut de paiement correct
-  let statutPaiement = 'en_attente';
-  if (montantPaye === 0) {
-    statutPaiement = 'en_attente';
-  } else if (montantPaye >= montantTotal) {
-    statutPaiement = 'payee';
-  } else if (montantPaye > 0) {
-    statutPaiement = 'partiellement_payee';
-  }
+export const createVenteComptoir = async (data: VenteComptoirData) => {
+  console.log('🔄 Création vente comptoir:', data);
 
-  const montantRestant = Math.max(0, montantTotal - montantPaye);
-
-  console.log('📊 Calcul statut vente:', {
-    montantTotal,
-    montantPaye,
-    montantRestant,
-    statutPaiement
-  });
-
-  // Créer la commande client
+  // Génération du numéro de commande
   const numeroCommande = `CMD-${Date.now()}`;
+  
+  // 1. Créer la commande
   const { data: commande, error: commandeError } = await supabase
     .from('commandes_clients')
     .insert({
       numero_commande: numeroCommande,
-      client_id: venteData.client_id,
-      montant_ttc: montantTotal,
-      montant_ht: montantTotal / 1.2,
-      tva: montantTotal - (montantTotal / 1.2),
+      client_id: data.client_id,
+      montant_ht: data.montant_ht,
+      tva: data.tva,
+      montant_ttc: data.montant_ttc,
       statut: 'confirmee',
-      mode_paiement: venteData.mode_paiement,
-      observations: venteData.notes
+      mode_paiement: data.mode_paiement
     })
     .select()
     .single();
 
   if (commandeError) {
-    console.error('Erreur création commande:', commandeError);
+    console.error('❌ Erreur création commande:', commandeError);
     throw commandeError;
   }
 
-  console.log('Commande créée:', commande);
-
-  // Créer les lignes de commande
-  const lignesCommande = venteData.articles.map((article: any) => {
-    const prixApresRemise = Math.max(0, article.prix_vente - article.remise);
-    return {
-      commande_id: commande.id,
-      article_id: article.id,
-      quantite: article.quantite,
-      prix_unitaire: prixApresRemise,
-      montant_ligne: prixApresRemise * article.quantite
-    };
-  });
+  // 2. Créer les lignes de commande
+  const lignesCommande = data.cart.map(item => ({
+    commande_id: commande.id,
+    article_id: item.article_id,
+    quantite: item.quantite,
+    prix_unitaire: item.prix_unitaire,
+    montant_ligne: item.quantite * item.prix_unitaire
+  }));
 
   const { error: lignesError } = await supabase
     .from('lignes_commande')
     .insert(lignesCommande);
 
   if (lignesError) {
-    console.error('Erreur création lignes commande:', lignesError);
+    console.error('❌ Erreur création lignes commande:', lignesError);
     throw lignesError;
   }
 
-  // Créer la facture avec le statut de paiement correct
-  const numeroFacture = generateFactureNumber();
-  
+  // 3. Créer la facture
   const { data: facture, error: factureError } = await supabase
     .from('factures_vente')
     .insert({
-      numero_facture: numeroFacture,
+      numero_facture: '', // Sera généré automatiquement
       commande_id: commande.id,
-      client_id: venteData.client_id,
-      montant_ttc: montantTotal,
-      montant_ht: montantTotal / 1.2,
-      tva: montantTotal - (montantTotal / 1.2),
-      statut_paiement: statutPaiement,
-      mode_paiement: venteData.mode_paiement
+      client_id: data.client_id,
+      montant_ttc: data.montant_ttc,
+      montant_ht: data.montant_ht,
+      tva: data.tva,
+      statut_paiement: 'en_attente',
+      statut_livraison_id: 1, // En attente par défaut
+      mode_paiement: data.mode_paiement
     })
     .select()
     .single();
 
   if (factureError) {
-    console.error('Erreur création facture:', factureError);
+    console.error('❌ Erreur création facture:', factureError);
     throw factureError;
   }
 
-  console.log('Facture créée avec statut:', statutPaiement);
+  // 4. Créer les lignes de facture
+  const lignesFacture = data.cart.map(item => ({
+    facture_vente_id: facture.id,
+    article_id: item.article_id,
+    quantite: item.quantite,
+    prix_unitaire: item.prix_unitaire,
+    montant_ligne: item.quantite * item.prix_unitaire,
+    statut_livraison: 'en_attente'
+  }));
 
-  // Enregistrer le versement SEULEMENT si paiement effectué
-  if (montantPaye > 0) {
-    const { error: versementError } = await supabase
-      .from('versements_clients')
-      .insert({
-        numero_versement: `VER-${Date.now()}`,
-        client_id: venteData.client_id,
-        facture_id: facture.id,
-        montant: montantPaye,
-        mode_paiement: venteData.mode_paiement,
-        observations: venteData.notes || `Versement ${statutPaiement === 'payee' ? 'complet' : 'partiel'} pour facture ${numeroFacture}`
-      });
+  const { error: lignesFactureError } = await supabase
+    .from('lignes_facture_vente')
+    .insert(lignesFacture);
 
-    if (versementError) {
-      console.error('Erreur création versement:', versementError);
-      throw versementError;
-    }
-
-    console.log('✅ Versement créé pour montant:', montantPaye);
+  if (lignesFactureError) {
+    console.error('❌ Erreur création lignes facture:', lignesFactureError);
+    throw lignesFactureError;
   }
 
-  return { 
-    commande, 
-    facture, 
-    statutPaiement, 
-    montantRestant,
-    numeroFacture
-  };
+  // 5. Mettre à jour le stock si un point de vente est spécifié
+  if (data.point_vente_id) {
+    for (const item of data.cart) {
+      const { error: stockError } = await supabase
+        .from('stock_pdv')
+        .update({
+          quantite_disponible: supabase.sql`quantite_disponible - ${item.quantite}`
+        })
+        .eq('article_id', item.article_id)
+        .eq('point_vente_id', data.point_vente_id);
+
+      if (stockError) {
+        console.error('❌ Erreur mise à jour stock:', stockError);
+        // Ne pas faire échouer toute la transaction pour une erreur de stock
+      }
+    }
+  }
+
+  console.log('✅ Vente comptoir créée avec succès');
+  return { commande, facture };
 };
