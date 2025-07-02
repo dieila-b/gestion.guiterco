@@ -77,14 +77,14 @@ export const createVenteEntries = async (venteData: any, pdvSelected: any) => {
   const { data: facture, error: factureError } = await supabase
     .from('factures_vente')
     .insert({
-      numero_facture: numeroFacture,
       commande_id: commande.id,
       client_id: venteData.client_id,
       montant_ttc: montantTotal,
       montant_ht: montantTotal / 1.2,
       tva: montantTotal - (montantTotal / 1.2),
       statut_paiement: statutPaiement,
-      mode_paiement: venteData.mode_paiement
+      mode_paiement: venteData.mode_paiement,
+      statut_livraison_id: 1 // En attente par défaut
     })
     .select()
     .single();

@@ -30,7 +30,10 @@ export const processDelivery = async (paymentData: any, facture: any, lignesCree
     // Mettre à jour le statut de la facture principale à 'livree'
     const { error: factureError } = await supabase
       .from('factures_vente')
-      .update({ statut_livraison: 'livree' })
+      .update({ 
+        statut_livraison: 'livree',
+        statut_livraison_id: 3 // ID pour 'Livrée'
+      })
       .eq('id', facture.id);
 
     if (factureError) {
@@ -61,7 +64,10 @@ export const processDelivery = async (paymentData: any, facture: any, lignesCree
 
     await supabase
       .from('factures_vente')
-      .update({ statut_livraison: 'partiellement_livree' })
+      .update({ 
+        statut_livraison: 'partiellement_livree',
+        statut_livraison_id: 2 // ID pour 'Partiellement livrée'
+      })
       .eq('id', facture.id);
 
     console.log('✅ Livraison partielle traitée');

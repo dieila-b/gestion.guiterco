@@ -14,7 +14,6 @@ export const useCreateFactureVente = () => {
 
       // Créer la facture principale avec numero_facture automatique
       const factureData = {
-        numero_facture: 'TEMP', // Sera remplacé par le trigger auto-génération
         client_id: data.client_id,
         montant_ht: data.montant_ht,
         tva: data.tva,
@@ -23,7 +22,9 @@ export const useCreateFactureVente = () => {
         statut_paiement: 'en_attente',
         // Utiliser les valeurs correctes pour l'enum
         statut_livraison: data.payment_data?.statut_livraison === 'livre' || 
-                         data.payment_data?.statut_livraison === 'livree' ? 'livree' : 'en_attente'
+                         data.payment_data?.statut_livraison === 'livree' ? 'livree' : 'en_attente',
+        statut_livraison_id: data.payment_data?.statut_livraison === 'livre' || 
+                            data.payment_data?.statut_livraison === 'livree' ? 3 : 1
       };
 
       const { data: facture, error: factureError } = await supabase

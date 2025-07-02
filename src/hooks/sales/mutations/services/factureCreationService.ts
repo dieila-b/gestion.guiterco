@@ -9,7 +9,6 @@ export const createFactureAndLines = async (data: CreateFactureVenteData) => {
   const { data: facture, error: factureError } = await supabase
     .from('factures_vente')
     .insert({
-      numero_facture: 'TEMP', // Sera remplacé par le trigger
       client_id: data.client_id,
       date_facture: new Date().toISOString(),
       montant_ht: data.montant_ht,
@@ -17,7 +16,8 @@ export const createFactureAndLines = async (data: CreateFactureVenteData) => {
       montant_ttc: data.montant_ttc,
       mode_paiement: data.mode_paiement,
       statut_paiement: 'en_attente', // TOUJOURS en attente au début
-      statut_livraison: 'en_attente' // TOUJOURS en attente au début
+      statut_livraison: 'en_attente', // TOUJOURS en attente au début
+      statut_livraison_id: 1 // ID pour 'En attente'
     })
     .select()
     .single();

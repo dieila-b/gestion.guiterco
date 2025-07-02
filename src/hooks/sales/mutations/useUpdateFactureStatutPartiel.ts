@@ -74,10 +74,13 @@ export const useUpdateFactureStatutPartiel = () => {
       }).length;
 
       let statutGlobal = 'en_attente';
+      let statutLivraisonId = 1;
       if (lignesCompletes === totalLignes && lignesAvecQuantite > 0) {
         statutGlobal = 'livree';
+        statutLivraisonId = 3;
       } else if (lignesAvecQuantite > 0) {
         statutGlobal = 'partiellement_livree';
+        statutLivraisonId = 2;
       }
 
       console.log('🚚 Calcul statut global:', {
@@ -90,7 +93,10 @@ export const useUpdateFactureStatutPartiel = () => {
       // Mettre à jour le statut global de la facture
       const { data: facture, error: factureError } = await supabase
         .from('factures_vente')
-        .update({ statut_livraison: statutGlobal })
+        .update({ 
+          statut_livraison: statutGlobal,
+          statut_livraison_id: statutLivraisonId
+        })
         .eq('id', factureId)
         .select()
         .single();

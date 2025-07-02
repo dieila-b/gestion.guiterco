@@ -23,11 +23,12 @@ export const useUpdateFactureStatut = () => {
 
       // Déterminer les nouvelles valeurs selon le statut choisi
       let nouveauStatutLigne;
-      let nouvelleQuantiteLivree = null;
+      let statutLivraisonId;
 
       switch (statut_livraison) {
         case 'livree':
           nouveauStatutLigne = 'livree';
+          statutLivraisonId = 3;
           // Mettre quantite_livree = quantite pour toutes les lignes
           for (const ligne of lignesFacture || []) {
             await supabase
@@ -42,6 +43,7 @@ export const useUpdateFactureStatut = () => {
           
         case 'en_attente':
           nouveauStatutLigne = 'en_attente';
+          statutLivraisonId = 1;
           // Remettre quantite_livree à 0 pour toutes les lignes
           for (const ligne of lignesFacture || []) {
             await supabase
@@ -56,6 +58,7 @@ export const useUpdateFactureStatut = () => {
           
         case 'partiellement_livree':
           nouveauStatutLigne = 'partiellement_livree';
+          statutLivraisonId = 2;
           await supabase
             .from('lignes_facture_vente')
             .update({ statut_livraison: nouveauStatutLigne })
@@ -64,6 +67,7 @@ export const useUpdateFactureStatut = () => {
           
         default:
           nouveauStatutLigne = 'en_attente';
+          statutLivraisonId = 1;
           await supabase
             .from('lignes_facture_vente')
             .update({ 
@@ -79,7 +83,10 @@ export const useUpdateFactureStatut = () => {
       // Mettre à jour le statut de la facture principale
       const { data: facture, error: factureError } = await supabase
         .from('factures_vente')
-        .update({ statut_livraison })
+        .update({ 
+          statut_livraison,
+          statut_livraison_id: statutLivraisonId
+        })
         .eq('id', factureId)
         .select()
         .single();
