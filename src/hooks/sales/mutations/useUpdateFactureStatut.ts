@@ -10,6 +10,20 @@ export const useUpdateFactureStatut = () => {
     mutationFn: async ({ factureId, statut_livraison }: { factureId: string, statut_livraison: string }) => {
       console.log('🚚 Mise à jour statut livraison pour facture:', factureId, 'vers:', statut_livraison);
 
+      // Obtenir l'ID du statut de livraison
+      const { data: statutData, error: statutError } = await supabase
+        .from('livraison_statut')
+        .select('id')
+        .eq('nom', statut_livraison)
+        .single();
+
+      if (statutError) {
+        console.error('❌ Erreur récupération statut livraison:', statutError);
+        throw statutError;
+      }
+
+      const statutLivraisonId = statutData.id;
+
       // Récupérer les lignes de facture pour mise à jour cohérente
       const { data: lignesFacture, error: lignesError } = await supabase
         .from('lignes_facture_vente')
@@ -79,7 +93,7 @@ export const useUpdateFactureStatut = () => {
       // Mettre à jour le statut de la facture principale
       const { data: facture, error: factureError } = await supabase
         .from('factures_vente')
-        .update({ statut_livraison })
+        .update({ statut_livraison_id: statutLivraisonId })
         .eq('id', factureId)
         .select()
         .single();

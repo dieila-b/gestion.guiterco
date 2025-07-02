@@ -84,6 +84,7 @@ export const createVenteEntries = async (venteData: any, pdvSelected: any) => {
       montant_ht: montantTotal / 1.2,
       tva: montantTotal - (montantTotal / 1.2),
       statut_paiement: statutPaiement,
+      statut_livraison_id: 3, // Default to 'livree' (ID 3) for point of sale
       mode_paiement: venteData.mode_paiement
     })
     .select()

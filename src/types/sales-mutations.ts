@@ -18,6 +18,7 @@ export type CreateFactureInput = {
   tva?: number;
   montant_ttc?: number;
   statut_paiement?: string;
+  statut_livraison_id?: number; // Added required field
   mode_paiement?: string;
   date_echeance?: string;
   observations?: string;

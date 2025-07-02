@@ -80,17 +80,32 @@ export const useUpdateFactureStatutPartiel = () => {
         statutGlobal = 'partiellement_livree';
       }
 
+      // Obtenir l'ID du statut de livraison
+      const { data: statutData, error: statutError } = await supabase
+        .from('livraison_statut')
+        .select('id')
+        .eq('nom', statutGlobal)
+        .single();
+
+      if (statutError) {
+        console.error('❌ Erreur récupération statut livraison:', statutError);
+        throw statutError;
+      }
+
+      const statutLivraisonId = statutData.id;
+
       console.log('🚚 Calcul statut global:', {
         totalLignes,
         lignesAvecQuantite,
         lignesCompletes,
-        statutGlobal
+        statutGlobal,
+        statutLivraisonId
       });
 
       // Mettre à jour le statut global de la facture
       const { data: facture, error: factureError } = await supabase
         .from('factures_vente')
-        .update({ statut_livraison: statutGlobal })
+        .update({ statut_livraison_id: statutLivraisonId })
         .eq('id', factureId)
         .select()
         .single();
