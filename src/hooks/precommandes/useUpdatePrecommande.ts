@@ -115,3 +115,66 @@ export const useUpdatePrecommande = () => {
     }
   });
 };
+
+export const useDeletePrecommande = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (precommandeId: string) => {
+      console.log('🗑️ Suppression précommande:', precommandeId);
+
+      // Supprimer les lignes de précommande en premier
+      const { error: lignesError } = await supabase
+        .from('lignes_precommande')
+        .delete()
+        .eq('precommande_id', precommandeId);
+
+      if (lignesError) {
+        console.error('❌ Erreur suppression lignes précommande:', lignesError);
+        throw lignesError;
+      }
+
+      // Supprimer les notifications liées
+      const { error: notificationsError } = await supabase
+        .from('notifications_precommandes')
+        .delete()
+        .eq('precommande_id', precommandeId);
+
+      if (notificationsError) {
+        console.error('❌ Erreur suppression notifications:', notificationsError);
+        // Ne pas bloquer pour les notifications, juste logger
+      }
+
+      // Supprimer la précommande
+      const { error: precommandeError } = await supabase
+        .from('precommandes')
+        .delete()
+        .eq('id', precommandeId);
+
+      if (precommandeError) {
+        console.error('❌ Erreur suppression précommande:', precommandeError);
+        throw precommandeError;
+      }
+
+      console.log('✅ Précommande supprimée avec succès');
+      return { success: true };
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['precommandes-complete'] });
+      queryClient.refetchQueries({ queryKey: ['precommandes-complete'] });
+      
+      toast({
+        title: "Précommande supprimée",
+        description: "La précommande a été supprimée avec succès.",
+      });
+    },
+    onError: (error) => {
+      console.error('❌ Erreur lors de la suppression:', error);
+      toast({
+        title: "Erreur",
+        description: `Impossible de supprimer la précommande: ${error.message}`,
+        variant: "destructive",
+      });
+    }
+  });
+};
