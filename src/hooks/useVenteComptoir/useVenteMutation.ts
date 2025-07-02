@@ -38,12 +38,12 @@ export const useVenteMutation = (
         point_vente_id: pointVenteId,
         payment_data: {
           ...venteData.payment_data,
-          // S'assurer que le statut de livraison est correctement transmis
-          statut_livraison: venteData.payment_data?.statut_livraison || 'en_attente'
+          // Conserver exactement le statut de livraison sélectionné par l'utilisateur
+          statut_livraison: venteData.payment_data?.statut_livraison
         }
       };
 
-      console.log('📦 Données préparées avec statut livraison:', factureData.payment_data.statut_livraison);
+      console.log('📦 Statut livraison final envoyé:', factureData.payment_data.statut_livraison);
 
       // Exécution optimisée de la création
       const result = await createFactureVente.mutateAsync(factureData);

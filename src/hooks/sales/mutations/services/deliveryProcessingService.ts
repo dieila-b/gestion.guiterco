@@ -12,7 +12,7 @@ export const processDelivery = async (paymentData: any, facture: any, lignesCree
   const statutLivraison = paymentData.statut_livraison.toLowerCase();
   console.log('📦 Statut livraison reçu:', statutLivraison);
   
-  // Mapping correct des statuts
+  // Mapping correct des statuts avec support du statut "partiel"
   let nouveauStatutFacture: 'En attente' | 'Partiellement livrée' | 'Livrée';
   let nouveauStatutId: number;
   let nouveauStatutLignes: string;
