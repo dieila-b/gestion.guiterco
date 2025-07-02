@@ -11,12 +11,10 @@ export const createFactureVente = async (data: CreateFactureVenteData, statutLiv
     montant_ttc: data.montant_ttc,
     mode_paiement: data.mode_paiement,
     statut_paiement: 'en_attente',
-    statut_livraison_id: statutLivraisonId, // UTILISER L'ID
-    statut_livraison: statutLivraisonId === 1 ? 'en_attente' : 
-                     statutLivraisonId === 2 ? 'partiellement_livree' : 'livree' // Compatibilité temporaire
+    statut_livraison_id: statutLivraisonId // Utiliser l'ID au lieu du nom
   };
 
-  console.log('📝 Données facture à créer avec ID:', factureData);
+  console.log('📝 Données facture à créer:', factureData);
 
   const { data: facture, error: factureError } = await supabase
     .from('factures_vente')
