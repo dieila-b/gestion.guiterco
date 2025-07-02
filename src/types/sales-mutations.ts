@@ -18,6 +18,7 @@ export interface CreateFactureInput {
   mode_paiement?: string;
   statut_livraison?: 'En attente' | 'Partiellement livrée' | 'Livrée';
   statut_livraison_id: number;
+  numero_facture?: string; // Optional since it's auto-generated
 }
 
 export interface CreateFactureVenteData {

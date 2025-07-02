@@ -3,7 +3,6 @@
 export * from './useSalesQueries';
 export * from './useSalesMutations';
 export * from './useSalesOptimized';
-export type * from '@/types/sales-mutations';
 
 // Ajouter les nouvelles mutations refactorisées
 export * from './sales/mutations';
