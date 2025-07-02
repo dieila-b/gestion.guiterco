@@ -27,7 +27,7 @@ export const useVenteMutation = (
 
       console.log('📍 Point de vente sélectionné:', pointVenteId);
 
-      // Préparer les données optimisées pour la création
+      // Préparer les données optimisées pour la création avec statut livraison correct
       const factureData = {
         client_id: venteData.client_id,
         cart: venteData.cart,
@@ -36,8 +36,14 @@ export const useVenteMutation = (
         montant_ttc: venteData.montant_ttc,
         mode_paiement: venteData.mode_paiement,
         point_vente_id: pointVenteId,
-        payment_data: venteData.payment_data
+        payment_data: {
+          ...venteData.payment_data,
+          // S'assurer que le statut de livraison est correctement transmis
+          statut_livraison: venteData.payment_data?.statut_livraison || 'livree'
+        }
       };
+
+      console.log('📦 Données préparées avec statut livraison:', factureData.payment_data.statut_livraison);
 
       // Exécution optimisée de la création
       const result = await createFactureVente.mutateAsync(factureData);
@@ -53,7 +59,7 @@ export const useVenteMutation = (
       
       // Message de succès concis
       toast.success('Vente enregistrée avec succès', {
-        description: `Facture ${result.facture.numero_facture} créée`,
+        description: `Facture ${result.facture.numero_facture} créée et caisse mise à jour`,
         duration: 3000
       });
     },
