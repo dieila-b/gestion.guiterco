@@ -42,36 +42,37 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
 }) => {
   const [montantPaye, setMontantPaye] = useState(0);
   const [modePaiement, setModePaiement] = useState('especes');
-  // CORRECTION CRITIQUE : Statut par défaut en_attente
-  const [statutLivraison, setStatutLivraison] = useState('en_attente');
+  // CORRECTION : Statut par défaut "livree" (livraison complète)
+  const [statutLivraison, setStatutLivraison] = useState('livree');
   const [notes, setNotes] = useState('');
   const [quantitesLivrees, setQuantitesLivrees] = useState<{ [key: string]: number }>({});
 
-  // Préremplir le montant payé à 0 par défaut
+  // CORRECTION : Préremplir avec le montant total par défaut
   useEffect(() => {
-    if (isOpen) {
-      setMontantPaye(0);
-      setStatutLivraison('en_attente');
+    if (isOpen && totals.total > 0) {
+      setMontantPaye(totals.total);
+      setStatutLivraison('livree'); // Livraison complète par défaut
       setQuantitesLivrees({});
     }
-  }, [isOpen]);
+  }, [isOpen, totals.total]);
 
   // Calcul dynamique du reste à payer
   const restePayer = Math.max(0, totals.total - montantPaye);
 
   const handleMontantPayeChange = (value: string) => {
     const amount = parseFloat(value) || 0;
-    setMontantPaye(amount);
+    // CORRECTION : Limiter le montant à ne pas dépasser le total
+    const montantLimite = Math.min(amount, totals.total);
+    setMontantPaye(montantLimite);
   };
 
   const handleConfirm = () => {
-    // CORRECTION CRITIQUE : S'assurer que le statut sélectionné est bien transmis
     console.log('📦 PaymentModal - Statut livraison sélectionné:', statutLivraison);
     
     const paymentData: PaymentData = {
       montant_paye: montantPaye,
       mode_paiement: modePaiement,
-      statut_livraison: statutLivraison, // CRUCIAL : Utiliser la valeur exacte sélectionnée
+      statut_livraison: statutLivraison,
       notes: notes
     };
 
@@ -92,9 +93,9 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
 
   // Réinitialiser les valeurs à la fermeture
   const handleClose = () => {
-    setMontantPaye(0);
+    setMontantPaye(totals.total); // Remettre le montant total par défaut
     setModePaiement('especes');
-    setStatutLivraison('en_attente');
+    setStatutLivraison('livree'); // Livraison complète par défaut
     setNotes('');
     setQuantitesLivrees({});
     onClose();
@@ -162,10 +163,10 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
                   placeholder="0"
                   step="0.01"
                   min="0"
-                  max={totals.total}
+                  max={totals.total} // CORRECTION : Limite maximale
                 />
                 <div className="text-sm text-gray-500 mt-1">
-                  Saisir 0 si aucun paiement reçu maintenant
+                  Maximum autorisé : {formatCurrency(totals.total)}
                 </div>
               </div>
 
@@ -259,7 +260,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
               </div>
             )}
 
-            {/* CORRECTION : Indicateur visuel CLAIR du statut sélectionné */}
+            {/* Indicateur visuel CLAIR du statut sélectionné */}
             <div className="p-4 bg-gray-50 border rounded-lg">
               <div className="text-sm font-medium text-gray-700 mb-2">
                 Statut de livraison sélectionné: 

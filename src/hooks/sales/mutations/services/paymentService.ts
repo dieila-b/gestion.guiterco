@@ -28,8 +28,13 @@ export const processPayment = async (data: CreateFactureVenteData, facture: any)
     throw versementError;
   }
 
-  // Mettre à jour le statut de paiement
-  const nouveauStatutPaiement = data.payment_data.montant_paye >= data.montant_ttc ? 'payee' : 'partiellement_payee';
+  // CORRECTION : Déterminer le statut de paiement selon le montant encaissé
+  let nouveauStatutPaiement = 'en_attente';
+  if (data.payment_data.montant_paye >= data.montant_ttc) {
+    nouveauStatutPaiement = 'payee';
+  } else if (data.payment_data.montant_paye > 0) {
+    nouveauStatutPaiement = 'partiellement_payee';
+  }
   
   await supabase
     .from('factures_vente')
