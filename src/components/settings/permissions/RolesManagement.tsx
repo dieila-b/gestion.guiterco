@@ -3,18 +3,14 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Plus, Edit, Users } from 'lucide-react';
-import { useRolesUtilisateurs, useCreateUtilisateurInterne } from '@/hooks/useRolesUtilisateurs';
-import { usePermissions, useRolePermissions } from '@/hooks/usePermissions';
+import { Edit, Users } from 'lucide-react';
+import { useRolesUtilisateurs } from '@/hooks/useRolesUtilisateurs';
 import EditRolePermissionsDialog from './EditRolePermissionsDialog';
+import CreateRoleDialog from './CreateRoleDialog';
+import AssignUsersToRoleDialog from './AssignUsersToRoleDialog';
 
 const RolesManagement = () => {
   const { data: roles, isLoading } = useRolesUtilisateurs();
-  const [selectedRole, setSelectedRole] = useState<string | null>(null);
 
   const getRoleColor = (roleName: string) => {
     switch (roleName) {
@@ -25,7 +21,7 @@ const RolesManagement = () => {
       case 'employe':
         return 'bg-green-100 text-green-800 border-green-200';
       default:
-        return 'bg-gray-100 text-gray-800 border-gray-200';
+        return 'bg-purple-100 text-purple-800 border-purple-200';
     }
   };
 
@@ -55,10 +51,7 @@ const RolesManagement = () => {
             Configurez les rôles utilisateurs et leurs permissions
           </p>
         </div>
-        <Button>
-          <Plus className="h-4 w-4 mr-2" />
-          Nouveau rôle
-        </Button>
+        <CreateRoleDialog />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -76,11 +69,14 @@ const RolesManagement = () => {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center text-sm text-muted-foreground">
-                  <Users className="h-4 w-4 mr-1" />
-                  <span>Utilisateurs actifs</span>
-                </div>
+              <div className="flex items-center justify-between space-x-2">
+                <AssignUsersToRoleDialog role={role}>
+                  <Button variant="outline" size="sm">
+                    <Users className="h-4 w-4 mr-1" />
+                    Utilisateurs
+                  </Button>
+                </AssignUsersToRoleDialog>
+                
                 <EditRolePermissionsDialog role={role}>
                   <Button variant="outline" size="sm">
                     <Edit className="h-4 w-4 mr-1" />
