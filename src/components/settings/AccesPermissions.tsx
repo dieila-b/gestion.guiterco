@@ -5,6 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Shield, Users, Key, Grid } from 'lucide-react';
 import RolesManagement from './permissions/RolesManagement';
 import PermissionsMatrix from './permissions/PermissionsMatrix';
+import RolePermissionsManager from './permissions/RolePermissionsManager';
 import PermissionsRoleMatrix from './permissions/PermissionsRoleMatrix';
 import AccessControl from './permissions/AccessControl';
 
@@ -49,7 +50,7 @@ const AccesPermissions = () => {
             </TabsContent>
 
             <TabsContent value="permissions" className="mt-6">
-              <PermissionsMatrix />
+              <RolePermissionsManager />
             </TabsContent>
 
             <TabsContent value="matrix" className="mt-6">
