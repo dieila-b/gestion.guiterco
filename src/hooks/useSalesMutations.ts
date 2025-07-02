@@ -29,15 +29,12 @@ export const useCreateFacture = () => {
   
   return useMutation({
     mutationFn: async (facture: CreateFactureInput) => {
-      // Ensure statut_livraison_id is set (default to 1 for 'en_attente')
-      const factureData = {
-        ...facture,
-        statut_livraison_id: facture.statut_livraison_id || 1
-      };
-
       const { data, error } = await supabase
         .from('factures_vente')
-        .insert(factureData)
+        .insert({
+          ...facture,
+          statut_livraison_id: facture.statut_livraison_id || 1 // Défaut à 1 (en attente)
+        })
         .select()
         .single();
       

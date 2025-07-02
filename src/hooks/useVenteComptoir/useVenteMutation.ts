@@ -1,56 +1,84 @@
 
 import { useMutation } from '@tanstack/react-query';
-import { createVenteComptoir } from './services/venteService';
-import { updateStockAfterVente } from './services/stockService';
+import { toast } from 'sonner';
+import type { CartItem, VenteComptoirData } from './types';
+import { useCreateFactureVente } from '../sales/mutations';
 
 export const useVenteMutation = (
   pointsDeVente: any[],
   selectedPDV: string | undefined,
-  setCart: (cart: any[]) => void,
-  restoreLocalStock: () => void
+  setCart: (cart: CartItem[]) => void,
+  restoreLocalStock?: () => void
 ) => {
+  const createFactureVente = useCreateFactureVente();
+
   const mutation = useMutation({
-    mutationFn: async ({ venteData, cart }: { venteData: any, cart: any[] }) => {
-      console.log('🔄 Début mutation vente comptoir avec transaction caisse automatique');
-      console.log('📋 venteData reçu:', venteData);
-      console.log('🛒 cart reçu:', cart);
-      
-      // Vérifier que venteData existe et contient les données nécessaires
-      if (!venteData) {
-        throw new Error('venteData est manquant - impossible de créer la vente');
+    mutationFn: async (venteData: VenteComptoirData) => {
+      console.log('🚀 Début création vente comptoir optimisée:', venteData);
+
+      // Validation rapide des données essentielles
+      if (!venteData.client_id || !venteData.cart?.length || !selectedPDV) {
+        throw new Error('Données de vente incomplètes');
       }
+
+      // Récupérer l'ID du point de vente de manière optimisée
+      const pdvSelected = pointsDeVente?.find(pdv => pdv.nom === selectedPDV);
+      const pointVenteId = pdvSelected?.id || selectedPDV;
+
+      console.log('📍 Point de vente sélectionné:', pointVenteId);
+
+      // Préparer les données optimisées pour la création
+      const factureData = {
+        client_id: venteData.client_id,
+        cart: venteData.cart,
+        montant_ht: venteData.montant_ht,
+        tva: venteData.tva,
+        montant_ttc: venteData.montant_ttc,
+        mode_paiement: venteData.mode_paiement,
+        point_vente_id: pointVenteId,
+        payment_data: venteData.payment_data
+      };
+
+      // Exécution optimisée de la création
+      const result = await createFactureVente.mutateAsync(factureData);
+      console.log('✅ Vente créée avec succès:', result);
       
-      if (!venteData.client_id) {
-        throw new Error('client_id est manquant dans venteData');
-      }
-      
-      // 1. Créer la vente (avec transaction caisse automatique intégrée)
-      const result = await createVenteComptoir(venteData, cart);
-      
-      // 2. Mettre à jour le stock
-      if (selectedPDV) {
-        const pdv = pointsDeVente.find(p => p.id === selectedPDV);
-        if (pdv) {
-          await updateStockAfterVente(cart, selectedPDV, pdv.nom);
-        }
-      }
-      
-      console.log('✅ Mutation vente comptoir terminée avec succès');
       return result;
     },
-    onSuccess: () => {
-      console.log('🎉 Vente créée avec succès - caisse automatiquement mise à jour');
+    onSuccess: (result) => {
+      console.log('🎉 Vente comptoir terminée avec succès');
+      
+      // Nettoyage rapide et efficace
       setCart([]);
-      restoreLocalStock();
+      
+      // ⚠️ IMPORTANT: NE PAS RESTAURER LE STOCK LOCAL après une vente réussie
+      // Le stock a été définitivement mis à jour dans la base de données
+      // La restauration ne doit se faire QUE en cas d'erreur
+      
+      // Message de succès concis
+      toast.success('Vente enregistrée avec succès', {
+        description: `Facture ${result.facture.numero_facture} créée - Stock mis à jour`,
+        duration: 3000
+      });
     },
-    onError: (error) => {
-      console.error('❌ Erreur mutation vente:', error);
-      restoreLocalStock();
+    onError: (error: Error) => {
+      console.error('❌ Erreur lors de la vente:', error);
+      
+      // Restaurer le stock local SEULEMENT en cas d'erreur
+      if (restoreLocalStock) {
+        console.log('🔄 Restauration du stock local suite à l\'erreur');
+        restoreLocalStock();
+      }
+      
+      toast.error('Erreur lors de la vente', {
+        description: error.message,
+        duration: 5000
+      });
     }
   });
 
   return {
     createVente: mutation.mutateAsync,
-    isLoading: mutation.isPending
+    isLoading: mutation.isPending || createFactureVente.isPending
   };
 };

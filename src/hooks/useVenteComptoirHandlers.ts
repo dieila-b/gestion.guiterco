@@ -50,31 +50,21 @@ export const useVenteComptoirHandlers = ({
 
   const handlePaymentConfirm = async (paymentData: any) => {
     try {
-      console.log('🔄 *** CONFIRMATION PAIEMENT *** Données reçues:', paymentData);
+      console.log('🔄 Données paiement reçues:', paymentData);
       
-      // *** CONSTRUCTION VENTEDATA AVEC STATUT LIVRAISON OBLIGATOIRE ***
-      const venteData = {
+      const result = await createVente({
         client_id: selectedClient,
+        cart: cart,
         montant_ht: cartTotals.total / 1.2,
         tva: cartTotals.total * 0.2 / 1.2,
         montant_ttc: cartTotals.total,
         mode_paiement: paymentData.mode_paiement,
-        point_vente_id: selectedPDV, // *** UUID ou nom - sera résolu automatiquement ***
-        montant_paye: paymentData.montant_paye || 0,
-        notes: paymentData.notes,
-        // *** TRANSMISSION STATUT LIVRAISON OBLIGATOIRE ***
-        statut_livraison: paymentData.statut_livraison || 'livree', // Par défaut livraison complète
-        delivery_status: paymentData.delivery_status || paymentData.statut_livraison || 'livree'
-      };
-      
-      console.log('📋 *** VENTEDATA CONSTRUIT *** avec statut livraison:', venteData);
-      console.log('🛒 *** CART À ENVOYER *** :', cart.length, 'articles');
-      console.log('📦 *** POINT DE VENTE *** :', selectedPDV);
-      
-      // *** APPEL CRÉATION VENTE AVEC GESTION STOCK OBLIGATOIRE ***
-      const result = await createVente({
-        venteData,
-        cart
+        point_vente_id: selectedPDV,
+        payment_data: {
+          montant_paye: paymentData.montant_paye || 0,
+          mode_paiement: paymentData.mode_paiement,
+          notes: paymentData.notes
+        }
       });
       
       setLastFacture(result.facture);
@@ -84,19 +74,17 @@ export const useVenteComptoirHandlers = ({
       // Réinitialisation automatique après validation
       setSelectedClient('');
       
-      // *** MESSAGES DE SUCCÈS ADAPTATIFS ***
+      // Message de succès adaptatif selon le montant payé
       const montantPaye = paymentData.montant_paye || 0;
       if (montantPaye === 0) {
-        toast.success('✅ Facture créée - Stock décrémenté - Aucun paiement enregistré');
+        toast.success('Facture créée - Aucun paiement enregistré');
       } else if (montantPaye < cartTotals.total) {
-        toast.success(`✅ Facture créée - Stock décrémenté - Paiement partiel de ${montantPaye}€ enregistré`);
+        toast.success(`Facture créée - Paiement partiel de ${montantPaye}€ enregistré`);
       } else {
-        toast.success('✅ Facture créée - Stock décrémenté - Paiement complet reçu');
+        toast.success('Facture créée - Paiement complet reçu');
       }
     } catch (error) {
-      console.error('❌ *** ERREUR VENTE *** :', error);
-      const errorMessage = error instanceof Error ? error.message : 'Erreur lors de la création de la vente';
-      toast.error(`❌ ${errorMessage}`);
+      console.error('Erreur lors de la vente:', error);
     }
   };
 

@@ -17,7 +17,7 @@ export const createFactureAndLines = async (data: CreateFactureVenteData) => {
       montant_ttc: data.montant_ttc,
       mode_paiement: data.mode_paiement,
       statut_paiement: 'en_attente', // TOUJOURS en attente au début
-      statut_livraison_id: 1 // TOUJOURS en attente au début (ID 1 = en_attente)
+      statut_livraison_id: 1 // TOUJOURS en attente au début (ID 1)
     })
     .select()
     .single();

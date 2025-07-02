@@ -1,6 +1,6 @@
 
 import { supabase } from '@/integrations/supabase/client';
-import { createCashTransaction } from '@/hooks/useVenteComptoir/services/transactionService';
+import { createCashTransaction } from '../../../useVenteComptoir/services/transactionService';
 
 export const processPayment = async (paymentData: any, facture: any) => {
   if (!paymentData || typeof paymentData.montant_paye !== 'number' || paymentData.montant_paye < 0) {
@@ -52,7 +52,7 @@ export const processPayment = async (paymentData: any, facture: any) => {
 
     console.log('✅ Versement créé pour montant:', montantPaye);
 
-    // *** CORRECTION CRITIQUE *** : Créer SYSTÉMATIQUEMENT la transaction financière pour la caisse
+    // Créer la transaction financière pour la caisse
     try {
       await createCashTransaction({
         montant_paye: montantPaye,
@@ -60,10 +60,10 @@ export const processPayment = async (paymentData: any, facture: any) => {
         notes: paymentData.notes,
         client_id: facture.client_id
       }, facture.numero_facture);
-      console.log('✅ Transaction financière créée automatiquement pour montant:', montantPaye);
+      console.log('✅ Transaction financière créée pour montant:', montantPaye);
     } catch (transactionError) {
-      console.error('❌ ERREUR CRITIQUE: Impossible de créer la transaction financière:', transactionError);
-      // Ne pas faire échouer toute l'opération, mais log l'erreur
+      console.error('❌ Erreur création transaction financière:', transactionError);
+      // Ne pas faire échouer toute l'opération pour cette erreur
     }
   }
 

@@ -80,8 +80,12 @@ export interface FactureVente {
   lignes_facture?: LigneFactureVente[];
   versements?: VersementClient[];
   nb_articles?: number;
-  statut_livraison?: string;
-  statut_livraison_id?: number;
+  // Utiliser UNIQUEMENT statut_livraison_id et la relation
+  statut_livraison_id: number;
+  livraison_statut: {
+    id: number;
+    nom: string;
+  };
 }
 
 export interface Precommande {

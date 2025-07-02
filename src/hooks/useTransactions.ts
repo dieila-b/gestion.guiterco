@@ -67,30 +67,6 @@ export const useCreateTransaction = () => {
         .single();
       
       if (error) throw error;
-      
-      // Mettre à jour automatiquement le solde de la caisse
-      if (transaction.cash_register_id) {
-        const { data: currentBalance } = await supabase
-          .from('cash_registers')
-          .select('balance')
-          .eq('id', transaction.cash_register_id)
-          .single();
-
-        if (currentBalance) {
-          const newBalance = transaction.type === 'income' 
-            ? (currentBalance.balance || 0) + transaction.amount
-            : (currentBalance.balance || 0) - transaction.amount;
-
-          await supabase
-            .from('cash_registers')
-            .update({
-              balance: newBalance,
-              updated_at: new Date().toISOString()
-            })
-            .eq('id', transaction.cash_register_id);
-        }
-      }
-      
       return data;
     },
     onSuccess: () => {
@@ -99,7 +75,6 @@ export const useCreateTransaction = () => {
       queryClient.invalidateQueries({ queryKey: ['cash-registers'] });
       queryClient.invalidateQueries({ queryKey: ['vue_solde_caisse'] });
       queryClient.invalidateQueries({ queryKey: ['all-financial-transactions'] });
-      queryClient.invalidateQueries({ queryKey: ['cash-register-balance'] });
     }
   });
 };
@@ -253,12 +228,11 @@ export const useAllFinancialTransactions = () => {
     },
     retry: 1,
     retryDelay: 500,
-    staleTime: 30000, // Cache pendant 30 secondes
-    refetchInterval: 60000 // Actualiser toutes les minutes
+    staleTime: 30000 // Cache pendant 30 secondes
   });
 };
 
-// Hook simplifié pour le solde de caisse avec actualisation automatique
+// Hook simplifié pour le solde de caisse
 export const useCashRegisterBalance = () => {
   return useQuery({
     queryKey: ['cash-register-balance'],
@@ -277,23 +251,9 @@ export const useCashRegisterBalance = () => {
           return { balance: viewData.solde_actif || 0 };
         }
 
-        console.log('⚠️ Vue non disponible, calcul direct depuis cash_registers...');
+        console.log('⚠️ Vue non disponible, calcul manuel...');
 
-        // Récupérer le solde directement depuis la table cash_registers
-        const { data: cashRegister, error: registerError } = await supabase
-          .from('cash_registers')
-          .select('balance')
-          .limit(1)
-          .single();
-
-        if (!registerError && cashRegister) {
-          console.log('✅ Solde depuis cash_registers:', cashRegister.balance);
-          return { balance: cashRegister.balance || 0 };
-        }
-
-        console.log('⚠️ Aucune caisse trouvée, calcul manuel...');
-
-        // Calcul manuel basique en dernier recours
+        // Calcul manuel basique
         const { data: transactions, error: transError } = await supabase
           .from('transactions')
           .select('type, amount, montant, description');
@@ -315,7 +275,7 @@ export const useCashRegisterBalance = () => {
             }
           });
 
-        console.log('💰 Solde calculé manuellement:', solde);
+        console.log('💰 Solde calculé:', solde);
         return { balance: solde };
         
       } catch (error) {
@@ -325,7 +285,6 @@ export const useCashRegisterBalance = () => {
     },
     retry: 1,
     retryDelay: 500,
-    staleTime: 30000,
-    refetchInterval: 60000 // Actualiser toutes les minutes
+    staleTime: 30000
   });
 };

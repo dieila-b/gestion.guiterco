@@ -2,22 +2,7 @@
 import { supabase } from '@/integrations/supabase/client';
 import type { CreateFactureVenteData } from '../types';
 
-export const createFactureVente = async (data: CreateFactureVenteData, statutLivraison: string) => {
-  // Obtenir l'ID du statut de livraison depuis la table livraison_statut
-  const { data: statutData, error: statutError } = await supabase
-    .from('livraison_statut')
-    .select('id')
-    .eq('nom', statutLivraison)
-    .single();
-
-  if (statutError) {
-    console.error('❌ Erreur récupération statut livraison:', statutError);
-    // Fallback sur ID 1 (en_attente) si erreur
-    var statutLivraisonId = 1;
-  } else {
-    var statutLivraisonId = statutData.id;
-  }
-
+export const createFactureVente = async (data: CreateFactureVenteData, statutLivraisonId: number) => {
   const factureData = {
     numero_facture: '', // Sera généré automatiquement par le trigger
     client_id: data.client_id,
@@ -26,18 +11,17 @@ export const createFactureVente = async (data: CreateFactureVenteData, statutLiv
     montant_ttc: data.montant_ttc,
     mode_paiement: data.mode_paiement,
     statut_paiement: 'en_attente',
-    statut_livraison_id: statutLivraisonId // CORRECTION : Utiliser l'ID du statut
+    statut_livraison_id: statutLivraisonId, // UTILISER L'ID
+    statut_livraison: statutLivraisonId === 1 ? 'en_attente' : 
+                     statutLivraisonId === 2 ? 'partiellement_livree' : 'livree' // Compatibilité temporaire
   };
 
-  console.log('📝 Données facture à créer:', factureData);
+  console.log('📝 Données facture à créer avec ID:', factureData);
 
   const { data: facture, error: factureError } = await supabase
     .from('factures_vente')
     .insert(factureData)
-    .select(`
-      *,
-      livraison_statut!fk_factures_vente_statut_livraison(*)
-    `)
+    .select()
     .single();
 
   if (factureError) {
@@ -46,7 +30,7 @@ export const createFactureVente = async (data: CreateFactureVenteData, statutLiv
   }
 
   console.log('✅ Facture créée avec ID:', facture.id);
-  console.log('📦 VÉRIFICATION - Statut livraison dans la BDD:', facture.livraison_statut?.nom);
+  console.log('📦 VÉRIFICATION - Statut livraison ID dans la BDD:', facture.statut_livraison_id);
 
   return facture;
 };

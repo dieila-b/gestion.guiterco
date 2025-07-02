@@ -1,118 +1,109 @@
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { createCashTransaction } from '@/hooks/sales/mutations/useCreateVersement/transactionHelpers';
-
-interface CreateVersementData {
-  facture_id: string;
-  client_id: string;
-  montant: number;
-  mode_paiement: string;
-  reference_paiement?: string;
-  observations?: string;
-}
+import { toast } from 'sonner';
+import { checkExistingVersement, validateVersementAmount } from './useCreateVersement/validations';
+import { checkExistingTransaction, createCashTransaction } from './useCreateVersement/transactionHelpers';
+import { calculatePaymentStatus } from './useCreateVersement/paymentStatusHelper';
 
 export const useCreateVersement = () => {
   const queryClient = useQueryClient();
-
+  
   return useMutation({
-    mutationFn: async (data: CreateVersementData) => {
-      console.log('🎯 CREATION VERSEMENT AVEC TRANSACTION CAISSE:', data);
+    mutationFn: async ({ facture_id, client_id, montant, mode_paiement, reference_paiement, observations }: {
+      facture_id: string;
+      client_id: string;
+      montant: number;
+      mode_paiement: string;
+      reference_paiement?: string;
+      observations?: string;
+    }) => {
+      console.log('💰 Création versement:', { facture_id, client_id, montant, mode_paiement });
 
-      // 1. Créer le versement
-      const numeroVersement = `VERS-${Date.now().toString().slice(-6)}`;
+      // PROTECTION 1: Vérifier s'il n'y a pas déjà un versement identique récent
+      await checkExistingVersement(facture_id, montant);
+
+      // Valider le montant et récupérer les données de la facture
+      const { facture, nouveauTotal } = await validateVersementAmount(facture_id, montant);
+
+      // PROTECTION 2: Vérifier qu'il n'existe pas déjà une transaction de caisse pour ce règlement
+      const hasExistingTransaction = await checkExistingTransaction(facture.numero_facture, montant);
       
-      const { data: versement, error: versementError } = await supabase
+      if (hasExistingTransaction) {
+        console.warn('⚠️ Transaction de caisse similaire déjà existante, évitement doublon');
+      }
+
+      // Créer le versement
+      const { data, error } = await supabase
         .from('versements_clients')
         .insert({
-          facture_id: data.facture_id,
-          client_id: data.client_id,
-          montant: data.montant,
-          mode_paiement: data.mode_paiement,
-          numero_versement: numeroVersement,
+          facture_id,
+          client_id,
+          montant,
+          mode_paiement,
+          reference_paiement,
+          observations,
           date_versement: new Date().toISOString(),
-          reference_paiement: data.reference_paiement,
-          observations: data.observations
+          numero_versement: `V-${Date.now()}`
         })
         .select()
         .single();
 
-      if (versementError) {
-        console.error('❌ Erreur création versement:', versementError);
-        throw versementError;
+      if (error) {
+        console.error('❌ Erreur création versement:', error);
+        throw error;
       }
 
-      // 2. Récupérer les infos de la facture pour le numéro
-      const { data: facture, error: factureError } = await supabase
+      console.log('✅ Versement créé:', data);
+
+      // Calculer le nouveau statut de paiement
+      const nouveauStatutPaiement = calculatePaymentStatus(nouveauTotal, facture.montant_ttc);
+
+      // Mettre à jour le statut de paiement de la facture
+      const { error: updateError } = await supabase
         .from('factures_vente')
-        .select('numero_facture')
-        .eq('id', data.facture_id)
-        .single();
+        .update({ 
+          statut_paiement: nouveauStatutPaiement,
+          date_paiement: nouveauStatutPaiement === 'payee' ? new Date().toISOString() : null
+        })
+        .eq('id', facture_id);
 
-      if (factureError) {
-        console.error('❌ Erreur récupération facture:', factureError);
-        throw factureError;
+      if (updateError) {
+        console.error('❌ Erreur mise à jour statut paiement:', updateError);
       }
 
-      // 3. *** CORRECTION CRITIQUE *** : Créer AUTOMATIQUEMENT la transaction caisse
-      try {
-        await createCashTransaction(
-          data.montant,
-          facture.numero_facture,
-          data.mode_paiement,
-          data.observations
-        );
-        console.log('✅ Transaction caisse créée automatiquement pour versement:', data.montant);
-      } catch (transactionError) {
-        console.error('❌ ERREUR CRITIQUE: Transaction caisse non créée:', transactionError);
-        // Ne pas faire échouer le versement, mais alerter
+      console.log('✅ Statut paiement mis à jour:', nouveauStatutPaiement);
+
+      // PROTECTION 3: Créer la transaction financière SEULEMENT si elle n'existe pas déjà
+      if (!hasExistingTransaction) {
+        await createCashTransaction(montant, facture.numero_facture, mode_paiement, observations);
+      } else {
+        console.log('ℹ️ Transaction de caisse non créée car déjà existante');
       }
 
-      // 4. Calculer et mettre à jour le statut de paiement de la facture
-      const { data: versements, error: versementsError } = await supabase
-        .from('versements_clients')
-        .select('montant')
-        .eq('facture_id', data.facture_id);
-
-      if (!versementsError && versements) {
-        const totalVerse = versements.reduce((sum, v) => sum + (v.montant || 0), 0);
-        
-        const { data: factureDetails, error: factureDetailsError } = await supabase
-          .from('factures_vente')
-          .select('montant_ttc')
-          .eq('id', data.facture_id)
-          .single();
-
-        if (!factureDetailsError && factureDetails) {
-          let nouveauStatut = 'en_attente';
-          if (totalVerse >= factureDetails.montant_ttc) {
-            nouveauStatut = 'payee';
-          } else if (totalVerse > 0) {
-            nouveauStatut = 'partiellement_payee';
-          }
-
-          await supabase
-            .from('factures_vente')
-            .update({ statut_paiement: nouveauStatut })
-            .eq('id', data.facture_id);
-
-          console.log('✅ Statut facture mis à jour:', nouveauStatut);
-        }
-      }
-
-      return versement;
+      return { versement: data, nouveauStatutPaiement };
     },
     onSuccess: () => {
-      console.log('🎉 Versement et transaction caisse créés avec succès');
+      // Invalider TOUTES les queries pertinentes
       queryClient.invalidateQueries({ queryKey: ['factures_vente'] });
-      queryClient.invalidateQueries({ queryKey: ['versements'] });
+      queryClient.invalidateQueries({ queryKey: ['versements_clients'] });
       queryClient.invalidateQueries({ queryKey: ['transactions'] });
-      queryClient.invalidateQueries({ queryKey: ['cash-registers'] });
       queryClient.invalidateQueries({ queryKey: ['all-financial-transactions'] });
       queryClient.invalidateQueries({ queryKey: ['cash-register-balance'] });
+      queryClient.invalidateQueries({ queryKey: ['factures-vente-details'] });
+      queryClient.invalidateQueries({ queryKey: ['complete-transaction-history'] });
+      
+      // Forcer le refetch immédiat des données critiques
+      queryClient.refetchQueries({ queryKey: ['complete-transaction-history'] });
+      queryClient.refetchQueries({ queryKey: ['factures_vente'] });
+      
+      toast.success('Paiement enregistré avec succès');
+      
+      console.log('✅ Toutes les queries invalidées après création versement');
     },
-    onError: (error) => {
-      console.error('❌ Échec création versement:', error);
+    onError: (error: Error) => {
+      console.error('❌ Erreur lors de la création du versement:', error);
+      toast.error(error.message || 'Erreur lors de l\'enregistrement du paiement');
     }
   });
 };

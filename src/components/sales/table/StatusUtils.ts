@@ -1,118 +1,129 @@
 
 import type { FactureVente } from '@/types/sales';
 
-export const getActualDeliveryStatus = (facture: FactureVente): string => {
-  console.log('🚚 Calcul statut livraison pour facture:', facture.numero_facture);
-  console.log('🚚 statut_livraison_id en BDD:', facture.statut_livraison_id);
-  console.log('🚚 lignes_facture:', facture.lignes_facture?.length || 0, 'lignes');
-  
-  // *** CORRECTION CRITIQUE *** : Utiliser statut_livraison_id de la facture
-  if (facture.statut_livraison_id) {
-    let statutCalcule: string;
-    
-    switch (facture.statut_livraison_id) {
-      case 1:
-        statutCalcule = 'en_attente';
-        break;
-      case 2:
-        statutCalcule = 'partiellement_livree';
-        break;
-      case 3:
-        statutCalcule = 'livree';
-        break;
-      default:
-        statutCalcule = 'en_attente';
-    }
-    
-    console.log('✅ Statut calculé depuis statut_livraison_id:', statutCalcule);
-    return statutCalcule;
+export const getStatusBadgeColor = (statut: string) => {
+  switch (statut) {
+    case 'en_attente': return 'bg-orange-100 text-orange-800 border-orange-300';
+    case 'payee': return 'bg-green-100 text-green-800 border-green-300';
+    case 'partiellement_payee': return 'bg-yellow-100 text-yellow-800 border-yellow-300';
+    case 'en_retard': return 'bg-red-100 text-red-800 border-red-300';
+    default: return 'bg-gray-100 text-gray-800 border-gray-300';
   }
-  
-  // Fallback : calculer depuis les lignes si statut_livraison_id manque
-  if (!facture.lignes_facture || facture.lignes_facture.length === 0) {
-    console.log('📋 Pas de lignes de facture, statut par défaut: livree');
-    return 'livree';
-  }
-
-  const totalLignes = facture.lignes_facture.length;
-  const lignesLivrees = facture.lignes_facture.filter(ligne => 
-    ligne.statut_livraison === 'livree' || 
-    (ligne.quantite_livree && ligne.quantite_livree >= ligne.quantite)
-  ).length;
-  
-  let statutFinal: string;
-  
-  if (lignesLivrees === 0) {
-    statutFinal = 'en_attente';
-  } else if (lignesLivrees === totalLignes) {
-    statutFinal = 'livree';
-  } else {
-    statutFinal = 'partiellement_livree';
-  }
-  
-  console.log('🚚 Calcul fallback depuis lignes:', {
-    totalLignes,
-    lignesLivrees,
-    statutFinal
-  });
-  
-  return statutFinal;
 };
 
-export const getPaymentStatus = (facture: FactureVente): string => {
-  return facture.statut_paiement || 'en_attente';
+export const getStatusLabel = (statut: string) => {
+  switch (statut) {
+    case 'en_attente': return 'En attente';
+    case 'payee': return 'Payée';
+    case 'partiellement_payee': return 'Partielle';
+    case 'en_retard': return 'En retard';
+    default: return statut;
+  }
 };
 
-export const calculatePaidAmount = (facture: FactureVente): number => {
-  if (!facture.versements || facture.versements.length === 0) {
+export const calculatePaidAmount = (facture: FactureVente) => {
+  console.log('🔍 calculatePaidAmount - Facture:', facture.numero_facture);
+  
+  // Utiliser la valeur calculée si disponible
+  if (typeof (facture as any).montant_paye_calcule === 'number') {
+    console.log('💰 Utilisation montant calculé:', (facture as any).montant_paye_calcule);
+    return (facture as any).montant_paye_calcule;
+  }
+  
+  // Sinon calculer depuis les versements
+  if (!facture.versements || !Array.isArray(facture.versements)) {
+    console.log('❌ Aucun versement trouvé pour facture:', facture.numero_facture);
     return 0;
   }
   
-  return facture.versements.reduce((total, versement) => {
-    return total + (versement.montant || 0);
+  const total = facture.versements.reduce((sum: number, versement: any) => {
+    const montant = Number(versement.montant) || 0;
+    return sum + montant;
   }, 0);
+  
+  console.log('💰 Total payé calculé pour facture', facture.numero_facture, ':', total);
+  return total;
 };
 
-export const calculateRemainingAmount = (facture: FactureVente): number => {
-  const paidAmount = calculatePaidAmount(facture);
-  return Math.max(0, facture.montant_ttc - paidAmount);
+export const calculateRemainingAmount = (facture: FactureVente) => {
+  // Utiliser la valeur calculée si disponible
+  if (typeof (facture as any).montant_restant_calcule === 'number') {
+    return (facture as any).montant_restant_calcule;
+  }
+  
+  const paid = calculatePaidAmount(facture);
+  const remaining = Math.max(0, facture.montant_ttc - paid);
+  console.log('💰 Calcul montant restant - TTC:', facture.montant_ttc, 'Payé:', paid, 'Restant:', remaining);
+  return remaining;
 };
 
-export const getActualPaymentStatus = (facture: FactureVente): string => {
+export const getActualPaymentStatus = (facture: FactureVente) => {
+  console.log('🔄 Calcul statut paiement RÉEL - Facture:', facture.numero_facture);
+  
+  // Utiliser le statut calculé si disponible
+  if ((facture as any).statut_paiement_calcule) {
+    console.log('🔄 Utilisation statut calculé:', (facture as any).statut_paiement_calcule);
+    return (facture as any).statut_paiement_calcule;
+  }
+  
   const paidAmount = calculatePaidAmount(facture);
   const totalAmount = facture.montant_ttc;
   
+  let status;
   if (paidAmount === 0) {
-    return 'en_attente';
+    status = 'en_attente';
   } else if (paidAmount >= totalAmount) {
-    return 'payee';
+    status = 'payee';
   } else {
-    return 'partiellement_payee';
+    status = 'partiellement_payee';
   }
+  
+  console.log('🔄 Statut paiement RÉEL calculé final:', status);
+  return status;
 };
 
-export const getStatusBadgeColor = (status: string): string => {
-  switch (status) {
-    case 'payee':
-      return 'bg-green-100 text-green-800 border-green-300';
-    case 'partiellement_payee':
-      return 'bg-yellow-100 text-yellow-800 border-yellow-300';
-    case 'en_attente':
-      return 'bg-orange-100 text-orange-800 border-orange-300';
-    default:
-      return 'bg-gray-100 text-gray-800 border-gray-300';
+export const getArticleCount = (facture: FactureVente) => {
+  console.log('📦 getArticleCount - Facture:', facture.numero_facture);
+  
+  // Priorité aux lignes_facture réelles
+  if (facture.lignes_facture && Array.isArray(facture.lignes_facture)) {
+    const count = facture.lignes_facture.length;
+    console.log('📦 Utilisation lignes_facture.length:', count);
+    return count;
   }
+  
+  // Sinon, utiliser nb_articles si disponible
+  if (typeof facture.nb_articles === 'number' && facture.nb_articles > 0) {
+    console.log('📦 Utilisation nb_articles:', facture.nb_articles);
+    return facture.nb_articles;
+  }
+  
+  console.log('❌ Aucune donnée d\'articles trouvée pour facture:', facture.numero_facture);
+  return 0;
 };
 
-export const getStatusLabel = (status: string): string => {
-  switch (status) {
-    case 'payee':
-      return 'Payée';
-    case 'partiellement_payee':
-      return 'Partielle';
-    case 'en_attente':
-      return 'En attente';
-    default:
-      return 'Non défini';
+export const getActualDeliveryStatus = (facture: FactureVente) => {
+  console.log('🚚 getActualDeliveryStatus - Facture:', facture.numero_facture);
+  
+  // Utiliser EXCLUSIVEMENT le statut depuis la relation livraison_statut
+  const statutFromDB = facture.livraison_statut?.nom;
+  
+  if (statutFromDB) {
+    console.log('🚚 ✅ UTILISATION STATUT depuis livraison_statut.nom:', statutFromDB);
+    
+    // Mapper le nom vers le format attendu par l'interface
+    switch (statutFromDB.toLowerCase()) {
+      case 'livrée':
+        return 'livree';
+      case 'partiellement livrée':
+        return 'partiellement_livree';
+      case 'en attente':
+      default:
+        return 'en_attente';
+    }
   }
+  
+  // Fallback par défaut
+  console.log('🚚 Utilisation statut par défaut (fallback)');
+  return 'en_attente';
 };
