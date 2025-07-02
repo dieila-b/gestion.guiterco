@@ -84,6 +84,7 @@ export const createVenteEntries = async (venteData: any, pdvSelected: any) => {
       tva: montantTotal - (montantTotal / 1.2),
       statut_paiement: statutPaiement,
       mode_paiement: venteData.mode_paiement,
+      statut_livraison: 'En attente', // Utiliser la valeur correcte de l'enum
       statut_livraison_id: 1 // En attente par défaut
     })
     .select()

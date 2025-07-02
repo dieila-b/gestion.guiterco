@@ -19,7 +19,7 @@ export const processDelivery = async (paymentData: any, facture: any, lignesCree
       await supabase
         .from('lignes_facture_vente')
         .update({ 
-          statut_livraison: 'livree',
+          statut_livraison: 'Livrée',
           quantite_livree: ligne.quantite
         })
         .eq('id', ligne.id);
@@ -27,11 +27,11 @@ export const processDelivery = async (paymentData: any, facture: any, lignesCree
       console.log(`📦 Ligne ${ligne.id} mise à jour - Quantité livrée: ${ligne.quantite}`);
     }
 
-    // Mettre à jour le statut de la facture principale à 'livree'
+    // Mettre à jour le statut de la facture principale à 'Livrée'
     const { error: factureError } = await supabase
       .from('factures_vente')
       .update({ 
-        statut_livraison: 'livree',
+        statut_livraison: 'Livrée',
         statut_livraison_id: 3 // ID pour 'Livrée'
       })
       .eq('id', facture.id);
@@ -41,14 +41,14 @@ export const processDelivery = async (paymentData: any, facture: any, lignesCree
       throw factureError;
     }
 
-    console.log('✅ Facture mise à jour avec statut livree');
+    console.log('✅ Facture mise à jour avec statut Livrée');
   } else if (paymentData.statut_livraison === 'partiel') {
     console.log('📦 Livraison partielle');
     // Traitement livraison partielle
     for (const [itemId, quantiteLivree] of Object.entries(paymentData.quantite_livree || {})) {
       const ligne = lignesCreees?.find(l => l.article_id === itemId);
       if (ligne && typeof quantiteLivree === 'number' && quantiteLivree > 0) {
-        const statutLigne = quantiteLivree >= ligne.quantite ? 'livree' : 'partiellement_livree';
+        const statutLigne = quantiteLivree >= ligne.quantite ? 'Livrée' : 'Partiellement livrée';
         
         await supabase
           .from('lignes_facture_vente')
@@ -65,7 +65,7 @@ export const processDelivery = async (paymentData: any, facture: any, lignesCree
     await supabase
       .from('factures_vente')
       .update({ 
-        statut_livraison: 'partiellement_livree',
+        statut_livraison: 'Partiellement livrée',
         statut_livraison_id: 2 // ID pour 'Partiellement livrée'
       })
       .eq('id', facture.id);

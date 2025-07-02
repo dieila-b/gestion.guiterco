@@ -22,7 +22,7 @@ export const useCreateFactureVente = () => {
         statut_paiement: 'en_attente',
         // Utiliser les valeurs correctes pour l'enum
         statut_livraison: data.payment_data?.statut_livraison === 'livre' || 
-                         data.payment_data?.statut_livraison === 'livree' ? 'livree' : 'en_attente',
+                         data.payment_data?.statut_livraison === 'livree' ? 'Livrée' : 'En attente',
         statut_livraison_id: data.payment_data?.statut_livraison === 'livre' || 
                             data.payment_data?.statut_livraison === 'livree' ? 3 : 1
       };
@@ -51,7 +51,7 @@ export const useCreateFactureVente = () => {
         quantite_livree: data.payment_data?.statut_livraison === 'livre' || 
                         data.payment_data?.statut_livraison === 'livree' ? item.quantite : 0,
         statut_livraison: data.payment_data?.statut_livraison === 'livre' || 
-                         data.payment_data?.statut_livraison === 'livree' ? 'livree' : 'en_attente'
+                         data.payment_data?.statut_livraison === 'livree' ? 'Livrée' : 'En attente'
       }));
 
       const { data: lignesCreees, error: lignesError } = await supabase

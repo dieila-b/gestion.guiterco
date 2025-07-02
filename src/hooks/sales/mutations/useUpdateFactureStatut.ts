@@ -27,14 +27,15 @@ export const useUpdateFactureStatut = () => {
 
       switch (statut_livraison) {
         case 'livree':
-          nouveauStatutLigne = 'livree';
+        case 'Livrée':
+          nouveauStatutLigne = 'Livrée';
           statutLivraisonId = 3;
           // Mettre quantite_livree = quantite pour toutes les lignes
           for (const ligne of lignesFacture || []) {
             await supabase
               .from('lignes_facture_vente')
               .update({ 
-                statut_livraison: 'livree',
+                statut_livraison: 'Livrée',
                 quantite_livree: ligne.quantite
               })
               .eq('id', ligne.id);
@@ -42,14 +43,15 @@ export const useUpdateFactureStatut = () => {
           break;
           
         case 'en_attente':
-          nouveauStatutLigne = 'en_attente';
+        case 'En attente':
+          nouveauStatutLigne = 'En attente';
           statutLivraisonId = 1;
           // Remettre quantite_livree à 0 pour toutes les lignes
           for (const ligne of lignesFacture || []) {
             await supabase
               .from('lignes_facture_vente')
               .update({ 
-                statut_livraison: 'en_attente',
+                statut_livraison: 'En attente',
                 quantite_livree: 0
               })
               .eq('id', ligne.id);
@@ -57,7 +59,8 @@ export const useUpdateFactureStatut = () => {
           break;
           
         case 'partiellement_livree':
-          nouveauStatutLigne = 'partiellement_livree';
+        case 'Partiellement livrée':
+          nouveauStatutLigne = 'Partiellement livrée';
           statutLivraisonId = 2;
           await supabase
             .from('lignes_facture_vente')
@@ -66,7 +69,7 @@ export const useUpdateFactureStatut = () => {
           break;
           
         default:
-          nouveauStatutLigne = 'en_attente';
+          nouveauStatutLigne = 'En attente';
           statutLivraisonId = 1;
           await supabase
             .from('lignes_facture_vente')
@@ -84,7 +87,7 @@ export const useUpdateFactureStatut = () => {
       const { data: facture, error: factureError } = await supabase
         .from('factures_vente')
         .update({ 
-          statut_livraison,
+          statut_livraison: nouveauStatutLigne as 'En attente' | 'Partiellement livrée' | 'Livrée',
           statut_livraison_id: statutLivraisonId
         })
         .eq('id', factureId)

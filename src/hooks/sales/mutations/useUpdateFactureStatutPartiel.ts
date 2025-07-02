@@ -40,10 +40,10 @@ export const useUpdateFactureStatutPartiel = () => {
       for (const ligne of lignesFacture) {
         // IMPORTANT: Les quantités saisies sont les nouvelles valeurs absolues (pas des cumuls)
         const nouvelleQuantiteLivree = quantitesLivrees[ligne.article_id] || 0;
-        let nouveauStatut = 'en_attente';
+        let nouveauStatut = 'En attente';
         
         if (nouvelleQuantiteLivree > 0) {
-          nouveauStatut = nouvelleQuantiteLivree >= ligne.quantite ? 'livree' : 'partiellement_livree';
+          nouveauStatut = nouvelleQuantiteLivree >= ligne.quantite ? 'Livrée' : 'Partiellement livrée';
         }
 
         console.log(`📦 Ligne ${ligne.id}: ${nouvelleQuantiteLivree}/${ligne.quantite} → ${nouveauStatut}`);
@@ -73,13 +73,13 @@ export const useUpdateFactureStatutPartiel = () => {
         return qtyLivree >= ligne.quantite;
       }).length;
 
-      let statutGlobal = 'en_attente';
+      let statutGlobal: 'En attente' | 'Partiellement livrée' | 'Livrée' = 'En attente';
       let statutLivraisonId = 1;
       if (lignesCompletes === totalLignes && lignesAvecQuantite > 0) {
-        statutGlobal = 'livree';
+        statutGlobal = 'Livrée';
         statutLivraisonId = 3;
       } else if (lignesAvecQuantite > 0) {
-        statutGlobal = 'partiellement_livree';
+        statutGlobal = 'Partiellement livrée';
         statutLivraisonId = 2;
       }
 
