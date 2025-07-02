@@ -40,9 +40,22 @@ export const useFacturesVenteQuery = () => {
           statutPaiementReel = 'partiellement_payee';
         }
 
-        // Calcul du statut de livraison réel basé sur les lignes
-        let statutLivraisonReel = facture.statut_livraison || 'en_attente';
-        if (facture.lignes_facture && facture.lignes_facture.length > 0) {
+        // Normaliser le statut de livraison pour gérer les formats mixtes
+        const normalizeDeliveryStatus = (status: string) => {
+          if (!status) return 'en_attente';
+          return status.toLowerCase()
+            .replace('livrée', 'livree')
+            .replace('en attente', 'en_attente')
+            .replace('partiellement livrée', 'partiellement_livree')
+            .replace('partiellement_livree', 'partiellement_livree')
+            .replace(' ', '_');
+        };
+
+        // PRIORITÉ 1: Utiliser le statut de la facture s'il est défini
+        let statutLivraisonReel = normalizeDeliveryStatus(facture.statut_livraison || 'en_attente');
+        
+        // PRIORITÉ 2: Si "en_attente" et qu'il y a des lignes, recalculer selon les quantités
+        if (statutLivraisonReel === 'en_attente' && facture.lignes_facture && facture.lignes_facture.length > 0) {
           const totalQuantite = facture.lignes_facture.reduce((sum: number, ligne: any) => sum + ligne.quantite, 0);
           const totalLivree = facture.lignes_facture.reduce((sum: number, ligne: any) => sum + (ligne.quantite_livree || 0), 0);
           
