@@ -39,7 +39,7 @@ export const useVenteMutation = (
         payment_data: {
           ...venteData.payment_data,
           // S'assurer que le statut de livraison est correctement transmis
-          statut_livraison: venteData.payment_data?.statut_livraison || 'livree'
+          statut_livraison: venteData.payment_data?.statut_livraison || 'en_attente'
         }
       };
 
