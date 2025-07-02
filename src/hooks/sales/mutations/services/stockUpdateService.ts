@@ -20,7 +20,7 @@ export const updateStockPDV = async (data: CreateFactureVenteData, facture: any)
     
     if (pdvError) {
       console.error('❌ Erreur récupération point de vente:', pdvError);
-      return;
+      throw new Error(`Point de vente "${data.point_vente_id}" non trouvé`);
     } else {
       pointVenteId = pdvData.id;
       console.log('✅ ID point de vente trouvé:', pointVenteId);
@@ -41,11 +41,16 @@ export const updateStockPDV = async (data: CreateFactureVenteData, facture: any)
 
     if (stockCheckError) {
       console.error('❌ Erreur vérification stock:', stockCheckError);
-      continue;
+      throw new Error(`Erreur lors de la vérification du stock pour l'article ${item.article_id}`);
     }
 
     if (stockExistant) {
-      const nouvelleQuantite = Math.max(0, stockExistant.quantite_disponible - item.quantite);
+      // Vérifier si on a assez de stock
+      if (stockExistant.quantite_disponible < item.quantite) {
+        throw new Error(`Stock insuffisant pour l'article ${item.article_id}. Disponible: ${stockExistant.quantite_disponible}, Demandé: ${item.quantite}`);
+      }
+
+      const nouvelleQuantite = stockExistant.quantite_disponible - item.quantite;
       console.log(`📦 Stock avant: ${stockExistant.quantite_disponible}, après vente: ${nouvelleQuantite}`);
 
       const { error: updateError } = await supabase
@@ -58,9 +63,28 @@ export const updateStockPDV = async (data: CreateFactureVenteData, facture: any)
 
       if (updateError) {
         console.error('❌ ERREUR CRITIQUE - Échec mise à jour stock:', updateError);
-        throw new Error(`Impossible de mettre à jour le stock pour l'article ${item.article_id}`);
+        throw new Error(`Impossible de mettre à jour le stock pour l'article ${item.article_id}: ${updateError.message}`);
       } else {
         console.log(`✅ Stock mis à jour avec succès pour article ${item.article_id}: ${stockExistant.quantite_disponible} → ${nouvelleQuantite}`);
+      }
+
+      // Créer une sortie de stock pour traçabilité
+      const { error: sortieError } = await supabase
+        .from('sorties_stock')
+        .insert({
+          article_id: item.article_id,
+          point_vente_id: null, // Pas d'entrepôt source pour les sorties PDV
+          quantite: item.quantite,
+          type_sortie: 'vente',
+          numero_bon: facture.numero_facture,
+          destination: 'Client',
+          observations: `Vente facture ${facture.numero_facture} - PDV: ${pointVenteId}`,
+          created_by: 'system'
+        });
+
+      if (sortieError) {
+        console.warn('⚠️ Impossible de créer l\'entrée de sortie de stock:', sortieError);
+        // Ne pas faire échouer la vente pour cela
       }
     } else {
       console.log(`⚠️ ATTENTION - Aucun stock trouvé pour l'article ${item.article_id} au PDV ${pointVenteId}`);

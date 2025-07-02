@@ -3,6 +3,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { processDelivery } from './services/deliveryProcessingService';
+import { updateStockPDV } from './services/stockUpdateService';
 
 export const useCreateFactureVente = () => {
   const queryClient = useQueryClient();
@@ -11,15 +12,16 @@ export const useCreateFactureVente = () => {
     mutationFn: async (data: any) => {
       console.log('🚀 Début création facture vente avec données:', data);
 
-      // Créer la facture principale
+      // Créer la facture principale avec numero_facture automatique
       const factureData = {
+        numero_facture: 'TEMP', // Sera remplacé par le trigger auto-génération
         client_id: data.client_id,
         montant_ht: data.montant_ht,
         tva: data.tva,
         montant_ttc: data.montant_ttc,
         mode_paiement: data.mode_paiement,
         statut_paiement: 'en_attente',
-        // Définir le statut de livraison selon les données de paiement
+        // Utiliser les valeurs correctes pour l'enum
         statut_livraison: data.payment_data?.statut_livraison === 'livre' || 
                          data.payment_data?.statut_livraison === 'livree' ? 'livree' : 'en_attente'
       };
@@ -66,6 +68,18 @@ export const useCreateFactureVente = () => {
       // Traiter la livraison si nécessaire
       if (data.payment_data) {
         await processDelivery(data.payment_data, facture, lignesCreees);
+      }
+
+      // Mettre à jour le stock PDV si un point de vente est spécifié
+      if (data.point_vente_id) {
+        try {
+          await updateStockPDV(data, facture);
+          console.log('✅ Stock PDV mis à jour avec succès');
+        } catch (stockError) {
+          console.error('❌ Erreur mise à jour stock PDV:', stockError);
+          // Ne pas faire échouer la vente pour une erreur de stock
+          toast.error('Vente créée mais stock non mis à jour : ' + stockError.message);
+        }
       }
 
       // Créer le versement si paiement immédiat

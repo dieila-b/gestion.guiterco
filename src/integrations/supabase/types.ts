@@ -1249,7 +1249,10 @@ export type Database = {
           montant_ttc: number
           numero_facture: string
           observations: string | null
-          statut_livraison: string | null
+          statut_livraison:
+            | Database["public"]["Enums"]["statut_livraison_enum"]
+            | null
+          statut_livraison_id: number
           statut_paiement: string
           taux_tva: number | null
           tva: number
@@ -1268,7 +1271,10 @@ export type Database = {
           montant_ttc?: number
           numero_facture: string
           observations?: string | null
-          statut_livraison?: string | null
+          statut_livraison?:
+            | Database["public"]["Enums"]["statut_livraison_enum"]
+            | null
+          statut_livraison_id: number
           statut_paiement?: string
           taux_tva?: number | null
           tva?: number
@@ -1287,7 +1293,10 @@ export type Database = {
           montant_ttc?: number
           numero_facture?: string
           observations?: string | null
-          statut_livraison?: string | null
+          statut_livraison?:
+            | Database["public"]["Enums"]["statut_livraison_enum"]
+            | null
+          statut_livraison_id?: number
           statut_paiement?: string
           taux_tva?: number | null
           tva?: number
@@ -1306,6 +1315,13 @@ export type Database = {
             columns: ["commande_id"]
             isOneToOne: false
             referencedRelation: "commandes_clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_factures_vente_statut_livraison"
+            columns: ["statut_livraison_id"]
+            isOneToOne: false
+            referencedRelation: "livraison_statut"
             referencedColumns: ["id"]
           },
         ]
@@ -1617,6 +1633,21 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      livraison_statut: {
+        Row: {
+          id: number
+          nom: string
+        }
+        Insert: {
+          id?: number
+          nom: string
+        }
+        Update: {
+          id?: number
+          nom?: string
+        }
+        Relationships: []
       }
       notifications_precommandes: {
         Row: {
@@ -2890,6 +2921,7 @@ export type Database = {
     Enums: {
       payment_method: "cash" | "card" | "transfer" | "check"
       register_status: "open" | "closed"
+      statut_livraison_enum: "En attente" | "Partiellement livrée" | "Livrée"
       transaction_category:
         | "sales"
         | "supplies"
@@ -3014,6 +3046,7 @@ export const Constants = {
     Enums: {
       payment_method: ["cash", "card", "transfer", "check"],
       register_status: ["open", "closed"],
+      statut_livraison_enum: ["En attente", "Partiellement livrée", "Livrée"],
       transaction_category: [
         "sales",
         "supplies",
