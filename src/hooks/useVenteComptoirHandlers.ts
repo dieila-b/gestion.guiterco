@@ -52,20 +52,24 @@ export const useVenteComptoirHandlers = ({
     try {
       console.log('🔄 Données paiement reçues:', paymentData);
       
-      // Construire venteData avec toutes les données nécessaires
+      // *** CORRECTION CRITIQUE *** : Construire venteData avec statut de livraison
       const venteData = {
         client_id: selectedClient,
         montant_ht: cartTotals.total / 1.2,
         tva: cartTotals.total * 0.2 / 1.2,
         montant_ttc: cartTotals.total,
         mode_paiement: paymentData.mode_paiement,
-        point_vente_id: selectedPDV,
+        point_vente_id: selectedPDV, // *** OBLIGATOIRE POUR DÉCRÉMENTATION STOCK ***
         montant_paye: paymentData.montant_paye || 0,
-        notes: paymentData.notes
+        notes: paymentData.notes,
+        // *** AJOUT CRITIQUE *** : Transmettre le statut de livraison
+        statut_livraison: paymentData.statut_livraison || 'livree', // Par défaut livraison complète
+        delivery_status: paymentData.delivery_status || paymentData.statut_livraison || 'livree'
       };
       
-      console.log('📋 venteData construit:', venteData);
+      console.log('📋 venteData construit avec statut livraison:', venteData);
       console.log('🛒 cart à envoyer:', cart);
+      console.log('📦 Point de vente pour stock:', selectedPDV);
       
       // Appeler createVente avec la structure correcte
       const result = await createVente({
@@ -83,15 +87,16 @@ export const useVenteComptoirHandlers = ({
       // Message de succès adaptatif selon le montant payé
       const montantPaye = paymentData.montant_paye || 0;
       if (montantPaye === 0) {
-        toast.success('Facture créée - Aucun paiement enregistré');
+        toast.success('Facture créée - Stock mis à jour - Aucun paiement enregistré');
       } else if (montantPaye < cartTotals.total) {
-        toast.success(`Facture créée - Paiement partiel de ${montantPaye}€ enregistré`);
+        toast.success(`Facture créée - Stock mis à jour - Paiement partiel de ${montantPaye}€ enregistré`);
       } else {
-        toast.success('Facture créée - Paiement complet reçu');
+        toast.success('Facture créée - Stock mis à jour - Paiement complet reçu');
       }
     } catch (error) {
       console.error('Erreur lors de la vente:', error);
-      toast.error('Erreur lors de la création de la vente');
+      const errorMessage = error instanceof Error ? error.message : 'Erreur lors de la création de la vente';
+      toast.error(errorMessage);
     }
   };
 

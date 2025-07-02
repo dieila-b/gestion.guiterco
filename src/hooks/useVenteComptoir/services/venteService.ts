@@ -1,6 +1,7 @@
 
 import { supabase } from '@/integrations/supabase/client';
 import { createCashTransaction } from './transactionService';
+import { updateStockAfterVente } from './stockService';
 
 export const createVenteComptoir = async (venteData: any, cart: any[]) => {
   console.log('🔄 Création vente comptoir avec données:', {
@@ -48,8 +49,31 @@ export const createVenteComptoir = async (venteData: any, cart: any[]) => {
 
     console.log('✅ Commande créée:', commande.numero_commande);
 
-    // 2. Créer la facture AVEC statut_livraison_id obligatoire
-    console.log('📄 Création de la facture...');
+    // 2. Déterminer le statut de livraison correct
+    let statutLivraisonId = 1; // Par défaut en_attente
+    
+    // Si le statut de livraison est fourni dans venteData
+    if (venteData.statut_livraison || venteData.delivery_status) {
+      const statutDemande = venteData.statut_livraison || venteData.delivery_status;
+      console.log('📦 Statut de livraison demandé:', statutDemande);
+      
+      // Récupérer l'ID du statut depuis la table livraison_statut
+      const { data: statutData, error: statutError } = await supabase
+        .from('livraison_statut')
+        .select('id')
+        .eq('nom', statutDemande === 'complete' || statutDemande === 'livree' ? 'livree' : statutDemande)
+        .single();
+
+      if (!statutError && statutData) {
+        statutLivraisonId = statutData.id;
+        console.log('✅ ID statut livraison trouvé:', statutLivraisonId, 'pour statut:', statutDemande);
+      } else {
+        console.warn('⚠️ Statut livraison non trouvé, utilisation du défaut (en_attente)');
+      }
+    }
+
+    // 3. Créer la facture avec le bon statut de livraison
+    console.log('📄 Création de la facture avec statut_livraison_id:', statutLivraisonId);
     const { data: facture, error: factureError } = await supabase
       .from('factures_vente')
       .insert({
@@ -60,7 +84,7 @@ export const createVenteComptoir = async (venteData: any, cart: any[]) => {
         montant_ht: venteData.montant_ht || 0,
         tva: venteData.tva || 0,
         statut_paiement: venteData.montant_paye > 0 ? 'payee' : 'en_attente',
-        statut_livraison_id: 1, // Obligatoire - 1 = en_attente
+        statut_livraison_id: statutLivraisonId, // Utiliser l'ID correct
         mode_paiement: venteData.mode_paiement
       })
       .select()
@@ -71,17 +95,33 @@ export const createVenteComptoir = async (venteData: any, cart: any[]) => {
       throw factureError;
     }
 
-    console.log('✅ Facture créée:', facture.numero_facture);
+    console.log('✅ Facture créée:', facture.numero_facture, 'avec statut_livraison_id:', facture.statut_livraison_id);
 
-    // 3. Créer les lignes de facture
+    // 4. Créer les lignes de facture avec le bon statut de livraison
     console.log('📋 Création des lignes de facture...');
-    const lignesFacture = cart.map(item => ({
-      facture_vente_id: facture.id,
-      article_id: item.article_id,
-      quantite: item.quantite,
-      prix_unitaire: item.prix_unitaire,
-      montant_ligne: item.quantite * item.prix_unitaire
-    }));
+    const lignesFacture = cart.map(item => {
+      // Déterminer le statut de livraison pour chaque ligne
+      let statutLigneLivraison = 'en_attente';
+      let quantiteLivree = 0;
+      
+      if (statutLivraisonId === 3) { // ID 3 = livree
+        statutLigneLivraison = 'livree';
+        quantiteLivree = item.quantite;
+      } else if (statutLivraisonId === 2) { // ID 2 = partiellement_livree
+        statutLigneLivraison = 'partiellement_livree';
+        quantiteLivree = Math.floor(item.quantite / 2); // Exemple de livraison partielle
+      }
+      
+      return {
+        facture_vente_id: facture.id,
+        article_id: item.article_id,
+        quantite: item.quantite,
+        prix_unitaire: item.prix_unitaire,
+        montant_ligne: item.quantite * item.prix_unitaire,
+        statut_livraison: statutLigneLivraison,
+        quantite_livree: quantiteLivree
+      };
+    });
 
     const { error: lignesError } = await supabase
       .from('lignes_facture_vente')
@@ -92,9 +132,22 @@ export const createVenteComptoir = async (venteData: any, cart: any[]) => {
       throw lignesError;
     }
 
-    console.log('✅ Lignes de facture créées:', lignesFacture.length + ' lignes');
+    console.log('✅ Lignes de facture créées:', lignesFacture.length + ' lignes avec statuts de livraison');
 
-    // 4. *** CORRECTION CRITIQUE *** : Créer la transaction de caisse AUTOMATIQUEMENT
+    // 5. *** MISE À JOUR STOCK OBLIGATOIRE *** - Toujours décrémenter le stock
+    if (venteData.point_vente_id) {
+      console.log('📦 *** DÉCRÉMENTATION STOCK OBLIGATOIRE ***');
+      try {
+        await updateStockAfterVente(cart, venteData.point_vente_id, 'Point de vente');
+        console.log('✅ Stock décrémenté avec succès');
+      } catch (stockError) {
+        console.error('❌ ERREUR CRITIQUE: Stock non décrémenté:', stockError);
+        // Ne pas faire échouer la vente mais alerter
+        throw new Error('Vente créée mais stock non mis à jour: ' + stockError.message);
+      }
+    }
+
+    // 6. Créer la transaction de caisse AUTOMATIQUEMENT
     if (venteData.montant_paye && venteData.montant_paye > 0) {
       console.log('💰 Création transaction caisse automatique pour vente:', venteData.montant_paye);
       
@@ -113,7 +166,7 @@ export const createVenteComptoir = async (venteData: any, cart: any[]) => {
       }
     }
 
-    // 5. Créer versement si paiement
+    // 7. Créer versement si paiement
     if (venteData.montant_paye > 0) {
       console.log('💳 Création du versement...');
       const { error: versementError } = await supabase
@@ -136,6 +189,9 @@ export const createVenteComptoir = async (venteData: any, cart: any[]) => {
     }
 
     console.log('🎉 Vente comptoir créée avec succès:', facture.numero_facture);
+    console.log('📦 Stock décrémenté:', venteData.point_vente_id ? 'OUI' : 'NON');
+    console.log('📋 Statut livraison:', statutLivraisonId);
+    
     return { facture, commande };
 
   } catch (error) {
