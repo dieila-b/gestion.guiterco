@@ -9,7 +9,7 @@ export const useVenteMutation = (
   setCart: (cart: any[]) => void,
   restoreLocalStock: () => void
 ) => {
-  return useMutation({
+  const mutation = useMutation({
     mutationFn: async ({ venteData, cart }: { venteData: any, cart: any[] }) => {
       console.log('🔄 Début mutation vente comptoir avec transaction caisse automatique');
       
@@ -37,4 +37,9 @@ export const useVenteMutation = (
       restoreLocalStock();
     }
   });
+
+  return {
+    createVente: mutation.mutateAsync,
+    isLoading: mutation.isPending
+  };
 };
