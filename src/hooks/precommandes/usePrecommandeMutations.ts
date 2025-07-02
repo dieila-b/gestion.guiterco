@@ -78,7 +78,7 @@ export const useCreatePrecommande = () => {
       const montant_total = lignes.reduce((sum, ligne) => sum + (ligne.quantite * ligne.prix_unitaire), 0);
       const reste_a_payer = montant_total - (precommandeData.acompte_verse || 0);
 
-      // Créer la précommande avec TVA à 0
+      // Créer la précommande avec TVA à 0 et statut_livraison initial
       const { data: newPrecommande, error: precommandeError } = await supabase
         .from('precommandes')
         .insert({
@@ -88,7 +88,8 @@ export const useCreatePrecommande = () => {
           montant_ttc: montant_total,
           taux_tva: 0,
           reste_a_payer,
-          statut: 'confirmee'
+          statut: 'confirmee',
+          statut_livraison: 'en_attente' // Ajouter le statut de livraison initial
         })
         .select()
         .single();

@@ -1776,6 +1776,7 @@ export type Database = {
           prete_pour_conversion: boolean | null
           reste_a_payer: number | null
           statut: string
+          statut_livraison: string | null
           taux_tva: number | null
           total_commande: number | null
           tva: number
@@ -1799,6 +1800,7 @@ export type Database = {
           prete_pour_conversion?: boolean | null
           reste_a_payer?: number | null
           statut?: string
+          statut_livraison?: string | null
           taux_tva?: number | null
           total_commande?: number | null
           tva?: number
@@ -1822,6 +1824,7 @@ export type Database = {
           prete_pour_conversion?: boolean | null
           reste_a_payer?: number | null
           statut?: string
+          statut_livraison?: string | null
           taux_tva?: number | null
           total_commande?: number | null
           tva?: number
