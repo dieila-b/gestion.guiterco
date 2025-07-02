@@ -1649,6 +1649,30 @@ export type Database = {
         }
         Relationships: []
       }
+      modules_application: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          nom: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          nom: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          nom?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       notifications_precommandes: {
         Row: {
           created_at: string
@@ -1723,6 +1747,48 @@ export type Database = {
           nom?: string
         }
         Relationships: []
+      }
+      permissions: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          module_id: string | null
+          nom: string
+          type_permission_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          module_id?: string | null
+          nom: string
+          type_permission_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          module_id?: string | null
+          nom?: string
+          type_permission_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "permissions_module_id_fkey"
+            columns: ["module_id"]
+            isOneToOne: false
+            referencedRelation: "modules_application"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "permissions_type_permission_id_fkey"
+            columns: ["type_permission_id"]
+            isOneToOne: false
+            referencedRelation: "types_permissions"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       points_de_vente: {
         Row: {
@@ -2012,6 +2078,42 @@ export type Database = {
             columns: ["facture_achat_id"]
             isOneToOne: false
             referencedRelation: "factures_achat"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      roles_permissions: {
+        Row: {
+          created_at: string | null
+          id: string
+          permission_id: string | null
+          role_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          permission_id?: string | null
+          role_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          permission_id?: string | null
+          role_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "roles_permissions_permission_id_fkey"
+            columns: ["permission_id"]
+            isOneToOne: false
+            referencedRelation: "permissions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "roles_permissions_role_id_fkey"
+            columns: ["role_id"]
+            isOneToOne: false
+            referencedRelation: "roles_utilisateurs"
             referencedColumns: ["id"]
           },
         ]
@@ -2401,6 +2503,27 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      types_permissions: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          nom: string
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          nom: string
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          nom?: string
+        }
+        Relationships: []
       }
       unites: {
         Row: {
@@ -2866,6 +2989,15 @@ export type Database = {
           nombre_factures: number
         }[]
       }
+      get_user_permissions: {
+        Args: { user_id: string }
+        Returns: {
+          module_nom: string
+          type_permission: string
+          permission_nom: string
+          permission_description: string
+        }[]
+      }
       get_user_role_for_rls: {
         Args: Record<PropertyKey, never>
         Returns: string
@@ -2901,6 +3033,10 @@ export type Database = {
           p_quantite: number
         }
         Returns: undefined
+      }
+      user_has_permission: {
+        Args: { user_id: string; permission_name: string }
+        Returns: boolean
       }
       verifier_integrite_entrees_stock: {
         Args: Record<PropertyKey, never>
