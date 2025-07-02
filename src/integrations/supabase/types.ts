@@ -1750,45 +1750,27 @@ export type Database = {
       }
       permissions: {
         Row: {
+          action: string
           created_at: string | null
           description: string | null
           id: string
-          module_id: string | null
-          nom: string
-          type_permission_id: string | null
+          module: string
         }
         Insert: {
+          action: string
           created_at?: string | null
           description?: string | null
           id?: string
-          module_id?: string | null
-          nom: string
-          type_permission_id?: string | null
+          module: string
         }
         Update: {
+          action?: string
           created_at?: string | null
           description?: string | null
           id?: string
-          module_id?: string | null
-          nom?: string
-          type_permission_id?: string | null
+          module?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "permissions_module_id_fkey"
-            columns: ["module_id"]
-            isOneToOne: false
-            referencedRelation: "modules_application"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "permissions_type_permission_id_fkey"
-            columns: ["type_permission_id"]
-            isOneToOne: false
-            referencedRelation: "types_permissions"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       points_de_vente: {
         Row: {
@@ -2102,13 +2084,6 @@ export type Database = {
           role_id?: string | null
         }
         Relationships: [
-          {
-            foreignKeyName: "roles_permissions_permission_id_fkey"
-            columns: ["permission_id"]
-            isOneToOne: false
-            referencedRelation: "permissions"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "roles_permissions_role_id_fkey"
             columns: ["role_id"]

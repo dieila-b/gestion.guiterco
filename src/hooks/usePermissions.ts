@@ -66,23 +66,27 @@ export const usePermissions = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('permissions')
-        .select(`
-          *,
-          module:module_id (
-            id,
-            nom,
-            description
-          ),
-          type_permission:type_permission_id (
-            id,
-            nom,
-            description
-          )
-        `)
-        .order('nom');
+        .select('*')
+        .order('action');
 
       if (error) throw error;
-      return data as Permission[];
+      
+      // Transformer les données pour correspondre à l'interface Permission
+      return data.map(permission => ({
+        id: permission.id,
+        nom: `${permission.module}_${permission.action}`,
+        description: permission.description,
+        module: {
+          id: permission.module,
+          nom: permission.module,
+          description: permission.module
+        },
+        type_permission: {
+          id: permission.action,
+          nom: permission.action,
+          description: permission.action
+        }
+      })) as Permission[];
     }
   });
 };
@@ -95,28 +99,46 @@ export const useRolePermissions = (roleId?: string) => {
       
       const { data, error } = await supabase
         .from('roles_permissions')
-        .select(`
-          *,
-          permission:permission_id (
-            id,
-            nom,
-            description,
-            module:module_id (
-              id,
-              nom,
-              description
-            ),
-            type_permission:type_permission_id (
-              id,
-              nom,
-              description
-            )
-          )
-        `)
+        .select('*')
         .eq('role_id', roleId);
 
       if (error) throw error;
-      return data as RolePermission[];
+      
+      // Récupérer les détails des permissions séparément
+      const rolePermissions: RolePermission[] = [];
+      
+      for (const rp of data || []) {
+        const { data: permissionData, error: permError } = await supabase
+          .from('permissions')
+          .select('*')
+          .eq('id', rp.permission_id)
+          .single();
+          
+        if (!permError && permissionData) {
+          rolePermissions.push({
+            id: rp.id,
+            role_id: rp.role_id,
+            permission_id: rp.permission_id,
+            permission: {
+              id: permissionData.id,
+              nom: `${permissionData.module}_${permissionData.action}`,
+              description: permissionData.description,
+              module: {
+                id: permissionData.module,
+                nom: permissionData.module,
+                description: permissionData.module
+              },
+              type_permission: {
+                id: permissionData.action,
+                nom: permissionData.action,
+                description: permissionData.action
+              }
+            }
+          });
+        }
+      }
+      
+      return rolePermissions;
     },
     enabled: !!roleId
   });

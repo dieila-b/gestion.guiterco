@@ -2,9 +2,10 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Shield, Users, Key } from 'lucide-react';
+import { Shield, Users, Key, Grid } from 'lucide-react';
 import RolesManagement from './permissions/RolesManagement';
 import PermissionsMatrix from './permissions/PermissionsMatrix';
+import PermissionsRoleMatrix from './permissions/PermissionsRoleMatrix';
 import AccessControl from './permissions/AccessControl';
 
 const AccesPermissions = () => {
@@ -24,7 +25,7 @@ const AccesPermissions = () => {
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="roles" className="w-full">
-            <TabsList className="grid w-full grid-cols-3">
+            <TabsList className="grid w-full grid-cols-4">
               <TabsTrigger value="roles" className="flex items-center space-x-2">
                 <Users className="h-4 w-4" />
                 <span>Rôles</span>
@@ -32,6 +33,10 @@ const AccesPermissions = () => {
               <TabsTrigger value="permissions" className="flex items-center space-x-2">
                 <Key className="h-4 w-4" />
                 <span>Permissions</span>
+              </TabsTrigger>
+              <TabsTrigger value="matrix" className="flex items-center space-x-2">
+                <Grid className="h-4 w-4" />
+                <span>Matrice</span>
               </TabsTrigger>
               <TabsTrigger value="access" className="flex items-center space-x-2">
                 <Shield className="h-4 w-4" />
@@ -45,6 +50,10 @@ const AccesPermissions = () => {
 
             <TabsContent value="permissions" className="mt-6">
               <PermissionsMatrix />
+            </TabsContent>
+
+            <TabsContent value="matrix" className="mt-6">
+              <PermissionsRoleMatrix />
             </TabsContent>
 
             <TabsContent value="access" className="mt-6">
