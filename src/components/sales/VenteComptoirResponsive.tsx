@@ -22,13 +22,6 @@ const VenteComptoirResponsive = () => {
     updateRemise: state.venteComptoir.updateRemise
   });
 
-  // Map cartTotals to match PaymentModal expected format
-  const mappedTotals = {
-    subtotal: state.cartTotals.sousTotal,
-    tva: 0, // TVA calculation can be added later if needed
-    total: state.cartTotals.total
-  };
-
   return (
     <div className="h-screen bg-gray-50 overflow-hidden">
       <VenteMainContent
@@ -66,11 +59,10 @@ const VenteComptoirResponsive = () => {
         showPostPaymentActions={state.showPostPaymentActions}
         handlePaymentConfirm={handlers.handlePaymentConfirm}
         handlePostPaymentClose={handlers.handlePostPaymentClose}
-        totals={mappedTotals}
+        totalAmount={state.cartTotals.total}
         cartItems={state.venteComptoir.cart}
         isLoading={state.venteComptoir.isLoading}
         lastFacture={state.lastFacture}
-        selectedClient={state.selectedClient}
       />
     </div>
   );

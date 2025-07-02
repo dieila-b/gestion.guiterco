@@ -104,26 +104,43 @@ export const getArticleCount = (facture: FactureVente) => {
 
 export const getActualDeliveryStatus = (facture: FactureVente) => {
   console.log('🚚 getActualDeliveryStatus - Facture:', facture.numero_facture);
+  console.log('🚚 Statut BDD facture:', facture.statut_livraison);
+  console.log('🚚 Nombre de lignes:', facture.lignes_facture?.length || 0);
   
-  // PRIORITÉ 1 : Utiliser le statut depuis la relation livraison_statut
-  const statutFromDB = (facture as any).livraison_statut?.nom || (facture as any).statut_livraison_nom;
-  
-  if (statutFromDB) {
-    console.log('🚚 ✅ UTILISATION STATUT depuis livraison_statut.nom:', statutFromDB);
-    
-    // Mapper le nom vers le format attendu par l'interface
-    switch (statutFromDB.toLowerCase()) {
-      case 'livrée':
-        return 'livree';
-      case 'partiellement livrée':
-        return 'partiellement_livree';
-      case 'en attente':
-      default:
-        return 'en_attente';
-    }
+  // Utiliser le statut calculé si disponible
+  if ((facture as any).statut_livraison_calcule) {
+    console.log('🚚 Utilisation statut calculé:', (facture as any).statut_livraison_calcule);
+    return (facture as any).statut_livraison_calcule;
   }
   
-  // PRIORITÉ 2 : Fallback par défaut
-  console.log('🚚 Utilisation statut par défaut (fallback)');
-  return 'en_attente';
+  // PRIORITÉ 1: Vérifier le statut direct de la facture dans la BDD
+  if (facture.statut_livraison === 'livree') {
+    console.log('🚚 Statut direct BDD: livree');
+    return 'livree';
+  }
+  
+  // PRIORITÉ 2: Si pas de lignes de facture, utiliser le statut de la facture
+  if (!facture.lignes_facture || !Array.isArray(facture.lignes_facture) || facture.lignes_facture.length === 0) {
+    const statutFinal = facture.statut_livraison || 'en_attente';
+    console.log('🚚 Pas de lignes facture - utilisation statut facture:', statutFinal);
+    return statutFinal;
+  }
+  
+  // PRIORITÉ 3: Calcul basé sur les quantités réellement livrées
+  const totalQuantiteCommandee = facture.lignes_facture.reduce((sum, ligne) => sum + ligne.quantite, 0);
+  const totalQuantiteLivree = facture.lignes_facture.reduce((sum, ligne) => sum + (ligne.quantite_livree || 0), 0);
+  
+  console.log('🚚 Calcul basé sur quantités - Commandé:', totalQuantiteCommandee, 'Livré:', totalQuantiteLivree);
+  
+  let status;
+  if (totalQuantiteLivree === 0) {
+    status = 'en_attente';
+  } else if (totalQuantiteLivree >= totalQuantiteCommandee) {
+    status = 'livree';
+  } else {
+    status = 'partiellement_livree';
+  }
+  
+  console.log('🚚 Statut livraison calculé final:', status);
+  return status;
 };

@@ -51,22 +51,17 @@ export const useVenteMutation = (
       // Nettoyage rapide et efficace
       setCart([]);
       
-      // ⚠️ IMPORTANT: NE PAS RESTAURER LE STOCK LOCAL après une vente réussie
-      // Le stock a été définitivement mis à jour dans la base de données
-      // La restauration ne doit se faire QUE en cas d'erreur
-      
       // Message de succès concis
       toast.success('Vente enregistrée avec succès', {
-        description: `Facture ${result.facture.numero_facture} créée - Stock mis à jour`,
+        description: `Facture ${result.facture.numero_facture} créée`,
         duration: 3000
       });
     },
     onError: (error: Error) => {
       console.error('❌ Erreur lors de la vente:', error);
       
-      // Restaurer le stock local SEULEMENT en cas d'erreur
+      // Restaurer le stock local en cas d'erreur
       if (restoreLocalStock) {
-        console.log('🔄 Restauration du stock local suite à l\'erreur');
         restoreLocalStock();
       }
       

@@ -13,14 +13,9 @@ interface PaymentModalProps {
   isOpen: boolean;
   onClose: () => void;
   onConfirm: (paymentData: PaymentData) => void;
-  totals: {
-    subtotal: number;
-    tva: number;
-    total: number;
-  };
+  totalAmount: number;
   cartItems: any[];
   isLoading: boolean;
-  selectedClient: any;
 }
 
 interface PaymentData {
@@ -35,19 +30,18 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
   isOpen,
   onClose,
   onConfirm,
-  totals,
+  totalAmount,
   cartItems,
-  isLoading,
-  selectedClient
+  isLoading
 }) => {
   const [montantPaye, setMontantPaye] = useState(0);
   const [modePaiement, setModePaiement] = useState('especes');
-  // CORRECTION CRITIQUE : Statut par défaut en_attente
+  // CORRECTION: Statut par défaut en_attente au lieu de livre
   const [statutLivraison, setStatutLivraison] = useState('en_attente');
   const [notes, setNotes] = useState('');
   const [quantitesLivrees, setQuantitesLivrees] = useState<{ [key: string]: number }>({});
 
-  // Préremplir le montant payé à 0 par défaut
+  // Préremplir le montant payé à 0 par défaut (pas le total)
   useEffect(() => {
     if (isOpen) {
       setMontantPaye(0);
@@ -57,7 +51,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
   }, [isOpen]);
 
   // Calcul dynamique du reste à payer
-  const restePayer = Math.max(0, totals.total - montantPaye);
+  const restePayer = Math.max(0, totalAmount - montantPaye);
 
   const handleMontantPayeChange = (value: string) => {
     const amount = parseFloat(value) || 0;
@@ -65,21 +59,17 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
   };
 
   const handleConfirm = () => {
-    // CORRECTION CRITIQUE : S'assurer que le statut sélectionné est bien transmis
-    console.log('📦 PaymentModal - Statut livraison sélectionné:', statutLivraison);
-    
     const paymentData: PaymentData = {
       montant_paye: montantPaye,
       mode_paiement: modePaiement,
-      statut_livraison: statutLivraison, // CRUCIAL : Utiliser la valeur exacte sélectionnée
+      statut_livraison: statutLivraison,
       notes: notes
     };
 
-    if (statutLivraison === 'partiellement_livree') {
+    if (statutLivraison === 'partiel') {
       paymentData.quantite_livree = quantitesLivrees;
     }
 
-    console.log('📦 PaymentModal - Données envoyées:', paymentData);
     onConfirm(paymentData);
   };
 
@@ -120,7 +110,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
             <div className="bg-slate-800 text-white p-4 rounded-lg">
               <div className="flex justify-between items-center mb-4">
                 <span className="text-lg">Montant total:</span>
-                <span className="text-xl font-bold">{formatCurrency(totals.total)}</span>
+                <span className="text-xl font-bold">{formatCurrency(totalAmount)}</span>
               </div>
               
               <div className="flex justify-between items-center mb-2">
@@ -162,7 +152,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
                   placeholder="0"
                   step="0.01"
                   min="0"
-                  max={totals.total}
+                  max={totalAmount}
                 />
                 <div className="text-sm text-gray-500 mt-1">
                   Saisir 0 si aucun paiement reçu maintenant
@@ -214,30 +204,23 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
 
             <div>
               <Label>Statut de livraison:</Label>
-              <RadioGroup 
-                value={statutLivraison} 
-                onValueChange={(value) => {
-                  console.log('📦 Nouveau statut sélectionné:', value);
-                  setStatutLivraison(value);
-                }} 
-                className="mt-2"
-              >
+              <RadioGroup value={statutLivraison} onValueChange={setStatutLivraison} className="mt-2">
                 <div className="flex items-center space-x-2">
                   <RadioGroupItem value="en_attente" id="en_attente" />
                   <Label htmlFor="en_attente">En attente de livraison</Label>
                 </div>
                 <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="partiellement_livree" id="partiellement_livree" />
-                  <Label htmlFor="partiellement_livree">Livraison partielle</Label>
+                  <RadioGroupItem value="partiel" id="partiel" />
+                  <Label htmlFor="partiel">Livraison partielle</Label>
                 </div>
                 <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="livree" id="livree" />
-                  <Label htmlFor="livree">Livraison complète</Label>
+                  <RadioGroupItem value="livre" id="livre" />
+                  <Label htmlFor="livre">Livraison complète</Label>
                 </div>
               </RadioGroup>
             </div>
 
-            {statutLivraison === 'partiellement_livree' && (
+            {statutLivraison === 'partiel' && (
               <div className="space-y-3">
                 <Label>Quantités livrées:</Label>
                 {cartItems.map((item) => (
@@ -258,22 +241,6 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
                 ))}
               </div>
             )}
-
-            {/* CORRECTION : Indicateur visuel CLAIR du statut sélectionné */}
-            <div className="p-4 bg-gray-50 border rounded-lg">
-              <div className="text-sm font-medium text-gray-700 mb-2">
-                Statut de livraison sélectionné: 
-              </div>
-              <div className={`inline-block px-3 py-1 rounded-full text-sm font-bold ${
-                statutLivraison === 'livree' ? 'bg-green-100 text-green-800 border border-green-300' :
-                statutLivraison === 'partiellement_livree' ? 'bg-yellow-100 text-yellow-800 border border-yellow-300' :
-                'bg-orange-100 text-orange-800 border border-orange-300'
-              }`}>
-                {statutLivraison === 'livree' ? '✅ Livrée' :
-                 statutLivraison === 'partiellement_livree' ? '📦 Partiellement livrée' :
-                 '⏳ En attente de livraison'}
-              </div>
-            </div>
           </TabsContent>
         </Tabs>
 

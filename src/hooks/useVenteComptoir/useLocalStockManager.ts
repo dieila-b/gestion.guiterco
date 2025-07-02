@@ -12,23 +12,18 @@ export const useLocalStockManager = (stockPDV?: any[]) => {
         stockMap[item.article_id] = item.quantite_disponible;
       });
       setLocalStock(stockMap);
-      console.log('📦 Stock local initialisé depuis les données PDV:', Object.keys(stockMap).length, 'articles');
     }
   }, [stockPDV]);
 
-  // Fonction pour mettre à jour le stock local visuellement (pendant l'ajout au panier)
+  // Fonction pour mettre à jour le stock local visuellement
   const updateLocalStock = useCallback((articleId: string, quantityUsed: number) => {
-    setLocalStock(prev => {
-      const newStock = Math.max(0, (prev[articleId] || 0) - quantityUsed);
-      console.log(`📦 Mise à jour stock local visuel - Article: ${articleId}, Avant: ${prev[articleId] || 0}, Après: ${newStock}`);
-      return {
-        ...prev,
-        [articleId]: newStock
-      };
-    });
+    setLocalStock(prev => ({
+      ...prev,
+      [articleId]: Math.max(0, (prev[articleId] || 0) - quantityUsed)
+    }));
   }, []);
 
-  // Fonction pour restaurer le stock local (UNIQUEMENT en cas d'erreur)
+  // Fonction pour restaurer le stock local
   const restoreLocalStock = useCallback(() => {
     if (stockPDV) {
       const stockMap: Record<string, number> = {};
@@ -36,7 +31,6 @@ export const useLocalStockManager = (stockPDV?: any[]) => {
         stockMap[item.article_id] = item.quantite_disponible;
       });
       setLocalStock(stockMap);
-      console.log('🔄 Stock local restauré en cas d\'erreur - Nombre d\'articles:', Object.keys(stockMap).length);
     }
   }, [stockPDV]);
 
@@ -45,21 +39,10 @@ export const useLocalStockManager = (stockPDV?: any[]) => {
     return localStock[articleId] || 0;
   }, [localStock]);
 
-  // Fonction pour synchroniser le stock local avec les nouvelles données de la BDD (après vente réussie)
-  const syncLocalStockWithDB = useCallback((newStockData: any[]) => {
-    const stockMap: Record<string, number> = {};
-    newStockData.forEach(item => {
-      stockMap[item.article_id] = item.quantite_disponible;
-    });
-    setLocalStock(stockMap);
-    console.log('🔄 Stock local synchronisé avec les données BDD après vente:', Object.keys(stockMap).length, 'articles');
-  }, []);
-
   return {
     localStock,
     updateLocalStock,
     restoreLocalStock,
-    getLocalStock,
-    syncLocalStockWithDB
+    getLocalStock
   };
 };
