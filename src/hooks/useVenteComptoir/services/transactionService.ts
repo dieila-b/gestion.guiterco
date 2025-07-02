@@ -95,32 +95,26 @@ export const createCashTransaction = async (
       throw transactionError;
     }
 
-    // Mettre à jour le solde de la caisse
-    const { error: updateError } = await supabase
+    // Mettre à jour le solde de la caisse - utiliser une approche manuelle
+    const { data: currentBalance, error: balanceError } = await supabase
       .from('cash_registers')
-      .update({
-        balance: supabase.sql`balance + ${venteData.montant_paye}`,
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', cashRegister.id);
+      .select('balance')
+      .eq('id', cashRegister.id)
+      .single();
 
-    if (updateError) {
-      console.error('❌ Erreur mise à jour solde caisse:', updateError);
-      // Tenter une mise à jour manuelle du solde
-      const { data: currentBalance } = await supabase
+    if (!balanceError && currentBalance) {
+      const newBalance = (currentBalance.balance || 0) + venteData.montant_paye;
+      
+      const { error: updateError } = await supabase
         .from('cash_registers')
-        .select('balance')
-        .eq('id', cashRegister.id)
-        .single();
+        .update({
+          balance: newBalance,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', cashRegister.id);
 
-      if (currentBalance) {
-        await supabase
-          .from('cash_registers')
-          .update({
-            balance: (currentBalance.balance || 0) + venteData.montant_paye,
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', cashRegister.id);
+      if (updateError) {
+        console.error('❌ Erreur mise à jour solde caisse:', updateError);
       }
     }
 

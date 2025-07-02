@@ -1,6 +1,6 @@
 
 import { supabase } from '@/integrations/supabase/client';
-import { createCashTransaction } from '../../useVenteComptoir/services/transactionService';
+import { createCashTransaction } from '@/hooks/useVenteComptoir/services/transactionService';
 
 export const processPayment = async (paymentData: any, facture: any) => {
   if (!paymentData || typeof paymentData.montant_paye !== 'number' || paymentData.montant_paye < 0) {
