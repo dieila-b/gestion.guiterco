@@ -36,12 +36,12 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
 }) => {
   const [montantPaye, setMontantPaye] = useState(0);
   const [modePaiement, setModePaiement] = useState('especes');
-  // CORRECTION: Statut par défaut en_attente au lieu de livre
+  // CORRECTION: Statut par défaut en_attente
   const [statutLivraison, setStatutLivraison] = useState('en_attente');
   const [notes, setNotes] = useState('');
   const [quantitesLivrees, setQuantitesLivrees] = useState<{ [key: string]: number }>({});
 
-  // Préremplir le montant payé à 0 par défaut (pas le total)
+  // Préremplir le montant payé à 0 par défaut
   useEffect(() => {
     if (isOpen) {
       setMontantPaye(0);
@@ -70,6 +70,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
       paymentData.quantite_livree = quantitesLivrees;
     }
 
+    console.log('📦 Données de paiement envoyées:', paymentData);
     onConfirm(paymentData);
   };
 
@@ -241,6 +242,16 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
                 ))}
               </div>
             )}
+
+            <div className="mt-4 p-3 bg-gray-50 rounded border">
+              <p className="text-sm text-gray-700">
+                <strong>Statut sélectionné:</strong> {
+                  statutLivraison === 'en_attente' ? 'En attente de livraison' :
+                  statutLivraison === 'partiel' ? 'Livraison partielle' :
+                  statutLivraison === 'livre' ? 'Livraison complète' : 'Non défini'
+                }
+              </p>
+            </div>
           </TabsContent>
         </Tabs>
 
