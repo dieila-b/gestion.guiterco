@@ -60,6 +60,59 @@ export const getActualDeliveryStatus = (facture: FactureVente): string => {
 };
 
 export const getPaymentStatus = (facture: FactureVente): string => {
-  // Cette fonction reste inchangée
   return facture.statut_paiement || 'en_attente';
+};
+
+export const calculatePaidAmount = (facture: FactureVente): number => {
+  if (!facture.versements || facture.versements.length === 0) {
+    return 0;
+  }
+  
+  return facture.versements.reduce((total, versement) => {
+    return total + (versement.montant || 0);
+  }, 0);
+};
+
+export const calculateRemainingAmount = (facture: FactureVente): number => {
+  const paidAmount = calculatePaidAmount(facture);
+  return Math.max(0, facture.montant_ttc - paidAmount);
+};
+
+export const getActualPaymentStatus = (facture: FactureVente): string => {
+  const paidAmount = calculatePaidAmount(facture);
+  const totalAmount = facture.montant_ttc;
+  
+  if (paidAmount === 0) {
+    return 'en_attente';
+  } else if (paidAmount >= totalAmount) {
+    return 'payee';
+  } else {
+    return 'partiellement_payee';
+  }
+};
+
+export const getStatusBadgeColor = (status: string): string => {
+  switch (status) {
+    case 'payee':
+      return 'bg-green-100 text-green-800 border-green-300';
+    case 'partiellement_payee':
+      return 'bg-yellow-100 text-yellow-800 border-yellow-300';
+    case 'en_attente':
+      return 'bg-orange-100 text-orange-800 border-orange-300';
+    default:
+      return 'bg-gray-100 text-gray-800 border-gray-300';
+  }
+};
+
+export const getStatusLabel = (status: string): string => {
+  switch (status) {
+    case 'payee':
+      return 'Payée';
+    case 'partiellement_payee':
+      return 'Partielle';
+    case 'en_attente':
+      return 'En attente';
+    default:
+      return 'Non défini';
+  }
 };
