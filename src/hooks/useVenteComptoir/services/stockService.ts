@@ -36,10 +36,10 @@ export const updateStockPDV = async (venteData: any, pdvSelected: any) => {
   }
 };
 
-// *** FONCTION CORRIGÉE POUR DÉCRÉMENTATION SYSTÉMATIQUE DU STOCK ***
+// *** FONCTION CRITIQUE - RÉSOLUTION CORRECTE DE L'UUID DU PDV ***
 export const updateStockAfterVente = async (cart: any[], selectedPDV: string, pdvNom: string) => {
   console.log('🔄 *** DÉCRÉMENTATION STOCK APRÈS VENTE OBLIGATOIRE ***');
-  console.log('📦 Point de vente:', pdvNom, '- ID:', selectedPDV);
+  console.log('📦 Point de vente reçu:', selectedPDV, '- Nom:', pdvNom);
   console.log('🛒 Articles à traiter:', cart.length);
   
   if (!cart || cart.length === 0) {
@@ -50,6 +50,28 @@ export const updateStockAfterVente = async (cart: any[], selectedPDV: string, pd
   if (!selectedPDV) {
     console.error('❌ Point de vente non spécifié, impossible de décrémenter le stock');
     throw new Error('Point de vente requis pour la mise à jour du stock');
+  }
+
+  // *** CORRECTION CRITIQUE *** : Résoudre l'UUID du PDV si c'est un nom
+  let pdvId = selectedPDV;
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  
+  if (!uuidRegex.test(selectedPDV)) {
+    console.log('🔍 Résolution UUID pour PDV:', selectedPDV);
+    
+    const { data: pdvData, error: pdvError } = await supabase
+      .from('points_de_vente')
+      .select('id, nom')
+      .eq('nom', selectedPDV)
+      .single();
+    
+    if (pdvError || !pdvData) {
+      console.error('❌ Point de vente non trouvé:', selectedPDV, pdvError);
+      throw new Error(`Point de vente "${selectedPDV}" non trouvé`);
+    }
+    
+    pdvId = pdvData.id;
+    console.log('✅ UUID résolu:', pdvId, 'pour PDV:', pdvData.nom);
   }
 
   const resultats = [];
@@ -63,7 +85,7 @@ export const updateStockAfterVente = async (cart: any[], selectedPDV: string, pd
         .from('stock_pdv')
         .select('quantite_disponible, id')
         .eq('article_id', item.article_id)
-        .eq('point_vente_id', selectedPDV)
+        .eq('point_vente_id', pdvId) // *** UTILISER L'UUID RÉSOLU ***
         .single();
 
       if (fetchError) {
@@ -76,7 +98,7 @@ export const updateStockAfterVente = async (cart: any[], selectedPDV: string, pd
             .from('stock_pdv')
             .insert({
               article_id: item.article_id,
-              point_vente_id: selectedPDV,
+              point_vente_id: pdvId, // *** UTILISER L'UUID RÉSOLU ***
               quantite_disponible: 0,
               derniere_livraison: new Date().toISOString()
             });
@@ -106,7 +128,7 @@ export const updateStockAfterVente = async (cart: any[], selectedPDV: string, pd
       console.log(`📊 CALCUL STOCK - Article: ${item.article_id}`);
       console.log(`📊 Stock avant: ${stockAvant}, Quantité vendue: ${item.quantite}, Stock après: ${nouvelleQuantite}`);
 
-      // *** MISE À JOUR OBLIGATOIRE DU STOCK ***
+      // *** MISE À JOUR OBLIGATOIRE DU STOCK AVEC UUID CORRECT ***
       const { error: updateError } = await supabase
         .from('stock_pdv')
         .update({
@@ -138,9 +160,9 @@ export const updateStockAfterVente = async (cart: any[], selectedPDV: string, pd
             article_id: item.article_id,
             quantite: item.quantite,
             type_sortie: 'vente',
-            destination: `PDV ${selectedPDV}`,
+            destination: `PDV ${pdvId}`,
             numero_bon: `VENTE-${Date.now()}`,
-            observations: `Vente comptoir - Déduction automatique stock PDV ${pdvNom}`,
+            observations: `Vente comptoir - Déduction automatique stock PDV ${pdvNom || selectedPDV}`,
             created_by: 'system'
           });
         
@@ -160,7 +182,7 @@ export const updateStockAfterVente = async (cart: any[], selectedPDV: string, pd
   
   console.log(`📊 *** RÉSUMÉ DÉCRÉMENTATION STOCK ***`);
   console.log(`✅ Articles traités avec succès: ${reussites}/${cart.length}`);
-  console.log(`📦 Point de vente: ${pdvNom} (${selectedPDV})`);
+  console.log(`📦 Point de vente: ${pdvNom || selectedPDV} (${pdvId})`);
   
   if (reussites !== cart.length) {
     throw new Error(`Échec décrémentation stock: ${reussites}/${cart.length} articles traités`);

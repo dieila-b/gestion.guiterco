@@ -49,7 +49,50 @@ export const createVenteComptoir = async (venteData: any, cart: any[]) => {
 
     console.log('✅ Commande créée:', commande.numero_commande);
 
-    // 2. Déterminer le statut de livraison correct
+    // 2. *** CORRECTION CRITIQUE *** Résoudre l'UUID du PDV
+    let pdvId = null;
+    let pdvNom = 'Non spécifié';
+    
+    if (venteData.point_vente_id) {
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+      
+      if (uuidRegex.test(venteData.point_vente_id)) {
+        // C'est déjà un UUID
+        pdvId = venteData.point_vente_id;
+        
+        // Récupérer le nom pour les logs
+        const { data: pdvInfo } = await supabase
+          .from('points_de_vente')
+          .select('nom')
+          .eq('id', pdvId)
+          .single();
+        
+        if (pdvInfo) {
+          pdvNom = pdvInfo.nom;
+        }
+      } else {
+        // C'est un nom, résoudre l'UUID
+        console.log('🔍 Résolution UUID pour PDV:', venteData.point_vente_id);
+        
+        const { data: pdvData, error: pdvError } = await supabase
+          .from('points_de_vente')
+          .select('id, nom')
+          .eq('nom', venteData.point_vente_id)
+          .single();
+        
+        if (pdvError || !pdvData) {
+          console.error('❌ Point de vente non trouvé:', venteData.point_vente_id);
+          // Continuer sans PDV plutôt que de faire échouer
+          console.warn('⚠️ Vente continuée sans point de vente spécifique');
+        } else {
+          pdvId = pdvData.id;
+          pdvNom = pdvData.nom;
+          console.log('✅ UUID PDV résolu:', pdvId, 'pour:', pdvNom);
+        }
+      }
+    }
+
+    // 3. Déterminer le statut de livraison correct
     let statutLivraisonId = 1; // Par défaut en_attente
     
     // Si le statut de livraison est fourni dans venteData
@@ -72,7 +115,7 @@ export const createVenteComptoir = async (venteData: any, cart: any[]) => {
       }
     }
 
-    // 3. Créer la facture avec le bon statut de livraison
+    // 4. Créer la facture avec le bon statut de livraison
     console.log('📄 Création de la facture avec statut_livraison_id:', statutLivraisonId);
     const { data: facture, error: factureError } = await supabase
       .from('factures_vente')
@@ -97,7 +140,7 @@ export const createVenteComptoir = async (venteData: any, cart: any[]) => {
 
     console.log('✅ Facture créée:', facture.numero_facture, 'avec statut_livraison_id:', facture.statut_livraison_id);
 
-    // 4. Créer les lignes de facture avec le bon statut de livraison
+    // 5. Créer les lignes de facture avec le bon statut de livraison
     console.log('📋 Création des lignes de facture...');
     const lignesFacture = cart.map(item => {
       // Déterminer le statut de livraison pour chaque ligne
@@ -134,20 +177,22 @@ export const createVenteComptoir = async (venteData: any, cart: any[]) => {
 
     console.log('✅ Lignes de facture créées:', lignesFacture.length + ' lignes avec statuts de livraison');
 
-    // 5. *** MISE À JOUR STOCK OBLIGATOIRE *** - Toujours décrémenter le stock
-    if (venteData.point_vente_id) {
-      console.log('📦 *** DÉCRÉMENTATION STOCK OBLIGATOIRE ***');
+    // 6. *** MISE À JOUR STOCK OBLIGATOIRE AVEC UUID CORRECT ***
+    if (pdvId) {
+      console.log('📦 *** DÉCRÉMENTATION STOCK OBLIGATOIRE avec UUID:', pdvId, '***');
       try {
-        await updateStockAfterVente(cart, venteData.point_vente_id, 'Point de vente');
+        await updateStockAfterVente(cart, pdvId, pdvNom); // *** UTILISER L'UUID RÉSOLU ***
         console.log('✅ Stock décrémenté avec succès');
       } catch (stockError) {
         console.error('❌ ERREUR CRITIQUE: Stock non décrémenté:', stockError);
         // Ne pas faire échouer la vente mais alerter
         throw new Error('Vente créée mais stock non mis à jour: ' + stockError.message);
       }
+    } else {
+      console.warn('⚠️ Aucun point de vente spécifié, stock non décrémenté');
     }
 
-    // 6. Créer la transaction de caisse AUTOMATIQUEMENT
+    // 7. Créer la transaction de caisse AUTOMATIQUEMENT
     if (venteData.montant_paye && venteData.montant_paye > 0) {
       console.log('💰 Création transaction caisse automatique pour vente:', venteData.montant_paye);
       
@@ -166,7 +211,7 @@ export const createVenteComptoir = async (venteData: any, cart: any[]) => {
       }
     }
 
-    // 7. Créer versement si paiement
+    // 8. Créer versement si paiement
     if (venteData.montant_paye > 0) {
       console.log('💳 Création du versement...');
       const { error: versementError } = await supabase
@@ -189,8 +234,8 @@ export const createVenteComptoir = async (venteData: any, cart: any[]) => {
     }
 
     console.log('🎉 Vente comptoir créée avec succès:', facture.numero_facture);
-    console.log('📦 Stock décrémenté:', venteData.point_vente_id ? 'OUI' : 'NON');
-    console.log('📋 Statut livraison:', statutLivraisonId);
+    console.log('📦 Stock décrémenté:', pdvId ? 'OUI (UUID: ' + pdvId + ')' : 'NON');
+    console.log('📋 Statut livraison ID:', statutLivraisonId);
     
     return { facture, commande };
 
