@@ -31,10 +31,7 @@ export const useCreateFacture = () => {
     mutationFn: async (facture: CreateFactureInput) => {
       const { data, error } = await supabase
         .from('factures_vente')
-        .insert({
-          ...facture,
-          statut_livraison_id: facture.statut_livraison_id || 1 // Défaut à 1 (en attente)
-        })
+        .insert(facture)
         .select()
         .single();
       

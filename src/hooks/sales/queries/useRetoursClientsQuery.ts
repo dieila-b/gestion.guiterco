@@ -13,13 +13,7 @@ export const useRetoursClientsQuery = () => {
         .select(`
           *,
           client:clients(*),
-          facture:factures_vente(
-            *,
-            livraison_statut!fk_factures_vente_statut_livraison(
-              id,
-              nom
-            )
-          )
+          facture:factures_vente(*)
         `)
         .order('created_at', { ascending: false });
       
@@ -28,3 +22,4 @@ export const useRetoursClientsQuery = () => {
     }
   });
 };
+

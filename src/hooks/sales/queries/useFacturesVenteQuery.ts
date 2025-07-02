@@ -15,7 +15,7 @@ export const useFacturesVenteQuery = () => {
           *,
           client:clients(*),
           commande:commandes_clients(*),
-          livraison_statut!fk_factures_vente_statut_livraison(
+          livraison_statut!fk_facture_statut_livraison(
             id,
             nom
           ),

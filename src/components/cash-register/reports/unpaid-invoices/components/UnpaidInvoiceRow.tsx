@@ -28,11 +28,6 @@ const UnpaidInvoiceRow: React.FC<UnpaidInvoiceRowProps> = ({ facture }) => {
     printTicket(facture);
   };
 
-  // Calculer le statut de livraison depuis la relation
-  const statutLivraison = facture.livraison_statut?.nom?.toLowerCase() === 'livrée' ? 'livree' : 
-                         facture.livraison_statut?.nom?.toLowerCase() === 'partiellement livrée' ? 'partiellement_livree' : 
-                         'en_attente';
-
   return (
     <TableRow className="hover:bg-muted/25">
       <TableCell className="font-medium">
@@ -60,7 +55,7 @@ const UnpaidInvoiceRow: React.FC<UnpaidInvoiceRowProps> = ({ facture }) => {
         <StatusBadges statut={facture.statut_paiement} type="payment" />
       </TableCell>
       <TableCell>
-        <StatusBadges statut={statutLivraison} type="delivery" />
+        <StatusBadges statut={facture.statut_livraison} type="delivery" />
       </TableCell>
       <TableCell>
         <div className="flex items-center gap-1">
