@@ -1,128 +1,105 @@
 
 import { supabase } from '@/integrations/supabase/client';
-import { generateFactureNumber, determineStatutPaiement } from '../utils/formatUtils';
+import { createCashTransaction } from './transactionService';
 
-// Service for creating sales-related database entries
-export const createVenteEntries = async (venteData: any, pdvSelected: any) => {
-  const montantTotal = Number(venteData.montant_total);
-  const montantPaye = Number(venteData.montant_paye || 0);
-  
-  // Calculer le statut de paiement correct
-  let statutPaiement = 'en_attente';
-  if (montantPaye === 0) {
-    statutPaiement = 'en_attente';
-  } else if (montantPaye >= montantTotal) {
-    statutPaiement = 'payee';
-  } else if (montantPaye > 0) {
-    statutPaiement = 'partiellement_payee';
-  }
+export const createVenteComptoir = async (venteData: any, cart: any[]) => {
+  console.log('🔄 Création vente comptoir:', venteData);
 
-  const montantRestant = Math.max(0, montantTotal - montantPaye);
-
-  console.log('📊 Calcul statut vente:', {
-    montantTotal,
-    montantPaye,
-    montantRestant,
-    statutPaiement
-  });
-
-  // Créer la commande client
-  const numeroCommande = `CMD-${Date.now()}`;
-  const { data: commande, error: commandeError } = await supabase
-    .from('commandes_clients')
-    .insert({
-      numero_commande: numeroCommande,
-      client_id: venteData.client_id,
-      montant_ttc: montantTotal,
-      montant_ht: montantTotal / 1.2,
-      tva: montantTotal - (montantTotal / 1.2),
-      statut: 'confirmee',
-      mode_paiement: venteData.mode_paiement,
-      observations: venteData.notes
-    })
-    .select()
-    .single();
-
-  if (commandeError) {
-    console.error('Erreur création commande:', commandeError);
-    throw commandeError;
-  }
-
-  console.log('Commande créée:', commande);
-
-  // Créer les lignes de commande
-  const lignesCommande = venteData.articles.map((article: any) => {
-    const prixApresRemise = Math.max(0, article.prix_vente - article.remise);
-    return {
-      commande_id: commande.id,
-      article_id: article.id,
-      quantite: article.quantite,
-      prix_unitaire: prixApresRemise,
-      montant_ligne: prixApresRemise * article.quantite
-    };
-  });
-
-  const { error: lignesError } = await supabase
-    .from('lignes_commande')
-    .insert(lignesCommande);
-
-  if (lignesError) {
-    console.error('Erreur création lignes commande:', lignesError);
-    throw lignesError;
-  }
-
-  // Créer la facture avec le statut de paiement correct
-  const numeroFacture = generateFactureNumber();
-  
-  const { data: facture, error: factureError } = await supabase
-    .from('factures_vente')
-    .insert({
-      numero_facture: numeroFacture,
-      commande_id: commande.id,
-      client_id: venteData.client_id,
-      montant_ttc: montantTotal,
-      montant_ht: montantTotal / 1.2,
-      tva: montantTotal - (montantTotal / 1.2),
-      statut_paiement: statutPaiement,
-      statut_livraison_id: 3, // Default to 'livree' (ID 3) for point of sale
-      mode_paiement: venteData.mode_paiement
-    })
-    .select()
-    .single();
-
-  if (factureError) {
-    console.error('Erreur création facture:', factureError);
-    throw factureError;
-  }
-
-  console.log('Facture créée avec statut:', statutPaiement);
-
-  // Enregistrer le versement SEULEMENT si paiement effectué
-  if (montantPaye > 0) {
-    const { error: versementError } = await supabase
-      .from('versements_clients')
+  try {
+    // 1. Créer la commande
+    const { data: commande, error: commandeError } = await supabase
+      .from('commandes_clients')
       .insert({
-        numero_versement: `VER-${Date.now()}`,
+        numero_commande: `CMD-${Date.now()}`,
         client_id: venteData.client_id,
-        facture_id: facture.id,
-        montant: montantPaye,
-        mode_paiement: venteData.mode_paiement,
-        observations: venteData.notes || `Versement ${statutPaiement === 'payee' ? 'complet' : 'partiel'} pour facture ${numeroFacture}`
-      });
+        montant_ht: venteData.montant_ht || 0,
+        tva: venteData.tva || 0,
+        montant_ttc: venteData.montant_ttc || 0,
+        statut: 'confirmee',
+        mode_paiement: venteData.mode_paiement
+      })
+      .select()
+      .single();
 
-    if (versementError) {
-      console.error('Erreur création versement:', versementError);
-      throw versementError;
+    if (commandeError) throw commandeError;
+
+    // 2. Créer la facture AVEC statut_livraison_id obligatoire
+    const { data: facture, error: factureError } = await supabase
+      .from('factures_vente')
+      .insert({
+        numero_facture: 'TEMP', // Sera généré par le trigger
+        commande_id: commande.id,
+        client_id: venteData.client_id,
+        montant_ttc: venteData.montant_ttc || 0,
+        montant_ht: venteData.montant_ht || 0,
+        tva: venteData.tva || 0,
+        statut_paiement: venteData.montant_paye > 0 ? 'payee' : 'en_attente',
+        statut_livraison_id: 1, // Obligatoire - 1 = en_attente
+        mode_paiement: venteData.mode_paiement
+      })
+      .select()
+      .single();
+
+    if (factureError) throw factureError;
+
+    // 3. Créer les lignes de facture
+    const lignesFacture = cart.map(item => ({
+      facture_vente_id: facture.id,
+      article_id: item.article_id,
+      quantite: item.quantite,
+      prix_unitaire: item.prix_unitaire,
+      montant_ligne: item.quantite * item.prix_unitaire
+    }));
+
+    const { error: lignesError } = await supabase
+      .from('lignes_facture_vente')
+      .insert(lignesFacture);
+
+    if (lignesError) throw lignesError;
+
+    // 4. *** CORRECTION CRITIQUE *** : Créer la transaction de caisse AUTOMATIQUEMENT
+    if (venteData.montant_paye && venteData.montant_paye > 0) {
+      console.log('💰 Création transaction caisse automatique pour vente:', venteData.montant_paye);
+      
+      try {
+        await createCashTransaction({
+          montant_paye: venteData.montant_paye,
+          mode_paiement: venteData.mode_paiement,
+          notes: venteData.notes,
+          client_id: venteData.client_id
+        }, facture.numero_facture);
+        
+        console.log('✅ Transaction caisse créée automatiquement');
+      } catch (transactionError) {
+        console.error('❌ ERREUR CRITIQUE: Impossible de créer la transaction caisse:', transactionError);
+        // Ne pas faire échouer la vente, mais alerter
+      }
     }
 
-    console.log('✅ Versement créé pour montant:', montantPaye);
-  }
+    // 5. Créer versement si paiement
+    if (venteData.montant_paye > 0) {
+      const { error: versementError } = await supabase
+        .from('versements_clients')
+        .insert({
+          client_id: venteData.client_id,
+          facture_id: facture.id,
+          montant: venteData.montant_paye,
+          mode_paiement: venteData.mode_paiement,
+          numero_versement: `VERS-${facture.numero_facture}`,
+          date_versement: new Date().toISOString(),
+          observations: venteData.notes || 'Paiement vente comptoir'
+        });
 
-  return { 
-    commande, 
-    facture, 
-    statutPaiement, 
-    montantRestant,
-    numeroFacture
-  };
+      if (versementError) {
+        console.error('❌ Erreur versement:', versementError);
+      }
+    }
+
+    console.log('✅ Vente comptoir créée avec succès:', facture.numero_facture);
+    return { facture, commande };
+
+  } catch (error) {
+    console.error('❌ Erreur création vente comptoir:', error);
+    throw error;
+  }
 };
