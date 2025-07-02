@@ -36,69 +36,56 @@ export const updateStockPDV = async (venteData: any, pdvSelected: any) => {
   }
 };
 
-// *** FONCTION CRITIQUE - RÉSOLUTION CORRECTE DE L'UUID DU PDV ***
+// *** FONCTION CRITIQUE - DÉCRÉMENTATION STOCK OBLIGATOIRE APRÈS VENTE ***
 export const updateStockAfterVente = async (cart: any[], selectedPDV: string, pdvNom: string) => {
-  console.log('🔄 *** DÉCRÉMENTATION STOCK APRÈS VENTE OBLIGATOIRE ***');
-  console.log('📦 Point de vente reçu:', selectedPDV, '- Nom:', pdvNom);
+  console.log('🔄 *** DÉCRÉMENTATION STOCK OBLIGATOIRE APRÈS VENTE ***');
+  console.log('📦 Point de vente UUID reçu:', selectedPDV, '- Nom:', pdvNom);
   console.log('🛒 Articles à traiter:', cart.length);
   
   if (!cart || cart.length === 0) {
     console.warn('⚠️ Panier vide, aucun stock à décrémenter');
-    return;
+    return [];
   }
 
   if (!selectedPDV) {
-    console.error('❌ Point de vente non spécifié, impossible de décrémenter le stock');
-    throw new Error('Point de vente requis pour la mise à jour du stock');
+    console.error('❌ *** ERREUR CRITIQUE *** Point de vente UUID manquant');
+    throw new Error('Point de vente UUID requis pour la mise à jour du stock');
   }
 
-  // *** CORRECTION CRITIQUE *** : Résoudre l'UUID du PDV si c'est un nom
-  let pdvId = selectedPDV;
+  // *** VÉRIFICATION OBLIGATOIRE QUE C'EST UN UUID VALIDE ***
   const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-  
   if (!uuidRegex.test(selectedPDV)) {
-    console.log('🔍 Résolution UUID pour PDV:', selectedPDV);
-    
-    const { data: pdvData, error: pdvError } = await supabase
-      .from('points_de_vente')
-      .select('id, nom')
-      .eq('nom', selectedPDV)
-      .single();
-    
-    if (pdvError || !pdvData) {
-      console.error('❌ Point de vente non trouvé:', selectedPDV, pdvError);
-      throw new Error(`Point de vente "${selectedPDV}" non trouvé`);
-    }
-    
-    pdvId = pdvData.id;
-    console.log('✅ UUID résolu:', pdvId, 'pour PDV:', pdvData.nom);
+    console.error('❌ *** ERREUR CRITIQUE *** Point de vente n\'est pas un UUID valide:', selectedPDV);
+    throw new Error(`Point de vente doit être un UUID valide, reçu: "${selectedPDV}"`);
   }
+
+  console.log('✅ *** UUID PDV VALIDE *** :', selectedPDV);
 
   const resultats = [];
   
   for (const item of cart) {
-    console.log(`🔄 Traitement article ${item.article_id} - Quantité à déduire: ${item.quantite}`);
+    console.log(`🔄 *** TRAITEMENT ARTICLE *** ${item.article_id} - Quantité à déduire: ${item.quantite}`);
     
     try {
-      // Récupérer le stock actuel AVANT déduction
+      // *** RÉCUPÉRATION STOCK ACTUEL OBLIGATOIRE ***
       const { data: currentStock, error: fetchError } = await supabase
         .from('stock_pdv')
         .select('quantite_disponible, id')
         .eq('article_id', item.article_id)
-        .eq('point_vente_id', pdvId) // *** UTILISER L'UUID RÉSOLU ***
+        .eq('point_vente_id', selectedPDV)
         .single();
 
       if (fetchError) {
         console.error('❌ Erreur récupération stock pour article:', item.article_id, fetchError);
         
-        // Si l'article n'existe pas dans le stock PDV, le créer avec quantité 0
+        // *** SI ARTICLE N'EXISTE PAS DANS STOCK PDV, LE CRÉER AVEC QUANTITÉ 0 ***
         if (fetchError.code === 'PGRST116') {
-          console.log('📦 Article non trouvé dans stock PDV, création avec quantité 0');
+          console.log('📦 *** CRÉATION STOCK PDV *** Article non trouvé, création avec quantité 0');
           const { error: insertError } = await supabase
             .from('stock_pdv')
             .insert({
               article_id: item.article_id,
-              point_vente_id: pdvId, // *** UTILISER L'UUID RÉSOLU ***
+              point_vente_id: selectedPDV,
               quantite_disponible: 0,
               derniere_livraison: new Date().toISOString()
             });
@@ -114,8 +101,22 @@ export const updateStockAfterVente = async (cart: any[], selectedPDV: string, pd
             stock_avant: 0, 
             stock_apres: 0,
             quantite_deduite: item.quantite,
-            note: 'Article créé avec stock 0'
+            note: 'Article créé avec stock 0 - Vente en négatif'
           });
+          
+          // *** CRÉER SORTIE DE STOCK POUR TRAÇABILITÉ ***
+          await supabase
+            .from('sorties_stock')
+            .insert({
+              article_id: item.article_id,
+              quantite: item.quantite,
+              type_sortie: 'vente',
+              destination: `PDV ${selectedPDV}`,
+              numero_bon: `VENTE-${Date.now()}`,
+              observations: `Vente comptoir - Stock créé à 0 pour PDV ${pdvNom}`,
+              created_by: 'system'
+            });
+          
           continue;
         }
         
@@ -125,10 +126,10 @@ export const updateStockAfterVente = async (cart: any[], selectedPDV: string, pd
       const stockAvant = currentStock.quantite_disponible;
       const nouvelleQuantite = Math.max(0, stockAvant - item.quantite);
       
-      console.log(`📊 CALCUL STOCK - Article: ${item.article_id}`);
+      console.log(`📊 *** CALCUL STOCK *** Article: ${item.article_id}`);
       console.log(`📊 Stock avant: ${stockAvant}, Quantité vendue: ${item.quantite}, Stock après: ${nouvelleQuantite}`);
 
-      // *** MISE À JOUR OBLIGATOIRE DU STOCK AVEC UUID CORRECT ***
+      // *** MISE À JOUR STOCK OBLIGATOIRE ***
       const { error: updateError } = await supabase
         .from('stock_pdv')
         .update({
@@ -138,11 +139,11 @@ export const updateStockAfterVente = async (cart: any[], selectedPDV: string, pd
         .eq('id', currentStock.id);
 
       if (updateError) {
-        console.error('❌ ERREUR CRITIQUE - Échec mise à jour stock pour article:', item.article_id, updateError);
+        console.error('❌ *** ERREUR CRITIQUE STOCK *** Échec mise à jour pour article:', item.article_id, updateError);
         throw updateError;
       }
 
-      console.log(`✅ STOCK DÉCRÉMENTÉ avec succès pour article ${item.article_id}: ${stockAvant} → ${nouvelleQuantite}`);
+      console.log(`✅ *** STOCK DÉCRÉMENTÉ *** Article ${item.article_id}: ${stockAvant} → ${nouvelleQuantite}`);
       
       resultats.push({ 
         article_id: item.article_id, 
@@ -152,7 +153,7 @@ export const updateStockAfterVente = async (cart: any[], selectedPDV: string, pd
         quantite_deduite: item.quantite
       });
 
-      // Créer une entrée dans les sorties de stock pour traçabilité
+      // *** CRÉER SORTIE DE STOCK POUR TRAÇABILITÉ OBLIGATOIRE ***
       try {
         await supabase
           .from('sorties_stock')
@@ -160,32 +161,32 @@ export const updateStockAfterVente = async (cart: any[], selectedPDV: string, pd
             article_id: item.article_id,
             quantite: item.quantite,
             type_sortie: 'vente',
-            destination: `PDV ${pdvId}`,
+            destination: `PDV ${selectedPDV}`,
             numero_bon: `VENTE-${Date.now()}`,
             observations: `Vente comptoir - Déduction automatique stock PDV ${pdvNom || selectedPDV}`,
             created_by: 'system'
           });
         
-        console.log(`📝 Sortie de stock créée pour traçabilité - Article: ${item.article_id}`);
+        console.log(`📝 *** SORTIE STOCK CRÉÉE *** Article: ${item.article_id}`);
       } catch (sortieError) {
         console.warn('⚠️ Erreur création sortie stock (non bloquant):', sortieError);
       }
       
     } catch (error) {
-      console.error(`❌ Erreur générale pour article ${item.article_id}:`, error);
-      throw error; // Faire échouer la vente si le stock ne peut pas être mis à jour
+      console.error(`❌ *** ERREUR ARTICLE *** ${item.article_id}:`, error);
+      throw error; // *** FAIRE ÉCHOUER LA VENTE SI STOCK NON MIS À JOUR ***
     }
   }
   
-  // Résumé des résultats
+  // *** RÉSUMÉ OBLIGATOIRE ***
   const reussites = resultats.filter(r => r.success).length;
   
   console.log(`📊 *** RÉSUMÉ DÉCRÉMENTATION STOCK ***`);
   console.log(`✅ Articles traités avec succès: ${reussites}/${cart.length}`);
-  console.log(`📦 Point de vente: ${pdvNom || selectedPDV} (${pdvId})`);
+  console.log(`📦 Point de vente: ${pdvNom || selectedPDV} (UUID: ${selectedPDV})`);
   
   if (reussites !== cart.length) {
-    throw new Error(`Échec décrémentation stock: ${reussites}/${cart.length} articles traités`);
+    throw new Error(`*** ÉCHEC DÉCRÉMENTATION STOCK *** : ${reussites}/${cart.length} articles traités`);
   }
   
   console.log('🎯 *** DÉCRÉMENTATION STOCK TERMINÉE AVEC SUCCÈS ***');

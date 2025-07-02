@@ -50,28 +50,28 @@ export const useVenteComptoirHandlers = ({
 
   const handlePaymentConfirm = async (paymentData: any) => {
     try {
-      console.log('🔄 Données paiement reçues:', paymentData);
+      console.log('🔄 *** CONFIRMATION PAIEMENT *** Données reçues:', paymentData);
       
-      // *** CORRECTION CRITIQUE *** : Construire venteData avec statut de livraison
+      // *** CONSTRUCTION VENTEDATA AVEC STATUT LIVRAISON OBLIGATOIRE ***
       const venteData = {
         client_id: selectedClient,
         montant_ht: cartTotals.total / 1.2,
         tva: cartTotals.total * 0.2 / 1.2,
         montant_ttc: cartTotals.total,
         mode_paiement: paymentData.mode_paiement,
-        point_vente_id: selectedPDV, // *** OBLIGATOIRE POUR DÉCRÉMENTATION STOCK ***
+        point_vente_id: selectedPDV, // *** UUID ou nom - sera résolu automatiquement ***
         montant_paye: paymentData.montant_paye || 0,
         notes: paymentData.notes,
-        // *** AJOUT CRITIQUE *** : Transmettre le statut de livraison
+        // *** TRANSMISSION STATUT LIVRAISON OBLIGATOIRE ***
         statut_livraison: paymentData.statut_livraison || 'livree', // Par défaut livraison complète
         delivery_status: paymentData.delivery_status || paymentData.statut_livraison || 'livree'
       };
       
-      console.log('📋 venteData construit avec statut livraison:', venteData);
-      console.log('🛒 cart à envoyer:', cart);
-      console.log('📦 Point de vente pour stock:', selectedPDV);
+      console.log('📋 *** VENTEDATA CONSTRUIT *** avec statut livraison:', venteData);
+      console.log('🛒 *** CART À ENVOYER *** :', cart.length, 'articles');
+      console.log('📦 *** POINT DE VENTE *** :', selectedPDV);
       
-      // Appeler createVente avec la structure correcte
+      // *** APPEL CRÉATION VENTE AVEC GESTION STOCK OBLIGATOIRE ***
       const result = await createVente({
         venteData,
         cart
@@ -84,19 +84,19 @@ export const useVenteComptoirHandlers = ({
       // Réinitialisation automatique après validation
       setSelectedClient('');
       
-      // Message de succès adaptatif selon le montant payé
+      // *** MESSAGES DE SUCCÈS ADAPTATIFS ***
       const montantPaye = paymentData.montant_paye || 0;
       if (montantPaye === 0) {
-        toast.success('Facture créée - Stock mis à jour - Aucun paiement enregistré');
+        toast.success('✅ Facture créée - Stock décrémenté - Aucun paiement enregistré');
       } else if (montantPaye < cartTotals.total) {
-        toast.success(`Facture créée - Stock mis à jour - Paiement partiel de ${montantPaye}€ enregistré`);
+        toast.success(`✅ Facture créée - Stock décrémenté - Paiement partiel de ${montantPaye}€ enregistré`);
       } else {
-        toast.success('Facture créée - Stock mis à jour - Paiement complet reçu');
+        toast.success('✅ Facture créée - Stock décrémenté - Paiement complet reçu');
       }
     } catch (error) {
-      console.error('Erreur lors de la vente:', error);
+      console.error('❌ *** ERREUR VENTE *** :', error);
       const errorMessage = error instanceof Error ? error.message : 'Erreur lors de la création de la vente';
-      toast.error(errorMessage);
+      toast.error(`❌ ${errorMessage}`);
     }
   };
 
