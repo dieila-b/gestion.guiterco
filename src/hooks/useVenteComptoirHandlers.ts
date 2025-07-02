@@ -52,19 +52,25 @@ export const useVenteComptoirHandlers = ({
     try {
       console.log('🔄 Données paiement reçues:', paymentData);
       
-      const result = await createVente({
+      // Construire venteData avec toutes les données nécessaires
+      const venteData = {
         client_id: selectedClient,
-        cart: cart,
         montant_ht: cartTotals.total / 1.2,
         tva: cartTotals.total * 0.2 / 1.2,
         montant_ttc: cartTotals.total,
         mode_paiement: paymentData.mode_paiement,
         point_vente_id: selectedPDV,
-        payment_data: {
-          montant_paye: paymentData.montant_paye || 0,
-          mode_paiement: paymentData.mode_paiement,
-          notes: paymentData.notes
-        }
+        montant_paye: paymentData.montant_paye || 0,
+        notes: paymentData.notes
+      };
+      
+      console.log('📋 venteData construit:', venteData);
+      console.log('🛒 cart à envoyer:', cart);
+      
+      // Appeler createVente avec la structure correcte
+      const result = await createVente({
+        venteData,
+        cart
       });
       
       setLastFacture(result.facture);
@@ -85,6 +91,7 @@ export const useVenteComptoirHandlers = ({
       }
     } catch (error) {
       console.error('Erreur lors de la vente:', error);
+      toast.error('Erreur lors de la création de la vente');
     }
   };
 

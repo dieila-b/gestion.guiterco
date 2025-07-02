@@ -3,10 +3,30 @@ import { supabase } from '@/integrations/supabase/client';
 import { createCashTransaction } from './transactionService';
 
 export const createVenteComptoir = async (venteData: any, cart: any[]) => {
-  console.log('🔄 Création vente comptoir:', venteData);
+  console.log('🔄 Création vente comptoir avec données:', {
+    venteData,
+    cart: cart?.length ? cart.length + ' articles' : 'panier vide'
+  });
+
+  // Validation des données d'entrée
+  if (!venteData) {
+    console.error('❌ ERREUR: venteData est undefined');
+    throw new Error('Données de vente manquantes');
+  }
+
+  if (!venteData.client_id) {
+    console.error('❌ ERREUR: client_id manquant dans venteData');
+    throw new Error('Client requis pour créer une vente');
+  }
+
+  if (!cart || cart.length === 0) {
+    console.error('❌ ERREUR: panier vide');
+    throw new Error('Le panier ne peut pas être vide');
+  }
 
   try {
     // 1. Créer la commande
+    console.log('📝 Création de la commande...');
     const { data: commande, error: commandeError } = await supabase
       .from('commandes_clients')
       .insert({
@@ -21,9 +41,15 @@ export const createVenteComptoir = async (venteData: any, cart: any[]) => {
       .select()
       .single();
 
-    if (commandeError) throw commandeError;
+    if (commandeError) {
+      console.error('❌ Erreur création commande:', commandeError);
+      throw commandeError;
+    }
+
+    console.log('✅ Commande créée:', commande.numero_commande);
 
     // 2. Créer la facture AVEC statut_livraison_id obligatoire
+    console.log('📄 Création de la facture...');
     const { data: facture, error: factureError } = await supabase
       .from('factures_vente')
       .insert({
@@ -40,9 +66,15 @@ export const createVenteComptoir = async (venteData: any, cart: any[]) => {
       .select()
       .single();
 
-    if (factureError) throw factureError;
+    if (factureError) {
+      console.error('❌ Erreur création facture:', factureError);
+      throw factureError;
+    }
+
+    console.log('✅ Facture créée:', facture.numero_facture);
 
     // 3. Créer les lignes de facture
+    console.log('📋 Création des lignes de facture...');
     const lignesFacture = cart.map(item => ({
       facture_vente_id: facture.id,
       article_id: item.article_id,
@@ -55,7 +87,12 @@ export const createVenteComptoir = async (venteData: any, cart: any[]) => {
       .from('lignes_facture_vente')
       .insert(lignesFacture);
 
-    if (lignesError) throw lignesError;
+    if (lignesError) {
+      console.error('❌ Erreur création lignes facture:', lignesError);
+      throw lignesError;
+    }
+
+    console.log('✅ Lignes de facture créées:', lignesFacture.length + ' lignes');
 
     // 4. *** CORRECTION CRITIQUE *** : Créer la transaction de caisse AUTOMATIQUEMENT
     if (venteData.montant_paye && venteData.montant_paye > 0) {
@@ -78,6 +115,7 @@ export const createVenteComptoir = async (venteData: any, cart: any[]) => {
 
     // 5. Créer versement si paiement
     if (venteData.montant_paye > 0) {
+      console.log('💳 Création du versement...');
       const { error: versementError } = await supabase
         .from('versements_clients')
         .insert({
@@ -92,10 +130,12 @@ export const createVenteComptoir = async (venteData: any, cart: any[]) => {
 
       if (versementError) {
         console.error('❌ Erreur versement:', versementError);
+      } else {
+        console.log('✅ Versement créé');
       }
     }
 
-    console.log('✅ Vente comptoir créée avec succès:', facture.numero_facture);
+    console.log('🎉 Vente comptoir créée avec succès:', facture.numero_facture);
     return { facture, commande };
 
   } catch (error) {
