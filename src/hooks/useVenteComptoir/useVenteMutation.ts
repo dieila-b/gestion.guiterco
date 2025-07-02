@@ -27,6 +27,10 @@ export const useVenteMutation = (
 
       console.log('📍 Point de vente sélectionné:', pointVenteId);
 
+      // CORRECTION CRITIQUE: Conserver exactement le statut de livraison de l'utilisateur
+      const paymentDataStatut = venteData.payment_data?.statut_livraison;
+      console.log('📦 Statut livraison reçu depuis payment_data:', paymentDataStatut);
+
       // Préparer les données optimisées pour la création avec statut livraison correct
       const factureData = {
         client_id: venteData.client_id,
@@ -37,9 +41,12 @@ export const useVenteMutation = (
         mode_paiement: venteData.mode_paiement,
         point_vente_id: pointVenteId,
         payment_data: {
-          ...venteData.payment_data,
-          // Conserver exactement le statut de livraison sélectionné par l'utilisateur
-          statut_livraison: venteData.payment_data?.statut_livraison
+          montant_paye: venteData.payment_data?.montant_paye || 0,
+          mode_paiement: venteData.payment_data?.mode_paiement || venteData.mode_paiement,
+          // IMPORTANT: Transmettre exactement le statut sélectionné par l'utilisateur
+          statut_livraison: paymentDataStatut,
+          quantite_livree: venteData.payment_data?.quantite_livree,
+          notes: venteData.payment_data?.notes
         }
       };
 

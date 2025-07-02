@@ -52,7 +52,8 @@ export const useVenteComptoirHandlers = ({
     try {
       console.log('🔄 Données paiement reçues:', paymentData);
       
-      const result = await createVente({
+      // CORRECTION CRITIQUE: S'assurer que le statut de livraison est correctement transmis
+      const venteData = {
         client_id: selectedClient,
         cart: cart,
         montant_ht: cartTotals.total / 1.2,
@@ -63,9 +64,16 @@ export const useVenteComptoirHandlers = ({
         payment_data: {
           montant_paye: paymentData.montant_paye || 0,
           mode_paiement: paymentData.mode_paiement,
+          // IMPORTANT: Conserver exactement le statut de livraison sélectionné
+          statut_livraison: paymentData.statut_livraison,
+          quantite_livree: paymentData.quantite_livree,
           notes: paymentData.notes
         }
-      });
+      };
+
+      console.log('📦 Données vente préparées avec statut:', venteData.payment_data.statut_livraison);
+      
+      const result = await createVente(venteData);
       
       setLastFacture(result.facture);
       setShowPaymentModal(false);
