@@ -12,20 +12,21 @@ export const useCreateFactureVente = () => {
     mutationFn: async (data: any) => {
       console.log('🚀 Début création facture vente avec données:', data);
 
-      // Créer la facture principale (la remise_totale sera calculée automatiquement par le trigger)
+      // Créer la facture principale (SANS TVA - montant_ht = montant_ttc)
       const factureData = {
         client_id: data.client_id,
-        montant_ht: data.montant_ht,
-        tva: data.tva,
+        montant_ht: data.montant_ttc, // Pas de TVA donc HT = TTC
+        tva: 0, // Forcer à 0
         montant_ttc: data.montant_ttc,
         mode_paiement: data.mode_paiement,
         statut_paiement: 'en_attente',
         statut_livraison: 'En attente' as const,
         statut_livraison_id: 1,
-        numero_facture: ''
+        numero_facture: '',
+        taux_tva: 0 // Forcer à 0
       };
 
-      console.log('📋 Données facture:', factureData);
+      console.log('📋 Données facture (sans TVA):', factureData);
 
       const { data: facture, error: factureError } = await supabase
         .from('factures_vente')

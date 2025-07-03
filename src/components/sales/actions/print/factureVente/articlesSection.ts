@@ -7,14 +7,14 @@ export const generateArticlesSection = (facture: FactureVente): string => {
     <table class="articles-table">
       <thead>
         <tr>
-          <th>Produit</th>
-          <th>Prix unitaire</th>
-          <th>Remise</th>
-          <th>Prix net</th>
-          <th>Qté</th>
-          <th>Livré</th>
-          <th>Restant</th>
-          <th>Total</th>
+          <th>PRODUIT</th>
+          <th>PRIX UNITAIRE</th>
+          <th>REMISE</th>
+          <th>PRIX NET</th>
+          <th>QTÉ</th>
+          <th>LIVRÉ</th>
+          <th>RESTANT</th>
+          <th>TOTAL</th>
         </tr>
       </thead>
       <tbody>
@@ -43,7 +43,7 @@ export const generateArticlesSection = (facture: FactureVente): string => {
         <tr>
           <td class="product-name">${ligne.article?.nom || 'Article'}</td>
           <td>${formatCurrency(prixBrut)}</td>
-          <td class="discount-amount">${remiseUnitaire > 0 ? formatCurrency(remiseUnitaire) : '-'}</td>
+          <td class="discount-amount">${remiseUnitaire > 0 ? formatCurrency(remiseUnitaire) : '0 GNF'}</td>
           <td>${formatCurrency(prixNet)}</td>
           <td>${ordered}</td>
           <td class="quantity-delivered">${delivered}</td>
@@ -57,7 +57,7 @@ export const generateArticlesSection = (facture: FactureVente): string => {
       <tr>
         <td class="product-name">Vente globale</td>
         <td>${formatCurrency(facture.montant_ttc)}</td>
-        <td>-</td>
+        <td>0 GNF</td>
         <td>${formatCurrency(facture.montant_ttc)}</td>
         <td>1</td>
         <td class="quantity-delivered">1</td>

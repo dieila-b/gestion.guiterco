@@ -15,27 +15,25 @@ export const generateFactureVenteContent = (facture: FactureVente): string => {
   const paymentStatus = getPaymentStatus(facture);
   const deliveryStatus = getDeliveryStatusInfo(facture);
   
-  // Calculer les montants avec remises
+  // Calculer les montants avec remises (SANS TVA)
   const totalRemise = facture.remise_totale || 0;
   
-  // Calculer le montant HT avant remise
-  let montantHTAvantRemise = facture.montant_ht;
+  // Calculer le montant total avant remise
+  let montantTotalAvantRemise = facture.montant_ttc + totalRemise;
   if (facture.lignes_facture && facture.lignes_facture.length > 0) {
-    montantHTAvantRemise = facture.lignes_facture.reduce((total, ligne) => {
+    montantTotalAvantRemise = facture.lignes_facture.reduce((total, ligne) => {
       const prixBrut = ligne.prix_unitaire_brut || ligne.prix_unitaire;
       return total + (prixBrut * ligne.quantite);
     }, 0);
   }
   
-  // Calculer le montant TTC avant remise
-  const montantTTCAvantRemise = montantHTAvantRemise * (1 + (facture.taux_tva || 20) / 100);
+  // Le montant net à payer est le montant TTC final (sans TVA dans votre cas)
+  const netAPayer = facture.montant_ttc;
 
   console.log('💰 Calculs PDF facture:', {
-    montantHTAvantRemise,
-    montantTTCAvantRemise,
+    montantTotalAvantRemise,
     totalRemise,
-    montant_ht_final: facture.montant_ht,
-    montant_ttc_final: facture.montant_ttc
+    netAPayer: facture.montant_ttc
   });
 
   return `
@@ -62,7 +60,7 @@ export const generateFactureVenteContent = (facture: FactureVente): string => {
             
             <div class="invoice-info">
               <div class="invoice-details">
-                <h3>Informations de la facture</h3>
+                <h3>INFORMATIONS DE LA FACTURE</h3>
                 <p><strong>Date :</strong> ${format(new Date(facture.date_facture), 'dd/MM/yyyy', { locale: fr })}</p>
                 <p><strong>N° Facture :</strong> ${facture.numero_facture}</p>
                 ${facture.date_echeance ? `<p><strong>Échéance :</strong> ${format(new Date(facture.date_echeance), 'dd/MM/yyyy', { locale: fr })}</p>` : ''}
@@ -70,11 +68,11 @@ export const generateFactureVenteContent = (facture: FactureVente): string => {
             </div>
           </div>
 
-          <div class="invoice-title">Facture de Vente</div>
+          <div class="invoice-title">FACTURE DE VENTE</div>
 
           <!-- Informations client -->
           <div class="client-section">
-            <h3>Informations Client</h3>
+            <h3>INFORMATIONS CLIENT</h3>
             <div class="client-info">
               <div class="client-field">
                 <label>Nom :</label>
@@ -92,12 +90,6 @@ export const generateFactureVenteContent = (facture: FactureVente): string => {
                 <label>Email :</label>
                 <span>${facture.client?.email || 'N/A'}</span>
               </div>
-              ${facture.client?.adresse ? `
-                <div class="client-field" style="grid-column: 1 / -1;">
-                  <label>Adresse :</label>
-                  <span>${facture.client.adresse}</span>
-                </div>
-              ` : ''}
             </div>
           </div>
 
@@ -106,41 +98,24 @@ export const generateFactureVenteContent = (facture: FactureVente): string => {
             ${generateArticlesSection(facture)}
           </div>
 
-          <!-- Section totaux -->
+          <!-- Section récapitulatif des montants -->
           <div class="totals-section">
             <div class="totals-left"></div>
             <div class="totals-right">
-              <h4>Récapitulatif des montants</h4>
+              <h4>RÉCAPITULATIF DES MONTANTS</h4>
+              <div class="total-line">
+                <span>Montant Total</span>
+                <span>${formatCurrency(montantTotalAvantRemise)}</span>
+              </div>
               ${totalRemise > 0 ? `
                 <div class="total-line">
-                  <span>Montant HT avant remise</span>
-                  <span>${formatCurrency(montantHTAvantRemise)}</span>
+                  <span>Remise</span>
+                  <span class="discount-amount">${formatCurrency(totalRemise)}</span>
                 </div>
-                <div class="total-line">
-                  <span>Total des remises</span>
-                  <span class="discount-amount">-${formatCurrency(totalRemise)}</span>
-                </div>
-                <div class="total-line">
-                  <span>Montant HT après remise</span>
-                  <span>${formatCurrency(facture.montant_ht)}</span>
-                </div>
-                <div class="total-line">
-                  <span>TVA (${facture.taux_tva || 20}%)</span>
-                  <span>${formatCurrency(facture.tva)}</span>
-                </div>
-              ` : `
-                <div class="total-line">
-                  <span>Montant HT</span>
-                  <span>${formatCurrency(facture.montant_ht)}</span>
-                </div>
-                <div class="total-line">
-                  <span>TVA (${facture.taux_tva || 20}%)</span>
-                  <span>${formatCurrency(facture.tva)}</span>
-                </div>
-              `}
+              ` : ''}
               <div class="total-line final">
                 <span>Net à Payer</span>
-                <span>${formatCurrency(facture.montant_ttc)}</span>
+                <span>${formatCurrency(netAPayer)}</span>
               </div>
             </div>
           </div>
@@ -148,7 +123,7 @@ export const generateFactureVenteContent = (facture: FactureVente): string => {
           <!-- Section statuts -->
           <div class="status-section">
             <div class="status-box">
-              <h4>Statut de paiement</h4>
+              <h4>STATUT DE PAIEMENT</h4>
               <div class="status-info">
                 <strong>Statut :</strong>
                 <span class="status-badge ${paymentStatus.badge}">
@@ -164,7 +139,7 @@ export const generateFactureVenteContent = (facture: FactureVente): string => {
             </div>
             
             <div class="status-box">
-              <h4>Statut de livraison</h4>
+              <h4>STATUT DE LIVRAISON</h4>
               <div class="status-info">
                 <strong>Statut :</strong>
                 <span class="status-badge ${deliveryStatus.badge}">
@@ -172,21 +147,6 @@ export const generateFactureVenteContent = (facture: FactureVente): string => {
                 </span>
               </div>
             </div>
-          </div>
-
-          <!-- Messages informatifs -->
-          <div class="highlight-messages">
-            ${paymentStatus.label === 'Partiellement payé' ? `
-              <div class="message-box">
-                Un paiement partiel a été effectué sur cette facture.
-              </div>
-            ` : ''}
-            
-            ${deliveryStatus.label === 'Partiellement livré' ? `
-              <div class="message-box">
-                Cette commande a été partiellement livrée.
-              </div>
-            ` : ''}
           </div>
 
           <!-- Observations -->
@@ -197,9 +157,9 @@ export const generateFactureVenteContent = (facture: FactureVente): string => {
             </div>
           ` : ''}
 
-          <!-- Mention légale -->
+          <!-- Phrase finale avec montant en lettres -->
           <div class="legal-mention">
-            Arrêtée la présente facture à la somme de <strong>${numberToWords(Math.floor(facture.montant_ttc))} francs guinéens</strong>
+            Arrêtée la présente facture à la somme de <strong>${numberToWords(Math.floor(netAPayer))} francs guinéens</strong>
           </div>
         </div>
       </body>
