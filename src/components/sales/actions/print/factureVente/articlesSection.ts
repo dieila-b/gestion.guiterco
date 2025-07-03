@@ -26,12 +26,12 @@ export const generateArticlesSection = (facture: FactureVente): string => {
       const ordered = ligne.quantite || 0;
       const remaining = Math.max(0, ordered - delivered);
       
-      // Utiliser les vraies données de remise sauvegardées
+      // Récupérer les vraies données de remise
       const remiseUnitaire = ligne.remise_unitaire || 0;
       const prixBrut = ligne.prix_unitaire_brut || ligne.prix_unitaire;
       const prixNet = ligne.prix_unitaire; // Prix après remise
       
-      console.log('📄 Ligne PDF:', {
+      console.log('📄 Ligne PDF avec remise:', {
         article: ligne.article?.nom,
         prix_brut: prixBrut,
         remise_unitaire: remiseUnitaire,

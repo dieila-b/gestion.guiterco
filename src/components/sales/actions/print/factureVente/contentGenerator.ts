@@ -30,10 +30,11 @@ export const generateFactureVenteContent = (facture: FactureVente): string => {
   // Le montant net à payer est le montant TTC final (sans TVA dans votre cas)
   const netAPayer = facture.montant_ttc;
 
-  console.log('💰 Calculs PDF facture:', {
+  console.log('💰 Calculs PDF facture avec remise:', {
     montantTotalAvantRemise,
     totalRemise,
-    netAPayer: facture.montant_ttc
+    netAPayer: facture.montant_ttc,
+    remise_totale_from_db: facture.remise_totale
   });
 
   return `
