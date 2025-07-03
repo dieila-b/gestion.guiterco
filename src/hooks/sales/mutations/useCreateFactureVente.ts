@@ -42,8 +42,8 @@ export const useCreateFactureVente = () => {
 
       // Créer les lignes de facture avec toutes les données de remise
       const lignesFacture = data.cart.map((item: any) => {
-        const prixUnitaireBrut = item.prix_vente || item.prix_unitaire || 0;
-        const remiseUnitaire = item.remise || 0;
+        const prixUnitaireBrut = item.prix_unitaire_brut || item.prix_unitaire;
+        const remiseUnitaire = item.remise_unitaire || 0;
         const remisePourcentage = item.remise_pourcentage || 0;
         const prixUnitaireNet = prixUnitaireBrut - remiseUnitaire;
         const montantLigne = item.quantite * prixUnitaireNet;
