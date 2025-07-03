@@ -18,6 +18,7 @@ export const useCreateFactureVente = () => {
         tva: data.tva,
         montant_ttc: data.montant_ttc,
         mode_paiement: data.mode_paiement,
+        remise_totale: data.remise_totale || 0,
         statut_paiement: 'en_attente',
         // IMPORTANT: Toujours commencer avec "En attente" - sera mis à jour après si nécessaire
         statut_livraison: 'En attente' as const,
@@ -44,6 +45,9 @@ export const useCreateFactureVente = () => {
         article_id: item.article_id,
         quantite: item.quantite,
         prix_unitaire: item.prix_unitaire,
+        prix_unitaire_brut: item.prix_unitaire_brut || item.prix_unitaire,
+        remise_unitaire: item.remise_unitaire || 0,
+        remise_pourcentage: item.remise_pourcentage || 0,
         montant_ligne: item.quantite * item.prix_unitaire,
         // IMPORTANT: Toujours commencer avec "en_attente" - sera mis à jour après si nécessaire
         quantite_livree: 0,
