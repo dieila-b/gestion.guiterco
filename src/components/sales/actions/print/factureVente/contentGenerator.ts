@@ -15,9 +15,28 @@ export const generateFactureVenteContent = (facture: FactureVente): string => {
   const paymentStatus = getPaymentStatus(facture);
   const deliveryStatus = getDeliveryStatusInfo(facture);
   
-  // Calculer le total des remises (utiliser les vraies données)
+  // Calculer les montants avec remises
   const totalRemise = facture.remise_totale || 0;
-  const montantAvantRemise = facture.montant_ttc + totalRemise;
+  
+  // Calculer le montant HT avant remise
+  let montantHTAvantRemise = facture.montant_ht;
+  if (facture.lignes_facture && facture.lignes_facture.length > 0) {
+    montantHTAvantRemise = facture.lignes_facture.reduce((total, ligne) => {
+      const prixBrut = ligne.prix_unitaire_brut || ligne.prix_unitaire;
+      return total + (prixBrut * ligne.quantite);
+    }, 0);
+  }
+  
+  // Calculer le montant TTC avant remise
+  const montantTTCAvantRemise = montantHTAvantRemise * (1 + (facture.taux_tva || 20) / 100);
+
+  console.log('💰 Calculs PDF facture:', {
+    montantHTAvantRemise,
+    montantTTCAvantRemise,
+    totalRemise,
+    montant_ht_final: facture.montant_ht,
+    montant_ttc_final: facture.montant_ttc
+  });
 
   return `
     <html>
@@ -92,14 +111,33 @@ export const generateFactureVenteContent = (facture: FactureVente): string => {
             <div class="totals-left"></div>
             <div class="totals-right">
               <h4>Récapitulatif des montants</h4>
-              <div class="total-line">
-                <span>Montant Total</span>
-                <span>${formatCurrency(montantAvantRemise)}</span>
-              </div>
-              <div class="total-line">
-                <span>Remise</span>
-                <span>${formatCurrency(totalRemise)}</span>
-              </div>
+              ${totalRemise > 0 ? `
+                <div class="total-line">
+                  <span>Montant HT avant remise</span>
+                  <span>${formatCurrency(montantHTAvantRemise)}</span>
+                </div>
+                <div class="total-line">
+                  <span>Total des remises</span>
+                  <span class="discount-amount">-${formatCurrency(totalRemise)}</span>
+                </div>
+                <div class="total-line">
+                  <span>Montant HT après remise</span>
+                  <span>${formatCurrency(facture.montant_ht)}</span>
+                </div>
+                <div class="total-line">
+                  <span>TVA (${facture.taux_tva || 20}%)</span>
+                  <span>${formatCurrency(facture.tva)}</span>
+                </div>
+              ` : `
+                <div class="total-line">
+                  <span>Montant HT</span>
+                  <span>${formatCurrency(facture.montant_ht)}</span>
+                </div>
+                <div class="total-line">
+                  <span>TVA (${facture.taux_tva || 20}%)</span>
+                  <span>${formatCurrency(facture.tva)}</span>
+                </div>
+              `}
               <div class="total-line final">
                 <span>Net à Payer</span>
                 <span>${formatCurrency(facture.montant_ttc)}</span>

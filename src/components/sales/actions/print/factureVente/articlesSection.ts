@@ -26,16 +26,24 @@ export const generateArticlesSection = (facture: FactureVente): string => {
       const ordered = ligne.quantite || 0;
       const remaining = Math.max(0, ordered - delivered);
       
-      // Calculer la remise par ligne (utiliser les vraies données)
-      const remiseLigne = ligne.remise_unitaire || 0;
+      // Utiliser les vraies données de remise sauvegardées
+      const remiseUnitaire = ligne.remise_unitaire || 0;
       const prixBrut = ligne.prix_unitaire_brut || ligne.prix_unitaire;
-      const prixNet = prixBrut - remiseLigne;
+      const prixNet = ligne.prix_unitaire; // Prix après remise
+      
+      console.log('📄 Ligne PDF:', {
+        article: ligne.article?.nom,
+        prix_brut: prixBrut,
+        remise_unitaire: remiseUnitaire,
+        prix_net: prixNet,
+        montant_ligne: ligne.montant_ligne
+      });
       
       return `
         <tr>
           <td class="product-name">${ligne.article?.nom || 'Article'}</td>
           <td>${formatCurrency(prixBrut)}</td>
-          <td>${formatCurrency(remiseLigne)}</td>
+          <td class="discount-amount">${remiseUnitaire > 0 ? formatCurrency(remiseUnitaire) : '-'}</td>
           <td>${formatCurrency(prixNet)}</td>
           <td>${ordered}</td>
           <td class="quantity-delivered">${delivered}</td>
@@ -49,7 +57,7 @@ export const generateArticlesSection = (facture: FactureVente): string => {
       <tr>
         <td class="product-name">Vente globale</td>
         <td>${formatCurrency(facture.montant_ttc)}</td>
-        <td>0</td>
+        <td>-</td>
         <td>${formatCurrency(facture.montant_ttc)}</td>
         <td>1</td>
         <td class="quantity-delivered">1</td>
