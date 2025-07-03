@@ -12,38 +12,20 @@ export const useCreateFactureVente = () => {
     mutationFn: async (data: any) => {
       console.log('🚀 Début création facture vente avec données:', data);
 
-      // Calculer les remises totales depuis le panier
-      const remiseTotale = data.cart.reduce((total: number, item: any) => {
-        const remiseUnitaire = item.remise_unitaire || 0;
-        const remiseParQuantite = remiseUnitaire * item.quantite;
-        return total + remiseParQuantite;
-      }, 0);
-
-      console.log('💰 Calcul remise totale:', {
-        remiseTotale,
-        cartItems: data.cart.map((item: any) => ({
-          article: item.article_id,
-          quantite: item.quantite,
-          remise_unitaire: item.remise_unitaire || 0,
-          remise_total_ligne: (item.remise_unitaire || 0) * item.quantite
-        }))
-      });
-
-      // Créer la facture principale avec les remises
+      // Créer la facture principale (la remise_totale sera calculée automatiquement par le trigger)
       const factureData = {
         client_id: data.client_id,
         montant_ht: data.montant_ht,
         tva: data.tva,
         montant_ttc: data.montant_ttc,
         mode_paiement: data.mode_paiement,
-        remise_totale: remiseTotale, // CORRECTION: Sauvegarder la remise totale calculée
         statut_paiement: 'en_attente',
         statut_livraison: 'En attente' as const,
         statut_livraison_id: 1,
         numero_facture: ''
       };
 
-      console.log('📋 Données facture avec remise:', factureData);
+      console.log('📋 Données facture:', factureData);
 
       const { data: facture, error: factureError } = await supabase
         .from('factures_vente')
@@ -56,7 +38,7 @@ export const useCreateFactureVente = () => {
         throw factureError;
       }
 
-      console.log('✅ Facture créée avec remise totale:', facture.remise_totale);
+      console.log('✅ Facture créée:', facture.id);
 
       // Créer les lignes de facture avec toutes les données de remise
       const lignesFacture = data.cart.map((item: any) => {
@@ -165,7 +147,7 @@ export const useCreateFactureVente = () => {
         console.log('✅ Versement créé et statut paiement mis à jour:', nouveauStatutPaiement);
       }
 
-      // Récupérer la facture mise à jour pour retourner les données correctes
+      // Récupérer la facture mise à jour avec la remise_totale calculée par le trigger
       const { data: factureFinale } = await supabase
         .from('factures_vente')
         .select('*')

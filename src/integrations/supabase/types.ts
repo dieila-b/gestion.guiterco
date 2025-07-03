@@ -1576,6 +1576,13 @@ export type Database = {
             referencedRelation: "factures_vente"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "lignes_facture_vente_facture_vente_id_fkey"
+            columns: ["facture_vente_id"]
+            isOneToOne: false
+            referencedRelation: "vue_factures_vente_detaillees"
+            referencedColumns: ["id"]
+          },
         ]
       }
       lignes_precommande: {
@@ -2013,6 +2020,13 @@ export type Database = {
             columns: ["facture_id"]
             isOneToOne: false
             referencedRelation: "factures_vente"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "retours_clients_facture_id_fkey"
+            columns: ["facture_id"]
+            isOneToOne: false
+            referencedRelation: "vue_factures_vente_detaillees"
             referencedColumns: ["id"]
           },
         ]
@@ -2704,6 +2718,55 @@ export type Database = {
             columns: ["article_id"]
             isOneToOne: false
             referencedRelation: "vue_marges_articles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vue_factures_vente_detaillees: {
+        Row: {
+          client_id: string | null
+          commande_id: string | null
+          created_at: string | null
+          date_echeance: string | null
+          date_facture: string | null
+          date_paiement: string | null
+          id: string | null
+          mode_paiement: string | null
+          montant_ht: number | null
+          montant_ttc: number | null
+          numero_facture: string | null
+          observations: string | null
+          remise_calculee: number | null
+          remise_totale: number | null
+          statut_livraison:
+            | Database["public"]["Enums"]["statut_livraison_enum"]
+            | null
+          statut_livraison_id: number | null
+          statut_paiement: string | null
+          taux_tva: number | null
+          tva: number | null
+          updated_at: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "factures_vente_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "factures_vente_commande_id_fkey"
+            columns: ["commande_id"]
+            isOneToOne: false
+            referencedRelation: "commandes_clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_factures_vente_statut_livraison"
+            columns: ["statut_livraison_id"]
+            isOneToOne: false
+            referencedRelation: "livraison_statut"
             referencedColumns: ["id"]
           },
         ]
