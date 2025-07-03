@@ -14,6 +14,10 @@ export const generateFactureVenteContent = (facture: FactureVente): string => {
   const remainingAmount = calculateRemainingAmount(facture);
   const paymentStatus = getPaymentStatus(facture);
   const deliveryStatus = getDeliveryStatusInfo(facture);
+  
+  // Calculer le total des remises (pour l'instant 0, à adapter selon les données)
+  const totalRemise = 0;
+  const montantAvantRemise = facture.montant_ttc + totalRemise;
 
   return `
     <html>
@@ -90,11 +94,11 @@ export const generateFactureVenteContent = (facture: FactureVente): string => {
               <h4>Récapitulatif des montants</h4>
               <div class="total-line">
                 <span>Montant Total</span>
-                <span>${formatCurrency(facture.montant_ttc)}</span>
+                <span>${formatCurrency(montantAvantRemise)}</span>
               </div>
               <div class="total-line">
                 <span>Remise</span>
-                <span>${formatCurrency(0)}</span>
+                <span>${formatCurrency(totalRemise)}</span>
               </div>
               <div class="total-line final">
                 <span>Net à Payer</span>
