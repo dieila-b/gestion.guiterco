@@ -49,6 +49,9 @@ export interface LigneFactureVente {
   quantite: number;
   quantite_livree?: number;
   prix_unitaire: number;
+  prix_unitaire_brut?: number;
+  remise_unitaire?: number;
+  remise_pourcentage?: number;
   montant_ligne: number;
   statut_livraison?: string;
   created_at: string;
@@ -69,6 +72,7 @@ export interface FactureVente {
   montant_ht: number;
   tva: number;
   montant_ttc: number;
+  remise_totale?: number;
   taux_tva?: number;
   statut_paiement: string;
   mode_paiement?: string;

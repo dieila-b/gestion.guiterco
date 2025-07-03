@@ -15,8 +15,8 @@ export const generateFactureVenteContent = (facture: FactureVente): string => {
   const paymentStatus = getPaymentStatus(facture);
   const deliveryStatus = getDeliveryStatusInfo(facture);
   
-  // Calculer le total des remises (pour l'instant 0, à adapter selon les données)
-  const totalRemise = 0;
+  // Calculer le total des remises (utiliser les vraies données)
+  const totalRemise = facture.remise_totale || 0;
   const montantAvantRemise = facture.montant_ttc + totalRemise;
 
   return `

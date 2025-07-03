@@ -1249,6 +1249,7 @@ export type Database = {
           montant_ttc: number
           numero_facture: string
           observations: string | null
+          remise_totale: number | null
           statut_livraison:
             | Database["public"]["Enums"]["statut_livraison_enum"]
             | null
@@ -1271,6 +1272,7 @@ export type Database = {
           montant_ttc?: number
           numero_facture: string
           observations?: string | null
+          remise_totale?: number | null
           statut_livraison?:
             | Database["public"]["Enums"]["statut_livraison_enum"]
             | null
@@ -1293,6 +1295,7 @@ export type Database = {
           montant_ttc?: number
           numero_facture?: string
           observations?: string | null
+          remise_totale?: number | null
           statut_livraison?:
             | Database["public"]["Enums"]["statut_livraison_enum"]
             | null
@@ -1516,8 +1519,11 @@ export type Database = {
           id: string
           montant_ligne: number
           prix_unitaire: number
+          prix_unitaire_brut: number | null
           quantite: number
           quantite_livree: number | null
+          remise_pourcentage: number | null
+          remise_unitaire: number | null
           statut_livraison: string | null
         }
         Insert: {
@@ -1527,8 +1533,11 @@ export type Database = {
           id?: string
           montant_ligne?: number
           prix_unitaire?: number
+          prix_unitaire_brut?: number | null
           quantite?: number
           quantite_livree?: number | null
+          remise_pourcentage?: number | null
+          remise_unitaire?: number | null
           statut_livraison?: string | null
         }
         Update: {
@@ -1538,8 +1547,11 @@ export type Database = {
           id?: string
           montant_ligne?: number
           prix_unitaire?: number
+          prix_unitaire_brut?: number | null
           quantite?: number
           quantite_livree?: number | null
+          remise_pourcentage?: number | null
+          remise_unitaire?: number | null
           statut_livraison?: string | null
         }
         Relationships: [
