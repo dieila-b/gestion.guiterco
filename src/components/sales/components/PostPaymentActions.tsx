@@ -101,18 +101,31 @@ const PostPaymentActions: React.FC<PostPaymentActionsProps> = ({
   };
 
   const handlePrintInvoice = async () => {
+    console.log('🖨️ Tentative d\'impression de la facture');
+    console.log('🔍 fullFactureData:', fullFactureData);
+    
     if (!fullFactureData) {
+      console.error('❌ Données de facture manquantes');
       toast.error('Données de facture non disponibles');
       return;
     }
 
     try {
+      console.log('📄 Génération de la facture avec les données:', {
+        id: fullFactureData.id,
+        numero_facture: fullFactureData.numero_facture,
+        lignes_facture: fullFactureData.lignes_facture?.length || 0,
+        client: fullFactureData.client?.nom || 'Non défini'
+      });
+      
       await printFactureVente(fullFactureData);
+      
+      console.log('✅ Impression lancée avec succès');
       toast.success('Impression de la facture lancée', {
         description: 'Facture complète avec format professionnel'
       });
     } catch (error) {
-      console.error('Erreur impression facture:', error);
+      console.error('❌ Erreur impression facture:', error);
       toast.error('Erreur lors de l\'impression de la facture');
     }
   };

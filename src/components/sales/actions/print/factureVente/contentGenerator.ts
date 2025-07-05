@@ -10,6 +10,15 @@ import { getPaymentStatus, getDeliveryStatusInfo } from './statusHelpers';
 import { numberToWords } from './utils';
 
 export const generateFactureVenteContent = (facture: FactureVente): string => {
+  console.log('🧾 Génération du contenu de la facture');
+  console.log('📋 Données reçues:', {
+    id: facture.id,
+    numero_facture: facture.numero_facture,
+    client: facture.client?.nom,
+    lignes_count: facture.lignes_facture?.length || 0,
+    montant_ttc: facture.montant_ttc
+  });
+  
   const totalPaid = calculateTotalPaid(facture);
   const remainingAmount = calculateRemainingAmount(facture);
   const paymentStatus = getPaymentStatus(facture);
