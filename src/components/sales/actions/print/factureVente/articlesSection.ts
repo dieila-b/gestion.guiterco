@@ -1,3 +1,4 @@
+
 import type { FactureVente } from '@/types/sales';
 import { formatCurrency } from '@/lib/currency';
 
@@ -25,17 +26,18 @@ export const generateArticlesSection = (facture: FactureVente): string => {
       const ordered = ligne.quantite || 0;
       const remaining = Math.max(0, ordered - delivered);
       
-      // Récupérer les vraies données de remise
+      // Récupérer les vraies données de remise depuis la base
       const remiseUnitaire = ligne.remise_unitaire || 0;
       const prixBrut = ligne.prix_unitaire_brut || ligne.prix_unitaire;
       const prixNet = ligne.prix_unitaire; // Prix après remise
       
-      console.log('📄 Ligne PDF avec remise:', {
+      console.log('📄 Ligne PDF avec remise détaillée:', {
         article: ligne.article?.nom,
         prix_brut: prixBrut,
         remise_unitaire: remiseUnitaire,
         prix_net: prixNet,
-        montant_ligne: ligne.montant_ligne
+        montant_ligne: ligne.montant_ligne,
+        quantite: ordered
       });
       
       return `

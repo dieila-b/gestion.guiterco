@@ -47,6 +47,7 @@ const generateTicketStyles = (): string => {
       .right { text-align: right; }
       .bold { font-weight: bold; }
       .red { color: #d32f2f; }
+      .discount { color: #f57c00; }
       .line { 
         border-top: 1px dashed #000; 
         margin: 8px 0; 
@@ -121,6 +122,7 @@ const generateTicketStyles = (): string => {
         text-align: center;
         flex-shrink: 0;
         font-size: 10px;
+        color: #f57c00;
       }
       .article-price {
         width: 35px;
@@ -143,6 +145,10 @@ const generateTicketStyles = (): string => {
         justify-content: space-between;
         margin: 3px 0;
         padding: 0 5px;
+      }
+      .discount-total {
+        color: #f57c00;
+        font-weight: bold;
       }
       .grand-total {
         font-weight: bold;
@@ -196,13 +202,14 @@ const generateArticlesSection = (facture: FactureVente): string => {
     articlesHtml += facture.lignes_facture.map((ligne, index) => {
       const remiseUnitaire = ligne.remise_unitaire || 0;
       const remiseFormatted = remiseUnitaire > 0 ? Math.round(remiseUnitaire) : '0';
+      const prixNet = ligne.prix_unitaire;
       
       return `
         <div class="article-line">
           <span class="article-name">${ligne.article?.nom || 'Article'}</span>
           <span class="article-qty">${ligne.quantite}</span>
-          <span class="article-remise">${remiseFormatted}</span>
-          <span class="article-price">${Math.round(ligne.prix_unitaire)}</span>
+          <span class="article-remise">${remiseFormatted > 0 ? remiseFormatted : '0'}</span>
+          <span class="article-price">${Math.round(prixNet)}</span>
           <span class="article-total">${Math.round(ligne.montant_ligne)}</span>
         </div>
       `;
@@ -263,7 +270,42 @@ const generateDeliverySection = (facture: FactureVente): string => {
     return `
       <div class="delivery-status">
         <div class="bold">Statut : Partiel</div>
-        <div>Articles livrés : ${totalQuantiteLivree} | Restants : ${articlesRestants}</div>
+        <div>Livrés : ${totalQuantiteLivree} | Restants : ${articlesRestants}</div>
+      </div>
+    `;
+  }
+  
+  return '';
+};
+
+const generateDiscountSection = (facture: FactureVente): string => {
+  // Calculer le total des remises
+  let totalRemise = 0;
+  let montantBrut = 0;
+  
+  if (facture.lignes_facture && facture.lignes_facture.length > 0) {
+    facture.lignes_facture.forEach(ligne => {
+      const remiseUnitaire = ligne.remise_unitaire || 0;
+      const prixBrut = ligne.prix_unitaire_brut || ligne.prix_unitaire;
+      const quantite = ligne.quantite;
+      
+      totalRemise += remiseUnitaire * quantite;
+      montantBrut += prixBrut * quantite;
+    });
+  } else if (facture.remise_totale && facture.remise_totale > 0) {
+    totalRemise = facture.remise_totale;
+    montantBrut = facture.montant_ttc + totalRemise;
+  }
+  
+  if (totalRemise > 0) {
+    return `
+      <div class="total-line">
+        <span>Montant brut</span>
+        <span>${Math.round(montantBrut)} F</span>
+      </div>
+      <div class="total-line discount-total">
+        <span>Remise totale</span>
+        <span>-${Math.round(totalRemise)} F</span>
       </div>
     `;
   }
@@ -306,6 +348,8 @@ const generateTicketContent = (facture: FactureVente): string => {
         <div class="line"></div>
         
         <div class="totals">
+          ${generateDiscountSection(facture)}
+          
           <div class="total-line grand-total">
             <span>Total</span>
             <span>${Math.round(facture.montant_ttc)} F</span>

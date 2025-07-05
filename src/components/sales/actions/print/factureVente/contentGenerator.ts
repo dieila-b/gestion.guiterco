@@ -10,13 +10,14 @@ import { getPaymentStatus, getDeliveryStatusInfo } from './statusHelpers';
 import { numberToWords } from './utils';
 
 export const generateFactureVenteContent = (facture: FactureVente): string => {
-  console.log('🧾 Génération du contenu de la facture');
+  console.log('🧾 Génération du contenu de la facture avec remises');
   console.log('📋 Données reçues:', {
     id: facture.id,
     numero_facture: facture.numero_facture,
     client: facture.client?.nom,
     lignes_count: facture.lignes_facture?.length || 0,
-    montant_ttc: facture.montant_ttc
+    montant_ttc: facture.montant_ttc,
+    remise_totale: facture.remise_totale
   });
   
   const totalPaid = calculateTotalPaid(facture);
@@ -24,37 +25,50 @@ export const generateFactureVenteContent = (facture: FactureVente): string => {
   const paymentStatus = getPaymentStatus(facture);
   const deliveryStatus = getDeliveryStatusInfo(facture);
   
-  // Calculer les montants avec remises (SANS TVA)
+  // Calculer les montants avec remises détaillées
   let totalRemise = 0;
   let montantTotalAvantRemise = 0;
+  let montantTotalApresRemise = 0;
   
-  // Calculer le montant total avant remise à partir des lignes de facture
+  // Calculer à partir des lignes de facture pour plus de précision
   if (facture.lignes_facture && facture.lignes_facture.length > 0) {
-    montantTotalAvantRemise = facture.lignes_facture.reduce((total, ligne) => {
-      const prixBrut = ligne.prix_unitaire_brut || ligne.prix_unitaire;
-      return total + (prixBrut * ligne.quantite);
-    }, 0);
-    
-    // Calculer le total des remises à partir des lignes
-    totalRemise = facture.lignes_facture.reduce((total, ligne) => {
+    facture.lignes_facture.forEach(ligne => {
       const remiseUnitaire = ligne.remise_unitaire || 0;
-      return total + (remiseUnitaire * ligne.quantite);
-    }, 0);
+      const prixBrut = ligne.prix_unitaire_brut || ligne.prix_unitaire;
+      const quantite = ligne.quantite;
+      
+      // Montant brut avant remise pour cette ligne
+      const montantBrutLigne = prixBrut * quantite;
+      montantTotalAvantRemise += montantBrutLigne;
+      
+      // Remise totale pour cette ligne
+      const remiseLigne = remiseUnitaire * quantite;
+      totalRemise += remiseLigne;
+      
+      // Montant après remise pour cette ligne (correspond au montant_ligne)
+      montantTotalApresRemise += ligne.montant_ligne;
+    });
   } else {
-    // Si pas de lignes, utiliser le montant TTC comme montant avant remise
+    // Si pas de lignes détaillées, utiliser les montants globaux
     montantTotalAvantRemise = facture.montant_ttc;
     totalRemise = facture.remise_totale || 0;
-    montantTotalAvantRemise += totalRemise;
+    montantTotalApresRemise = facture.montant_ttc;
+    
+    // Si on a une remise globale, ajuster le montant avant remise
+    if (totalRemise > 0) {
+      montantTotalAvantRemise = montantTotalApresRemise + totalRemise;
+    }
   }
   
-  // Le montant net à payer est le montant TTC final (sans TVA dans votre cas)
+  // Le net à payer est le montant TTC final
   const netAPayer = facture.montant_ttc;
 
-  console.log('💰 Calculs PDF facture avec remise:', {
+  console.log('💰 Calculs PDF facture avec remises détaillées:', {
     montantTotalAvantRemise,
     totalRemise,
-    netAPayer: facture.montant_ttc,
-    remise_totale_from_db: facture.remise_totale
+    montantTotalApresRemise,
+    netAPayer,
+    lignes_avec_remises: facture.lignes_facture?.filter(l => (l.remise_unitaire || 0) > 0).length || 0
   });
 
   return `
@@ -119,21 +133,26 @@ export const generateFactureVenteContent = (facture: FactureVente): string => {
             ${generateArticlesSection(facture)}
           </div>
 
-          <!-- Section récapitulatif des montants -->
+          <!-- Section récapitulatif des montants avec détail des remises -->
           <div class="totals-section">
             <div class="totals-left"></div>
             <div class="totals-right">
               <h4>RÉCAPITULATIF DES MONTANTS</h4>
-              <div class="total-line">
-                <span>Montant Total</span>
-                <span>${formatCurrency(montantTotalAvantRemise)}</span>
-              </div>
               ${totalRemise > 0 ? `
                 <div class="total-line">
-                  <span>Remise</span>
-                  <span class="discount-amount">${formatCurrency(totalRemise)}</span>
+                  <span>Montant Total Brut</span>
+                  <span>${formatCurrency(montantTotalAvantRemise)}</span>
                 </div>
-              ` : ''}
+                <div class="total-line discount-line">
+                  <span>Remise Totale</span>
+                  <span class="discount-amount">-${formatCurrency(totalRemise)}</span>
+                </div>
+              ` : `
+                <div class="total-line">
+                  <span>Montant Total</span>
+                  <span>${formatCurrency(montantTotalAvantRemise)}</span>
+                </div>
+              `}
               <div class="total-line final">
                 <span>Net à Payer</span>
                 <span>${formatCurrency(netAPayer)}</span>
