@@ -50,8 +50,7 @@ const PostPaymentActions: React.FC<PostPaymentActionsProps> = ({
             lignes_facture:lignes_facture_vente(
               *,
               article:catalogue(*)
-            ),
-            versements:versements_clients(*)
+            )
           `)
           .eq('id', factureData.id)
           .single();
@@ -61,7 +60,20 @@ const PostPaymentActions: React.FC<PostPaymentActionsProps> = ({
           return;
         }
 
-        setFullFactureData(facture as any);
+        // Récupérer les versements séparément
+        const { data: versements } = await supabase
+          .from('versements_clients')
+          .select('*')
+          .eq('facture_id', factureData.id);
+
+        if (facture) {
+          // Créer un objet avec toutes les données nécessaires
+          const factureComplete = {
+            ...facture,
+            versements: versements || []
+          };
+          setFullFactureData(factureComplete as any);
+        }
       } catch (error) {
         console.error('Erreur lors du fetch de la facture:', error);
       } finally {
@@ -137,10 +149,11 @@ const PostPaymentActions: React.FC<PostPaymentActionsProps> = ({
     }
 
     try {
-      // Utiliser le même format mais avec un titre différent
-      await printFactureVente(fullFactureData);
+      // Utiliser le service de ticket pour le reçu simplifié
+      const { printTicket } = await import('../actions/print/ticketPrintService');
+      await printTicket(fullFactureData);
       toast.success('Impression du reçu lancée', {
-        description: 'Reçu avec format professionnel'
+        description: 'Reçu simplifié généré'
       });
     } catch (error) {
       console.error('Erreur impression reçu:', error);
