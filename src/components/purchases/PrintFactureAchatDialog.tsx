@@ -358,23 +358,76 @@ export const PrintFactureAchatDialog = ({ facture }: PrintFactureAchatDialogProp
   };
 
   const calculateTotals = () => {
+    console.log('🧮 Calcul des montants avec remises pour facture achat:', {
+      facture_id: facture.id,
+      numero_facture: facture.numero_facture,
+      articles_count: articles?.length || 0,
+      bon_commande: facture.bon_commande
+    });
+
     if (!articles || articles.length === 0) {
+      // Si pas d'articles détaillés, utiliser les montants de la facture et du bon de commande
+      const montantTotalBrut = facture.montant_ttc || 0;
+      const remiseTotale = facture.bon_commande?.remise || 0;
+      const netAPayer = montantTotalBrut;
+      
+      console.log('📊 Calculs sans articles détaillés:', {
+        montantTotalBrut,
+        remiseTotale,
+        netAPayer
+      });
+      
       return {
-        montantTotal: facture.montant_ttc || 0,
-        remise: 0,
-        netAPayer: facture.montant_ttc || 0
+        montantTotalBrut,
+        remiseTotale,
+        netAPayer
       };
     }
     
-    const montantTotal = articles.reduce((sum: number, article: any) => sum + (article.montant_ligne || 0), 0);
-    const remise = 0;
-    const netAPayer = montantTotal - remise;
+    // Calculer à partir des articles avec remises
+    let montantTotalBrut = 0;
+    let remiseTotale = 0;
     
-    return { montantTotal, remise, netAPayer };
+    articles.forEach((article: any) => {
+      const prixUnitaireBrut = article.prix_unitaire || 0;
+      const quantite = article.quantite || 0;
+      const remiseUnitaire = article.remise_unitaire || 0;
+      
+      const montantLigneBrut = prixUnitaireBrut * quantite;
+      const remiseLigne = remiseUnitaire * quantite;
+      
+      montantTotalBrut += montantLigneBrut;
+      remiseTotale += remiseLigne;
+    });
+    
+    // Ajouter la remise globale du bon de commande si elle existe
+    const remiseGlobaleBonCommande = facture.bon_commande?.remise || 0;
+    remiseTotale += remiseGlobaleBonCommande;
+    
+    const netAPayer = montantTotalBrut - remiseTotale;
+    
+    console.log('📊 Calculs avec articles détaillés:', {
+      montantTotalBrut,
+      remiseTotale,
+      remiseGlobaleBonCommande,
+      netAPayer
+    });
+    
+    return {
+      montantTotalBrut,
+      remiseTotale,
+      netAPayer
+    };
   };
 
   const getPaymentStatus = () => {
-    const montantPaye = facture.montant_paye || 0;
+    // Calculer le montant payé total (acompte BC + règlements)
+    const acompteBC = facture.bon_commande?.montant_paye || 0;
+    const reglementsTotal = facture.reglements?.reduce((sum: number, reglement: any) => {
+      return sum + (reglement.montant || 0);
+    }, 0) || 0;
+    
+    const montantPaye = acompteBC + reglementsTotal;
     const montantTotal = facture.montant_ttc || 0;
     
     if (montantPaye === 0) {
@@ -496,13 +549,16 @@ export const PrintFactureAchatDialog = ({ facture }: PrintFactureAchatDialogProp
                     const delivered = article.quantite_livree || 0;
                     const ordered = article.quantite || 0;
                     const remaining = Math.max(0, ordered - delivered);
+                    const remiseUnitaire = article.remise_unitaire || 0;
+                    const prixUnitaireBrut = article.prix_unitaire || 0;
+                    const prixNet = prixUnitaireBrut - remiseUnitaire;
                     
                     return (
                       <tr key={article.id}>
                         <td className="product-name">{article.catalogue?.nom || 'Article'}</td>
-                        <td>{formatCurrency(article.prix_unitaire)}</td>
-                        <td>0</td>
-                        <td>{formatCurrency(article.prix_unitaire)}</td>
+                        <td>{formatCurrency(prixUnitaireBrut)}</td>
+                        <td className="discount-amount">{remiseUnitaire > 0 ? formatCurrency(remiseUnitaire) : '0 GNF'}</td>
+                        <td>{formatCurrency(prixNet)}</td>
                         <td>{ordered}</td>
                         <td className="quantity-delivered">{delivered}</td>
                         <td className="quantity-remaining">{remaining}</td>
@@ -519,19 +575,21 @@ export const PrintFactureAchatDialog = ({ facture }: PrintFactureAchatDialogProp
             )}
           </div>
 
-          {/* Section totaux */}
+          {/* Section totaux avec remises */}
           <div className="totals-section">
             <div className="totals-left"></div>
             <div className="totals-right">
               <h4>Récapitulatif des montants</h4>
               <div className="total-line">
-                <span>Montant Total</span>
-                <span>{formatCurrency(totals.montantTotal)}</span>
+                <span>Montant Total Brut</span>
+                <span>{formatCurrency(totals.montantTotalBrut)}</span>
               </div>
-              <div className="total-line">
-                <span>Remise</span>
-                <span>{formatCurrency(totals.remise)}</span>
-              </div>
+              {totals.remiseTotale > 0 && (
+                <div className="total-line">
+                  <span>Remise Totale</span>
+                  <span className="discount-amount">{formatCurrency(totals.remiseTotale)}</span>
+                </div>
+              )}
               <div className="total-line final">
                 <span>Net à Payer</span>
                 <span>{formatCurrency(totals.netAPayer)}</span>
@@ -579,6 +637,12 @@ export const PrintFactureAchatDialog = ({ facture }: PrintFactureAchatDialogProp
             {deliveryStatus.label === 'Partiellement livré' && (
               <div className="message-box">
                 Cette commande a été partiellement livrée.
+              </div>
+            )}
+            
+            {totals.remiseTotale > 0 && (
+              <div className="message-box">
+                Une remise de {formatCurrency(totals.remiseTotale)} a été appliquée sur cette facture.
               </div>
             )}
           </div>

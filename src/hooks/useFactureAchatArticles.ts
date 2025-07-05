@@ -2,62 +2,44 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 
-export const useFactureAchatArticles = (factureId?: string) => {
+export const useFactureAchatArticles = (factureId: string) => {
   return useQuery({
     queryKey: ['facture-achat-articles', factureId],
     queryFn: async () => {
-      if (!factureId) return [];
+      console.log('🔍 Récupération des articles de facture achat avec remises:', factureId);
       
-      console.log('Fetching articles for facture achat:', factureId);
       const { data, error } = await supabase
         .from('articles_facture_achat')
         .select(`
           *,
-          catalogue!articles_facture_achat_article_id_fkey(
+          catalogue:article_id(
             id,
             nom,
-            reference
+            prix_unitaire,
+            prix_achat,
+            description
           )
         `)
-        .eq('facture_achat_id', factureId);
+        .eq('facture_achat_id', factureId)
+        .order('created_at', { ascending: true });
       
       if (error) {
-        console.error('Error fetching facture achat articles:', error);
+        console.error('❌ Erreur récupération articles facture achat:', error);
         throw error;
       }
       
-      console.log('Fetched facture achat articles:', data);
+      console.log('✅ Articles facture achat récupérés:', {
+        count: data?.length || 0,
+        articles: data?.map(a => ({
+          nom: a.catalogue?.nom,
+          prix_unitaire: a.prix_unitaire,
+          quantite: a.quantite,
+          montant_ligne: a.montant_ligne
+        }))
+      });
+      
       return data || [];
     },
     enabled: !!factureId
-  });
-};
-
-export const useAllFactureAchatArticles = () => {
-  return useQuery({
-    queryKey: ['all-facture-achat-articles'],
-    queryFn: async () => {
-      console.log('Fetching all facture achat articles counts...');
-      const { data, error } = await supabase
-        .from('articles_facture_achat')
-        .select('facture_achat_id');
-      
-      if (error) {
-        console.error('Error fetching all facture achat articles:', error);
-        throw error;
-      }
-      
-      // Count articles per facture
-      const articlesCounts: Record<string, number> = {};
-      data?.forEach(article => {
-        const factureId = article.facture_achat_id;
-        if (factureId) {
-          articlesCounts[factureId] = (articlesCounts[factureId] || 0) + 1;
-        }
-      });
-      
-      console.log('Articles counts per facture:', articlesCounts);
-      return articlesCounts;
-    }
   });
 };
