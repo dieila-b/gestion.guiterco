@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { useFacturesAchat } from '@/hooks/useFacturesAchat';
-import { useAllFactureAchatArticles } from '@/hooks/useFactureAchatArticles';
+import { useAllFactureAchatArticles } from '@/hooks/useAllFactureAchatArticles';
 import { useAllBonCommandeArticles } from '@/hooks/useBonCommandeArticles';
 import { useAllReglementsAchat } from '@/hooks/useReglementsAchat';
 import FacturesAchatHeader from './FacturesAchatHeader';
