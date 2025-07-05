@@ -1,4 +1,3 @@
-
 import type { FactureVente } from '@/types/sales';
 import { openPrintWindow } from './basePrintService';
 import { 
@@ -201,14 +200,14 @@ const generateArticlesSection = (facture: FactureVente): string => {
   if (facture.lignes_facture && facture.lignes_facture.length > 0) {
     articlesHtml += facture.lignes_facture.map((ligne, index) => {
       const remiseUnitaire = ligne.remise_unitaire || 0;
-      const remiseFormatted = remiseUnitaire > 0 ? Math.round(remiseUnitaire) : '0';
+      const remiseFormatted = typeof remiseUnitaire === 'number' && remiseUnitaire > 0 ? Math.round(remiseUnitaire) : '0';
       const prixNet = ligne.prix_unitaire;
       
       return `
         <div class="article-line">
           <span class="article-name">${ligne.article?.nom || 'Article'}</span>
           <span class="article-qty">${ligne.quantite}</span>
-          <span class="article-remise">${remiseFormatted > 0 ? remiseFormatted : '0'}</span>
+          <span class="article-remise">${remiseFormatted !== '0' ? remiseFormatted : '0'}</span>
           <span class="article-price">${Math.round(prixNet)}</span>
           <span class="article-total">${Math.round(ligne.montant_ligne)}</span>
         </div>
@@ -285,7 +284,7 @@ const generateDiscountSection = (facture: FactureVente): string => {
   
   if (facture.lignes_facture && facture.lignes_facture.length > 0) {
     facture.lignes_facture.forEach(ligne => {
-      const remiseUnitaire = ligne.remise_unitaire || 0;
+      const remiseUnitaire = typeof ligne.remise_unitaire === 'number' ? ligne.remise_unitaire : 0;
       const prixBrut = ligne.prix_unitaire_brut || ligne.prix_unitaire;
       const quantite = ligne.quantite;
       
