@@ -25,15 +25,26 @@ export const generateFactureVenteContent = (facture: FactureVente): string => {
   const deliveryStatus = getDeliveryStatusInfo(facture);
   
   // Calculer les montants avec remises (SANS TVA)
-  const totalRemise = facture.remise_totale || 0;
+  let totalRemise = 0;
+  let montantTotalAvantRemise = 0;
   
-  // Calculer le montant total avant remise
-  let montantTotalAvantRemise = facture.montant_ttc + totalRemise;
+  // Calculer le montant total avant remise à partir des lignes de facture
   if (facture.lignes_facture && facture.lignes_facture.length > 0) {
     montantTotalAvantRemise = facture.lignes_facture.reduce((total, ligne) => {
       const prixBrut = ligne.prix_unitaire_brut || ligne.prix_unitaire;
       return total + (prixBrut * ligne.quantite);
     }, 0);
+    
+    // Calculer le total des remises à partir des lignes
+    totalRemise = facture.lignes_facture.reduce((total, ligne) => {
+      const remiseUnitaire = ligne.remise_unitaire || 0;
+      return total + (remiseUnitaire * ligne.quantite);
+    }, 0);
+  } else {
+    // Si pas de lignes, utiliser le montant TTC comme montant avant remise
+    montantTotalAvantRemise = facture.montant_ttc;
+    totalRemise = facture.remise_totale || 0;
+    montantTotalAvantRemise += totalRemise;
   }
   
   // Le montant net à payer est le montant TTC final (sans TVA dans votre cas)

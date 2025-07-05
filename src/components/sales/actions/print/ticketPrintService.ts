@@ -193,15 +193,20 @@ const generateArticlesSection = (facture: FactureVente): string => {
   `;
 
   if (facture.lignes_facture && facture.lignes_facture.length > 0) {
-    articlesHtml += facture.lignes_facture.map((ligne, index) => `
-      <div class="article-line">
-        <span class="article-name">${ligne.article?.nom || 'Article'}</span>
-        <span class="article-qty">${ligne.quantite}</span>
-        <span class="article-remise">0</span>
-        <span class="article-price">${Math.round(ligne.prix_unitaire)}</span>
-        <span class="article-total">${Math.round(ligne.montant_ligne)}</span>
-      </div>
-    `).join('');
+    articlesHtml += facture.lignes_facture.map((ligne, index) => {
+      const remiseUnitaire = ligne.remise_unitaire || 0;
+      const remiseFormatted = remiseUnitaire > 0 ? Math.round(remiseUnitaire) : '0';
+      
+      return `
+        <div class="article-line">
+          <span class="article-name">${ligne.article?.nom || 'Article'}</span>
+          <span class="article-qty">${ligne.quantite}</span>
+          <span class="article-remise">${remiseFormatted}</span>
+          <span class="article-price">${Math.round(ligne.prix_unitaire)}</span>
+          <span class="article-total">${Math.round(ligne.montant_ligne)}</span>
+        </div>
+      `;
+    }).join('');
   } else {
     articlesHtml += `
       <div class="article-line">

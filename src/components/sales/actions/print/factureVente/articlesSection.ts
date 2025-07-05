@@ -1,4 +1,3 @@
-
 import type { FactureVente } from '@/types/sales';
 import { formatCurrency } from '@/lib/currency';
 
