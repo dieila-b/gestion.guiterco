@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -42,6 +41,7 @@ const PostPaymentActions: React.FC<PostPaymentActionsProps> = ({
       
       setLoading(true);
       try {
+        // Récupération avec toutes les données de remise - CORRECTION ICI
         const { data: facture, error } = await supabase
           .from('factures_vente')
           .select(`
@@ -72,6 +72,15 @@ const PostPaymentActions: React.FC<PostPaymentActionsProps> = ({
             ...facture,
             versements: versements || []
           };
+          
+          // Debug des données récupérées
+          console.log('🔍 Données facture complète récupérées:', {
+            id: factureComplete.id,
+            remise_totale: factureComplete.remise_totale,
+            lignes_avec_remises: factureComplete.lignes_facture?.filter(l => (l.remise_unitaire && l.remise_unitaire > 0)).length || 0,
+            total_lignes: factureComplete.lignes_facture?.length || 0
+          });
+          
           setFullFactureData(factureComplete as any);
         }
       } catch (error) {
@@ -127,7 +136,8 @@ const PostPaymentActions: React.FC<PostPaymentActionsProps> = ({
         id: fullFactureData.id,
         numero_facture: fullFactureData.numero_facture,
         lignes_facture: fullFactureData.lignes_facture?.length || 0,
-        client: fullFactureData.client?.nom || 'Non défini'
+        client: fullFactureData.client?.nom || 'Non défini',
+        remise_totale: fullFactureData.remise_totale
       });
       
       await printFactureVente(fullFactureData);

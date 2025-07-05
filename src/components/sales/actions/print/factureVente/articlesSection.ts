@@ -26,8 +26,8 @@ export const generateArticlesSection = (facture: FactureVente): string => {
       const ordered = ligne.quantite || 0;
       const remaining = Math.max(0, ordered - delivered);
       
-      // Récupérer les vraies données de remise depuis la base
-      const remiseUnitaire = ligne.remise_unitaire || 0;
+      // Récupérer les vraies données de remise depuis la base - CORRECTION ICI
+      const remiseUnitaire = typeof ligne.remise_unitaire === 'number' ? ligne.remise_unitaire : 0;
       const prixBrut = ligne.prix_unitaire_brut || ligne.prix_unitaire;
       const prixNet = ligne.prix_unitaire; // Prix après remise
       
@@ -54,11 +54,15 @@ export const generateArticlesSection = (facture: FactureVente): string => {
       `;
     }).join('');
   } else {
+    // Cas de vente globale - vérifier s'il y a une remise
+    const remiseGlobale = facture.remise_totale || 0;
+    const montantBrut = facture.montant_ttc + remiseGlobale;
+    
     articlesHtml += `
       <tr>
         <td class="product-name">Vente globale</td>
-        <td>${formatCurrency(facture.montant_ttc)}</td>
-        <td>0 GNF</td>
+        <td>${formatCurrency(remiseGlobale > 0 ? montantBrut : facture.montant_ttc)}</td>
+        <td class="discount-amount">${remiseGlobale > 0 ? formatCurrency(remiseGlobale) : '0 GNF'}</td>
         <td>${formatCurrency(facture.montant_ttc)}</td>
         <td>1</td>
         <td class="quantity-delivered">1</td>
