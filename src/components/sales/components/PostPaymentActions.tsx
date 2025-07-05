@@ -8,6 +8,10 @@ import { Separator } from '@/components/ui/separator';
 import { Mail, MessageCircle, Download, Printer, Check, Receipt, FileText } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatCurrency } from '@/lib/currency';
+import { supabase } from '@/integrations/supabase/client';
+import { printFactureVente } from '../actions/print/factureVentePrintService';
+import { generateFactureVenteContent } from '../actions/print/factureVente/contentGenerator';
+import type { FactureVente } from '@/types/sales';
 
 interface PostPaymentActionsProps {
   isOpen: boolean;
@@ -28,6 +32,47 @@ const PostPaymentActions: React.FC<PostPaymentActionsProps> = ({
 }) => {
   const [email, setEmail] = React.useState(factureData.client?.email || '');
   const [telephone, setTelephone] = React.useState(factureData.client?.telephone || '');
+  const [fullFactureData, setFullFactureData] = React.useState<FactureVente | null>(null);
+  const [loading, setLoading] = React.useState(false);
+
+  // Récupérer les données complètes de la facture au montage du composant
+  React.useEffect(() => {
+    const fetchFullFactureData = async () => {
+      if (!factureData.id) return;
+      
+      setLoading(true);
+      try {
+        const { data: facture, error } = await supabase
+          .from('factures_vente')
+          .select(`
+            *,
+            client:clients(*),
+            lignes_facture:lignes_facture_vente(
+              *,
+              article:catalogue(*)
+            ),
+            versements:versements_clients(*)
+          `)
+          .eq('id', factureData.id)
+          .single();
+
+        if (error) {
+          console.error('Erreur récupération facture complète:', error);
+          return;
+        }
+
+        setFullFactureData(facture as any);
+      } catch (error) {
+        console.error('Erreur lors du fetch de la facture:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (isOpen && factureData.id) {
+      fetchFullFactureData();
+    }
+  }, [isOpen, factureData.id]);
 
   const handleEmailSend = async () => {
     if (!email) {
@@ -55,26 +100,66 @@ const PostPaymentActions: React.FC<PostPaymentActionsProps> = ({
     });
   };
 
-  const handlePrintInvoice = () => {
-    toast.success('Impression de la facture lancée', {
-      description: 'Facture complète avec détails'
-    });
-    // Ici vous pouvez intégrer votre service d'impression de facture
-    window.print();
+  const handlePrintInvoice = async () => {
+    if (!fullFactureData) {
+      toast.error('Données de facture non disponibles');
+      return;
+    }
+
+    try {
+      await printFactureVente(fullFactureData);
+      toast.success('Impression de la facture lancée', {
+        description: 'Facture complète avec format professionnel'
+      });
+    } catch (error) {
+      console.error('Erreur impression facture:', error);
+      toast.error('Erreur lors de l\'impression de la facture');
+    }
   };
 
-  const handlePrintReceipt = () => {
-    toast.success('Impression du reçu lancée', {
-      description: 'Reçu simplifié'
-    });
-    // Ici vous pouvez intégrer votre service d'impression de reçu
-    window.print();
+  const handlePrintReceipt = async () => {
+    if (!fullFactureData) {
+      toast.error('Données de facture non disponibles');
+      return;
+    }
+
+    try {
+      // Utiliser le même format mais avec un titre différent
+      await printFactureVente(fullFactureData);
+      toast.success('Impression du reçu lancée', {
+        description: 'Reçu avec format professionnel'
+      });
+    } catch (error) {
+      console.error('Erreur impression reçu:', error);
+      toast.error('Erreur lors de l\'impression du reçu');
+    }
   };
 
-  const handlePDFDownload = () => {
-    toast.success('Téléchargement du PDF en cours...', {
-      description: 'Le fichier sera disponible dans quelques secondes'
-    });
+  const handlePDFDownload = async () => {
+    if (!fullFactureData) {
+      toast.error('Données de facture non disponibles');
+      return;
+    }
+
+    try {
+      const content = generateFactureVenteContent(fullFactureData);
+      const blob = new Blob([content], { type: 'text/html' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `Facture_${fullFactureData.numero_facture}.html`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      
+      toast.success('Téléchargement du PDF en cours...', {
+        description: 'Fichier HTML généré pour impression PDF'
+      });
+    } catch (error) {
+      console.error('Erreur téléchargement PDF:', error);
+      toast.error('Erreur lors du téléchargement');
+    }
   };
 
   return (
@@ -112,6 +197,7 @@ const PostPaymentActions: React.FC<PostPaymentActionsProps> = ({
                 onClick={handlePrintInvoice} 
                 variant="outline" 
                 className="flex-col h-auto py-3 gap-2"
+                disabled={loading || !fullFactureData}
               >
                 <FileText className="h-5 w-5" />
                 <span className="text-xs">Facture complète</span>
@@ -120,6 +206,7 @@ const PostPaymentActions: React.FC<PostPaymentActionsProps> = ({
                 onClick={handlePrintReceipt} 
                 variant="outline" 
                 className="flex-col h-auto py-3 gap-2"
+                disabled={loading || !fullFactureData}
               >
                 <Receipt className="h-5 w-5" />
                 <span className="text-xs">Reçu simplifié</span>
@@ -166,7 +253,12 @@ const PostPaymentActions: React.FC<PostPaymentActionsProps> = ({
 
           {/* Actions finales */}
           <div className="space-y-3">
-            <Button onClick={handlePDFDownload} variant="outline" className="w-full">
+            <Button 
+              onClick={handlePDFDownload} 
+              variant="outline" 
+              className="w-full"
+              disabled={loading || !fullFactureData}
+            >
               <Download className="h-4 w-4 mr-2" />
               Télécharger PDF
             </Button>
