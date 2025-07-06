@@ -28,10 +28,10 @@ export const generateArticlesSection = (facture: FactureVente): string => {
       const ordered = ligne.quantite || 0;
       const remaining = Math.max(0, ordered - delivered);
       
-      // Utilisation des données des vues SQL - only remise_unitaire
+      // Utilisation des données des vues SQL - only remise_unitaire et prix_unitaire_brut
       const remiseUnitaire = ligne.remise_unitaire || 0;
-      const prixBrut = ligne.prix_unitaire_brut || ligne.prix_unitaire || 0;
-      const prixNet = ligne.prix_unitaire || 0;
+      const prixBrut = ligne.prix_unitaire_brut || 0;
+      const prixNet = prixBrut - remiseUnitaire; // Calculer le prix net
       
       console.log('📄 Ligne vue SQL détaillée:', {
         article: ligne.article?.nom,

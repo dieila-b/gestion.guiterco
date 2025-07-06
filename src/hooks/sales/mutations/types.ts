@@ -1,5 +1,4 @@
 
-
 export interface CreateVersementInput {
   facture_id: string;
   client_id: string;
@@ -34,6 +33,7 @@ export interface CartItem {
   article_id: string;
   quantite: number;
   prix_unitaire: number;
+  prix_unitaire_brut?: number; // Ajouter prix_unitaire_brut
   remise?: number; // Ajout de la remise optionnelle
+  remise_unitaire?: number; // Ajouter remise_unitaire
 }
-

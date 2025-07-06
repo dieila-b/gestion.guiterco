@@ -1,4 +1,3 @@
-
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -41,14 +40,14 @@ export const useCreateFactureVente = () => {
 
       console.log('✅ Facture créée:', facture.id);
 
-      // Créer les lignes de facture avec uniquement remise_unitaire
+      // Créer les lignes de facture avec prix_unitaire_brut au lieu de prix_unitaire
       const lignesFacture = data.cart.map((item: any) => {
-        const prixUnitaireBrut = item.prix_unitaire_brut || item.prix_unitaire;
+        const prixUnitaireBrut = item.prix_unitaire_brut || item.prix_unitaire || item.prix_vente || 0;
         const remiseUnitaire = item.remise_unitaire || item.remise || 0;
         const prixUnitaireNet = prixUnitaireBrut - remiseUnitaire;
         const montantLigne = item.quantite * prixUnitaireNet;
 
-        console.log('📦 Ligne facture avec remise:', {
+        console.log('📦 Ligne facture avec prix_unitaire_brut:', {
           article_id: item.article_id,
           quantite: item.quantite,
           prix_unitaire_brut: prixUnitaireBrut,
@@ -61,8 +60,7 @@ export const useCreateFactureVente = () => {
           facture_vente_id: facture.id,
           article_id: item.article_id,
           quantite: item.quantite,
-          prix_unitaire: prixUnitaireNet, // Prix après remise
-          prix_unitaire_brut: prixUnitaireBrut, // Prix avant remise
+          prix_unitaire_brut: prixUnitaireBrut, // Utiliser prix_unitaire_brut
           remise_unitaire: remiseUnitaire, // Montant de la remise par unité
           montant_ligne: montantLigne, // Montant total de la ligne après remise
           quantite_livree: 0,
@@ -80,11 +78,10 @@ export const useCreateFactureVente = () => {
         throw lignesError;
       }
 
-      console.log('✅ Lignes facture créées avec remises:', lignesCreees?.map(l => ({
+      console.log('✅ Lignes facture créées avec prix_unitaire_brut:', lignesCreees?.map(l => ({
         id: l.id,
         prix_unitaire_brut: l.prix_unitaire_brut,
         remise_unitaire: l.remise_unitaire,
-        prix_unitaire: l.prix_unitaire,
         montant_ligne: l.montant_ligne
       })));
 

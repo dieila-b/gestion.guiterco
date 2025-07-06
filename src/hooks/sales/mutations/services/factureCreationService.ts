@@ -30,19 +30,23 @@ export const createFactureAndLines = async (data: CreateFactureVenteData) => {
 
   console.log('✅ Facture créée avec statuts En attente:', facture);
 
-  // 2. Créer les lignes de facture TOUJOURS avec statut En attente initialement
-  const lignesFacture = data.cart.map(item => ({
-    facture_vente_id: facture.id,
-    article_id: item.article_id,
-    quantite: item.quantite,
-    prix_unitaire: item.prix_unitaire,
-    prix_unitaire_brut: item.remise ? item.prix_unitaire + (item.remise || 0) : item.prix_unitaire, // Prix avant remise
-    remise_unitaire: item.remise || 0, // Remise unitaire
-    montant_ligne: item.quantite * item.prix_unitaire,
-    statut_livraison: 'en_attente' // TOUJOURS En attente au début
-  }));
+  // 2. Créer les lignes de facture avec prix_unitaire_brut au lieu de prix_unitaire
+  const lignesFacture = data.cart.map(item => {
+    const prixUnitaireBrut = item.prix_unitaire_brut || item.prix_unitaire || 0;
+    const remiseUnitaire = item.remise || 0;
 
-  console.log('🔄 Création lignes facture avec statut En attente:', lignesFacture);
+    return {
+      facture_vente_id: facture.id,
+      article_id: item.article_id,
+      quantite: item.quantite,
+      prix_unitaire_brut: prixUnitaireBrut, // Utiliser prix_unitaire_brut
+      remise_unitaire: remiseUnitaire, // Remise unitaire
+      montant_ligne: item.quantite * (prixUnitaireBrut - remiseUnitaire),
+      statut_livraison: 'en_attente' // TOUJOURS En attente au début
+    };
+  });
+
+  console.log('🔄 Création lignes facture avec prix_unitaire_brut:', lignesFacture);
 
   const { data: lignesCreees, error: lignesError } = await supabase
     .from('lignes_facture_vente')
@@ -54,7 +58,7 @@ export const createFactureAndLines = async (data: CreateFactureVenteData) => {
     throw lignesError;
   }
 
-  console.log('✅ Lignes facture créées avec statut En attente:', lignesCreees);
+  console.log('✅ Lignes facture créées avec prix_unitaire_brut:', lignesCreees);
 
   return { facture, lignes: lignesCreees };
 };
