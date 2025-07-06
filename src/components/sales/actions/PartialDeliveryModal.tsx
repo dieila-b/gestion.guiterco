@@ -114,7 +114,7 @@ const PartialDeliveryModal = ({ isOpen, onClose, facture, onConfirm, isLoading }
                   
                   <div className="text-sm">
                     <p><span className="font-medium">Commandé:</span> {ligne.quantite}</p>
-                    <p><span className="font-medium">Prix:</span> {formatCurrency(ligne.prix_unitaire)}</p>
+                    <p><span className="font-medium">Prix:</span> {formatCurrency(ligne.prix_unitaire_brut)}</p>
                   </div>
 
                   <div className="text-sm">

@@ -1,3 +1,4 @@
+
 import type { FactureVente } from '@/types/sales';
 import { openPrintWindow } from './basePrintService';
 import { 
@@ -200,7 +201,7 @@ const generateArticlesSection = (facture: FactureVente): string => {
   if (facture.lignes_facture && facture.lignes_facture.length > 0) {
     articlesHtml += facture.lignes_facture.map((ligne, index) => {
       const remiseUnitaire = ligne.remise_unitaire || 0;
-      const prixNet = ligne.prix_unitaire;
+      const prixNet = ligne.prix_unitaire_brut - remiseUnitaire;
       
       // Affichage de la remise sur le ticket - only remise_unitaire
       const remiseFormatted = remiseUnitaire > 0 ? Math.round(remiseUnitaire).toString() : '0';
@@ -293,8 +294,8 @@ const generateDiscountSection = (facture: FactureVente): string => {
   if (facture.lignes_facture && facture.lignes_facture.length > 0) {
     facture.lignes_facture.forEach((ligne, index) => {
       const remiseUnitaire = ligne.remise_unitaire || 0;
-      const prixBrut = ligne.prix_unitaire_brut || ligne.prix_unitaire;
-      const prixNet = ligne.prix_unitaire;
+      const prixBrut = ligne.prix_unitaire_brut || 0;
+      const prixNet = ligne.prix_unitaire_brut - remiseUnitaire;
       const quantite = ligne.quantite;
       
       console.log(`🎫 Ligne ${index + 1} vue SQL:`, {

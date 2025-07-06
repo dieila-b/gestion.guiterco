@@ -46,3 +46,19 @@ export interface TransactionResult {
   transactionId?: string;
   error?: string;
 }
+
+export interface VenteComptoirData {
+  client_id: string;
+  cart: CartItem[];
+  montant_ht: number;
+  tva: number;
+  montant_ttc: number;
+  mode_paiement: string;
+  payment_data?: {
+    montant_paye: number;
+    mode_paiement: string;
+    statut_livraison?: string;
+    quantite_livree?: Record<string, number>;
+    notes?: string;
+  };
+}
