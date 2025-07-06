@@ -25,7 +25,7 @@ export const generateFactureVenteContent = (facture: FactureVente): string => {
   const paymentStatus = getPaymentStatus(facture);
   const deliveryStatus = getDeliveryStatusInfo(facture);
   
-  // Calcul des remises selon la logique des vues SQL
+  // Calcul des remises selon la logique des vues SQL - using only remise_unitaire
   let totalRemiseCalculee = 0;
   let montantTotalAvantRemise = 0;
   

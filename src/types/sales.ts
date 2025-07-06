@@ -1,4 +1,3 @@
-
 export interface Client {
   id: string;
   nom: string;
@@ -51,7 +50,6 @@ export interface LigneFactureVente {
   prix_unitaire: number;
   prix_unitaire_brut?: number;
   remise_unitaire?: number;
-  remise_pourcentage?: number;
   montant_ligne: number;
   statut_livraison?: string;
   created_at: string;

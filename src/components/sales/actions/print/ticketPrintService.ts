@@ -200,16 +200,10 @@ const generateArticlesSection = (facture: FactureVente): string => {
   if (facture.lignes_facture && facture.lignes_facture.length > 0) {
     articlesHtml += facture.lignes_facture.map((ligne, index) => {
       const remiseUnitaire = ligne.remise_unitaire || 0;
-      const remisePourcentage = ligne.remise_pourcentage || 0;
       const prixNet = ligne.prix_unitaire;
       
-      // Affichage de la remise sur le ticket
-      let remiseFormatted = '0';
-      if (typeof remiseUnitaire === 'number' && remiseUnitaire > 0) {
-        remiseFormatted = Math.round(remiseUnitaire).toString();
-      } else if (typeof remisePourcentage === 'number' && remisePourcentage > 0) {
-        remiseFormatted = `${remisePourcentage}%`;
-      }
+      // Affichage de la remise sur le ticket - only remise_unitaire
+      const remiseFormatted = remiseUnitaire > 0 ? Math.round(remiseUnitaire).toString() : '0';
       
       return `
         <div class="article-line">
@@ -287,7 +281,7 @@ const generateDeliverySection = (facture: FactureVente): string => {
 };
 
 const generateDiscountSection = (facture: FactureVente): string => {
-  // Calculer le total des remises avec les vues SQL
+  // Calculer le total des remises avec les vues SQL - only remise_unitaire
   let totalRemise = 0;
   let montantBrut = 0;
   
@@ -299,7 +293,6 @@ const generateDiscountSection = (facture: FactureVente): string => {
   if (facture.lignes_facture && facture.lignes_facture.length > 0) {
     facture.lignes_facture.forEach((ligne, index) => {
       const remiseUnitaire = ligne.remise_unitaire || 0;
-      const remisePourcentage = ligne.remise_pourcentage || 0;
       const prixBrut = ligne.prix_unitaire_brut || ligne.prix_unitaire;
       const prixNet = ligne.prix_unitaire;
       const quantite = ligne.quantite;
@@ -307,7 +300,6 @@ const generateDiscountSection = (facture: FactureVente): string => {
       console.log(`🎫 Ligne ${index + 1} vue SQL:`, {
         article: ligne.article?.nom,
         remise_unitaire: remiseUnitaire,
-        remise_pourcentage: remisePourcentage,
         prix_brut: prixBrut,
         prix_net: prixNet,
         quantite: quantite
@@ -318,13 +310,7 @@ const generateDiscountSection = (facture: FactureVente): string => {
       montantBrut += montantBrutLigne;
       
       // Calcul de la remise selon remise_totale_ligne
-      let remiseLigne = 0;
-      if (typeof remiseUnitaire === 'number' && remiseUnitaire > 0) {
-        remiseLigne = remiseUnitaire * quantite;
-      } else if (typeof remisePourcentage === 'number' && remisePourcentage > 0) {
-        remiseLigne = (montantBrutLigne * remisePourcentage) / 100;
-      }
-      
+      const remiseLigne = remiseUnitaire * quantite;
       totalRemise += remiseLigne;
       
       console.log(`🎫 Ligne ${index + 1} résultat:`, {

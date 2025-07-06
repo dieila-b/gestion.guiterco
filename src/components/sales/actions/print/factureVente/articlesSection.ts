@@ -28,9 +28,8 @@ export const generateArticlesSection = (facture: FactureVente): string => {
       const ordered = ligne.quantite || 0;
       const remaining = Math.max(0, ordered - delivered);
       
-      // Utilisation des données des vues SQL
+      // Utilisation des données des vues SQL - only remise_unitaire
       const remiseUnitaire = ligne.remise_unitaire || 0;
-      const remisePourcentage = ligne.remise_pourcentage || 0;
       const prixBrut = ligne.prix_unitaire_brut || ligne.prix_unitaire || 0;
       const prixNet = ligne.prix_unitaire || 0;
       
@@ -39,18 +38,12 @@ export const generateArticlesSection = (facture: FactureVente): string => {
         prix_brut: prixBrut,
         prix_net: prixNet,
         remise_unitaire: remiseUnitaire,
-        remise_pourcentage: remisePourcentage,
         quantite: ordered,
         montant_ligne: ligne.montant_ligne
       });
       
       // Affichage de la remise selon vue_facture_vente_detaillee
-      let affichageRemise = '0 GNF';
-      if (remiseUnitaire > 0) {
-        affichageRemise = formatCurrency(remiseUnitaire);
-      } else if (remisePourcentage > 0) {
-        affichageRemise = `${remisePourcentage}%`;
-      }
+      const affichageRemise = remiseUnitaire > 0 ? formatCurrency(remiseUnitaire) : '0 GNF';
       
       return `
         <tr>
