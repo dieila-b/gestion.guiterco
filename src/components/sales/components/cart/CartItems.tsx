@@ -8,9 +8,9 @@ import StepperInput from './StepperInput';
 interface CartItem {
   id: string;
   nom: string;
-  prix_vente?: number; // Rendu optionnel pour correspondre au type du hook
+  prix_vente?: number;
   quantite: number;
-  remise?: number; // Rendu optionnel pour correspondre au type du hook
+  remise?: number; // Remise unitaire uniquement
 }
 
 interface CartItemsProps {
@@ -55,9 +55,9 @@ const CartItems: React.FC<CartItemsProps> = ({
         </thead>
         <tbody>
           {cart.map((item) => {
-            const prixVente = item.prix_vente || 0; // Valeur par défaut si undefined
-            const remise = item.remise || 0; // Valeur par défaut si undefined
-            const prixApresRemise = Math.max(0, prixVente - remise);
+            const prixVente = item.prix_vente || 0;
+            const remiseUnitaire = item.remise || 0; // Utiliser uniquement remise_unitaire
+            const prixApresRemise = Math.max(0, prixVente - remiseUnitaire);
             const totalLigne = prixApresRemise * item.quantite;
             
             return (
@@ -82,7 +82,7 @@ const CartItems: React.FC<CartItemsProps> = ({
                     type="text"
                     inputMode="numeric"
                     pattern="[0-9]*"
-                    value={remise}
+                    value={remiseUnitaire}
                     onChange={(e) => {
                       const value = e.target.value;
                       if (value === '' || /^\d*\.?\d*$/.test(value)) {
