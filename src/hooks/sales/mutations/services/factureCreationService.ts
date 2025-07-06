@@ -1,5 +1,4 @@
 
-
 import { supabase } from '@/integrations/supabase/client';
 import type { CreateFactureVenteData } from '../types';
 
@@ -59,4 +58,3 @@ export const createFactureAndLines = async (data: CreateFactureVenteData) => {
 
   return { facture, lignes: lignesCreees };
 };
-

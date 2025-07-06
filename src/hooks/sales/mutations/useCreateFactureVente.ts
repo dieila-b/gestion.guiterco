@@ -1,3 +1,4 @@
+
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -40,10 +41,10 @@ export const useCreateFactureVente = () => {
 
       console.log('✅ Facture créée:', facture.id);
 
-      // Créer les lignes de facture avec uniquement les données de remise nécessaires
+      // Créer les lignes de facture avec uniquement remise_unitaire
       const lignesFacture = data.cart.map((item: any) => {
         const prixUnitaireBrut = item.prix_unitaire_brut || item.prix_unitaire;
-        const remiseUnitaire = item.remise_unitaire || 0;
+        const remiseUnitaire = item.remise_unitaire || item.remise || 0;
         const prixUnitaireNet = prixUnitaireBrut - remiseUnitaire;
         const montantLigne = item.quantite * prixUnitaireNet;
 
