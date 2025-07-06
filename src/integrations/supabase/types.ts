@@ -1518,7 +1518,6 @@ export type Database = {
           facture_vente_id: string
           id: string
           montant_ligne: number | null
-          prix_unitaire: number | null
           prix_unitaire_brut: number
           quantite: number
           quantite_livree: number | null
@@ -1531,9 +1530,8 @@ export type Database = {
           facture_vente_id: string
           id?: string
           montant_ligne?: number | null
-          prix_unitaire?: number | null
-          prix_unitaire_brut: number
-          quantite: number
+          prix_unitaire_brut?: number
+          quantite?: number
           quantite_livree?: number | null
           remise_unitaire?: number | null
           statut_livraison?: string | null
@@ -1544,7 +1542,6 @@ export type Database = {
           facture_vente_id?: string
           id?: string
           montant_ligne?: number | null
-          prix_unitaire?: number | null
           prix_unitaire_brut?: number
           quantite?: number
           quantite_livree?: number | null
@@ -2734,7 +2731,6 @@ export type Database = {
           nom_entreprise: string | null
           prix_unitaire_brut: number | null
           quantite: number | null
-          remise_totale_facture: number | null
           remise_totale_ligne: number | null
           remise_unitaire: number | null
           statut_livraison:

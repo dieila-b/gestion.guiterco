@@ -10,7 +10,7 @@ import { getPaymentStatus, getDeliveryStatusInfo } from './statusHelpers';
 import { numberToWords } from './utils';
 
 export const generateFactureVenteContent = (facture: FactureVente): string => {
-  console.log('🧾 Génération facture avec remises détaillées - START');
+  console.log('🧾 Génération facture avec remises unitaires - START');
   console.log('📋 Données facture complètes:', {
     id: facture.id,
     numero_facture: facture.numero_facture,
@@ -25,29 +25,28 @@ export const generateFactureVenteContent = (facture: FactureVente): string => {
   const paymentStatus = getPaymentStatus(facture);
   const deliveryStatus = getDeliveryStatusInfo(facture);
   
-  // Calcul des remises selon la logique des vues SQL - using only remise_unitaire
+  // Calcul des remises avec remise_unitaire uniquement
   let totalRemiseCalculee = 0;
   let montantTotalAvantRemise = 0;
   
-  console.log('💰 Calcul des remises avec vues SQL...');
+  console.log('💰 Calcul des remises avec remise_unitaire...');
   
   if (facture.lignes_facture && facture.lignes_facture.length > 0) {
-    // Utiliser les données des vues SQL pour calculer les remises
+    // Utiliser remise_unitaire pour calculer les remises
     facture.lignes_facture.forEach((ligne, index) => {
       const remiseUnitaire = ligne.remise_unitaire || 0;
       const quantite = ligne.quantite || 0;
-      const prixBrut = ligne.prix_unitaire_brut || ligne.prix_unitaire || 0;
+      const prixBrut = ligne.prix_unitaire_brut || 0;
       
-      console.log(`📄 Ligne ${index + 1} - données vue SQL:`, {
+      console.log(`📄 Ligne ${index + 1} - données avec remise_unitaire:`, {
         article: ligne.article?.nom,
         prix_unitaire_brut: prixBrut,
         remise_unitaire: remiseUnitaire,
         quantite: quantite,
-        prix_net: ligne.prix_unitaire,
         montant_ligne: ligne.montant_ligne
       });
       
-      // Calcul remise ligne selon vue_facture_vente_detaillee
+      // Calcul remise ligne avec remise_unitaire
       const remiseTotaleLigne = remiseUnitaire * quantite;
       totalRemiseCalculee += remiseTotaleLigne;
       
@@ -82,7 +81,7 @@ export const generateFactureVenteContent = (facture: FactureVente): string => {
   const netAPayer = facture.montant_ttc || 0;
   const hasRemise = totalRemiseCalculee > 0;
 
-  console.log('💰 Résultats finaux avec vues SQL:', {
+  console.log('💰 Résultats finaux avec remise_unitaire:', {
     montantTotalAvantRemise,
     totalRemiseCalculee,
     netAPayer,
@@ -146,7 +145,7 @@ export const generateFactureVenteContent = (facture: FactureVente): string => {
             </div>
           </div>
 
-          <!-- Tableau des articles avec remises détaillées -->
+          <!-- Tableau des articles avec remises unitaires -->
           <div class="articles-section">
             ${generateArticlesSection(facture)}
           </div>

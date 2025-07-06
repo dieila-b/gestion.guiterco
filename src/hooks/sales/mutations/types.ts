@@ -32,8 +32,6 @@ export interface CreateFactureVenteData {
 export interface CartItem {
   article_id: string;
   quantite: number;
-  prix_unitaire: number;
-  prix_unitaire_brut?: number; // Ajouter prix_unitaire_brut
-  remise?: number; // Ajout de la remise optionnelle
-  remise_unitaire?: number; // Ajouter remise_unitaire
+  prix_unitaire_brut: number; // Prix unitaire brut obligatoire
+  remise_unitaire?: number; // Remise unitaire optionnelle
 }

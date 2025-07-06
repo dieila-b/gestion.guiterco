@@ -1,3 +1,4 @@
+
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -40,29 +41,25 @@ export const useCreateFactureVente = () => {
 
       console.log('✅ Facture créée:', facture.id);
 
-      // Créer les lignes de facture avec prix_unitaire_brut au lieu de prix_unitaire
+      // Créer les lignes de facture SANS montant_ligne (calculé par Supabase)
       const lignesFacture = data.cart.map((item: any) => {
         const prixUnitaireBrut = item.prix_unitaire_brut || item.prix_unitaire || item.prix_vente || 0;
         const remiseUnitaire = item.remise_unitaire || item.remise || 0;
-        const prixUnitaireNet = prixUnitaireBrut - remiseUnitaire;
-        const montantLigne = item.quantite * prixUnitaireNet;
 
-        console.log('📦 Ligne facture avec prix_unitaire_brut:', {
+        console.log('📦 Ligne facture sans montant_ligne:', {
           article_id: item.article_id,
           quantite: item.quantite,
           prix_unitaire_brut: prixUnitaireBrut,
-          remise_unitaire: remiseUnitaire,
-          prix_unitaire_net: prixUnitaireNet,
-          montant_ligne: montantLigne
+          remise_unitaire: remiseUnitaire
         });
 
         return {
           facture_vente_id: facture.id,
           article_id: item.article_id,
           quantite: item.quantite,
-          prix_unitaire_brut: prixUnitaireBrut, // Utiliser prix_unitaire_brut
-          remise_unitaire: remiseUnitaire, // Montant de la remise par unité
-          montant_ligne: montantLigne, // Montant total de la ligne après remise
+          prix_unitaire_brut: prixUnitaireBrut,
+          remise_unitaire: remiseUnitaire,
+          // Ne pas inclure montant_ligne - calculé automatiquement par Supabase
           quantite_livree: 0,
           statut_livraison: 'en_attente'
         };
@@ -78,7 +75,7 @@ export const useCreateFactureVente = () => {
         throw lignesError;
       }
 
-      console.log('✅ Lignes facture créées avec prix_unitaire_brut:', lignesCreees?.map(l => ({
+      console.log('✅ Lignes facture créées avec montant_ligne calculé:', lignesCreees?.map(l => ({
         id: l.id,
         prix_unitaire_brut: l.prix_unitaire_brut,
         remise_unitaire: l.remise_unitaire,

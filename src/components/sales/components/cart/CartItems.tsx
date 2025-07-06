@@ -9,10 +9,9 @@ interface CartItem {
   id: string;
   nom: string;
   prix_vente?: number;
-  prix_unitaire_brut?: number; // Ajouter prix_unitaire_brut
+  prix_unitaire_brut?: number; // Prix unitaire brut
   quantite: number;
-  remise?: number; // Remise unitaire uniquement
-  remise_unitaire?: number; // Alias pour remise_unitaire
+  remise_unitaire?: number; // Remise unitaire uniquement
 }
 
 interface CartItemsProps {
@@ -59,7 +58,7 @@ const CartItems: React.FC<CartItemsProps> = ({
           {cart.map((item) => {
             // Utiliser prix_unitaire_brut en priorité, puis prix_vente
             const prixUnitaireBrut = item.prix_unitaire_brut || item.prix_vente || 0;
-            const remiseUnitaire = item.remise_unitaire || item.remise || 0;
+            const remiseUnitaire = item.remise_unitaire || 0;
             const prixApresRemise = Math.max(0, prixUnitaireBrut - remiseUnitaire);
             const totalLigne = prixApresRemise * item.quantite;
             

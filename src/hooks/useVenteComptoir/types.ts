@@ -3,11 +3,9 @@ export interface CartItem {
   article_id: string;
   nom: string;
   reference: string;
-  prix_unitaire: number;
-  prix_unitaire_brut?: number; // Ajouter prix_unitaire_brut
+  prix_unitaire_brut: number; // Prix unitaire brut obligatoire
   quantite: number;
-  remise?: number;
-  remise_unitaire?: number; // Ajouter remise_unitaire
+  remise_unitaire?: number; // Remise unitaire optionnelle
   prix_final: number;
   stock_disponible?: number;
   // Mandatory id for compatibility

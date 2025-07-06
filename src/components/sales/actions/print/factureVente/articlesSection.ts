@@ -3,7 +3,7 @@ import type { FactureVente } from '@/types/sales';
 import { formatCurrency } from '@/lib/currency';
 
 export const generateArticlesSection = (facture: FactureVente): string => {
-  console.log('📋 Génération section articles avec vues SQL détaillées');
+  console.log('📋 Génération section articles avec remises unitaires');
   
   let articlesHtml = `
     <table class="articles-table">
@@ -28,12 +28,12 @@ export const generateArticlesSection = (facture: FactureVente): string => {
       const ordered = ligne.quantite || 0;
       const remaining = Math.max(0, ordered - delivered);
       
-      // Utilisation des données des vues SQL - only remise_unitaire et prix_unitaire_brut
+      // Utilisation uniquement de remise_unitaire et prix_unitaire_brut
       const remiseUnitaire = ligne.remise_unitaire || 0;
       const prixBrut = ligne.prix_unitaire_brut || 0;
       const prixNet = prixBrut - remiseUnitaire; // Calculer le prix net
       
-      console.log('📄 Ligne vue SQL détaillée:', {
+      console.log('📄 Ligne avec remise unitaire:', {
         article: ligne.article?.nom,
         prix_brut: prixBrut,
         prix_net: prixNet,
@@ -42,7 +42,7 @@ export const generateArticlesSection = (facture: FactureVente): string => {
         montant_ligne: ligne.montant_ligne
       });
       
-      // Affichage de la remise selon vue_facture_vente_detaillee
+      // Affichage de la remise unitaire
       const affichageRemise = remiseUnitaire > 0 ? formatCurrency(remiseUnitaire) : '0 GNF';
       
       return `
@@ -54,7 +54,7 @@ export const generateArticlesSection = (facture: FactureVente): string => {
           <td>${ordered}</td>
           <td class="quantity-delivered">${delivered}</td>
           <td class="quantity-remaining">${remaining}</td>
-          <td>${formatCurrency(ligne.montant_ligne)}</td>
+          <td>${formatCurrency(ligne.montant_ligne || 0)}</td>
         </tr>
       `;
     }).join('');
@@ -63,7 +63,7 @@ export const generateArticlesSection = (facture: FactureVente): string => {
     const remiseGlobale = facture.remise_totale || 0;
     const montantBrut = facture.montant_ttc + remiseGlobale;
     
-    console.log('📋 Vente globale avec vue_remise_totale_par_facture:', {
+    console.log('📋 Vente globale:', {
       remise_globale: remiseGlobale,
       montant_brut: montantBrut,
       montant_ttc: facture.montant_ttc

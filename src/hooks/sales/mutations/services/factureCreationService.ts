@@ -30,10 +30,10 @@ export const createFactureAndLines = async (data: CreateFactureVenteData) => {
 
   console.log('✅ Facture créée avec statuts En attente:', facture);
 
-  // 2. Créer les lignes de facture avec prix_unitaire_brut au lieu de prix_unitaire
+  // 2. Créer les lignes de facture SANS montant_ligne (calculé automatiquement)
   const lignesFacture = data.cart.map(item => {
     const prixUnitaireBrut = item.prix_unitaire_brut || item.prix_unitaire || 0;
-    const remiseUnitaire = item.remise || 0;
+    const remiseUnitaire = item.remise_unitaire || item.remise || 0;
 
     return {
       facture_vente_id: facture.id,
@@ -41,12 +41,12 @@ export const createFactureAndLines = async (data: CreateFactureVenteData) => {
       quantite: item.quantite,
       prix_unitaire_brut: prixUnitaireBrut, // Utiliser prix_unitaire_brut
       remise_unitaire: remiseUnitaire, // Remise unitaire
-      montant_ligne: item.quantite * (prixUnitaireBrut - remiseUnitaire),
+      // Ne pas inclure montant_ligne - calculé automatiquement par Supabase
       statut_livraison: 'en_attente' // TOUJOURS En attente au début
     };
   });
 
-  console.log('🔄 Création lignes facture avec prix_unitaire_brut:', lignesFacture);
+  console.log('🔄 Création lignes facture sans montant_ligne:', lignesFacture);
 
   const { data: lignesCreees, error: lignesError } = await supabase
     .from('lignes_facture_vente')
@@ -58,7 +58,7 @@ export const createFactureAndLines = async (data: CreateFactureVenteData) => {
     throw lignesError;
   }
 
-  console.log('✅ Lignes facture créées avec prix_unitaire_brut:', lignesCreees);
+  console.log('✅ Lignes facture créées avec montant_ligne calculé:', lignesCreees);
 
   return { facture, lignes: lignesCreees };
 };
