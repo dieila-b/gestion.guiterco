@@ -3009,7 +3009,21 @@ export type Database = {
       }
       get_factures_vente_with_details: {
         Args: Record<PropertyKey, never>
-        Returns: Json
+        Returns: {
+          facture_id: string
+          numero_facture: string
+          date_facture: string
+          client_nom: string
+          client_prenom: string
+          client_entreprise: string
+          article_nom: string
+          quantite: number
+          prix_unitaire_brut: number
+          remise_unitaire: number
+          montant_ligne: number
+          statut_paiement: string
+          statut_livraison: string
+        }[]
       }
       get_precommandes_info_for_article: {
         Args: { p_article_id: string }
