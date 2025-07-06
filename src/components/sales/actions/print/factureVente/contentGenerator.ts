@@ -10,7 +10,7 @@ import { getPaymentStatus, getDeliveryStatusInfo } from './statusHelpers';
 import { numberToWords } from './utils';
 
 export const generateFactureVenteContent = (facture: FactureVente): string => {
-  console.log('🧾 Génération facture avec remises - START');
+  console.log('🧾 Génération facture avec remises détaillées - START');
   console.log('📋 Données facture complètes:', {
     id: facture.id,
     numero_facture: facture.numero_facture,
@@ -25,37 +25,38 @@ export const generateFactureVenteContent = (facture: FactureVente): string => {
   const paymentStatus = getPaymentStatus(facture);
   const deliveryStatus = getDeliveryStatusInfo(facture);
   
-  // Calcul précis des remises selon la logique SQL demandée
+  // Calcul des remises selon la logique des vues SQL
   let totalRemiseCalculee = 0;
   let montantTotalAvantRemise = 0;
   
-  console.log('💰 Calcul détaillé des remises ligne par ligne...');
+  console.log('💰 Calcul des remises avec vues SQL...');
   
   if (facture.lignes_facture && facture.lignes_facture.length > 0) {
-    // Calcul ligne par ligne selon: sum(remise_unitaire * quantite)
+    // Utiliser les données des vues SQL pour calculer les remises
     facture.lignes_facture.forEach((ligne, index) => {
       const remiseUnitaire = ligne.remise_unitaire || 0;
       const quantite = ligne.quantite || 0;
       const prixBrut = ligne.prix_unitaire_brut || ligne.prix_unitaire || 0;
       
-      console.log(`📄 Ligne ${index + 1} - calcul remise:`, {
+      console.log(`📄 Ligne ${index + 1} - données vue SQL:`, {
         article: ligne.article?.nom,
+        prix_unitaire_brut: prixBrut,
         remise_unitaire: remiseUnitaire,
         quantite: quantite,
-        prix_brut: prixBrut,
+        prix_net: ligne.prix_unitaire,
         montant_ligne: ligne.montant_ligne
       });
       
-      // Remise totale pour cette ligne = remise_unitaire * quantite
-      const remiseLigne = remiseUnitaire * quantite;
-      totalRemiseCalculee += remiseLigne;
+      // Calcul remise ligne selon vue_facture_vente_detaillee
+      const remiseTotaleLigne = remiseUnitaire * quantite;
+      totalRemiseCalculee += remiseTotaleLigne;
       
-      // Montant brut = (prix_brut * quantite) 
+      // Montant brut ligne
       const montantBrutLigne = prixBrut * quantite;
       montantTotalAvantRemise += montantBrutLigne;
       
-      console.log(`📄 Ligne ${index + 1} - résultat:`, {
-        remise_ligne_calculee: remiseLigne,
+      console.log(`📄 Ligne ${index + 1} - calculs:`, {
+        remise_totale_ligne: remiseTotaleLigne,
         montant_brut_ligne: montantBrutLigne
       });
     });
@@ -69,11 +70,10 @@ export const generateFactureVenteContent = (facture: FactureVente): string => {
     }
   }
   
-  // Vérifier si on doit utiliser la remise_totale de la facture (priorité si plus élevée)
+  // Utiliser la vue vue_remise_totale_par_facture si disponible
   if (facture.remise_totale && facture.remise_totale > totalRemiseCalculee) {
-    console.log('🔄 Utilisation remise_totale de la facture (plus élevée):', facture.remise_totale);
+    console.log('🔄 Utilisation vue_remise_totale_par_facture:', facture.remise_totale);
     totalRemiseCalculee = facture.remise_totale;
-    // Recalculer le montant avant remise si nécessaire
     if (montantTotalAvantRemise === 0 || montantTotalAvantRemise < facture.montant_ttc + totalRemiseCalculee) {
       montantTotalAvantRemise = facture.montant_ttc + totalRemiseCalculee;
     }
@@ -82,7 +82,7 @@ export const generateFactureVenteContent = (facture: FactureVente): string => {
   const netAPayer = facture.montant_ttc || 0;
   const hasRemise = totalRemiseCalculee > 0;
 
-  console.log('💰 Résultats finaux des calculs:', {
+  console.log('💰 Résultats finaux avec vues SQL:', {
     montantTotalAvantRemise,
     totalRemiseCalculee,
     netAPayer,
@@ -146,12 +146,12 @@ export const generateFactureVenteContent = (facture: FactureVente): string => {
             </div>
           </div>
 
-          <!-- Tableau des articles -->
+          <!-- Tableau des articles avec remises détaillées -->
           <div class="articles-section">
             ${generateArticlesSection(facture)}
           </div>
 
-          <!-- Section récapitulatif des montants -->
+          <!-- Section récapitulatif des montants avec remises -->
           <div class="totals-section">
             <div class="totals-left"></div>
             <div class="totals-right">
@@ -159,12 +159,12 @@ export const generateFactureVenteContent = (facture: FactureVente): string => {
               
               ${hasRemise ? `
                 <div class="total-line">
-                  <span>Montant Total</span>
+                  <span>Montant Total (brut)</span>
                   <span>${formatCurrency(montantTotalAvantRemise)}</span>
                 </div>
-                <div class="total-line discount-line">
+                <div class="total-line remise-line">
                   <span>Remise totale</span>
-                  <span class="discount-amount">-${formatCurrency(totalRemiseCalculee)}</span>
+                  <span class="remise-amount">-${formatCurrency(totalRemiseCalculee)}</span>
                 </div>
               ` : `
                 <div class="total-line">
@@ -181,7 +181,7 @@ export const generateFactureVenteContent = (facture: FactureVente): string => {
               ${hasRemise ? `
                 <div class="total-line economics">
                   <span>Économie réalisée</span>
-                  <span class="discount-amount">${formatCurrency(totalRemiseCalculee)}</span>
+                  <span class="remise-amount">${formatCurrency(totalRemiseCalculee)}</span>
                 </div>
               ` : ''}
             </div>

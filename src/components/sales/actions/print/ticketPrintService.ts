@@ -287,11 +287,11 @@ const generateDeliverySection = (facture: FactureVente): string => {
 };
 
 const generateDiscountSection = (facture: FactureVente): string => {
-  // Calculer le total des remises avec logs détaillés
+  // Calculer le total des remises avec les vues SQL
   let totalRemise = 0;
   let montantBrut = 0;
   
-  console.log('🎫 Calcul remises pour ticket:', {
+  console.log('🎫 Calcul remises ticket avec vues SQL:', {
     has_lignes: facture.lignes_facture?.length > 0,
     remise_totale_facture: facture.remise_totale
   });
@@ -304,7 +304,7 @@ const generateDiscountSection = (facture: FactureVente): string => {
       const prixNet = ligne.prix_unitaire;
       const quantite = ligne.quantite;
       
-      console.log(`🎫 Ligne ${index + 1} remise:`, {
+      console.log(`🎫 Ligne ${index + 1} vue SQL:`, {
         article: ligne.article?.nom,
         remise_unitaire: remiseUnitaire,
         remise_pourcentage: remisePourcentage,
@@ -313,11 +313,11 @@ const generateDiscountSection = (facture: FactureVente): string => {
         quantite: quantite
       });
       
-      // Calcul du montant brut
+      // Calcul du montant brut selon vue_facture_vente_detaillee
       const montantBrutLigne = prixBrut * quantite;
       montantBrut += montantBrutLigne;
       
-      // Calcul de la remise
+      // Calcul de la remise selon remise_totale_ligne
       let remiseLigne = 0;
       if (typeof remiseUnitaire === 'number' && remiseUnitaire > 0) {
         remiseLigne = remiseUnitaire * quantite;
@@ -333,17 +333,18 @@ const generateDiscountSection = (facture: FactureVente): string => {
       });
     });
   } else if (facture.remise_totale && facture.remise_totale > 0) {
+    // Utiliser vue_remise_totale_par_facture
     totalRemise = facture.remise_totale;
     montantBrut = facture.montant_ttc + totalRemise;
   }
   
-  // Utiliser la remise totale de la facture si plus élevée
+  // Utiliser la vue vue_remise_totale_par_facture si plus élevée
   if (facture.remise_totale && facture.remise_totale > totalRemise) {
     totalRemise = facture.remise_totale;
     montantBrut = facture.montant_ttc + totalRemise;
   }
   
-  console.log('🎫 Remises finales ticket:', {
+  console.log('🎫 Remises finales ticket avec vues SQL:', {
     montant_brut: montantBrut,
     total_remise: totalRemise,
     montant_ttc: facture.montant_ttc

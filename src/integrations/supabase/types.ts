@@ -1522,7 +1522,6 @@ export type Database = {
           prix_unitaire_brut: number | null
           quantite: number
           quantite_livree: number | null
-          remise_pourcentage: number | null
           remise_unitaire: number | null
           statut_livraison: string | null
         }
@@ -1536,7 +1535,6 @@ export type Database = {
           prix_unitaire_brut?: number | null
           quantite?: number
           quantite_livree?: number | null
-          remise_pourcentage?: number | null
           remise_unitaire?: number | null
           statut_livraison?: string | null
         }
@@ -1550,7 +1548,6 @@ export type Database = {
           prix_unitaire_brut?: number | null
           quantite?: number
           quantite_livree?: number | null
-          remise_pourcentage?: number | null
           remise_unitaire?: number | null
           statut_livraison?: string | null
         }
@@ -1580,8 +1577,29 @@ export type Database = {
             foreignKeyName: "lignes_facture_vente_facture_vente_id_fkey"
             columns: ["facture_vente_id"]
             isOneToOne: false
+            referencedRelation: "vue_facture_vente_detaillee"
+            referencedColumns: ["facture_id"]
+          },
+          {
+            foreignKeyName: "lignes_facture_vente_facture_vente_id_fkey"
+            columns: ["facture_vente_id"]
+            isOneToOne: false
+            referencedRelation: "vue_facture_vente_detaillee_v2"
+            referencedColumns: ["facture_id"]
+          },
+          {
+            foreignKeyName: "lignes_facture_vente_facture_vente_id_fkey"
+            columns: ["facture_vente_id"]
+            isOneToOne: false
             referencedRelation: "vue_factures_vente_detaillees"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lignes_facture_vente_facture_vente_id_fkey"
+            columns: ["facture_vente_id"]
+            isOneToOne: false
+            referencedRelation: "vue_remise_totale_par_facture"
+            referencedColumns: ["facture_id"]
           },
         ]
       }
@@ -2026,8 +2044,29 @@ export type Database = {
             foreignKeyName: "retours_clients_facture_id_fkey"
             columns: ["facture_id"]
             isOneToOne: false
+            referencedRelation: "vue_facture_vente_detaillee"
+            referencedColumns: ["facture_id"]
+          },
+          {
+            foreignKeyName: "retours_clients_facture_id_fkey"
+            columns: ["facture_id"]
+            isOneToOne: false
+            referencedRelation: "vue_facture_vente_detaillee_v2"
+            referencedColumns: ["facture_id"]
+          },
+          {
+            foreignKeyName: "retours_clients_facture_id_fkey"
+            columns: ["facture_id"]
+            isOneToOne: false
             referencedRelation: "vue_factures_vente_detaillees"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "retours_clients_facture_id_fkey"
+            columns: ["facture_id"]
+            isOneToOne: false
+            referencedRelation: "vue_remise_totale_par_facture"
+            referencedColumns: ["facture_id"]
           },
         ]
       }
@@ -2722,6 +2761,58 @@ export type Database = {
           },
         ]
       }
+      vue_facture_vente_detaillee: {
+        Row: {
+          article_nom: string | null
+          client_nom: string | null
+          client_prenom: string | null
+          date_facture: string | null
+          facture_id: string | null
+          ligne_id: string | null
+          montant_brut_ligne: number | null
+          montant_ht: number | null
+          montant_net_ligne: number | null
+          montant_ttc: number | null
+          nom_entreprise: string | null
+          prix_unitaire_brut: number | null
+          quantite: number | null
+          remise_totale_facture: number | null
+          remise_totale_ligne: number | null
+          remise_unitaire: number | null
+          statut_livraison:
+            | Database["public"]["Enums"]["statut_livraison_enum"]
+            | null
+          statut_paiement: string | null
+          tva: number | null
+        }
+        Relationships: []
+      }
+      vue_facture_vente_detaillee_v2: {
+        Row: {
+          article_nom: string | null
+          client_nom: string | null
+          client_prenom: string | null
+          date_facture: string | null
+          facture_id: string | null
+          ligne_id: string | null
+          montant_brut_ligne: number | null
+          montant_ht: number | null
+          montant_net_ligne: number | null
+          montant_ttc: number | null
+          nom_entreprise: string | null
+          prix_unitaire_brut: number | null
+          quantite: number | null
+          remise_totale_facture: number | null
+          remise_totale_ligne: number | null
+          remise_unitaire: number | null
+          statut_livraison:
+            | Database["public"]["Enums"]["statut_livraison_enum"]
+            | null
+          statut_paiement: string | null
+          tva: number | null
+        }
+        Relationships: []
+      }
       vue_factures_vente_detaillees: {
         Row: {
           client_id: string | null
@@ -2768,6 +2859,104 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "livraison_statut"
             referencedColumns: ["id"]
+          },
+        ]
+      }
+      vue_lignes_facture_avec_remise: {
+        Row: {
+          article: string | null
+          facture_vente_id: string | null
+          id: string | null
+          prix_unitaire_brut: number | null
+          quantite: number | null
+          remise_unitaire: number | null
+          total_net: number | null
+          total_remise: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lignes_facture_vente_facture_vente_id_fkey"
+            columns: ["facture_vente_id"]
+            isOneToOne: false
+            referencedRelation: "factures_vente"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lignes_facture_vente_facture_vente_id_fkey"
+            columns: ["facture_vente_id"]
+            isOneToOne: false
+            referencedRelation: "vue_facture_vente_detaillee"
+            referencedColumns: ["facture_id"]
+          },
+          {
+            foreignKeyName: "lignes_facture_vente_facture_vente_id_fkey"
+            columns: ["facture_vente_id"]
+            isOneToOne: false
+            referencedRelation: "vue_facture_vente_detaillee_v2"
+            referencedColumns: ["facture_id"]
+          },
+          {
+            foreignKeyName: "lignes_facture_vente_facture_vente_id_fkey"
+            columns: ["facture_vente_id"]
+            isOneToOne: false
+            referencedRelation: "vue_factures_vente_detaillees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lignes_facture_vente_facture_vente_id_fkey"
+            columns: ["facture_vente_id"]
+            isOneToOne: false
+            referencedRelation: "vue_remise_totale_par_facture"
+            referencedColumns: ["facture_id"]
+          },
+        ]
+      }
+      vue_lignes_remise_unitaire: {
+        Row: {
+          article: string | null
+          facture_vente_id: string | null
+          ligne_id: string | null
+          prix_unitaire_brut: number | null
+          quantite: number | null
+          remise_unitaire: number | null
+          total_ligne_apres_remise: number | null
+          total_remise_ligne: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lignes_facture_vente_facture_vente_id_fkey"
+            columns: ["facture_vente_id"]
+            isOneToOne: false
+            referencedRelation: "factures_vente"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lignes_facture_vente_facture_vente_id_fkey"
+            columns: ["facture_vente_id"]
+            isOneToOne: false
+            referencedRelation: "vue_facture_vente_detaillee"
+            referencedColumns: ["facture_id"]
+          },
+          {
+            foreignKeyName: "lignes_facture_vente_facture_vente_id_fkey"
+            columns: ["facture_vente_id"]
+            isOneToOne: false
+            referencedRelation: "vue_facture_vente_detaillee_v2"
+            referencedColumns: ["facture_id"]
+          },
+          {
+            foreignKeyName: "lignes_facture_vente_facture_vente_id_fkey"
+            columns: ["facture_vente_id"]
+            isOneToOne: false
+            referencedRelation: "vue_factures_vente_detaillees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lignes_facture_vente_facture_vente_id_fkey"
+            columns: ["facture_vente_id"]
+            isOneToOne: false
+            referencedRelation: "vue_remise_totale_par_facture"
+            referencedColumns: ["facture_id"]
           },
         ]
       }
@@ -2836,6 +3025,15 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      vue_remise_totale_par_facture: {
+        Row: {
+          date_facture: string | null
+          facture_id: string | null
+          montant_ttc: number | null
+          remise_totale: number | null
+        }
+        Relationships: []
       }
       vue_solde_caisse: {
         Row: {

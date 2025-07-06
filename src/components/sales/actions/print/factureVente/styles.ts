@@ -164,7 +164,7 @@ export const generateFactureVenteStyles = (): string => {
         word-wrap: break-word;
       }
       
-      .discount-amount {
+      .remise-amount {
         color: #f57c00 !important;
         font-weight: bold;
       }
@@ -208,7 +208,7 @@ export const generateFactureVenteStyles = (): string => {
         font-size: 12px;
       }
       
-      .total-line.discount-line {
+      .total-line.remise-line {
         color: #f57c00;
         font-weight: bold;
         border-top: 1px dashed #f57c00;
