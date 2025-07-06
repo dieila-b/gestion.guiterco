@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -88,7 +89,6 @@ const PostPaymentActions: React.FC<PostPaymentActionsProps> = ({
             console.log(`📄 Ligne ${index + 1} remises:`, {
               article: ligne.article?.nom,
               prix_unitaire_brut: ligne.prix_unitaire_brut,
-              prix_unitaire: ligne.prix_unitaire,
               remise_unitaire: ligne.remise_unitaire,
               quantite: ligne.quantite,
               montant_ligne: ligne.montant_ligne

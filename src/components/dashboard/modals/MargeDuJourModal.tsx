@@ -22,7 +22,7 @@ const MargeDuJourModal: React.FC<MargeDuJourModalProps> = ({ isOpen, onClose }) 
         .from('lignes_facture_vente')
         .select(`
           quantite,
-          prix_unitaire,
+          prix_unitaire_brut,
           article:article_id(
             nom,
             prix_achat,
@@ -47,7 +47,7 @@ const MargeDuJourModal: React.FC<MargeDuJourModalProps> = ({ isOpen, onClose }) 
 
       return filteredData.map(ligne => {
         const prixAchat = ligne.article?.prix_achat || ligne.article?.prix_unitaire || 0;
-        const prixVente = ligne.prix_unitaire;
+        const prixVente = ligne.prix_unitaire_brut;
         const quantite = ligne.quantite;
         const margeUnitaire = prixVente - prixAchat;
         const margeTotal = margeUnitaire * quantite;

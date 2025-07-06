@@ -32,8 +32,8 @@ export const createFactureAndLines = async (data: CreateFactureVenteData) => {
 
   // 2. Créer les lignes de facture SANS montant_ligne (calculé automatiquement)
   const lignesFacture = data.cart.map(item => {
-    const prixUnitaireBrut = item.prix_unitaire_brut || item.prix_unitaire || 0;
-    const remiseUnitaire = item.remise_unitaire || item.remise || 0;
+    const prixUnitaireBrut = item.prix_unitaire_brut || 0;
+    const remiseUnitaire = item.remise_unitaire || 0;
 
     return {
       facture_vente_id: facture.id,

@@ -44,7 +44,7 @@ export const useVenteComptoirState = () => {
   // Calculer les totaux du panier
   const cartTotals = useMemo(() => {
     const sousTotal = venteComptoir.cart.reduce((sum, item) => {
-      const prixApresRemise = Math.max(0, item.prix_unitaire - (item.remise || 0));
+      const prixApresRemise = Math.max(0, item.prix_unitaire_brut - (item.remise_unitaire || 0));
       return sum + (prixApresRemise * item.quantite);
     }, 0);
     
