@@ -44,7 +44,7 @@ export const generateArticlesSection = (facture: FactureVente): string => {
         montant_ligne: ligne.montant_ligne
       });
       
-      // Affichage de la remise (priorité à la remise unitaire, sinon pourcentage)
+      // Affichage de la remise (priorité à la remise unitaire)
       let affichageRemise = '0 GNF';
       if (remiseUnitaire > 0) {
         affichageRemise = formatCurrency(remiseUnitaire);
@@ -66,7 +66,7 @@ export const generateArticlesSection = (facture: FactureVente): string => {
       `;
     }).join('');
   } else {
-    // Cas de vente globale - vérifier s'il y a une remise globale
+    // Cas de vente globale
     const remiseGlobale = facture.remise_totale || 0;
     const montantBrut = facture.montant_ttc + remiseGlobale;
     
