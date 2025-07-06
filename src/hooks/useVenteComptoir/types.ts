@@ -1,4 +1,5 @@
 
+
 export interface CartItem {
   article_id: string;
   nom: string;
@@ -32,3 +33,4 @@ export interface Client {
   telephone?: string;
   type_client?: string;
 }
+

@@ -1,4 +1,5 @@
 
+
 import { supabase } from '@/integrations/supabase/client';
 import type { CreateFactureVenteData } from '../types';
 
@@ -36,8 +37,10 @@ export const createFactureAndLines = async (data: CreateFactureVenteData) => {
     article_id: item.article_id,
     quantite: item.quantite,
     prix_unitaire: item.prix_unitaire,
+    prix_unitaire_brut: item.remise ? item.prix_unitaire + (item.remise || 0) : item.prix_unitaire, // Prix avant remise
+    remise_unitaire: item.remise || 0, // Remise unitaire
     montant_ligne: item.quantite * item.prix_unitaire,
-    statut_livraison: 'En attente' // TOUJOURS En attente au début
+    statut_livraison: 'en_attente' // TOUJOURS En attente au début
   }));
 
   console.log('🔄 Création lignes facture avec statut En attente:', lignesFacture);
@@ -56,3 +59,4 @@ export const createFactureAndLines = async (data: CreateFactureVenteData) => {
 
   return { facture, lignes: lignesCreees };
 };
+

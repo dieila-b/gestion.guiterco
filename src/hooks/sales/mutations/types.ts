@@ -1,4 +1,5 @@
 
+
 export interface CreateVersementInput {
   facture_id: string;
   client_id: string;
@@ -33,4 +34,6 @@ export interface CartItem {
   article_id: string;
   quantite: number;
   prix_unitaire: number;
+  remise?: number; // Ajout de la remise optionnelle
 }
+
