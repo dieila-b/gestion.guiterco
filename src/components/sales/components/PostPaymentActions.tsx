@@ -83,14 +83,14 @@ const PostPaymentActions: React.FC<PostPaymentActionsProps> = ({
             lignes_count: factureComplete.lignes_facture?.length || 0
           });
           
-          // Debug chaque ligne avec ses remises
+          // Debug chaque ligne avec ses remises - use optional chaining for remise_pourcentage
           factureComplete.lignes_facture?.forEach((ligne, index) => {
             console.log(`📄 Ligne ${index + 1} remises:`, {
               article: ligne.article?.nom,
               prix_unitaire_brut: ligne.prix_unitaire_brut,
               prix_unitaire: ligne.prix_unitaire,
               remise_unitaire: ligne.remise_unitaire,
-              remise_pourcentage: ligne.remise_pourcentage,
+              remise_pourcentage: (ligne as any).remise_pourcentage || 0, // Use type assertion to handle optional property
               quantite: ligne.quantite,
               montant_ligne: ligne.montant_ligne
             });
