@@ -54,4 +54,3 @@ const FacturesVente = () => {
 };
 
 export default FacturesVente;
-
