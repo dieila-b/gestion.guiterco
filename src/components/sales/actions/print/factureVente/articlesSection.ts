@@ -3,7 +3,7 @@ import type { FactureVente } from '@/types/sales';
 import { formatCurrency } from '@/lib/currency';
 
 export const generateArticlesSection = (facture: FactureVente): string => {
-  console.log('📋 Génération section articles avec remises');
+  console.log('📋 Génération section articles avec remises détaillées');
   
   let articlesHtml = `
     <table class="articles-table">
@@ -28,25 +28,35 @@ export const generateArticlesSection = (facture: FactureVente): string => {
       const ordered = ligne.quantite || 0;
       const remaining = Math.max(0, ordered - delivered);
       
-      // Récupération et validation des données de remise
-      const remiseUnitaire = (typeof ligne.remise_unitaire === 'number' && ligne.remise_unitaire > 0) ? ligne.remise_unitaire : 0;
+      // Extraction détaillée des données de remise
+      const remiseUnitaire = ligne.remise_unitaire || 0;
+      const remisePourcentage = ligne.remise_pourcentage || 0;
       const prixBrut = ligne.prix_unitaire_brut || ligne.prix_unitaire || 0;
       const prixNet = ligne.prix_unitaire || 0;
       
-      console.log('📄 Ligne article avec remise:', {
+      console.log('📄 Détail ligne avec remise:', {
         article: ligne.article?.nom,
         prix_brut: prixBrut,
-        remise_unitaire: remiseUnitaire,
         prix_net: prixNet,
-        montant_ligne: ligne.montant_ligne,
-        quantite: ordered
+        remise_unitaire: remiseUnitaire,
+        remise_pourcentage: remisePourcentage,
+        quantite: ordered,
+        montant_ligne: ligne.montant_ligne
       });
+      
+      // Affichage de la remise (priorité à la remise unitaire, sinon pourcentage)
+      let affichageRemise = '0 GNF';
+      if (remiseUnitaire > 0) {
+        affichageRemise = formatCurrency(remiseUnitaire);
+      } else if (remisePourcentage > 0) {
+        affichageRemise = `${remisePourcentage}%`;
+      }
       
       return `
         <tr>
           <td class="product-name">${ligne.article?.nom || 'Article'}</td>
           <td>${formatCurrency(prixBrut)}</td>
-          <td class="discount-amount">${remiseUnitaire > 0 ? formatCurrency(remiseUnitaire) : '0 GNF'}</td>
+          <td class="discount-amount">${affichageRemise}</td>
           <td>${formatCurrency(prixNet)}</td>
           <td>${ordered}</td>
           <td class="quantity-delivered">${delivered}</td>
@@ -56,11 +66,11 @@ export const generateArticlesSection = (facture: FactureVente): string => {
       `;
     }).join('');
   } else {
-    // Cas de vente globale - vérifier s'il y a une remise
+    // Cas de vente globale - vérifier s'il y a une remise globale
     const remiseGlobale = facture.remise_totale || 0;
     const montantBrut = facture.montant_ttc + remiseGlobale;
     
-    console.log('📋 Vente globale avec remise:', {
+    console.log('📋 Vente globale avec remise globale:', {
       remise_globale: remiseGlobale,
       montant_brut: montantBrut,
       montant_ttc: facture.montant_ttc

@@ -11,7 +11,7 @@ import { numberToWords } from './utils';
 
 export const generateFactureVenteContent = (facture: FactureVente): string => {
   console.log('🧾 Génération facture avec remises - START');
-  console.log('📋 Données facture:', {
+  console.log('📋 Données facture complètes:', {
     id: facture.id,
     numero_facture: facture.numero_facture,
     client: facture.client?.nom,
@@ -25,65 +25,83 @@ export const generateFactureVenteContent = (facture: FactureVente): string => {
   const paymentStatus = getPaymentStatus(facture);
   const deliveryStatus = getDeliveryStatusInfo(facture);
   
-  // Calculer les montants avec remises détaillées
-  let totalRemise = 0;
+  // Calcul détaillé des remises avec logs
+  let totalRemiseCalculee = 0;
   let montantTotalAvantRemise = 0;
   let montantTotalApresRemise = 0;
   
-  console.log('💰 Calcul des remises...');
+  console.log('💰 Calcul détaillé des remises...');
   
   if (facture.lignes_facture && facture.lignes_facture.length > 0) {
+    // Calcul ligne par ligne
     facture.lignes_facture.forEach((ligne, index) => {
-      const remiseUnitaire = (typeof ligne.remise_unitaire === 'number' && ligne.remise_unitaire > 0) ? ligne.remise_unitaire : 0;
+      const remiseUnitaire = ligne.remise_unitaire || 0;
+      const remisePourcentage = ligne.remise_pourcentage || 0;
       const prixBrut = ligne.prix_unitaire_brut || ligne.prix_unitaire || 0;
+      const prixNet = ligne.prix_unitaire || 0;
       const quantite = ligne.quantite || 0;
       
-      console.log(`📄 Ligne ${index + 1} calcul:`, {
+      console.log(`📄 Ligne ${index + 1} - calcul remise:`, {
         article: ligne.article?.nom,
         prix_brut: prixBrut,
+        prix_net: prixNet,
         remise_unitaire: remiseUnitaire,
-        prix_net: ligne.prix_unitaire,
+        remise_pourcentage: remisePourcentage,
         quantite: quantite,
         montant_ligne: ligne.montant_ligne
       });
       
-      // Montant brut avant remise pour cette ligne
+      // Montant brut de la ligne
       const montantBrutLigne = prixBrut * quantite;
       montantTotalAvantRemise += montantBrutLigne;
       
-      // Remise totale pour cette ligne
-      const remiseLigne = remiseUnitaire * quantite;
-      totalRemise += remiseLigne;
+      // Calcul de la remise pour cette ligne
+      let remiseLigne = 0;
+      if (remiseUnitaire > 0) {
+        // Remise unitaire directe
+        remiseLigne = remiseUnitaire * quantite;
+      } else if (remisePourcentage > 0) {
+        // Remise en pourcentage
+        remiseLigne = (montantBrutLigne * remisePourcentage) / 100;
+      }
       
-      // Montant après remise pour cette ligne
+      totalRemiseCalculee += remiseLigne;
       montantTotalApresRemise += ligne.montant_ligne || 0;
+      
+      console.log(`📄 Ligne ${index + 1} - résultat:`, {
+        montant_brut_ligne: montantBrutLigne,
+        remise_ligne: remiseLigne,
+        montant_apres_remise: ligne.montant_ligne
+      });
     });
   } else {
-    // Si pas de lignes détaillées, utiliser les montants globaux
+    // Cas de vente globale sans lignes détaillées
     montantTotalAvantRemise = facture.montant_ttc || 0;
-    totalRemise = facture.remise_totale || 0;
+    totalRemiseCalculee = facture.remise_totale || 0;
     montantTotalApresRemise = facture.montant_ttc || 0;
     
-    // Si on a une remise globale, ajuster le montant avant remise
-    if (totalRemise > 0) {
-      montantTotalAvantRemise = montantTotalApresRemise + totalRemise;
+    if (totalRemiseCalculee > 0) {
+      montantTotalAvantRemise = montantTotalApresRemise + totalRemiseCalculee;
     }
   }
   
-  // Fallback : utiliser remise_totale si pas de remises calculées
-  if (totalRemise === 0 && facture.remise_totale && facture.remise_totale > 0) {
-    totalRemise = facture.remise_totale;
-    montantTotalAvantRemise = facture.montant_ttc + totalRemise;
+  // Utilisation de la remise totale de la facture si disponible et plus élevée
+  if (facture.remise_totale && facture.remise_totale > totalRemiseCalculee) {
+    console.log('🔄 Utilisation remise_totale de la facture:', facture.remise_totale);
+    totalRemiseCalculee = facture.remise_totale;
+    if (montantTotalAvantRemise === 0) {
+      montantTotalAvantRemise = facture.montant_ttc + totalRemiseCalculee;
+    }
   }
   
   const netAPayer = facture.montant_ttc || 0;
 
-  console.log('💰 Calculs finaux des remises:', {
+  console.log('💰 Résultats finaux des calculs:', {
     montantTotalAvantRemise,
-    totalRemise,
+    totalRemiseCalculee,
     montantTotalApresRemise,
     netAPayer,
-    hasRemise: totalRemise > 0
+    hasRemise: totalRemiseCalculee > 0.01
   });
 
   return `
@@ -154,14 +172,14 @@ export const generateFactureVenteContent = (facture: FactureVente): string => {
             <div class="totals-right">
               <h4>RÉCAPITULATIF DES MONTANTS</h4>
               
-              ${totalRemise > 0.01 ? `
+              ${totalRemiseCalculee > 0.01 ? `
                 <div class="total-line">
                   <span>Montant Total Brut</span>
                   <span>${formatCurrency(montantTotalAvantRemise)}</span>
                 </div>
                 <div class="total-line discount-line">
                   <span>Remise Totale</span>
-                  <span class="discount-amount">-${formatCurrency(totalRemise)}</span>
+                  <span class="discount-amount">-${formatCurrency(totalRemiseCalculee)}</span>
                 </div>
                 <div class="total-line">
                   <span>Montant après Remise</span>
@@ -179,10 +197,10 @@ export const generateFactureVenteContent = (facture: FactureVente): string => {
                 <span>${formatCurrency(netAPayer)}</span>
               </div>
               
-              ${totalRemise > 0.01 ? `
+              ${totalRemiseCalculee > 0.01 ? `
                 <div class="total-line economics">
                   <span>Économie réalisée</span>
-                  <span class="discount-amount">${formatCurrency(totalRemise)}</span>
+                  <span class="discount-amount">${formatCurrency(totalRemiseCalculee)}</span>
                 </div>
               ` : ''}
             </div>
@@ -228,7 +246,7 @@ export const generateFactureVenteContent = (facture: FactureVente): string => {
           <!-- Phrase finale avec montant en lettres -->
           <div class="legal-mention">
             Arrêtée la présente facture à la somme de <strong>${numberToWords(Math.floor(netAPayer))} francs guinéens</strong>
-            ${totalRemise > 0.01 ? `<br/><em>dont ${formatCurrency(totalRemise)} de remise accordée</em>` : ''}
+            ${totalRemiseCalculee > 0.01 ? `<br/><em>dont ${formatCurrency(totalRemiseCalculee)} de remise accordée</em>` : ''}
           </div>
         </div>
       </body>

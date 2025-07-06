@@ -200,25 +200,34 @@ const generateArticlesSection = (facture: FactureVente): string => {
   if (facture.lignes_facture && facture.lignes_facture.length > 0) {
     articlesHtml += facture.lignes_facture.map((ligne, index) => {
       const remiseUnitaire = ligne.remise_unitaire || 0;
-      const remiseFormatted = typeof remiseUnitaire === 'number' && remiseUnitaire > 0 ? Math.round(remiseUnitaire) : '0';
+      const remisePourcentage = ligne.remise_pourcentage || 0;
       const prixNet = ligne.prix_unitaire;
+      
+      // Affichage de la remise sur le ticket
+      let remiseFormatted = '0';
+      if (typeof remiseUnitaire === 'number' && remiseUnitaire > 0) {
+        remiseFormatted = Math.round(remiseUnitaire).toString();
+      } else if (typeof remisePourcentage === 'number' && remisePourcentage > 0) {
+        remiseFormatted = `${remisePourcentage}%`;
+      }
       
       return `
         <div class="article-line">
           <span class="article-name">${ligne.article?.nom || 'Article'}</span>
           <span class="article-qty">${ligne.quantite}</span>
-          <span class="article-remise">${remiseFormatted !== '0' ? remiseFormatted : '0'}</span>
+          <span class="article-remise">${remiseFormatted}</span>
           <span class="article-price">${Math.round(prixNet)}</span>
           <span class="article-total">${Math.round(ligne.montant_ligne)}</span>
         </div>
       `;
     }).join('');
   } else {
+    const remiseGlobale = facture.remise_totale || 0;
     articlesHtml += `
       <div class="article-line">
         <span class="article-name">Vente globale</span>
         <span class="article-qty">1</span>
-        <span class="article-remise">0</span>
+        <span class="article-remise">${remiseGlobale > 0 ? Math.round(remiseGlobale) : '0'}</span>
         <span class="article-price">${Math.round(facture.montant_ttc)}</span>
         <span class="article-total">${Math.round(facture.montant_ttc)}</span>
       </div>
@@ -278,23 +287,67 @@ const generateDeliverySection = (facture: FactureVente): string => {
 };
 
 const generateDiscountSection = (facture: FactureVente): string => {
-  // Calculer le total des remises
+  // Calculer le total des remises avec logs détaillés
   let totalRemise = 0;
   let montantBrut = 0;
   
+  console.log('🎫 Calcul remises pour ticket:', {
+    has_lignes: facture.lignes_facture?.length > 0,
+    remise_totale_facture: facture.remise_totale
+  });
+  
   if (facture.lignes_facture && facture.lignes_facture.length > 0) {
-    facture.lignes_facture.forEach(ligne => {
-      const remiseUnitaire = typeof ligne.remise_unitaire === 'number' ? ligne.remise_unitaire : 0;
+    facture.lignes_facture.forEach((ligne, index) => {
+      const remiseUnitaire = ligne.remise_unitaire || 0;
+      const remisePourcentage = ligne.remise_pourcentage || 0;
       const prixBrut = ligne.prix_unitaire_brut || ligne.prix_unitaire;
+      const prixNet = ligne.prix_unitaire;
       const quantite = ligne.quantite;
       
-      totalRemise += remiseUnitaire * quantite;
-      montantBrut += prixBrut * quantite;
+      console.log(`🎫 Ligne ${index + 1} remise:`, {
+        article: ligne.article?.nom,
+        remise_unitaire: remiseUnitaire,
+        remise_pourcentage: remisePourcentage,
+        prix_brut: prixBrut,
+        prix_net: prixNet,
+        quantite: quantite
+      });
+      
+      // Calcul du montant brut
+      const montantBrutLigne = prixBrut * quantite;
+      montantBrut += montantBrutLigne;
+      
+      // Calcul de la remise
+      let remiseLigne = 0;
+      if (typeof remiseUnitaire === 'number' && remiseUnitaire > 0) {
+        remiseLigne = remiseUnitaire * quantite;
+      } else if (typeof remisePourcentage === 'number' && remisePourcentage > 0) {
+        remiseLigne = (montantBrutLigne * remisePourcentage) / 100;
+      }
+      
+      totalRemise += remiseLigne;
+      
+      console.log(`🎫 Ligne ${index + 1} résultat:`, {
+        montant_brut_ligne: montantBrutLigne,
+        remise_ligne: remiseLigne
+      });
     });
   } else if (facture.remise_totale && facture.remise_totale > 0) {
     totalRemise = facture.remise_totale;
     montantBrut = facture.montant_ttc + totalRemise;
   }
+  
+  // Utiliser la remise totale de la facture si plus élevée
+  if (facture.remise_totale && facture.remise_totale > totalRemise) {
+    totalRemise = facture.remise_totale;
+    montantBrut = facture.montant_ttc + totalRemise;
+  }
+  
+  console.log('🎫 Remises finales ticket:', {
+    montant_brut: montantBrut,
+    total_remise: totalRemise,
+    montant_ttc: facture.montant_ttc
+  });
   
   if (totalRemise > 0) {
     return `
