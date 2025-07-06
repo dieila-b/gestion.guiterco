@@ -3,6 +3,8 @@ import type { FactureVente } from '@/types/sales';
 import { formatCurrency } from '@/lib/currency';
 
 export const generateArticlesSection = (facture: FactureVente): string => {
+  console.log('📋 Génération section articles avec remises');
+  
   let articlesHtml = `
     <table class="articles-table">
       <thead>
@@ -26,12 +28,12 @@ export const generateArticlesSection = (facture: FactureVente): string => {
       const ordered = ligne.quantite || 0;
       const remaining = Math.max(0, ordered - delivered);
       
-      // Récupérer les vraies données de remise depuis la base - CORRECTION ICI
-      const remiseUnitaire = typeof ligne.remise_unitaire === 'number' ? ligne.remise_unitaire : 0;
-      const prixBrut = ligne.prix_unitaire_brut || ligne.prix_unitaire;
-      const prixNet = ligne.prix_unitaire; // Prix après remise
+      // Récupération et validation des données de remise
+      const remiseUnitaire = (typeof ligne.remise_unitaire === 'number' && ligne.remise_unitaire > 0) ? ligne.remise_unitaire : 0;
+      const prixBrut = ligne.prix_unitaire_brut || ligne.prix_unitaire || 0;
+      const prixNet = ligne.prix_unitaire || 0;
       
-      console.log('📄 Ligne PDF avec remise détaillée:', {
+      console.log('📄 Ligne article avec remise:', {
         article: ligne.article?.nom,
         prix_brut: prixBrut,
         remise_unitaire: remiseUnitaire,
@@ -57,6 +59,12 @@ export const generateArticlesSection = (facture: FactureVente): string => {
     // Cas de vente globale - vérifier s'il y a une remise
     const remiseGlobale = facture.remise_totale || 0;
     const montantBrut = facture.montant_ttc + remiseGlobale;
+    
+    console.log('📋 Vente globale avec remise:', {
+      remise_globale: remiseGlobale,
+      montant_brut: montantBrut,
+      montant_ttc: facture.montant_ttc
+    });
     
     articlesHtml += `
       <tr>

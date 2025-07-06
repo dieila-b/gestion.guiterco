@@ -41,7 +41,9 @@ const PostPaymentActions: React.FC<PostPaymentActionsProps> = ({
       
       setLoading(true);
       try {
-        // Récupération avec toutes les données de remise - CORRECTION ICI
+        console.log('🔍 Récupération facture complète avec remises:', factureData.id);
+        
+        // Récupération avec toutes les données de remise
         const { data: facture, error } = await supabase
           .from('factures_vente')
           .select(`
@@ -56,7 +58,7 @@ const PostPaymentActions: React.FC<PostPaymentActionsProps> = ({
           .single();
 
         if (error) {
-          console.error('Erreur récupération facture complète:', error);
+          console.error('❌ Erreur récupération facture complète:', error);
           return;
         }
 
@@ -73,18 +75,31 @@ const PostPaymentActions: React.FC<PostPaymentActionsProps> = ({
             versements: versements || []
           };
           
-          // Debug des données récupérées
-          console.log('🔍 Données facture complète récupérées:', {
+          // Debug détaillé des données de remise
+          console.log('📋 Facture complète récupérée:', {
             id: factureComplete.id,
+            numero_facture: factureComplete.numero_facture,
             remise_totale: factureComplete.remise_totale,
-            lignes_avec_remises: factureComplete.lignes_facture?.filter(l => (l.remise_unitaire && l.remise_unitaire > 0)).length || 0,
-            total_lignes: factureComplete.lignes_facture?.length || 0
+            lignes_count: factureComplete.lignes_facture?.length || 0
+          });
+          
+          // Debug chaque ligne avec ses remises
+          factureComplete.lignes_facture?.forEach((ligne, index) => {
+            console.log(`📄 Ligne ${index + 1} remises:`, {
+              article: ligne.article?.nom,
+              prix_unitaire_brut: ligne.prix_unitaire_brut,
+              prix_unitaire: ligne.prix_unitaire,
+              remise_unitaire: ligne.remise_unitaire,
+              remise_pourcentage: ligne.remise_pourcentage,
+              quantite: ligne.quantite,
+              montant_ligne: ligne.montant_ligne
+            });
           });
           
           setFullFactureData(factureComplete as any);
         }
       } catch (error) {
-        console.error('Erreur lors du fetch de la facture:', error);
+        console.error('❌ Erreur lors du fetch de la facture:', error);
       } finally {
         setLoading(false);
       }
@@ -122,8 +137,8 @@ const PostPaymentActions: React.FC<PostPaymentActionsProps> = ({
   };
 
   const handlePrintInvoice = async () => {
-    console.log('🖨️ Tentative d\'impression de la facture');
-    console.log('🔍 fullFactureData:', fullFactureData);
+    console.log('🖨️ Impression facture avec remises');
+    console.log('🔍 Données facture:', fullFactureData);
     
     if (!fullFactureData) {
       console.error('❌ Données de facture manquantes');
@@ -132,19 +147,12 @@ const PostPaymentActions: React.FC<PostPaymentActionsProps> = ({
     }
 
     try {
-      console.log('📄 Génération de la facture avec les données:', {
-        id: fullFactureData.id,
-        numero_facture: fullFactureData.numero_facture,
-        lignes_facture: fullFactureData.lignes_facture?.length || 0,
-        client: fullFactureData.client?.nom || 'Non défini',
-        remise_totale: fullFactureData.remise_totale
-      });
-      
+      console.log('📄 Génération facture avec remises détaillées');
       await printFactureVente(fullFactureData);
       
-      console.log('✅ Impression lancée avec succès');
+      console.log('✅ Impression facture lancée avec remises');
       toast.success('Impression de la facture lancée', {
-        description: 'Facture complète avec format professionnel'
+        description: 'Facture complète avec remises incluses'
       });
     } catch (error) {
       console.error('❌ Erreur impression facture:', error);
