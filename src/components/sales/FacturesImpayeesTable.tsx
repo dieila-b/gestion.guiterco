@@ -36,6 +36,15 @@ const FacturesImpayeesTable: React.FC<FacturesImpayeesTableProps> = ({
     }
   };
 
+  const getDeliveryStatusBadgeColor = (statut: string) => {
+    switch (statut) {
+      case 'En attente': return 'default';
+      case 'Partiellement livrée': return 'secondary';
+      case 'Livrée': return 'outline';
+      default: return 'secondary';
+    }
+  };
+
   const handlePrintFacture = (facture: FactureImpayee) => {
     // Convertir la structure pour l'impression
     const factureForPrint = {
@@ -99,6 +108,7 @@ const FacturesImpayeesTable: React.FC<FacturesImpayeesTableProps> = ({
               <TableHead>N° Facture</TableHead>
               <TableHead>Date</TableHead>
               <TableHead>Client</TableHead>
+              <TableHead>Articles</TableHead>
               <TableHead className="text-right">Total</TableHead>
               <TableHead className="text-right">Payé</TableHead>
               <TableHead className="text-right">Restant</TableHead>
@@ -117,6 +127,11 @@ const FacturesImpayeesTable: React.FC<FacturesImpayeesTableProps> = ({
                   {format(new Date(facture.date_facture), 'dd/MM/yyyy', { locale: fr })}
                 </TableCell>
                 <TableCell>{facture.client}</TableCell>
+                <TableCell>
+                  <span className="font-medium text-lg text-blue-600">
+                    {facture.nb_articles}
+                  </span>
+                </TableCell>
                 <TableCell className="text-right">
                   {formatCurrency(facture.total)}
                 </TableCell>
@@ -132,7 +147,7 @@ const FacturesImpayeesTable: React.FC<FacturesImpayeesTableProps> = ({
                   </Badge>
                 </TableCell>
                 <TableCell>
-                  <Badge variant="outline">
+                  <Badge variant={getDeliveryStatusBadgeColor(facture.statut_livraison) as any}>
                     {facture.statut_livraison}
                   </Badge>
                 </TableCell>

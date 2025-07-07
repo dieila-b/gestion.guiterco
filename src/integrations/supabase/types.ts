@@ -2833,6 +2833,7 @@ export type Database = {
           client: string | null
           date_facture: string | null
           facture_id: string | null
+          nb_articles: number | null
           numero_facture: string | null
           paye: number | null
           restant: number | null

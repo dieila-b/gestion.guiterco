@@ -12,6 +12,7 @@ export interface FactureImpayee {
   restant: number;
   statut_paiement: string;
   statut_livraison: string;
+  nb_articles: number;
 }
 
 export const useFacturesImpayeesQuery = () => {
