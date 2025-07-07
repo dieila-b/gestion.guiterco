@@ -5,28 +5,30 @@ export const generateFactureVenteStyles = (): string => {
       body {
         font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         margin: 0;
-        padding: 15px;
+        padding: 10px;
         background: white;
         color: #333;
-        line-height: 1.3;
-        font-size: 13px;
+        line-height: 1.2;
+        font-size: 12px;
       }
       
       .invoice-container {
         max-width: 800px;
         margin: 0 auto;
         background: white;
-        padding: 20px;
+        padding: 15px;
         border: 1px solid #ddd;
+        min-height: 100vh;
+        box-sizing: border-box;
       }
       
       .header-section {
         display: flex;
         justify-content: space-between;
         align-items: flex-start;
-        margin-bottom: 25px;
+        margin-bottom: 20px;
         border-bottom: 2px solid #0066cc;
-        padding-bottom: 15px;
+        padding-bottom: 12px;
       }
       
       .company-info {
@@ -34,21 +36,21 @@ export const generateFactureVenteStyles = (): string => {
       }
       
       .company-logo img {
-        width: 60px;
-        height: 60px;
-        margin-bottom: 8px;
+        width: 50px;
+        height: 50px;
+        margin-bottom: 6px;
       }
       
       .company-name {
-        font-size: 20px;
+        font-size: 18px;
         font-weight: bold;
         color: #0066cc;
-        margin-bottom: 8px;
+        margin-bottom: 6px;
       }
       
       .company-details {
-        font-size: 12px;
-        line-height: 1.4;
+        font-size: 11px;
+        line-height: 1.3;
         color: #666;
       }
       
@@ -59,63 +61,63 @@ export const generateFactureVenteStyles = (): string => {
       
       .invoice-details {
         background: #f8f9fa;
-        padding: 15px;
-        border-radius: 6px;
+        padding: 12px;
+        border-radius: 5px;
         border-left: 3px solid #0066cc;
       }
       
       .invoice-details h3 {
-        margin: 0 0 10px 0;
+        margin: 0 0 8px 0;
         color: #0066cc;
-        font-size: 14px;
+        font-size: 13px;
       }
       
       .invoice-details p {
-        margin: 5px 0;
-        font-size: 12px;
+        margin: 4px 0;
+        font-size: 11px;
       }
       
       .invoice-title {
         text-align: center;
-        font-size: 22px;
+        font-size: 20px;
         font-weight: bold;
         color: #0066cc;
-        margin: 20px 0;
+        margin: 15px 0;
         text-transform: uppercase;
         letter-spacing: 1px;
       }
       
       .client-section {
-        margin-bottom: 20px;
+        margin-bottom: 15px;
         background: #f8f9fa;
-        padding: 15px;
-        border-radius: 6px;
+        padding: 12px;
+        border-radius: 5px;
       }
       
       .client-section h3 {
-        margin: 0 0 12px 0;
+        margin: 0 0 8px 0;
         color: #0066cc;
-        font-size: 14px;
+        font-size: 13px;
         border-bottom: 1px solid #ddd;
-        padding-bottom: 8px;
+        padding-bottom: 6px;
       }
       
       .client-info {
         display: grid;
         grid-template-columns: 1fr 1fr;
-        gap: 10px;
+        gap: 8px;
       }
       
       .client-field {
         display: flex;
         align-items: center;
-        font-size: 12px;
+        font-size: 11px;
       }
       
       .client-field label {
         font-weight: bold;
-        margin-right: 8px;
-        min-width: 70px;
+        margin-right: 6px;
+        min-width: 60px;
         color: #555;
       }
       
@@ -124,32 +126,32 @@ export const generateFactureVenteStyles = (): string => {
       }
       
       .articles-section {
-        margin-bottom: 20px;
+        margin-bottom: 15px;
       }
       
       .articles-table {
         width: 100%;
         border-collapse: collapse;
-        margin-bottom: 15px;
+        margin-bottom: 10px;
         box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-        font-size: 11px;
+        font-size: 10px;
       }
       
       .articles-table th {
         background: #0066cc;
         color: white;
-        padding: 8px 6px;
+        padding: 6px 4px;
         text-align: center;
         font-weight: bold;
-        font-size: 10px;
+        font-size: 9px;
         text-transform: uppercase;
       }
       
       .articles-table td {
-        padding: 8px 6px;
+        padding: 6px 4px;
         border-bottom: 1px solid #eee;
         text-align: center;
-        font-size: 11px;
+        font-size: 10px;
       }
       
       .articles-table tr:nth-child(even) {
@@ -160,7 +162,7 @@ export const generateFactureVenteStyles = (): string => {
         text-align: left !important;
         font-weight: 500;
         color: #333;
-        max-width: 120px;
+        max-width: 100px;
         word-wrap: break-word;
       }
       
@@ -182,30 +184,31 @@ export const generateFactureVenteStyles = (): string => {
       .totals-section {
         display: flex;
         justify-content: flex-end;
-        margin-bottom: 20px;
+        margin-bottom: 15px;
       }
       
       .totals-right {
         background: #f8f9fa;
-        padding: 15px;
-        border-radius: 6px;
+        padding: 10px;
+        border-radius: 5px;
         border-left: 3px solid #0066cc;
-        min-width: 280px;
+        min-width: 220px;
+        max-width: 260px;
       }
       
       .totals-right h4 {
-        margin: 0 0 12px 0;
+        margin: 0 0 8px 0;
         color: #0066cc;
-        font-size: 14px;
+        font-size: 12px;
         text-align: center;
       }
       
       .total-line {
         display: flex;
         justify-content: space-between;
-        margin: 8px 0;
-        padding: 6px 0;
-        font-size: 12px;
+        margin: 6px 0;
+        padding: 4px 0;
+        font-size: 11px;
       }
       
       .total-line.remise-line {
@@ -219,53 +222,44 @@ export const generateFactureVenteStyles = (): string => {
       .total-line.final {
         border-top: 2px solid #0066cc;
         font-weight: bold;
-        font-size: 14px;
+        font-size: 13px;
         color: #0066cc;
-        margin-top: 12px;
-        padding-top: 12px;
-      }
-      
-      .total-line.economics {
-        font-size: 11px;
-        color: #f57c00;
-        font-style: italic;
-        border-top: 1px dotted #f57c00;
         margin-top: 8px;
-        padding-top: 6px;
+        padding-top: 8px;
       }
       
       .status-section {
         display: grid;
         grid-template-columns: 1fr 1fr;
-        gap: 15px;
-        margin-bottom: 20px;
+        gap: 12px;
+        margin-bottom: 15px;
       }
       
       .status-box {
         background: white;
         border: 1px solid #e0e0e0;
-        border-radius: 6px;
-        padding: 15px;
+        border-radius: 5px;
+        padding: 10px;
         box-shadow: 0 1px 3px rgba(0,0,0,0.05);
       }
       
       .status-box h4 {
-        margin: 0 0 10px 0;
+        margin: 0 0 8px 0;
         color: #0066cc;
-        font-size: 12px;
+        font-size: 11px;
         text-transform: uppercase;
         letter-spacing: 0.5px;
       }
       
       .status-info {
-        margin: 8px 0;
-        font-size: 11px;
+        margin: 6px 0;
+        font-size: 10px;
       }
       
       .status-badge {
-        padding: 3px 8px;
-        border-radius: 12px;
-        font-size: 10px;
+        padding: 2px 6px;
+        border-radius: 10px;
+        font-size: 9px;
         font-weight: bold;
         text-transform: uppercase;
         letter-spacing: 0.3px;
@@ -303,22 +297,22 @@ export const generateFactureVenteStyles = (): string => {
       
       .observations-section {
         background: #f8f9fa;
-        padding: 15px;
-        border-radius: 6px;
-        margin-bottom: 20px;
+        padding: 10px;
+        border-radius: 5px;
+        margin-bottom: 15px;
         border-left: 3px solid #0066cc;
       }
       
       .observations-section h4 {
-        margin: 0 0 8px 0;
+        margin: 0 0 6px 0;
         color: #0066cc;
-        font-size: 14px;
+        font-size: 12px;
       }
       
       .observations-section p {
         margin: 0;
-        font-size: 12px;
-        line-height: 1.4;
+        font-size: 11px;
+        line-height: 1.3;
         color: #555;
       }
       
@@ -326,36 +320,42 @@ export const generateFactureVenteStyles = (): string => {
         text-align: center;
         font-style: italic;
         color: #666;
-        font-size: 11px;
-        padding: 15px;
+        font-size: 10px;
+        padding: 10px;
         border-top: 1px solid #ddd;
-        margin-top: 20px;
+        margin-top: 15px;
       }
       
       @media print {
+        @page {
+          size: A4;
+          margin: 15mm;
+        }
+        
         body {
           padding: 0;
           background: white;
-          font-size: 12px;
+          font-size: 11px;
         }
         
         .invoice-container {
           max-width: none;
           border: none;
           box-shadow: none;
-          padding: 15px;
+          padding: 10px;
+          min-height: auto;
         }
         
         .articles-table {
-          font-size: 10px;
-        }
-        
-        .articles-table th {
           font-size: 9px;
         }
         
+        .articles-table th {
+          font-size: 8px;
+        }
+        
         .articles-table td {
-          font-size: 10px;
+          font-size: 9px;
         }
         
         .status-section {
@@ -363,6 +363,10 @@ export const generateFactureVenteStyles = (): string => {
         }
         
         .totals-section {
+          page-break-inside: avoid;
+        }
+        
+        .legal-mention {
           page-break-inside: avoid;
         }
       }

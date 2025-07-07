@@ -150,11 +150,10 @@ export const generateFactureVenteContent = (facture: FactureVente): string => {
             ${generateArticlesSection(facture)}
           </div>
 
-          <!-- Section récapitulatif des montants avec remises -->
+          <!-- Section récapitulatif des montants avec remises (compacte) -->
           <div class="totals-section">
-            <div class="totals-left"></div>
             <div class="totals-right">
-              <h4>RÉCAPITULATIF DES MONTANTS</h4>
+              <h4>RÉCAPITULATIF</h4>
               
               ${hasRemise ? `
                 <div class="total-line">
@@ -176,13 +175,6 @@ export const generateFactureVenteContent = (facture: FactureVente): string => {
                 <span>Net à Payer</span>
                 <span>${formatCurrency(netAPayer)}</span>
               </div>
-              
-              ${hasRemise ? `
-                <div class="total-line economics">
-                  <span>Économie réalisée</span>
-                  <span class="remise-amount">${formatCurrency(totalRemiseCalculee)}</span>
-                </div>
-              ` : ''}
             </div>
           </div>
 
