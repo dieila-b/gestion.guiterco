@@ -7,6 +7,11 @@ export type Json =
   | Json[]
 
 export type Database = {
+  // Allows to automatically instanciate createClient with right options
+  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
+  __InternalSupabase: {
+    PostgrestVersion: "12.2.3 (519615d)"
+  }
   public: {
     Tables: {
       articles_bon_commande: {
@@ -1577,6 +1582,13 @@ export type Database = {
             referencedRelation: "vue_facture_vente_detaillee"
             referencedColumns: ["facture_id"]
           },
+          {
+            foreignKeyName: "lignes_facture_vente_facture_vente_id_fkey"
+            columns: ["facture_vente_id"]
+            isOneToOne: false
+            referencedRelation: "vue_factures_vente_summary"
+            referencedColumns: ["facture_id"]
+          },
         ]
       }
       lignes_precommande: {
@@ -1734,6 +1746,55 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vue_precommandes_pretes"
             referencedColumns: ["id"]
+          },
+        ]
+      }
+      paiements_vente: {
+        Row: {
+          created_at: string | null
+          date_paiement: string | null
+          facture_vente_id: string
+          id: string
+          montant: number
+          moyen_paiement: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          date_paiement?: string | null
+          facture_vente_id: string
+          id?: string
+          montant: number
+          moyen_paiement?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          date_paiement?: string | null
+          facture_vente_id?: string
+          id?: string
+          montant?: number
+          moyen_paiement?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "paiements_vente_facture_vente_id_fkey"
+            columns: ["facture_vente_id"]
+            isOneToOne: false
+            referencedRelation: "factures_vente"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "paiements_vente_facture_vente_id_fkey"
+            columns: ["facture_vente_id"]
+            isOneToOne: false
+            referencedRelation: "vue_facture_vente_detaillee"
+            referencedColumns: ["facture_id"]
+          },
+          {
+            foreignKeyName: "paiements_vente_facture_vente_id_fkey"
+            columns: ["facture_vente_id"]
+            isOneToOne: false
+            referencedRelation: "vue_factures_vente_summary"
+            referencedColumns: ["facture_id"]
           },
         ]
       }
@@ -2021,6 +2082,13 @@ export type Database = {
             columns: ["facture_id"]
             isOneToOne: false
             referencedRelation: "vue_facture_vente_detaillee"
+            referencedColumns: ["facture_id"]
+          },
+          {
+            foreignKeyName: "retours_clients_facture_id_fkey"
+            columns: ["facture_id"]
+            isOneToOne: false
+            referencedRelation: "vue_factures_vente_summary"
             referencedColumns: ["facture_id"]
           },
         ]
@@ -2719,16 +2787,15 @@ export type Database = {
       vue_facture_vente_detaillee: {
         Row: {
           article_nom: string | null
+          client_entreprise: string | null
           client_nom: string | null
           client_prenom: string | null
           date_facture: string | null
           facture_id: string | null
           ligne_id: string | null
           montant_brut_ligne: number | null
-          montant_ht: number | null
           montant_net_ligne: number | null
-          montant_ttc: number | null
-          nom_entreprise: string | null
+          numero_facture: string | null
           prix_unitaire_brut: number | null
           quantite: number | null
           remise_totale_ligne: number | null
@@ -2737,7 +2804,22 @@ export type Database = {
             | Database["public"]["Enums"]["statut_livraison_enum"]
             | null
           statut_paiement: string | null
-          tva: number | null
+        }
+        Relationships: []
+      }
+      vue_factures_vente_summary: {
+        Row: {
+          articles: number | null
+          client: string | null
+          date: string | null
+          date_iso: string | null
+          facture_id: string | null
+          numero_facture: string | null
+          paye: number | null
+          restant: number | null
+          statut_livraison: string | null
+          statut_paiement: string | null
+          total: number | null
         }
         Relationships: []
       }
@@ -2825,6 +2907,13 @@ export type Database = {
             columns: ["facture_id"]
             isOneToOne: false
             referencedRelation: "vue_facture_vente_detaillee"
+            referencedColumns: ["facture_id"]
+          },
+          {
+            foreignKeyName: "lignes_facture_vente_facture_vente_id_fkey"
+            columns: ["facture_id"]
+            isOneToOne: false
+            referencedRelation: "vue_factures_vente_summary"
             referencedColumns: ["facture_id"]
           },
         ]
@@ -3007,20 +3096,32 @@ export type Database = {
           taux_marge_global: number
         }[]
       }
+      get_factures_vente: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          facture_id: string
+          numero_facture: string
+          date_iso: string
+          client: string
+          articles: number
+          total: number
+          paye: number
+          restant: number
+          statut_paiement: string
+          statut_livraison: string
+        }[]
+      }
       get_factures_vente_with_details: {
         Args: Record<PropertyKey, never>
         Returns: {
           facture_id: string
           numero_facture: string
-          date_facture: string
-          client_nom: string
-          client_prenom: string
-          client_entreprise: string
-          article_nom: string
-          quantite: number
-          prix_unitaire_brut: number
-          remise_unitaire: number
-          montant_ligne: number
+          date: string
+          client: string
+          articles: number
+          total: number
+          paye: number
+          restant: number
           statut_paiement: string
           statut_livraison: string
         }[]
@@ -3131,21 +3232,25 @@ export type Database = {
   }
 }
 
-type DefaultSchema = Database[Extract<keyof Database, "public">]
+type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
+
+type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
 
 export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
-    | { schema: keyof Database },
+    | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
-    schema: keyof Database
+    schema: keyof DatabaseWithoutInternals
   }
-    ? keyof (Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
-        Database[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
+    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
     : never = never,
-> = DefaultSchemaTableNameOrOptions extends { schema: keyof Database }
-  ? (Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
-      Database[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
       Row: infer R
     }
     ? R
@@ -3163,14 +3268,16 @@ export type Tables<
 export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
-    | { schema: keyof Database },
+    | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
-    schema: keyof Database
+    schema: keyof DatabaseWithoutInternals
   }
-    ? keyof Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
     : never = never,
-> = DefaultSchemaTableNameOrOptions extends { schema: keyof Database }
-  ? Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
       Insert: infer I
     }
     ? I
@@ -3186,14 +3293,16 @@ export type TablesInsert<
 export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
-    | { schema: keyof Database },
+    | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
-    schema: keyof Database
+    schema: keyof DatabaseWithoutInternals
   }
-    ? keyof Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
     : never = never,
-> = DefaultSchemaTableNameOrOptions extends { schema: keyof Database }
-  ? Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
       Update: infer U
     }
     ? U
@@ -3209,14 +3318,16 @@ export type TablesUpdate<
 export type Enums<
   DefaultSchemaEnumNameOrOptions extends
     | keyof DefaultSchema["Enums"]
-    | { schema: keyof Database },
+    | { schema: keyof DatabaseWithoutInternals },
   EnumName extends DefaultSchemaEnumNameOrOptions extends {
-    schema: keyof Database
+    schema: keyof DatabaseWithoutInternals
   }
-    ? keyof Database[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
+    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
     : never = never,
-> = DefaultSchemaEnumNameOrOptions extends { schema: keyof Database }
-  ? Database[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
+> = DefaultSchemaEnumNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
   : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
     ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
     : never
@@ -3224,14 +3335,16 @@ export type Enums<
 export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
-    | { schema: keyof Database },
+    | { schema: keyof DatabaseWithoutInternals },
   CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
-    schema: keyof Database
+    schema: keyof DatabaseWithoutInternals
   }
-    ? keyof Database[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
+    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
     : never = never,
-> = PublicCompositeTypeNameOrOptions extends { schema: keyof Database }
-  ? Database[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
+> = PublicCompositeTypeNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
   : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
     ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
     : never
