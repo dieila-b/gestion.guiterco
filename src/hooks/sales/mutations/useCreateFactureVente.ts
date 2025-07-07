@@ -10,23 +10,23 @@ export const useCreateFactureVente = () => {
   
   return useMutation({
     mutationFn: async (data: any) => {
-      console.log('🚀 Début création facture vente avec données:', data);
+      console.log('🚀 Début création facture vente avec nouveaux défauts:', data);
 
-      // Créer la facture principale (SANS TVA - montant_ht = montant_ttc)
+      // Créer la facture principale avec le statut par défaut 'payee'
       const factureData = {
         client_id: data.client_id,
         montant_ht: data.montant_ttc, // Pas de TVA donc HT = TTC
         tva: 0, // Forcer à 0
         montant_ttc: data.montant_ttc,
         mode_paiement: data.mode_paiement,
-        statut_paiement: 'en_attente',
+        // Ne pas définir statut_paiement - utiliser le défaut DB 'payee'
         statut_livraison: 'En attente' as const,
         statut_livraison_id: 1,
         numero_facture: '',
         taux_tva: 0 // Forcer à 0
       };
 
-      console.log('📋 Données facture (sans TVA):', factureData);
+      console.log('📋 Données facture (défaut payee):', factureData);
 
       const { data: facture, error: factureError } = await supabase
         .from('factures_vente')
@@ -39,19 +39,12 @@ export const useCreateFactureVente = () => {
         throw factureError;
       }
 
-      console.log('✅ Facture créée:', facture.id);
+      console.log('✅ Facture créée avec statut défaut:', facture.statut_paiement);
 
       // Créer les lignes de facture SANS montant_ligne (calculé par Supabase)
       const lignesFacture = data.cart.map((item: any) => {
         const prixUnitaireBrut = item.prix_unitaire_brut || item.prix_unitaire || item.prix_vente || 0;
         const remiseUnitaire = item.remise_unitaire || item.remise || 0;
-
-        console.log('📦 Ligne facture sans montant_ligne:', {
-          article_id: item.article_id,
-          quantite: item.quantite,
-          prix_unitaire_brut: prixUnitaireBrut,
-          remise_unitaire: remiseUnitaire
-        });
 
         return {
           facture_vente_id: facture.id,
@@ -75,12 +68,7 @@ export const useCreateFactureVente = () => {
         throw lignesError;
       }
 
-      console.log('✅ Lignes facture créées avec montant_ligne calculé:', lignesCreees?.map(l => ({
-        id: l.id,
-        prix_unitaire_brut: l.prix_unitaire_brut,
-        remise_unitaire: l.remise_unitaire,
-        montant_ligne: l.montant_ligne
-      })));
+      console.log('✅ Lignes facture créées:', lignesCreees?.length);
 
       // IMPORTANT: Traiter la livraison SEULEMENT si des données de livraison sont fournies
       if (data.payment_data && data.payment_data.statut_livraison) {
@@ -109,34 +97,9 @@ export const useCreateFactureVente = () => {
           toast.error('Vente créée mais transaction de caisse non enregistrée');
         }
 
-        // Créer le versement client
-        const versementData = {
-          client_id: data.client_id,
-          facture_id: facture.id,
-          montant: data.payment_data.montant_paye,
-          mode_paiement: data.mode_paiement,
-          numero_versement: `VERS-${facture.numero_facture}`,
-          date_versement: new Date().toISOString(),
-        };
-
-        const { error: versementError } = await supabase
-          .from('versements_clients')
-          .insert(versementData);
-
-        if (versementError) {
-          console.error('❌ Erreur création versement:', versementError);
-          throw versementError;
-        }
-
-        // Mettre à jour le statut de paiement
-        const nouveauStatutPaiement = data.payment_data.montant_paye >= data.montant_ttc ? 'payee' : 'partiellement_payee';
-        
-        await supabase
-          .from('factures_vente')
-          .update({ statut_paiement: nouveauStatutPaiement })
-          .eq('id', facture.id);
-
-        console.log('✅ Versement créé et statut paiement mis à jour:', nouveauStatutPaiement);
+        // Note: Le versement client est maintenant créé automatiquement par le trigger DB
+        // si la facture a le statut 'payee' par défaut
+        console.log('✅ Versement client créé automatiquement par le trigger DB');
       }
 
       // Récupérer la facture mise à jour avec la remise_totale calculée par le trigger
@@ -146,7 +109,7 @@ export const useCreateFactureVente = () => {
         .eq('id', facture.id)
         .single();
 
-      console.log('🎉 Facture vente créée avec succès - Remise totale:', factureFinale?.remise_totale);
+      console.log('🎉 Facture vente créée avec statut automatique:', factureFinale?.statut_paiement);
 
       return { facture: factureFinale || facture, lignes: lignesCreees };
     },
@@ -154,6 +117,7 @@ export const useCreateFactureVente = () => {
       // Invalider toutes les queries liées aux factures pour forcer le rafraîchissement
       queryClient.invalidateQueries({ queryKey: ['factures_vente'] });
       queryClient.invalidateQueries({ queryKey: ['factures-vente-details'] });
+      queryClient.invalidateQueries({ queryKey: ['versements_clients'] });
       queryClient.invalidateQueries({ queryKey: ['transactions'] });
       queryClient.invalidateQueries({ queryKey: ['cash-register-balance'] });
       
