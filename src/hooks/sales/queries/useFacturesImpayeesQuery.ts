@@ -41,7 +41,7 @@ export const useFacturesImpayeesQuery = () => {
       const transformedData = data.map(facture => ({
         facture_id: facture.facture_id,
         numero_facture: facture.numero_facture,
-        date_iso: facture.date_iso, // Utiliser date_iso du SQL
+        date_iso: facture.date, // Utiliser la propriété 'date' qui existe réellement
         client: facture.client,
         total: facture.total,
         paye: facture.paye,
