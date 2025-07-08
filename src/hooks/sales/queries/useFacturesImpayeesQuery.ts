@@ -25,7 +25,7 @@ export const useFacturesImpayeesQuery = () => {
       const { data, error } = await supabase
         .from('vue_factures_impayees_summary')
         .select('*')
-        .order('date_iso', { ascending: false });
+        .order('date', { ascending: false });
       
       if (error) {
         console.error('❌ Erreur requête vue factures impayées:', error);

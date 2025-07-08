@@ -2833,12 +2833,13 @@ export type Database = {
           articles: number | null
           client: string | null
           date: string | null
-          date_iso: string | null
           facture_id: string | null
           numero_facture: string | null
           paye: number | null
           restant: number | null
-          statut_livraison: string | null
+          statut_livraison:
+            | Database["public"]["Enums"]["statut_livraison_enum"]
+            | null
           statut_paiement: string | null
           total: number | null
         }
