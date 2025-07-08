@@ -13,7 +13,7 @@ interface DeliverySectionProps {
 }
 
 const DeliverySection = ({ facture }: DeliverySectionProps) => {
-  const [statutLivraison, setStatutLivraison] = useState(facture.statut_livraison || 'en_attente');
+  const [statutLivraison, setStatutLivraison] = useState(facture.statut_livraison || 'En attente');
   const updateFacture = useUpdateFactureVente();
 
   // CORRECTION: Calculer les vraies quantités de livraison
@@ -30,7 +30,7 @@ const DeliverySection = ({ facture }: DeliverySectionProps) => {
 
     updateFacture.mutate({
       id: facture.id,
-      statut_livraison: statutLivraison as any
+      statut_livraison: statutLivraison as 'En attente' | 'Partiellement livrée' | 'Livrée'
     }, {
       onSuccess: () => {
         console.log('✅ Statut livraison mis à jour avec succès');
@@ -43,18 +43,18 @@ const DeliverySection = ({ facture }: DeliverySectionProps) => {
 
   const getDeliveryStatusLabel = (status: string) => {
     switch (status) {
-      case 'en_attente': return 'Non livrée';
-      case 'partiellement_livree': return 'Partiellement livrée';
-      case 'livree': return 'Livrée';
+      case 'En attente': return 'Non livrée';
+      case 'Partiellement livrée': return 'Partiellement livrée';
+      case 'Livrée': return 'Livrée';
       default: return status;
     }
   };
 
   const getDeliveryStatusColor = (status: string) => {
     switch (status) {
-      case 'en_attente': return 'text-orange-600';
-      case 'partiellement_livree': return 'text-yellow-600';
-      case 'livree': return 'text-green-600';
+      case 'En attente': return 'text-orange-600';
+      case 'Partiellement livrée': return 'text-yellow-600';
+      case 'Livrée': return 'text-green-600';
       default: return 'text-gray-600';
     }
   };
@@ -80,8 +80,8 @@ const DeliverySection = ({ facture }: DeliverySectionProps) => {
         <div className="space-y-2">
           <div className="text-sm">
             <strong>Statut actuel :</strong>
-            <span className={`ml-2 font-medium ${getDeliveryStatusColor(facture.statut_livraison || 'en_attente')}`}>
-              {getDeliveryStatusLabel(facture.statut_livraison || 'en_attente')}
+            <span className={`ml-2 font-medium ${getDeliveryStatusColor(facture.statut_livraison || 'En attente')}`}>
+              {getDeliveryStatusLabel(facture.statut_livraison || 'En attente')}
             </span>
           </div>
         </div>
@@ -93,9 +93,9 @@ const DeliverySection = ({ facture }: DeliverySectionProps) => {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="en_attente">Non livrée</SelectItem>
-              <SelectItem value="partiellement_livree">Partiellement livrée</SelectItem>
-              <SelectItem value="livree">Livrée</SelectItem>
+              <SelectItem value="En attente">Non livrée</SelectItem>
+              <SelectItem value="Partiellement livrée">Partiellement livrée</SelectItem>
+              <SelectItem value="Livrée">Livrée</SelectItem>
             </SelectContent>
           </Select>
         </div>
