@@ -23,30 +23,63 @@ const FacturesImpayeesTable: React.FC<FacturesImpayeesTableProps> = ({
 }) => {
   const getStatusBadgeColor = (statut: string) => {
     switch (statut) {
-      case 'en_attente': return 'destructive';
-      case 'partiellement_payee': return 'default';
-      default: return 'secondary';
+      case 'en_attente':
+      case 'En attente':
+        return 'destructive';
+      case 'partiellement_payee':
+      case 'Partiellement payée':
+        return 'default';
+      default: 
+        return 'secondary';
     }
   };
 
   const getStatusLabel = (statut: string) => {
     switch (statut) {
-      case 'en_attente': return 'En attente';
-      case 'partiellement_payee': return 'Partiellement payée';
-      default: return statut;
+      case 'en_attente':
+      case 'En attente':
+        return 'En attente';
+      case 'partiellement_payee':
+      case 'Partiellement payée':
+        return 'Partiellement payée';
+      default: 
+        return statut;
     }
   };
 
   const getDeliveryStatusBadgeColor = (statut: string) => {
     switch (statut) {
-      case 'en_attente': return 'default';
-      case 'partiellement_livree': return 'secondary';
-      case 'livree': return 'outline';
-      default: return 'secondary';
+      case 'en_attente':
+      case 'En attente':
+        return 'default';
+      case 'partiellement_livree':
+      case 'Partiellement livrée':
+        return 'secondary';
+      case 'livree':
+      case 'Livrée':
+        return 'outline';
+      default: 
+        return 'secondary';
     }
   };
 
-  // CORRECTION: Récupérer les données complètes de la facture pour l'impression
+  const getDeliveryStatusLabel = (statut: string) => {
+    switch (statut) {
+      case 'en_attente':
+      case 'En attente':
+        return 'En attente';
+      case 'partiellement_livree':
+      case 'Partiellement livrée':
+        return 'Partielle';
+      case 'livree':
+      case 'Livrée':
+        return 'Livrée';
+      default: 
+        return statut;
+    }
+  };
+
+  // Récupérer les données complètes de la facture pour l'impression
   const handlePrintFacture = async (facture: FactureImpayee) => {
     console.log('🖨️ Impression facture avec détails complets...');
     
@@ -113,7 +146,7 @@ const FacturesImpayeesTable: React.FC<FacturesImpayeesTableProps> = ({
   const totalRestant = factures.reduce((sum, facture) => sum + facture.restant, 0);
 
   if (isLoading) {
-    return <div className="flex justify-center py-8">Chargement...</div>;
+    return <div className="flex justify-center py-8">Chargement des factures impayées...</div>;
   }
 
   if (!factures || factures.length === 0) {
@@ -121,7 +154,7 @@ const FacturesImpayeesTable: React.FC<FacturesImpayeesTableProps> = ({
       <div className="text-center py-8">
         <p className="text-muted-foreground">Aucune facture impayée trouvée</p>
         <p className="text-sm text-gray-500 mt-2">
-          Les factures avec statut "en_attente" ou "partiellement_payee" apparaîtront ici
+          Les factures avec statut "En attente" ou "Partiellement payée" apparaîtront ici
         </p>
       </div>
     );
@@ -190,7 +223,7 @@ const FacturesImpayeesTable: React.FC<FacturesImpayeesTableProps> = ({
                 </TableCell>
                 <TableCell>
                   <Badge variant={getDeliveryStatusBadgeColor(facture.statut_livraison) as any}>
-                    {facture.statut_livraison}
+                    {getDeliveryStatusLabel(facture.statut_livraison)}
                   </Badge>
                 </TableCell>
                 <TableCell>

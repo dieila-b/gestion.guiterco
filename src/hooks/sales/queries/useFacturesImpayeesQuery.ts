@@ -19,12 +19,13 @@ export const useFacturesImpayeesQuery = () => {
   return useQuery({
     queryKey: ['factures_impayees_complete'],
     queryFn: async () => {
-      console.log('🔍 Fetching factures impayées depuis la vue optimisée...');
+      console.log('🔍 Fetching factures impayées depuis la vue corrigée...');
       
-      // Utiliser la nouvelle vue optimisée
+      // Utiliser la vue corrigée avec les bons filtres
       const { data, error } = await supabase
         .from('vue_factures_impayees_summary')
-        .select('*');
+        .select('*')
+        .order('date_iso', { ascending: false });
       
       if (error) {
         console.error('❌ Erreur requête vue factures impayées:', error);
@@ -32,7 +33,7 @@ export const useFacturesImpayeesQuery = () => {
       }
 
       if (!data || data.length === 0) {
-        console.log('✅ Aucune facture impayée trouvée');
+        console.log('✅ Aucune facture impayée trouvée (c\'est normal si toutes sont payées)');
         return [];
       }
 
@@ -50,10 +51,12 @@ export const useFacturesImpayeesQuery = () => {
         articles: facture.articles
       }));
       
-      console.log(`✅ Factures impayées depuis vue: ${transformedData.length} factures`);
-      console.log('📊 Données sample:', transformedData.slice(0, 2));
+      console.log(`✅ Factures impayées trouvées: ${transformedData.length} factures`);
+      console.log('📊 Échantillon des données:', transformedData.slice(0, 2));
       
       return transformedData as FactureImpayee[];
-    }
+    },
+    refetchInterval: 30000, // Rafraîchir toutes les 30 secondes
+    staleTime: 10000, // Considérer les données comme fraîches pendant 10 secondes
   });
 };
