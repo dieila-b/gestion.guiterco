@@ -6,7 +6,7 @@ import { toast } from 'sonner';
 interface UpdateFactureVenteData {
   id: string;
   statut_paiement?: string;
-  statut_livraison?: string;
+  statut_livraison?: 'en_attente' | 'partiellement_livree' | 'livree';
   montant_ttc?: number;
   observations?: string;
 }
