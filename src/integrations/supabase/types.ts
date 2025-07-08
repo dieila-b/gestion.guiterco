@@ -1586,7 +1586,7 @@ export type Database = {
             foreignKeyName: "lignes_facture_vente_facture_vente_id_fkey"
             columns: ["facture_vente_id"]
             isOneToOne: false
-            referencedRelation: "vue_factures_impayees"
+            referencedRelation: "vue_factures_impayees_summary"
             referencedColumns: ["facture_id"]
           },
           {
@@ -1800,7 +1800,7 @@ export type Database = {
             foreignKeyName: "paiements_vente_facture_vente_id_fkey"
             columns: ["facture_vente_id"]
             isOneToOne: false
-            referencedRelation: "vue_factures_impayees"
+            referencedRelation: "vue_factures_impayees_summary"
             referencedColumns: ["facture_id"]
           },
           {
@@ -2102,7 +2102,7 @@ export type Database = {
             foreignKeyName: "retours_clients_facture_id_fkey"
             columns: ["facture_id"]
             isOneToOne: false
-            referencedRelation: "vue_factures_impayees"
+            referencedRelation: "vue_factures_impayees_summary"
             referencedColumns: ["facture_id"]
           },
           {
@@ -2828,33 +2828,21 @@ export type Database = {
         }
         Relationships: []
       }
-      vue_factures_impayees: {
+      vue_factures_impayees_summary: {
         Row: {
+          articles: number | null
           client: string | null
-          client_id: string | null
-          date_facture: string | null
+          date: string | null
+          date_iso: string | null
           facture_id: string | null
-          nb_articles: number | null
           numero_facture: string | null
           paye: number | null
-          quantite_livree_totale: number | null
-          quantite_totale: number | null
           restant: number | null
-          statut_livraison:
-            | Database["public"]["Enums"]["statut_livraison_enum"]
-            | null
+          statut_livraison: string | null
           statut_paiement: string | null
           total: number | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "factures_vente_client_id_fkey"
-            columns: ["client_id"]
-            isOneToOne: false
-            referencedRelation: "clients"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       vue_factures_vente_summary: {
         Row: {
@@ -2962,7 +2950,7 @@ export type Database = {
             foreignKeyName: "lignes_facture_vente_facture_vente_id_fkey"
             columns: ["facture_id"]
             isOneToOne: false
-            referencedRelation: "vue_factures_impayees"
+            referencedRelation: "vue_factures_impayees_summary"
             referencedColumns: ["facture_id"]
           },
           {

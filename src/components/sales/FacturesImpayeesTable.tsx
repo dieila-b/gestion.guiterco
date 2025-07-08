@@ -22,18 +22,14 @@ const FacturesImpayeesTable: React.FC<FacturesImpayeesTableProps> = ({
 }) => {
   const getStatusBadgeColor = (statut: string) => {
     switch (statut) {
-      case 'en_attente': return 'destructive';
-      case 'partiellement_payee': return 'default';
+      case 'En attente': return 'destructive';
+      case 'Partiellement payée': return 'default';
       default: return 'secondary';
     }
   };
 
   const getStatusLabel = (statut: string) => {
-    switch (statut) {
-      case 'en_attente': return 'En attente';
-      case 'partiellement_payee': return 'Partiellement payée';
-      default: return statut;
-    }
+    return statut;
   };
 
   const getDeliveryStatusBadgeColor = (statut: string) => {
@@ -46,17 +42,16 @@ const FacturesImpayeesTable: React.FC<FacturesImpayeesTableProps> = ({
   };
 
   const handlePrintFacture = (facture: FactureImpayee) => {
-    // Convertir la structure pour l'impression avec les données complètes
+    // Convertir la structure pour l'impression
     const factureForPrint = {
       id: facture.facture_id,
       numero_facture: facture.numero_facture,
-      date_facture: facture.date_facture,
+      date_facture: facture.date_iso,
       client_id: facture.client_id,
       client: { nom: facture.client },
       montant_ttc: facture.total,
       statut_paiement: facture.statut_paiement,
       statut_livraison: facture.statut_livraison,
-      // Ajouter les données de quantité pour l'impression
       versements: [{
         montant: facture.paye
       }]
@@ -69,7 +64,7 @@ const FacturesImpayeesTable: React.FC<FacturesImpayeesTableProps> = ({
     const factureForPrint = {
       id: facture.facture_id,
       numero_facture: facture.numero_facture,
-      date_facture: facture.date_facture,
+      date_facture: facture.date_iso,
       client_id: facture.client_id,
       client: { nom: facture.client },
       montant_ttc: facture.total,
@@ -90,6 +85,9 @@ const FacturesImpayeesTable: React.FC<FacturesImpayeesTableProps> = ({
     return (
       <div className="text-center py-8">
         <p className="text-muted-foreground">Aucune facture impayée trouvée</p>
+        <p className="text-sm text-gray-500 mt-2">
+          Les factures avec statut "En attente" ou "Partiellement payée" apparaîtront ici
+        </p>
       </div>
     );
   }
@@ -103,6 +101,9 @@ const FacturesImpayeesTable: React.FC<FacturesImpayeesTableProps> = ({
           <span className="text-red-900 font-bold text-lg">
             {formatCurrency(totalRestant)}
           </span>
+        </div>
+        <div className="text-sm text-red-600 mt-1">
+          {factures.length} facture{factures.length > 1 ? 's' : ''} impayée{factures.length > 1 ? 's' : ''}
         </div>
       </div>
 
@@ -130,12 +131,12 @@ const FacturesImpayeesTable: React.FC<FacturesImpayeesTableProps> = ({
                   {facture.numero_facture}
                 </TableCell>
                 <TableCell>
-                  {format(new Date(facture.date_facture), 'dd/MM/yyyy', { locale: fr })}
+                  {format(new Date(facture.date_iso), 'dd/MM/yyyy', { locale: fr })}
                 </TableCell>
                 <TableCell>{facture.client}</TableCell>
                 <TableCell>
                   <span className="font-medium text-lg text-blue-600">
-                    {facture.nb_articles}
+                    {facture.articles}
                   </span>
                 </TableCell>
                 <TableCell className="text-right">
@@ -153,16 +154,9 @@ const FacturesImpayeesTable: React.FC<FacturesImpayeesTableProps> = ({
                   </Badge>
                 </TableCell>
                 <TableCell>
-                  <div className="flex flex-col gap-1">
-                    <Badge variant={getDeliveryStatusBadgeColor(facture.statut_livraison) as any}>
-                      {facture.statut_livraison}
-                    </Badge>
-                    {facture.quantite_totale > 0 && (
-                      <span className="text-xs text-muted-foreground">
-                        {facture.quantite_livree_totale} / {facture.quantite_totale} livrés
-                      </span>
-                    )}
-                  </div>
+                  <Badge variant={getDeliveryStatusBadgeColor(facture.statut_livraison) as any}>
+                    {facture.statut_livraison}
+                  </Badge>
                 </TableCell>
                 <TableCell>
                   <div className="flex items-center gap-1 justify-center">
@@ -171,18 +165,14 @@ const FacturesImpayeesTable: React.FC<FacturesImpayeesTableProps> = ({
                       facture={{
                         id: facture.facture_id,
                         numero_facture: facture.numero_facture,
-                        date_facture: facture.date_facture,
+                        date_facture: facture.date_iso,
                         client_id: facture.client_id,
                         client: { nom: facture.client },
                         montant_ttc: facture.total,
                         statut_paiement: facture.statut_paiement,
                         statut_livraison: facture.statut_livraison,
                         versements: [],
-                        // Ajouter les données de quantité pour la livraison
-                        lignes_facture: facture.nb_articles > 0 ? [{
-                          quantite: facture.quantite_totale,
-                          quantite_livree: facture.quantite_livree_totale
-                        }] : []
+                        lignes_facture: []
                       } as any}
                     >
                       <Button 

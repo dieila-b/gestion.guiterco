@@ -5,7 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 export interface FactureImpayee {
   facture_id: string;
   numero_facture: string;
-  date_facture: string;
+  date_iso: string;
   client_id: string;
   client: string;
   total: number;
@@ -13,21 +13,28 @@ export interface FactureImpayee {
   restant: number;
   statut_paiement: string;
   statut_livraison: string;
-  nb_articles: number;
-  quantite_totale: number;
-  quantite_livree_totale: number;
+  articles: number;
 }
 
 export const useFacturesImpayeesQuery = () => {
   return useQuery({
-    queryKey: ['factures_impayees'],
+    queryKey: ['factures_impayees_summary'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('vue_factures_impayees')
-        .select('*')
-        .order('date_facture', { ascending: false });
+      console.log('🔍 Fetching factures impayées from vue_factures_impayees_summary...');
       
-      if (error) throw error;
+      const { data, error } = await supabase
+        .from('vue_factures_impayees_summary')
+        .select('*')
+        .order('date_iso', { ascending: false });
+      
+      console.log('📊 Résultat requête factures impayées:', { data, error });
+      
+      if (error) {
+        console.error('❌ Erreur requête factures impayées:', error);
+        throw error;
+      }
+      
+      console.log('✅ Factures impayées trouvées:', data?.length || 0);
       return data as FactureImpayee[];
     }
   });
