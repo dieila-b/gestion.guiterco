@@ -2831,6 +2831,7 @@ export type Database = {
       vue_factures_impayees: {
         Row: {
           client: string | null
+          client_id: string | null
           date_facture: string | null
           facture_id: string | null
           nb_articles: number | null
@@ -2843,7 +2844,15 @@ export type Database = {
           statut_paiement: string | null
           total: number | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "factures_vente_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       vue_factures_vente_summary: {
         Row: {
