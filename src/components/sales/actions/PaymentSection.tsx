@@ -16,6 +16,7 @@ interface PaymentSectionProps {
 }
 
 const PaymentSection = ({ facture, remainingAmount }: PaymentSectionProps) => {
+  // Précharger le montant restant à payer au lieu du total
   const [montant, setMontant] = useState(remainingAmount);
   const [modePaiement, setModePaiement] = useState('especes');
   const [referencePaiement, setReferencePaiement] = useState('');
@@ -66,7 +67,7 @@ const PaymentSection = ({ facture, remainingAmount }: PaymentSectionProps) => {
     }, {
       onSuccess: (result) => {
         console.log('🎉 PAIEMENT AJOUTÉ AVEC SUCCÈS:', result);
-        // Reset form après succès
+        // Reset form après succès - recalculer le nouveau restant
         const newRemaining = Math.max(0, remainingAmount - montant);
         setMontant(newRemaining);
         setReferencePaiement('');

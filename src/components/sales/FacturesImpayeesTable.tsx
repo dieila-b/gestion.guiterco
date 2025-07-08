@@ -46,7 +46,7 @@ const FacturesImpayeesTable: React.FC<FacturesImpayeesTableProps> = ({
   };
 
   const handlePrintFacture = (facture: FactureImpayee) => {
-    // Convertir la structure pour l'impression
+    // Convertir la structure pour l'impression avec les données complètes
     const factureForPrint = {
       id: facture.facture_id,
       numero_facture: facture.numero_facture,
@@ -55,7 +55,11 @@ const FacturesImpayeesTable: React.FC<FacturesImpayeesTableProps> = ({
       client: { nom: facture.client },
       montant_ttc: facture.total,
       statut_paiement: facture.statut_paiement,
-      statut_livraison: facture.statut_livraison
+      statut_livraison: facture.statut_livraison,
+      // Ajouter les données de quantité pour l'impression
+      versements: [{
+        montant: facture.paye
+      }]
     };
     printFactureVente(factureForPrint as any);
   };
@@ -149,9 +153,16 @@ const FacturesImpayeesTable: React.FC<FacturesImpayeesTableProps> = ({
                   </Badge>
                 </TableCell>
                 <TableCell>
-                  <Badge variant={getDeliveryStatusBadgeColor(facture.statut_livraison) as any}>
-                    {facture.statut_livraison}
-                  </Badge>
+                  <div className="flex flex-col gap-1">
+                    <Badge variant={getDeliveryStatusBadgeColor(facture.statut_livraison) as any}>
+                      {facture.statut_livraison}
+                    </Badge>
+                    {facture.quantite_totale > 0 && (
+                      <span className="text-xs text-muted-foreground">
+                        {facture.quantite_livree_totale} / {facture.quantite_totale} livrés
+                      </span>
+                    )}
+                  </div>
                 </TableCell>
                 <TableCell>
                   <div className="flex items-center gap-1 justify-center">
@@ -166,7 +177,12 @@ const FacturesImpayeesTable: React.FC<FacturesImpayeesTableProps> = ({
                         montant_ttc: facture.total,
                         statut_paiement: facture.statut_paiement,
                         statut_livraison: facture.statut_livraison,
-                        versements: []
+                        versements: [],
+                        // Ajouter les données de quantité pour la livraison
+                        lignes_facture: facture.nb_articles > 0 ? [{
+                          quantite: facture.quantite_totale,
+                          quantite_livree: facture.quantite_livree_totale
+                        }] : []
                       } as any}
                     >
                       <Button 

@@ -2837,6 +2837,8 @@ export type Database = {
           nb_articles: number | null
           numero_facture: string | null
           paye: number | null
+          quantite_livree_totale: number | null
+          quantite_totale: number | null
           restant: number | null
           statut_livraison:
             | Database["public"]["Enums"]["statut_livraison_enum"]
