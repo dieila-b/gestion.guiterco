@@ -47,7 +47,7 @@ const FacturesImpayeesTable: React.FC<FacturesImpayeesTableProps> = ({
       id: facture.facture_id,
       numero_facture: facture.numero_facture,
       date_facture: facture.date_iso,
-      client_id: facture.client_id,
+      client_id: facture.facture_id, // Utiliser facture_id comme fallback
       client: { nom: facture.client },
       montant_ttc: facture.total,
       statut_paiement: facture.statut_paiement,
@@ -65,7 +65,7 @@ const FacturesImpayeesTable: React.FC<FacturesImpayeesTableProps> = ({
       id: facture.facture_id,
       numero_facture: facture.numero_facture,
       date_facture: facture.date_iso,
-      client_id: facture.client_id,
+      client_id: facture.facture_id, // Utiliser facture_id comme fallback
       client: { nom: facture.client },
       montant_ttc: facture.total,
       statut_paiement: facture.statut_paiement,
@@ -166,7 +166,7 @@ const FacturesImpayeesTable: React.FC<FacturesImpayeesTableProps> = ({
                         id: facture.facture_id,
                         numero_facture: facture.numero_facture,
                         date_facture: facture.date_iso,
-                        client_id: facture.client_id,
+                        client_id: facture.facture_id, // Utiliser facture_id comme fallback
                         client: { nom: facture.client },
                         montant_ttc: facture.total,
                         statut_paiement: facture.statut_paiement,

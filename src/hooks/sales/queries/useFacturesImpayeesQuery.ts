@@ -6,7 +6,6 @@ export interface FactureImpayee {
   facture_id: string;
   numero_facture: string;
   date_iso: string;
-  client_id: string;
   client: string;
   total: number;
   paye: number;
