@@ -22,32 +22,36 @@ const FacturesImpayeesTable: React.FC<FacturesImpayeesTableProps> = ({
 }) => {
   const getStatusBadgeColor = (statut: string) => {
     switch (statut) {
-      case 'En attente': return 'destructive';
-      case 'Partiellement payée': return 'default';
+      case 'en_attente': return 'destructive';
+      case 'partiellement_payee': return 'default';
       default: return 'secondary';
     }
   };
 
   const getStatusLabel = (statut: string) => {
-    return statut;
+    switch (statut) {
+      case 'en_attente': return 'En attente';
+      case 'partiellement_payee': return 'Partiellement payée';
+      default: return statut;
+    }
   };
 
   const getDeliveryStatusBadgeColor = (statut: string) => {
     switch (statut) {
-      case 'En attente': return 'default';
-      case 'Partiellement livrée': return 'secondary';
-      case 'Livrée': return 'outline';
+      case 'en_attente': return 'default';
+      case 'partiellement_livree': return 'secondary';
+      case 'livree': return 'outline';
       default: return 'secondary';
     }
   };
 
   const handlePrintFacture = (facture: FactureImpayee) => {
-    // Convertir la structure pour l'impression
+    // Convertir la structure pour l'impression avec le vrai client_id
     const factureForPrint = {
       id: facture.facture_id,
       numero_facture: facture.numero_facture,
       date_facture: facture.date_iso,
-      client_id: facture.facture_id, // Utiliser facture_id comme fallback
+      client_id: facture.client_id, // Utiliser le vrai client_id
       client: { nom: facture.client },
       montant_ttc: facture.total,
       statut_paiement: facture.statut_paiement,
@@ -60,12 +64,12 @@ const FacturesImpayeesTable: React.FC<FacturesImpayeesTableProps> = ({
   };
 
   const handlePrintTicket = (facture: FactureImpayee) => {
-    // Convertir la structure pour l'impression
+    // Convertir la structure pour l'impression avec le vrai client_id
     const factureForPrint = {
       id: facture.facture_id,
       numero_facture: facture.numero_facture,
       date_facture: facture.date_iso,
-      client_id: facture.facture_id, // Utiliser facture_id comme fallback
+      client_id: facture.client_id, // Utiliser le vrai client_id
       client: { nom: facture.client },
       montant_ttc: facture.total,
       statut_paiement: facture.statut_paiement,
@@ -86,7 +90,7 @@ const FacturesImpayeesTable: React.FC<FacturesImpayeesTableProps> = ({
       <div className="text-center py-8">
         <p className="text-muted-foreground">Aucune facture impayée trouvée</p>
         <p className="text-sm text-gray-500 mt-2">
-          Les factures avec statut "En attente" ou "Partiellement payée" apparaîtront ici
+          Les factures avec statut "en_attente" ou "partiellement_payee" apparaîtront ici
         </p>
       </div>
     );
@@ -166,7 +170,7 @@ const FacturesImpayeesTable: React.FC<FacturesImpayeesTableProps> = ({
                         id: facture.facture_id,
                         numero_facture: facture.numero_facture,
                         date_facture: facture.date_iso,
-                        client_id: facture.facture_id, // Utiliser facture_id comme fallback
+                        client_id: facture.client_id, // Utiliser le vrai client_id
                         client: { nom: facture.client },
                         montant_ttc: facture.total,
                         statut_paiement: facture.statut_paiement,
