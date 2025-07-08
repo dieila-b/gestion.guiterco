@@ -45,37 +45,67 @@ const FacturesImpayeesTable: React.FC<FacturesImpayeesTableProps> = ({
     }
   };
 
-  const handlePrintFacture = (facture: FactureImpayee) => {
-    // Convertir la structure pour l'impression avec le vrai client_id
-    const factureForPrint = {
-      id: facture.facture_id,
-      numero_facture: facture.numero_facture,
-      date_facture: facture.date_iso,
-      client_id: facture.client_id, // Utiliser le vrai client_id
-      client: { nom: facture.client },
-      montant_ttc: facture.total,
-      statut_paiement: facture.statut_paiement,
-      statut_livraison: facture.statut_livraison,
-      versements: [{
-        montant: facture.paye
-      }]
-    };
-    printFactureVente(factureForPrint as any);
+  // CORRECTION: Récupérer les données complètes de la facture pour l'impression
+  const handlePrintFacture = async (facture: FactureImpayee) => {
+    console.log('🖨️ Impression facture avec détails complets...');
+    
+    try {
+      // Récupérer la facture complète avec toutes les lignes détaillées
+      const { data: factureComplete, error } = await supabase
+        .from('factures_vente')
+        .select(`
+          *,
+          client:clients(*),
+          lignes_facture:lignes_facture_vente(
+            *,
+            article:catalogue(*)
+          ),
+          versements:versements_clients(*)
+        `)
+        .eq('id', facture.facture_id)
+        .single();
+
+      if (error || !factureComplete) {
+        console.error('❌ Erreur récupération facture complète:', error);
+        return;
+      }
+
+      console.log('📄 Facture complète récupérée:', factureComplete);
+      printFactureVente(factureComplete as any);
+    } catch (error) {
+      console.error('❌ Erreur impression facture:', error);
+    }
   };
 
-  const handlePrintTicket = (facture: FactureImpayee) => {
-    // Convertir la structure pour l'impression avec le vrai client_id
-    const factureForPrint = {
-      id: facture.facture_id,
-      numero_facture: facture.numero_facture,
-      date_facture: facture.date_iso,
-      client_id: facture.client_id, // Utiliser le vrai client_id
-      client: { nom: facture.client },
-      montant_ttc: facture.total,
-      statut_paiement: facture.statut_paiement,
-      statut_livraison: facture.statut_livraison
-    };
-    printTicket(factureForPrint as any);
+  const handlePrintTicket = async (facture: FactureImpayee) => {
+    console.log('🎫 Impression ticket avec détails complets...');
+    
+    try {
+      // Récupérer la facture complète avec toutes les lignes détaillées
+      const { data: factureComplete, error } = await supabase
+        .from('factures_vente')
+        .select(`
+          *,
+          client:clients(*),
+          lignes_facture:lignes_facture_vente(
+            *,
+            article:catalogue(*)
+          ),
+          versements:versements_clients(*)
+        `)
+        .eq('id', facture.facture_id)
+        .single();
+
+      if (error || !factureComplete) {
+        console.error('❌ Erreur récupération facture complète:', error);
+        return;
+      }
+
+      console.log('🎫 Facture complète récupérée pour ticket:', factureComplete);
+      printTicket(factureComplete as any);
+    } catch (error) {
+      console.error('❌ Erreur impression ticket:', error);
+    }
   };
 
   // Calculer le total des restants
@@ -170,7 +200,7 @@ const FacturesImpayeesTable: React.FC<FacturesImpayeesTableProps> = ({
                         id: facture.facture_id,
                         numero_facture: facture.numero_facture,
                         date_facture: facture.date_iso,
-                        client_id: facture.client_id, // Utiliser le vrai client_id
+                        client_id: facture.client_id,
                         client: { nom: facture.client },
                         montant_ttc: facture.total,
                         statut_paiement: facture.statut_paiement,

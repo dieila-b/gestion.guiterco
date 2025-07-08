@@ -16,7 +16,7 @@ interface PaymentSectionProps {
 }
 
 const PaymentSection = ({ facture, remainingAmount }: PaymentSectionProps) => {
-  // Précharger le montant restant à payer au lieu du total
+  // CORRECTION: Précharger le montant restant au lieu du total
   const [montant, setMontant] = useState(remainingAmount);
   const [modePaiement, setModePaiement] = useState('especes');
   const [referencePaiement, setReferencePaiement] = useState('');
