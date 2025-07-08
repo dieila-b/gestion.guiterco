@@ -7,6 +7,7 @@ import { Edit, Printer, Receipt } from 'lucide-react';
 import { formatCurrency } from '@/lib/currency';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
+import { supabase } from '@/integrations/supabase/client';
 import EditFactureDialog from './actions/EditFactureDialog';
 import { printFactureVente, printTicket } from './actions/print';
 import type { FactureImpayee } from '@/hooks/sales/queries/useFacturesImpayeesQuery';
@@ -200,7 +201,7 @@ const FacturesImpayeesTable: React.FC<FacturesImpayeesTableProps> = ({
                         id: facture.facture_id,
                         numero_facture: facture.numero_facture,
                         date_facture: facture.date_iso,
-                        client_id: facture.client_id,
+                        client_id: facture.facture_id, // Utiliser facture_id temporairement
                         client: { nom: facture.client },
                         montant_ttc: facture.total,
                         statut_paiement: facture.statut_paiement,

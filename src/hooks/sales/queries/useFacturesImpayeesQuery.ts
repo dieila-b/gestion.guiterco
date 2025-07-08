@@ -6,7 +6,6 @@ export interface FactureImpayee {
   facture_id: string;
   numero_facture: string;
   date_iso: string;
-  client_id: string;
   client: string;
   total: number;
   paye: number;
@@ -42,7 +41,6 @@ export const useFacturesImpayeesQuery = () => {
         facture_id: facture.facture_id,
         numero_facture: facture.numero_facture,
         date_iso: facture.date_iso,
-        client_id: facture.client_id,
         client: facture.client,
         total: facture.total,
         paye: facture.paye,

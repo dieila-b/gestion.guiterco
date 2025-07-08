@@ -5,7 +5,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { useUpdateFactureVente } from '@/hooks/sales/mutations';
+import { useUpdateFactureVente } from '@/hooks/sales/mutations/useUpdateFactureVente';
 import type { FactureVente } from '@/types/sales';
 
 interface DeliverySectionProps {
