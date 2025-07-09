@@ -69,10 +69,25 @@ export const useVenteComptoirHandlers = ({
     notes?: string;
   }) => {
     console.log('📦 Données vente préparées avec statut:', paymentData.statut_livraison);
+    console.log('👤 Client sélectionné:', selectedClient);
 
     try {
+      // Ensure we have a valid client_id
+      let clientId;
+      if (typeof selectedClient === 'string') {
+        // If selectedClient is just an ID string
+        clientId = selectedClient;
+      } else if (selectedClient && selectedClient.id) {
+        // If selectedClient is an object with id property
+        clientId = selectedClient.id;
+      } else {
+        throw new Error('Client ID invalide');
+      }
+
+      console.log('🔑 Client ID utilisé:', clientId);
+
       const venteData = {
-        client_id: selectedClient.id,
+        client_id: clientId,
         cart,
         montant_ht: cartTotals.sousTotal,
         tva: cartTotals.tva,
@@ -81,6 +96,8 @@ export const useVenteComptoirHandlers = ({
         point_vente_id: selectedPDV,
         payment_data: paymentData
       };
+
+      console.log('📋 Données de vente finales:', venteData);
 
       const result = await createVente(venteData);
       
