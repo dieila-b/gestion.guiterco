@@ -52,20 +52,15 @@ export const useCreateFactureVente = () => {
       
       // Mapper le statut de livraison vers l'ID correspondant
       let statutLivraisonId = 1; // Par défaut "En attente"
-      let statutLivraisonText: "En attente" | "Partiellement livrée" | "Livrée" = "En attente";
-      
       switch (statutLivraison) {
         case 'livree':
           statutLivraisonId = 3;
-          statutLivraisonText = "Livrée";
           break;
         case 'partiellement_livree':
           statutLivraisonId = 2;
-          statutLivraisonText = "Partiellement livrée";
           break;
         default:
           statutLivraisonId = 1;
-          statutLivraisonText = "En attente";
       }
 
       // Créer la facture avec le statut de paiement correct
@@ -76,7 +71,9 @@ export const useCreateFactureVente = () => {
         montant_ttc,
         mode_paiement,
         statut_paiement: statutPaiement, // Utiliser le statut calculé
-        statut_livraison: statutLivraisonText,
+        statut_livraison: statutLivraison === 'livree' ? 'Livrée' : 
+                         statutLivraison === 'partiellement_livree' ? 'Partiellement livrée' : 
+                         'En attente',
         statut_livraison_id: statutLivraisonId,
         numero_facture: '', // Sera généré automatiquement par le trigger
         taux_tva: 0
@@ -104,19 +101,15 @@ export const useCreateFactureVente = () => {
                                     quantiteLivree > 0 ? 'partiellement_livree' : 
                                     'en_attente';
 
-        // Utiliser prix_unitaire_brut ou prix_unitaire selon disponibilité
-        const prixUnitaire = item.prix_unitaire_brut || item.prix_unitaire || 0;
-        const remiseUnitaire = item.remise_unitaire || item.remise || 0;
-
         return {
           facture_vente_id: facture.id,
           article_id: item.id,
           quantite: item.quantite,
-          prix_unitaire_brut: prixUnitaire,
-          remise_unitaire: remiseUnitaire,
+          prix_unitaire_brut: item.prix_unitaire,
+          remise_unitaire: item.remise || 0,
           quantite_livree: quantiteLivree,
           statut_livraison: statutLigneLivraison,
-          montant_ligne: (prixUnitaire - remiseUnitaire) * item.quantite
+          montant_ligne: (item.prix_unitaire - (item.remise || 0)) * item.quantite
         };
       });
 
@@ -167,7 +160,7 @@ export const useCreateFactureVente = () => {
             const { error: stockError } = await supabase
               .from('stock_pdv')
               .update({
-                quantite_disponible: quantiteLivree // Correction: utiliser directement la valeur numérique
+                quantite_disponible: supabase.raw(`quantite_disponible - ${quantiteLivree}`)
               })
               .eq('article_id', item.id)
               .eq('point_vente_id', point_vente_id);
@@ -193,7 +186,7 @@ export const useCreateFactureVente = () => {
             montant: montantPaye,
             description: `Vente facture ${facture.numero_facture}`,
             commentaire: `Paiement ${mode_paiement} - Facture ${facture.numero_facture}`,
-            category: 'sales' as const,
+            category: 'sales',
             payment_method: mode_paiement === 'carte' ? 'card' as const :
                            mode_paiement === 'virement' ? 'transfer' as const :
                            mode_paiement === 'cheque' ? 'check' as const :

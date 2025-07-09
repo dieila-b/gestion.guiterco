@@ -117,13 +117,12 @@ const ClientSearchDropdown: React.FC<ClientSearchDropdownProps> = ({
   }, [searchTerm, showDropdown]);
 
   const handleClientSelect = (client: Client) => {
-    console.log('🎯 Client sélectionné dans dropdown:', client);
+    console.log('Client sélectionné:', client);
     const clientName = getClientDisplayName(client);
-    setSelectedClient(client.id); // S'assurer que l'ID est bien passé
+    setSelectedClient(client.id); // Utiliser l'ID au lieu du nom
     setSelectedClientData(client);
     setSearchTerm(clientName);
     setShowDropdown(false);
-    console.log('✅ Client ID envoyé:', client.id);
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {

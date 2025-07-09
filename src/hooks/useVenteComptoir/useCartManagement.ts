@@ -55,7 +55,6 @@ export const useCartManagement = (
         article_id: article.id,
         nom: article.nom,
         reference: article.reference || '',
-        prix_unitaire: article.prix_vente || 0, // Ajouter prix_unitaire requis
         prix_unitaire_brut: article.prix_vente || 0, // Utiliser prix_unitaire_brut
         quantite: 1,
         remise_unitaire: 0,

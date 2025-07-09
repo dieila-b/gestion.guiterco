@@ -31,14 +31,12 @@ export const useVenteComptoirHandlers = ({
 }: UseVenteComptoirHandlersProps) => {
   const [paymentPromiseResolve, setPaymentPromiseResolve] = useState<((paymentData: any) => void) | null>(null);
 
-  const handleQuantityChange = (id: string, newQuantity: string) => {
-    const numericQuantity = parseInt(newQuantity, 10) || 0;
-    updateQuantity(id, numericQuantity);
+  const handleQuantityChange = (id: string, newQuantity: number) => {
+    updateQuantity(id, newQuantity);
   };
 
-  const handleRemiseChange = (id: string, newRemise: string) => {
-    const numericRemise = parseFloat(newRemise) || 0;
-    updateRemise(id, numericRemise);
+  const handleRemiseChange = (id: string, newRemise: number) => {
+    updateRemise(id, newRemise);
   };
 
   const handlePayment = () => {
@@ -69,25 +67,10 @@ export const useVenteComptoirHandlers = ({
     notes?: string;
   }) => {
     console.log('📦 Données vente préparées avec statut:', paymentData.statut_livraison);
-    console.log('👤 Client sélectionné:', selectedClient);
 
     try {
-      // Ensure we have a valid client_id
-      let clientId;
-      if (typeof selectedClient === 'string') {
-        // If selectedClient is just an ID string
-        clientId = selectedClient;
-      } else if (selectedClient && selectedClient.id) {
-        // If selectedClient is an object with id property
-        clientId = selectedClient.id;
-      } else {
-        throw new Error('Client ID invalide');
-      }
-
-      console.log('🔑 Client ID utilisé:', clientId);
-
       const venteData = {
-        client_id: clientId,
+        client_id: selectedClient.id,
         cart,
         montant_ht: cartTotals.sousTotal,
         tva: cartTotals.tva,
@@ -96,8 +79,6 @@ export const useVenteComptoirHandlers = ({
         point_vente_id: selectedPDV,
         payment_data: paymentData
       };
-
-      console.log('📋 Données de vente finales:', venteData);
 
       const result = await createVente(venteData);
       
