@@ -167,7 +167,7 @@ export const useCreateFactureVente = () => {
             const { error: stockError } = await supabase
               .from('stock_pdv')
               .update({
-                quantite_disponible: `quantite_disponible - ${quantiteLivree}`
+                quantite_disponible: quantiteLivree // Correction: utiliser directement la valeur numérique
               })
               .eq('article_id', item.id)
               .eq('point_vente_id', point_vente_id);
@@ -239,4 +239,3 @@ export const useCreateFactureVente = () => {
     }
   });
 };
-
