@@ -104,15 +104,19 @@ export const useCreateFactureVente = () => {
                                     quantiteLivree > 0 ? 'partiellement_livree' : 
                                     'en_attente';
 
+        // Utiliser prix_unitaire_brut ou prix_unitaire selon disponibilité
+        const prixUnitaire = item.prix_unitaire_brut || item.prix_unitaire || 0;
+        const remiseUnitaire = item.remise_unitaire || item.remise || 0;
+
         return {
           facture_vente_id: facture.id,
           article_id: item.id,
           quantite: item.quantite,
-          prix_unitaire_brut: item.prix_unitaire,
-          remise_unitaire: item.remise || 0,
+          prix_unitaire_brut: prixUnitaire,
+          remise_unitaire: remiseUnitaire,
           quantite_livree: quantiteLivree,
           statut_livraison: statutLigneLivraison,
-          montant_ligne: (item.prix_unitaire - (item.remise || 0)) * item.quantite
+          montant_ligne: (prixUnitaire - remiseUnitaire) * item.quantite
         };
       });
 
@@ -235,3 +239,4 @@ export const useCreateFactureVente = () => {
     }
   });
 };
+

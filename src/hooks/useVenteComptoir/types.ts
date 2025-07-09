@@ -1,16 +1,21 @@
 
+
 export interface CartItem {
   id: string;
+  article_id?: string;
   nom: string;
   prix_unitaire: number;
+  prix_unitaire_brut?: number;
   prix_vente?: number;
   quantite: number;
   remise?: number;
+  remise_unitaire?: number;
   stock_disponible?: number;
   reference?: string;
   unite_mesure?: string;
   categorie?: string;
   seuil_alerte?: number;
+  prix_final?: number;
 }
 
 export interface VenteComptoirData {
@@ -30,3 +35,4 @@ export interface VenteComptoirData {
     notes?: string;
   };
 }
+
