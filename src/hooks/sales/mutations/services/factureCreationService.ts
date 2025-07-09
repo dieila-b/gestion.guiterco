@@ -41,12 +41,12 @@ export const createFactureAndLines = async (data: CreateFactureVenteData) => {
       quantite: item.quantite,
       prix_unitaire_brut: prixUnitaireBrut, // Utiliser prix_unitaire_brut
       remise_unitaire: remiseUnitaire, // Remise unitaire
-      // Ne pas inclure montant_ligne - calculé automatiquement par Supabase
+      // ⚠️ CRITIQUE : Ne pas inclure montant_ligne - calculé automatiquement par Supabase
       statut_livraison: 'en_attente' // TOUJOURS En attente au début
     };
   });
 
-  console.log('🔄 Création lignes facture sans montant_ligne:', lignesFacture);
+  console.log('🔄 Création lignes facture SANS montant_ligne (calculé auto):', lignesFacture);
 
   const { data: lignesCreees, error: lignesError } = await supabase
     .from('lignes_facture_vente')
@@ -58,7 +58,7 @@ export const createFactureAndLines = async (data: CreateFactureVenteData) => {
     throw lignesError;
   }
 
-  console.log('✅ Lignes facture créées avec montant_ligne calculé:', lignesCreees);
+  console.log('✅ Lignes facture créées avec montant_ligne calculé automatiquement:', lignesCreees);
 
   return { facture, lignes: lignesCreees };
 };

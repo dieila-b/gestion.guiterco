@@ -39,7 +39,7 @@ export const useCartManagement = (
             ? { 
                 ...item, 
                 quantite: nouvelleQuantite,
-                prix_final: (item.prix_unitaire_brut - (item.remise_unitaire || 0)) * nouvelleQuantite
+                // Ne pas calculer prix_final ici - sera calculé par la base
               }
             : item
         );
@@ -55,11 +55,11 @@ export const useCartManagement = (
         article_id: article.id,
         nom: article.nom,
         reference: article.reference || '',
-        prix_unitaire: article.prix_vente || 0, // Ajouter prix_unitaire requis
-        prix_unitaire_brut: article.prix_vente || 0, // Utiliser prix_unitaire_brut
+        prix_unitaire: article.prix_vente || 0, 
+        prix_unitaire_brut: article.prix_vente || 0, 
         quantite: 1,
         remise_unitaire: 0,
-        prix_final: article.prix_vente || 0,
+        // Ne pas calculer prix_final ici - sera calculé par la base
         stock_disponible: stockCheck.quantiteDisponible,
         prix_vente: article.prix_vente
       };
@@ -102,7 +102,7 @@ export const useCartManagement = (
           ? { 
               ...item, 
               quantite: newQuantity,
-              prix_final: (item.prix_unitaire_brut - (item.remise_unitaire || 0)) * newQuantity
+              // Ne pas calculer prix_final ici - sera calculé par la base
             }
           : item
       )
@@ -116,7 +116,7 @@ export const useCartManagement = (
           ? { 
               ...item, 
               remise_unitaire: Math.max(0, remise),
-              prix_final: (item.prix_unitaire_brut - Math.max(0, remise)) * item.quantite
+              // Ne pas calculer prix_final ici - sera calculé par la base
             }
           : item
       )

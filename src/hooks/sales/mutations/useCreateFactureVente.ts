@@ -97,7 +97,7 @@ export const useCreateFactureVente = () => {
 
       console.log('✅ Facture créée avec statut correct:', statutPaiement);
 
-      // Créer les lignes de facture avec les quantités livrées
+      // Créer les lignes de facture SANS montant_ligne (calculé automatiquement)
       const lignesFacture = cart.map((item) => {
         const quantiteLivree = payment_data?.quantite_livree?.[item.id] || 0;
         const statutLigneLivraison = quantiteLivree >= item.quantite ? 'livree' :
@@ -115,10 +115,12 @@ export const useCreateFactureVente = () => {
           prix_unitaire_brut: prixUnitaire,
           remise_unitaire: remiseUnitaire,
           quantite_livree: quantiteLivree,
-          statut_livraison: statutLigneLivraison,
-          montant_ligne: (prixUnitaire - remiseUnitaire) * item.quantite
+          statut_livraison: statutLigneLivraison
+          // ⚠️ IMPORTANT : Ne pas inclure montant_ligne - calculé automatiquement par Supabase
         };
       });
+
+      console.log('🔄 Création lignes facture SANS montant_ligne:', lignesFacture);
 
       const { data: lignes, error: lignesError } = await supabase
         .from('lignes_facture_vente')
@@ -130,7 +132,7 @@ export const useCreateFactureVente = () => {
         throw lignesError;
       }
 
-      console.log('✅ Lignes facture créées:', lignes);
+      console.log('✅ Lignes facture créées avec montant_ligne calculé automatiquement:', lignes);
 
       // Créer le versement seulement si un montant a été payé
       if (montantPaye > 0) {
@@ -163,14 +165,13 @@ export const useCreateFactureVente = () => {
         for (const item of cart) {
           const quantiteLivree = payment_data.quantite_livree[item.id] || 0;
           if (quantiteLivree > 0) {
-            // Déduire du stock PDV seulement la quantité livrée
+            // Déduire du stock PDV la quantité livrée
             const { error: stockError } = await supabase
-              .from('stock_pdv')
-              .update({
-                quantite_disponible: quantiteLivree // Correction: utiliser directement la valeur numérique
-              })
-              .eq('article_id', item.id)
-              .eq('point_vente_id', point_vente_id);
+              .rpc('update_stock_pdv_quantity', {
+                p_article_id: item.id,
+                p_point_vente_id: point_vente_id,
+                p_quantity_change: -quantiteLivree
+              });
 
             if (stockError) {
               console.error('❌ Erreur mise à jour stock:', stockError);
@@ -221,7 +222,7 @@ export const useCreateFactureVente = () => {
       };
     },
     onSuccess: (data) => {
-      console.log('🎉 Facture vente créée avec statut correct:', data.facture.statut_paiement);
+      console.log('🎉 Facture vente créée avec succès - montant_ligne calculé automatiquement');
       
       // Invalider les queries pour rafraîchir les données
       queryClient.invalidateQueries({ queryKey: ['factures_vente'] });
