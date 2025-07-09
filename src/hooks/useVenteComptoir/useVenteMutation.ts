@@ -1,92 +1,91 @@
 
-import { useMutation } from '@tanstack/react-query';
-import { toast } from 'sonner';
-import type { CartItem, VenteComptoirData } from './types';
-import { useCreateFactureVente } from '../sales/mutations';
+import { useState } from 'react';
+import { useCreateFactureVente } from '@/hooks/sales/mutations/useCreateFactureVente';
+import type { CartItem } from './types';
 
 export const useVenteMutation = (
   pointsDeVente: any[],
-  selectedPDV: string | undefined,
-  setCart: (cart: CartItem[]) => void,
+  selectedPDV?: string,
+  setCart?: (cart: CartItem[]) => void,
   restoreLocalStock?: () => void
 ) => {
-  const createFactureVente = useCreateFactureVente();
+  const [isLoading, setIsLoading] = useState(false);
+  const createFactureVenteMutation = useCreateFactureVente();
 
-  const mutation = useMutation({
-    mutationFn: async (venteData: VenteComptoirData) => {
-      console.log('🚀 Début création vente comptoir optimisée:', venteData);
-
-      // Validation rapide des données essentielles
-      if (!venteData.client_id || !venteData.cart?.length || !selectedPDV) {
-        throw new Error('Données de vente incomplètes');
-      }
-
-      // Récupérer l'ID du point de vente de manière optimisée
-      const pdvSelected = pointsDeVente?.find(pdv => pdv.nom === selectedPDV);
+  const createVente = async (venteData: {
+    client_id: string;
+    cart: CartItem[];
+    montant_ht: number;
+    tva: number;
+    montant_ttc: number;
+    mode_paiement: string;
+    point_vente_id: string;
+    payment_data?: {
+      montant_paye: number;
+      mode_paiement: string;
+      statut_livraison: string;
+      statut_paiement: string;
+      quantite_livree: Record<string, number>;
+      notes?: string;
+    };
+  }) => {
+    console.log('🚀 Début création vente comptoir optimisée:', venteData);
+    
+    setIsLoading(true);
+    
+    try {
+      // Trouver l'ID réel du point de vente
+      const pdvSelected = pointsDeVente.find(pdv => 
+        pdv.id === selectedPDV || pdv.nom === selectedPDV
+      );
+      
       const pointVenteId = pdvSelected?.id || selectedPDV;
-
       console.log('📍 Point de vente sélectionné:', pointVenteId);
 
-      // CORRECTION CRITIQUE: Conserver exactement le statut de livraison de l'utilisateur
-      const paymentDataStatut = venteData.payment_data?.statut_livraison;
-      console.log('📦 Statut livraison reçu depuis payment_data:', paymentDataStatut);
+      // Préparer les données avec le statut de livraison correct
+      const statutLivraison = venteData.payment_data?.statut_livraison || 'en_attente';
+      console.log('📦 Statut livraison reçu depuis payment_data:', statutLivraison);
 
-      // Préparer les données optimisées pour la création avec statut livraison correct
-      const factureData = {
-        client_id: venteData.client_id,
-        cart: venteData.cart,
-        montant_ht: venteData.montant_ht,
-        tva: venteData.tva,
-        montant_ttc: venteData.montant_ttc,
-        mode_paiement: venteData.mode_paiement,
+      const venteDataComplete = {
+        ...venteData,
         point_vente_id: pointVenteId,
         payment_data: {
-          montant_paye: venteData.payment_data?.montant_paye || 0,
-          mode_paiement: venteData.payment_data?.mode_paiement || venteData.mode_paiement,
-          // IMPORTANT: Transmettre exactement le statut sélectionné par l'utilisateur
-          statut_livraison: paymentDataStatut,
-          quantite_livree: venteData.payment_data?.quantite_livree,
-          notes: venteData.payment_data?.notes
+          ...venteData.payment_data,
+          statut_livraison: statutLivraison
         }
       };
 
-      console.log('📦 Statut livraison final envoyé:', factureData.payment_data.statut_livraison);
+      console.log('📦 Statut livraison final envoyé:', venteDataComplete.payment_data?.statut_livraison);
 
-      // Exécution optimisée de la création
-      const result = await createFactureVente.mutateAsync(factureData);
+      // Créer la facture avec le statut de paiement correct
+      const result = await createFactureVenteMutation.mutateAsync(venteDataComplete);
+
       console.log('✅ Vente créée avec succès:', result);
       
-      return result;
-    },
-    onSuccess: (result) => {
-      console.log('🎉 Vente comptoir terminée avec succès');
+      // Vider le panier après succès
+      if (setCart) {
+        setCart([]);
+      }
       
-      // Nettoyage rapide et efficace
-      setCart([]);
-      
-      // Message de succès concis
-      toast.success('Vente enregistrée avec succès', {
-        description: `Facture ${result.facture.numero_facture} créée et caisse mise à jour`,
-        duration: 3000
-      });
-    },
-    onError: (error: Error) => {
-      console.error('❌ Erreur lors de la vente:', error);
-      
-      // Restaurer le stock local en cas d'erreur
+      // Restaurer le stock local
       if (restoreLocalStock) {
         restoreLocalStock();
       }
       
-      toast.error('Erreur lors de la vente', {
-        description: error.message,
-        duration: 5000
-      });
+      console.log('🎉 Vente comptoir terminée avec succès');
+      
+      return result;
+      
+    } catch (error) {
+      console.error('❌ Erreur lors de la vente:', error);
+      throw error;
+    } finally {
+      setIsLoading(false);
     }
-  });
+  };
 
   return {
-    createVente: mutation.mutateAsync,
-    isLoading: mutation.isPending || createFactureVente.isPending
+    createVente,
+    isLoading: isLoading || createFactureVenteMutation.isPending
   };
 };
