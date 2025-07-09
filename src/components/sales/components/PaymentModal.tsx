@@ -5,280 +5,300 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Textarea } from '@/components/ui/textarea';
-import { Card, CardContent } from '@/components/ui/card';
-import { formatCurrency } from '@/lib/currency';
 import { Separator } from '@/components/ui/separator';
+import { formatCurrency } from '@/lib/currency';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Textarea } from '@/components/ui/textarea';
+import type { CartItem } from '@/hooks/useVenteComptoir/types';
 
 interface PaymentModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onConfirm: (paymentData: any) => Promise<void>;
+  onConfirm: (paymentData: {
+    montant_paye: number;
+    mode_paiement: string;
+    statut_livraison: string;
+    statut_paiement: string;
+    quantite_livree: Record<string, number>;
+    notes?: string;
+  }) => Promise<void>;
   totalAmount: number;
-  cartItems: any[];
-  isLoading: boolean;
+  cartItems: CartItem[];
+  isLoading?: boolean;
 }
 
-const PaymentModal = ({ isOpen, onClose, onConfirm, totalAmount, cartItems, isLoading }: PaymentModalProps) => {
-  // État par défaut : "Payée" avec montant total
-  const [statutPaiement, setStatutPaiement] = useState('payee');
+const PaymentModal = ({ 
+  isOpen, 
+  onClose, 
+  onConfirm, 
+  totalAmount, 
+  cartItems,
+  isLoading = false 
+}: PaymentModalProps) => {
   const [montantPaye, setMontantPaye] = useState(totalAmount);
   const [modePaiement, setModePaiement] = useState('especes');
-  const [statutLivraison, setStatutLivraison] = useState('livree');
-  const [notes, setNotes] = useState('');
+  const [statutLivraison, setStatutLivraison] = useState<'livree' | 'partiellement_livree' | 'en_attente'>('livree');
   const [quantitesLivrees, setQuantitesLivrees] = useState<Record<string, number>>({});
+  const [notes, setNotes] = useState('');
 
-  // Initialiser les quantités livrées et mettre à jour le montant quand le total change
+  // Initialiser les quantités livrées
+  useEffect(() => {
+    if (cartItems.length > 0) {
+      const initialQuantites: Record<string, number> = {};
+      cartItems.forEach(item => {
+        initialQuantites[item.id] = statutLivraison === 'livree' ? item.quantite : 0;
+      });
+      setQuantitesLivrees(initialQuantites);
+    }
+  }, [cartItems, statutLivraison]);
+
+  // Mettre à jour le montant payé quand le montant total change
   useEffect(() => {
     setMontantPaye(totalAmount);
+  }, [totalAmount]);
+
+  const handleQuantiteLivreeChange = (articleId: string, quantite: number) => {
+    const article = cartItems.find(item => item.id === articleId);
+    if (!article) return;
+
+    const quantiteMax = article.quantite;
+    const quantiteValide = Math.max(0, Math.min(quantite, quantiteMax));
     
-    // Initialiser les quantités livrées par défaut
-    const initialQuantites: Record<string, number> = {};
-    cartItems.forEach(item => {
-      initialQuantites[item.article_id] = item.quantite;
-    });
-    setQuantitesLivrees(initialQuantites);
-  }, [totalAmount, cartItems]);
-
-  // Mettre à jour le montant payé selon le statut
-  useEffect(() => {
-    if (statutPaiement === 'payee') {
-      setMontantPaye(totalAmount);
-    } else if (statutPaiement === 'en_attente') {
-      setMontantPaye(0);
-    }
-    // Pour 'partiellement_payee', laisser l'utilisateur saisir le montant
-  }, [statutPaiement, totalAmount]);
-
-  const handleStatutPaiementChange = (newStatut: string) => {
-    setStatutPaiement(newStatut);
-  };
-
-  const handleQuantiteLivreeChange = (articleId: string, quantite: string) => {
-    const qty = parseInt(quantite) || 0;
     setQuantitesLivrees(prev => ({
       ...prev,
-      [articleId]: qty
+      [articleId]: quantiteValide
     }));
   };
 
-  const getTotalQuantiteCommandee = () => {
-    return cartItems.reduce((total, item) => total + item.quantite, 0);
+  const calculateDeliveryStatus = () => {
+    const totalCommande = cartItems.reduce((sum, item) => sum + item.quantite, 0);
+    const totalLivre = Object.values(quantitesLivrees).reduce((sum, qte) => sum + qte, 0);
+    
+    if (totalLivre === 0) return 'en_attente';
+    if (totalLivre >= totalCommande) return 'livree';
+    return 'partiellement_livree';
   };
 
-  const getTotalQuantiteLivree = () => {
-    return Object.values(quantitesLivrees).reduce((total, qty) => total + qty, 0);
+  const calculatePaymentStatus = () => {
+    if (montantPaye === 0) return 'en_attente';
+    if (montantPaye >= totalAmount) return 'payee';
+    return 'partiellement_payee';
   };
 
   const handleConfirm = async () => {
-    const paymentData = {
+    console.log('🔄 Données paiement reçues:', {
       montant_paye: montantPaye,
       mode_paiement: modePaiement,
-      statut_livraison: statutLivraison,
-      statut_paiement: statutPaiement,
+      statut_livraison: calculateDeliveryStatus(),
+      statut_paiement: calculatePaymentStatus(),
       quantite_livree: quantitesLivrees,
-      notes: notes.trim() || undefined
-    };
+      notes
+    });
 
-    await onConfirm(paymentData);
+    await onConfirm({
+      montant_paye: montantPaye,
+      mode_paiement: modePaiement,
+      statut_livraison: calculateDeliveryStatus(),
+      statut_paiement: calculatePaymentStatus(),
+      quantite_livree: quantitesLivrees,
+      notes: notes || undefined
+    });
   };
 
-  const canConfirm = () => {
-    if (statutPaiement === 'partiellement_payee' && (montantPaye <= 0 || montantPaye >= totalAmount)) {
-      return false;
+  const handlePresetPayment = (type: 'integral' | 'partiel' | 'aucun') => {
+    switch (type) {
+      case 'integral':
+        setMontantPaye(totalAmount);
+        setStatutLivraison('livree');
+        break;
+      case 'partiel':
+        setMontantPaye(Math.round(totalAmount * 0.5)); // 50% par défaut
+        setStatutLivraison('partiellement_livree');
+        break;
+      case 'aucun':
+        setMontantPaye(0);
+        setStatutLivraison('en_attente');
+        break;
     }
-    return montantPaye >= 0 && montantPaye <= totalAmount;
   };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Finaliser la vente</DialogTitle>
+          <DialogTitle>Finalisation du paiement</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-6">
-          {/* Résumé de la commande */}
+          {/* Raccourcis de paiement */}
           <Card>
-            <CardContent className="pt-4">
-              <div className="flex justify-between items-center text-lg font-semibold">
-                <span>Total à payer :</span>
-                <span className="text-blue-600">{formatCurrency(totalAmount)}</span>
+            <CardHeader>
+              <CardTitle className="text-lg">Type de paiement</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-3 gap-3">
+                <Button
+                  variant="outline"
+                  onClick={() => handlePresetPayment('integral')}
+                  className="flex flex-col gap-2 h-auto py-4"
+                >
+                  <span className="font-semibold">Paiement intégral</span>
+                  <Badge variant="default">Défaut</Badge>
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => handlePresetPayment('partiel')}
+                  className="flex flex-col gap-2 h-auto py-4"
+                >
+                  <span className="font-semibold">Paiement partiel</span>
+                  <Badge variant="secondary">50%</Badge>
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => handlePresetPayment('aucun')}
+                  className="flex flex-col gap-2 h-auto py-4"
+                >
+                  <span className="font-semibold">Aucun paiement</span>
+                  <Badge variant="outline">Crédit</Badge>
+                </Button>
               </div>
             </CardContent>
           </Card>
 
-          {/* Statut de paiement */}
-          <div className="space-y-3">
-            <Label htmlFor="statut_paiement" className="text-base font-medium">
-              Statut de paiement
-            </Label>
-            <Select value={statutPaiement} onValueChange={handleStatutPaiementChange}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="payee">✅ Payée intégralement</SelectItem>
-                <SelectItem value="partiellement_payee">⏳ Paiement partiel</SelectItem>
-                <SelectItem value="en_attente">❌ Aucun paiement</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Informations de paiement */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Paiement</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <Label htmlFor="montant-total">Montant total</Label>
+                  <Input
+                    id="montant-total"
+                    value={formatCurrency(totalAmount)}
+                    disabled
+                    className="font-semibold bg-gray-50"
+                  />
+                </div>
 
-          {/* Montant payé */}
-          {statutPaiement !== 'en_attente' && (
-            <div className="space-y-3">
-              <Label htmlFor="montant_paye" className="text-base font-medium">
-                Montant encaissé
-              </Label>
-              <Input
-                id="montant_paye"
-                type="number"
-                value={montantPaye}
-                onChange={(e) => setMontantPaye(Number(e.target.value))}
-                max={totalAmount}
-                min="0"
-                step="0.01"
-                disabled={statutPaiement === 'payee'}
-                className={statutPaiement === 'payee' ? 'bg-green-50 border-green-200' : ''}
-              />
-              {statutPaiement === 'payee' && (
-                <p className="text-sm text-green-600">
-                  💡 Montant automatiquement défini pour un paiement complet
-                </p>
-              )}
-            </div>
-          )}
+                <div>
+                  <Label htmlFor="montant-paye">Montant payé</Label>
+                  <Input
+                    id="montant-paye"
+                    type="number"
+                    value={montantPaye}
+                    onChange={(e) => setMontantPaye(Number(e.target.value))}
+                    max={totalAmount}
+                    min={0}
+                  />
+                </div>
 
-          {/* Mode de paiement */}
-          {statutPaiement !== 'en_attente' && (
-            <div className="space-y-3">
-              <Label htmlFor="mode_paiement" className="text-base font-medium">
-                Mode de paiement
-              </Label>
-              <Select value={modePaiement} onValueChange={setModePaiement}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="especes">💵 Espèces</SelectItem>
-                  <SelectItem value="carte">💳 Carte bancaire</SelectItem>
-                  <SelectItem value="cheque">📄 Chèque</SelectItem>
-                  <SelectItem value="virement">🏦 Virement</SelectItem>
-                  <SelectItem value="mobile_money">📱 Mobile Money</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          )}
-
-          <Separator />
-
-          {/* Statut de livraison */}
-          <div className="space-y-3">
-            <Label htmlFor="statut_livraison" className="text-base font-medium">
-              Statut de livraison
-            </Label>
-            <Select value={statutLivraison} onValueChange={setStatutLivraison}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="livree">✅ Livrée intégralement</SelectItem>
-                <SelectItem value="partiellement_livree">⏳ Livraison partielle</SelectItem>
-                <SelectItem value="en_attente">📦 En attente de livraison</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Détail des quantités livrées */}
-          {statutLivraison === 'partiellement_livree' && (
-            <div className="space-y-3">
-              <Label className="text-base font-medium">Quantités livrées par article</Label>
-              <div className="space-y-2 max-h-40 overflow-y-auto">
-                {cartItems.map((item) => (
-                  <div key={item.article_id} className="flex items-center justify-between p-2 border rounded">
-                    <div className="flex-1">
-                      <p className="font-medium text-sm">{item.nom}</p>
-                      <p className="text-xs text-muted-foreground">Commandé: {item.quantite}</p>
-                    </div>
-                    <Input
-                      type="number"
-                      value={quantitesLivrees[item.article_id] || 0}
-                      onChange={(e) => handleQuantiteLivreeChange(item.article_id, e.target.value)}
-                      max={item.quantite}
-                      min="0"
-                      className="w-20 text-center"
-                    />
+                {montantPaye < totalAmount && (
+                  <div className="p-3 bg-orange-50 border border-orange-200 rounded-lg">
+                    <p className="text-sm text-orange-800">
+                      <span className="font-semibold">Reste à payer:</span> {formatCurrency(totalAmount - montantPaye)}
+                    </p>
                   </div>
-                ))}
-              </div>
-              <p className="text-sm text-muted-foreground">
-                Total livré: {getTotalQuantiteLivree()} / {getTotalQuantiteCommandee()}
-              </p>
-            </div>
-          )}
+                )}
+
+                <div>
+                  <Label htmlFor="mode-paiement">Mode de paiement</Label>
+                  <Select value={modePaiement} onValueChange={setModePaiement}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="especes">Espèces</SelectItem>
+                      <SelectItem value="carte">Carte bancaire</SelectItem>
+                      <SelectItem value="virement">Virement</SelectItem>
+                      <SelectItem value="cheque">Chèque</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="pt-2">
+                  <Badge 
+                    variant={calculatePaymentStatus() === 'payee' ? 'default' : 
+                            calculatePaymentStatus() === 'partiellement_payee' ? 'secondary' : 
+                            'outline'}
+                  >
+                    {calculatePaymentStatus() === 'payee' ? 'Payé' :
+                     calculatePaymentStatus() === 'partiellement_payee' ? 'Partiel' :
+                     'Non payé'}
+                  </Badge>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Informations de livraison */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Livraison</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-3">
+                  {cartItems.map((item) => (
+                    <div key={item.id} className="flex items-center justify-between p-3 border rounded-lg">
+                      <div className="flex-1">
+                        <p className="font-medium">{item.nom}</p>
+                        <p className="text-sm text-gray-600">Commandé: {item.quantite}</p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Label htmlFor={`qty-${item.id}`} className="text-sm whitespace-nowrap">
+                          Livré:
+                        </Label>
+                        <Input
+                          id={`qty-${item.id}`}
+                          type="number"
+                          value={quantitesLivrees[item.id] || 0}
+                          onChange={(e) => handleQuantiteLivreeChange(item.id, Number(e.target.value))}
+                          min={0}
+                          max={item.quantite}
+                          className="w-20"
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="pt-2">
+                  <Badge 
+                    variant={calculateDeliveryStatus() === 'livree' ? 'default' : 
+                            calculateDeliveryStatus() === 'partiellement_livree' ? 'secondary' : 
+                            'outline'}
+                  >
+                    {calculateDeliveryStatus() === 'livree' ? 'Livré' :
+                     calculateDeliveryStatus() === 'partiellement_livree' ? 'Partiel' :
+                     'En attente'}
+                  </Badge>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
 
           {/* Notes */}
-          <div className="space-y-3">
-            <Label htmlFor="notes" className="text-base font-medium">
-              Notes (optionnel)
-            </Label>
+          <div>
+            <Label htmlFor="notes">Notes (optionnel)</Label>
             <Textarea
               id="notes"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              placeholder="Notes sur cette vente..."
+              placeholder="Observations sur la vente..."
               rows={3}
             />
           </div>
 
-          {/* Résumé final */}
-          <Card className="bg-blue-50 border-blue-200">
-            <CardContent className="pt-4">
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div>
-                  <span className="font-medium">Statut paiement:</span>{' '}
-                  <span className={`font-bold ${
-                    statutPaiement === 'payee' ? 'text-green-600' : 
-                    statutPaiement === 'partiellement_payee' ? 'text-orange-600' : 'text-red-600'
-                  }`}>
-                    {statutPaiement === 'payee' ? 'Payée' : 
-                     statutPaiement === 'partiellement_payee' ? 'Partielle' : 'En attente'}
-                  </span>
-                </div>
-                <div>
-                  <span className="font-medium">Statut livraison:</span>{' '}
-                  <span className={`font-bold ${
-                    statutLivraison === 'livree' ? 'text-green-600' : 
-                    statutLivraison === 'partiellement_livree' ? 'text-orange-600' : 'text-blue-600'
-                  }`}>
-                    {statutLivraison === 'livree' ? 'Livrée' : 
-                     statutLivraison === 'partiellement_livree' ? 'Partielle' : 'En attente'}
-                  </span>
-                </div>
-                <div>
-                  <span className="font-medium">Montant encaissé:</span>{' '}
-                  <span className="font-bold text-green-600">{formatCurrency(montantPaye)}</span>
-                </div>
-                <div>
-                  <span className="font-medium">Restant dû:</span>{' '}
-                  <span className="font-bold text-red-600">{formatCurrency(totalAmount - montantPaye)}</span>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          <Separator />
 
-          {/* Boutons d'action */}
+          {/* Actions */}
           <div className="flex justify-end gap-3">
             <Button variant="outline" onClick={onClose} disabled={isLoading}>
               Annuler
             </Button>
-            <Button 
-              onClick={handleConfirm} 
-              disabled={!canConfirm() || isLoading}
-              className="bg-blue-600 hover:bg-blue-700"
-            >
-              {isLoading ? 'Traitement...' : 'Finaliser la vente'}
+            <Button onClick={handleConfirm} disabled={isLoading}>
+              {isLoading ? 'Traitement...' : 'Confirmer la vente'}
             </Button>
           </div>
         </div>

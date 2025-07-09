@@ -2,31 +2,84 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { processDelivery } from './services/deliveryProcessingService';
-import { updateStockPDV } from './services/stockUpdateService';
+import type { CartItem, VenteComptoirData } from '@/hooks/useVenteComptoir/types';
+
+interface CreateFactureVenteParams {
+  client_id: string;
+  cart: CartItem[];
+  montant_ht: number;
+  tva: number;
+  montant_ttc: number;
+  mode_paiement: string;
+  point_vente_id: string;
+  payment_data?: {
+    montant_paye: number;
+    mode_paiement: string;
+    statut_livraison: string;
+    statut_paiement: string;
+    quantite_livree: Record<string, number>;
+    notes?: string;
+  };
+}
 
 export const useCreateFactureVente = () => {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: async (data: any) => {
-      console.log('🚀 Début création facture vente avec nouveaux défauts:', data);
+    mutationFn: async (params: CreateFactureVenteParams) => {
+      console.log('🚀 Début création facture vente avec paiement correct:', params);
+      
+      const { client_id, cart, montant_ht, tva, montant_ttc, mode_paiement, point_vente_id, payment_data } = params;
+      
+      // Calculer le statut de paiement réel basé sur le montant payé
+      const montantPaye = payment_data?.montant_paye || montant_ttc;
+      let statutPaiement = 'en_attente';
+      
+      if (montantPaye >= montant_ttc) {
+        statutPaiement = 'payee';
+      } else if (montantPaye > 0) {
+        statutPaiement = 'partiellement_payee';
+      }
+      
+      console.log('💰 Calcul statut paiement:', {
+        montant_ttc,
+        montantPaye,
+        statutPaiement
+      });
 
-      // Créer la facture principale avec le statut par défaut 'payee'
+      // Déterminer le statut de livraison
+      const statutLivraison = payment_data?.statut_livraison || 'en_attente';
+      
+      // Mapper le statut de livraison vers l'ID correspondant
+      let statutLivraisonId = 1; // Par défaut "En attente"
+      switch (statutLivraison) {
+        case 'livree':
+          statutLivraisonId = 3;
+          break;
+        case 'partiellement_livree':
+          statutLivraisonId = 2;
+          break;
+        default:
+          statutLivraisonId = 1;
+      }
+
+      // Créer la facture avec le statut de paiement correct
       const factureData = {
-        client_id: data.client_id,
-        montant_ht: data.montant_ttc, // Pas de TVA donc HT = TTC
-        tva: 0, // Forcer à 0
-        montant_ttc: data.montant_ttc,
-        mode_paiement: data.mode_paiement,
-        // Ne pas définir statut_paiement - utiliser le défaut DB 'payee'
-        statut_livraison: 'En attente' as const,
-        statut_livraison_id: 1,
-        numero_facture: '',
-        taux_tva: 0 // Forcer à 0
+        client_id,
+        montant_ht: montant_ttc, // Simplification : utiliser TTC comme HT pour éviter confusion
+        tva: 0, // TVA à 0 pour simplifier
+        montant_ttc,
+        mode_paiement,
+        statut_paiement: statutPaiement, // Utiliser le statut calculé
+        statut_livraison: statutLivraison === 'livree' ? 'Livrée' : 
+                         statutLivraison === 'partiellement_livree' ? 'Partiellement livrée' : 
+                         'En attente',
+        statut_livraison_id: statutLivraisonId,
+        numero_facture: '', // Sera généré automatiquement par le trigger
+        taux_tva: 0
       };
 
-      console.log('📋 Données facture (défaut payee):', factureData);
+      console.log('📋 Données facture (statut correct):', factureData);
 
       const { data: facture, error: factureError } = await supabase
         .from('factures_vente')
@@ -39,26 +92,28 @@ export const useCreateFactureVente = () => {
         throw factureError;
       }
 
-      console.log('✅ Facture créée avec statut défaut:', facture.statut_paiement);
+      console.log('✅ Facture créée avec statut correct:', statutPaiement);
 
-      // Créer les lignes de facture SANS montant_ligne (calculé par Supabase)
-      const lignesFacture = data.cart.map((item: any) => {
-        const prixUnitaireBrut = item.prix_unitaire_brut || item.prix_unitaire || item.prix_vente || 0;
-        const remiseUnitaire = item.remise_unitaire || item.remise || 0;
+      // Créer les lignes de facture avec les quantités livrées
+      const lignesFacture = cart.map((item) => {
+        const quantiteLivree = payment_data?.quantite_livree?.[item.id] || 0;
+        const statutLigneLivraison = quantiteLivree >= item.quantite ? 'livree' :
+                                    quantiteLivree > 0 ? 'partiellement_livree' : 
+                                    'en_attente';
 
         return {
           facture_vente_id: facture.id,
-          article_id: item.article_id,
+          article_id: item.id,
           quantite: item.quantite,
-          prix_unitaire_brut: prixUnitaireBrut,
-          remise_unitaire: remiseUnitaire,
-          // Ne pas inclure montant_ligne - calculé automatiquement par Supabase
-          quantite_livree: 0,
-          statut_livraison: 'en_attente'
+          prix_unitaire_brut: item.prix_unitaire,
+          remise_unitaire: item.remise || 0,
+          quantite_livree: quantiteLivree,
+          statut_livraison: statutLigneLivraison,
+          montant_ligne: (item.prix_unitaire - (item.remise || 0)) * item.quantite
         };
       });
 
-      const { data: lignesCreees, error: lignesError } = await supabase
+      const { data: lignes, error: lignesError } = await supabase
         .from('lignes_facture_vente')
         .insert(lignesFacture)
         .select();
@@ -68,65 +123,108 @@ export const useCreateFactureVente = () => {
         throw lignesError;
       }
 
-      console.log('✅ Lignes facture créées:', lignesCreees?.length);
+      console.log('✅ Lignes facture créées:', lignes);
 
-      // IMPORTANT: Traiter la livraison SEULEMENT si des données de livraison sont fournies
-      if (data.payment_data && data.payment_data.statut_livraison) {
-        console.log('📦 Traitement livraison avec statut:', data.payment_data.statut_livraison);
-        await processDelivery(data.payment_data, facture, lignesCreees);
-      }
+      // Créer le versement seulement si un montant a été payé
+      if (montantPaye > 0) {
+        const versementData = {
+          client_id,
+          facture_id: facture.id,
+          montant: montantPaye,
+          mode_paiement,
+          numero_versement: `V-${facture.numero_facture}`,
+          date_versement: new Date().toISOString(),
+          observations: montantPaye >= montant_ttc ? 
+            'Paiement intégral' : 
+            `Paiement partiel ${montantPaye}/${montant_ttc}`
+        };
 
-      // IMPORTANT: Mettre à jour le stock PDV si un point de vente est spécifié
-      if (data.point_vente_id) {
-        try {
-          await updateStockPDV(data, facture);
-          console.log('✅ Stock PDV mis à jour avec succès');
-        } catch (stockError) {
-          console.error('❌ Erreur mise à jour stock PDV:', stockError);
-          toast.error('Vente créée mais stock non mis à jour : ' + stockError.message);
+        const { error: versementError } = await supabase
+          .from('versements_clients')
+          .insert(versementData);
+
+        if (versementError) {
+          console.error('❌ Erreur création versement:', versementError);
+          // Ne pas faire échouer la transaction pour un problème de versement
+        } else {
+          console.log('✅ Versement créé:', versementData);
         }
       }
 
-      // IMPORTANT: Créer la transaction de caisse SI paiement effectué
-      if (data.payment_data?.montant_paye > 0) {
-        try {
-          await createCashTransaction(data.payment_data.montant_paye, facture.numero_facture, data.mode_paiement);
-          console.log('✅ Transaction de caisse créée avec succès');
-        } catch (cashError) {
-          console.error('❌ Erreur création transaction caisse:', cashError);
-          toast.error('Vente créée mais transaction de caisse non enregistrée');
-        }
+      // Mettre à jour le stock PDV pour les articles livrés
+      if (payment_data?.quantite_livree) {
+        for (const item of cart) {
+          const quantiteLivree = payment_data.quantite_livree[item.id] || 0;
+          if (quantiteLivree > 0) {
+            // Déduire du stock PDV seulement la quantité livrée
+            const { error: stockError } = await supabase
+              .from('stock_pdv')
+              .update({
+                quantite_disponible: supabase.raw(`quantite_disponible - ${quantiteLivree}`)
+              })
+              .eq('article_id', item.id)
+              .eq('point_vente_id', point_vente_id);
 
-        // Note: Le versement client est maintenant créé automatiquement par le trigger DB
-        // si la facture a le statut 'payee' par défaut
-        console.log('✅ Versement client créé automatiquement par le trigger DB');
+            if (stockError) {
+              console.error('❌ Erreur mise à jour stock:', stockError);
+            }
+          }
+        }
       }
 
-      // Récupérer la facture mise à jour avec la remise_totale calculée par le trigger
-      const { data: factureFinale } = await supabase
-        .from('factures_vente')
-        .select('*')
-        .eq('id', facture.id)
-        .single();
+      // Créer la transaction de caisse pour le montant payé
+      if (montantPaye > 0) {
+        const { data: cashRegisters } = await supabase
+          .from('cash_registers')
+          .select('id')
+          .limit(1);
 
-      console.log('🎉 Facture vente créée avec statut automatique:', factureFinale?.statut_paiement);
+        if (cashRegisters && cashRegisters.length > 0) {
+          const transactionData = {
+            type: 'income' as const,
+            amount: montantPaye,
+            montant: montantPaye,
+            description: `Vente facture ${facture.numero_facture}`,
+            commentaire: `Paiement ${mode_paiement} - Facture ${facture.numero_facture}`,
+            category: 'sales',
+            payment_method: mode_paiement === 'carte' ? 'card' as const :
+                           mode_paiement === 'virement' ? 'transfer' as const :
+                           mode_paiement === 'cheque' ? 'check' as const :
+                           'cash' as const,
+            cash_register_id: cashRegisters[0].id,
+            source: 'Vente au comptoir',
+            date_operation: new Date().toISOString()
+          };
 
-      return { facture: factureFinale || facture, lignes: lignesCreees };
+          const { error: transactionError } = await supabase
+            .from('transactions')
+            .insert(transactionData);
+
+          if (transactionError) {
+            console.error('❌ Erreur création transaction:', transactionError);
+          } else {
+            console.log('✅ Transaction de caisse créée');
+          }
+        }
+      }
+
+      return {
+        facture,
+        lignes
+      };
     },
-    onSuccess: () => {
-      // Invalider toutes les queries liées aux factures pour forcer le rafraîchissement
-      queryClient.invalidateQueries({ queryKey: ['factures_vente'] });
-      queryClient.invalidateQueries({ queryKey: ['factures-vente-details'] });
-      queryClient.invalidateQueries({ queryKey: ['versements_clients'] });
-      queryClient.invalidateQueries({ queryKey: ['transactions'] });
-      queryClient.invalidateQueries({ queryKey: ['cash-register-balance'] });
+    onSuccess: (data) => {
+      console.log('🎉 Facture vente créée avec statut correct:', data.facture.statut_paiement);
       
-      // Force le refetch immédiat
-      queryClient.refetchQueries({ queryKey: ['factures_vente'] });
+      // Invalider les queries pour rafraîchir les données
+      queryClient.invalidateQueries({ queryKey: ['factures_vente'] });
+      queryClient.invalidateQueries({ queryKey: ['versements_clients'] });
+      queryClient.invalidateQueries({ queryKey: ['stock_pdv'] });
+      queryClient.invalidateQueries({ queryKey: ['transactions'] });
       
       console.log('✅ Queries invalidées et données rafraîchies');
       
-      toast.success('Vente finalisée avec succès');
+      toast.success('Facture créée avec succès');
     },
     onError: (error: Error) => {
       console.error('❌ Erreur création facture vente:', error);
@@ -134,61 +232,3 @@ export const useCreateFactureVente = () => {
     }
   });
 };
-
-// Fonction pour créer une transaction de caisse
-async function createCashTransaction(montant: number, numeroFacture: string, modePaiement: string) {
-  console.log('💰 Création transaction de caisse:', { montant, numeroFacture, modePaiement });
-  
-  // Récupérer la première caisse disponible
-  const { data: cashRegister, error: cashRegisterError } = await supabase
-    .from('cash_registers')
-    .select('id')
-    .limit(1)
-    .single();
-
-  if (cashRegisterError) {
-    console.error('❌ Erreur récupération caisse:', cashRegisterError);
-    throw new Error('Aucune caisse disponible');
-  }
-
-  // Mapper le mode de paiement
-  let paymentMethod: 'cash' | 'card' | 'transfer' | 'check' = 'cash';
-  
-  switch(modePaiement) {
-    case 'carte':
-      paymentMethod = 'card';
-      break;
-    case 'virement':
-      paymentMethod = 'transfer';
-      break;
-    case 'cheque':
-      paymentMethod = 'check';
-      break;
-    case 'especes':
-    default:
-      paymentMethod = 'cash';
-      break;
-  }
-
-  const { error: transactionError } = await supabase
-    .from('transactions')
-    .insert({
-      type: 'income',
-      amount: montant,
-      montant: montant,
-      description: `Vente ${numeroFacture}`,
-      commentaire: `Paiement vente ${numeroFacture}`,
-      category: 'sales',
-      payment_method: paymentMethod,
-      cash_register_id: cashRegister.id,
-      date_operation: new Date().toISOString(),
-      source: 'vente'
-    });
-
-  if (transactionError) {
-    console.error('❌ Erreur création transaction:', transactionError);
-    throw transactionError;
-  }
-
-  console.log('✅ Transaction de caisse créée avec succès');
-}
