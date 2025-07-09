@@ -160,21 +160,41 @@ export const useCreateFactureVente = () => {
         }
       }
 
-      // Mettre à jour le stock PDV pour les articles livrés
+      // Mettre à jour le stock PDV pour les articles livrés - Approche directe
       if (payment_data?.quantite_livree) {
         for (const item of cart) {
           const quantiteLivree = payment_data.quantite_livree[item.id] || 0;
           if (quantiteLivree > 0) {
-            // Déduire du stock PDV la quantité livrée
-            const { error: stockError } = await supabase
-              .rpc('update_stock_pdv_quantity', {
-                p_article_id: item.id,
-                p_point_vente_id: point_vente_id,
-                p_quantity_change: -quantiteLivree
-              });
+            // Récupérer le stock actuel
+            const { data: stockActuel, error: stockError } = await supabase
+              .from('stock_pdv')
+              .select('quantite_disponible')
+              .eq('article_id', item.id)
+              .eq('point_vente_id', point_vente_id)
+              .single();
 
             if (stockError) {
-              console.error('❌ Erreur mise à jour stock:', stockError);
+              console.error('❌ Erreur récupération stock:', stockError);
+              continue; // Continue avec les autres articles
+            }
+
+            if (stockActuel) {
+              const nouvelleQuantite = Math.max(0, stockActuel.quantite_disponible - quantiteLivree);
+              
+              const { error: updateError } = await supabase
+                .from('stock_pdv')
+                .update({ 
+                  quantite_disponible: nouvelleQuantite,
+                  updated_at: new Date().toISOString()
+                })
+                .eq('article_id', item.id)
+                .eq('point_vente_id', point_vente_id);
+
+              if (updateError) {
+                console.error('❌ Erreur mise à jour stock:', updateError);
+              } else {
+                console.log(`✅ Stock mis à jour pour article ${item.id}: ${stockActuel.quantite_disponible} → ${nouvelleQuantite}`);
+              }
             }
           }
         }
