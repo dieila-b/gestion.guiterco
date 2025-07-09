@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { useUpdateFactureVente } from '@/hooks/sales/mutations/useUpdateFactureVente';
+import { useUpdateFactureStatut } from '@/hooks/sales/mutations/useUpdateFactureStatut';
 import type { FactureVente } from '@/types/sales';
 
 interface DeliverySectionProps {
@@ -15,6 +16,7 @@ interface DeliverySectionProps {
 const DeliverySection = ({ facture }: DeliverySectionProps) => {
   const [statutLivraison, setStatutLivraison] = useState(facture.statut_livraison || 'En attente');
   const updateFacture = useUpdateFactureVente();
+  const updateFactureStatut = useUpdateFactureStatut();
 
   // CORRECTION: Calculer les vraies quantités de livraison
   const totalQuantite = facture.lignes_facture?.reduce((sum, ligne) => sum + (ligne.quantite || 0), 0) || 0;
@@ -28,9 +30,10 @@ const DeliverySection = ({ facture }: DeliverySectionProps) => {
       nouveau_statut: statutLivraison
     });
 
-    updateFacture.mutate({
-      id: facture.id,
-      statut_livraison: statutLivraison as 'En attente' | 'Partiellement livrée' | 'Livrée'
+    // CORRECTION: Utiliser le hook approprié qui met à jour les lignes ET le statut
+    updateFactureStatut.mutate({
+      factureId: facture.id,
+      statut_livraison: statutLivraison
     }, {
       onSuccess: () => {
         console.log('✅ Statut livraison mis à jour avec succès');
@@ -59,19 +62,42 @@ const DeliverySection = ({ facture }: DeliverySectionProps) => {
     }
   };
 
+  // CORRECTION: Calculer les quantités selon le statut sélectionné
+  const getQuantitesPrevisionnelles = () => {
+    if (statutLivraison === 'Livrée') {
+      return {
+        livree: totalQuantite,
+        restante: 0
+      };
+    } else if (statutLivraison === 'En attente') {
+      return {
+        livree: 0,
+        restante: totalQuantite
+      };
+    } else {
+      // Pour statut actuel ou partiel, utiliser les vraies valeurs
+      return {
+        livree: totalLivree,
+        restante: totalRestante
+      };
+    }
+  };
+
+  const quantitesPrevisionnelles = getQuantitesPrevisionnelles();
+
   return (
     <Card>
       <CardHeader>
         <CardTitle>Statut de livraison</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        {/* CORRECTION: Afficher les vraies quantités */}
+        {/* CORRECTION: Afficher les quantités prévisionnelles selon le statut sélectionné */}
         <div className="space-y-2">
           <div className="text-sm">
-            <strong>Quantités :</strong> {totalLivree}/{totalQuantite} articles livrés
+            <strong>Quantités :</strong> {quantitesPrevisionnelles.livree}/{totalQuantite} articles livrés
           </div>
           <div className="text-sm text-muted-foreground">
-            Restant à livrer : {totalRestante} articles
+            Restant à livrer : {quantitesPrevisionnelles.restante} articles
           </div>
         </div>
 
@@ -100,12 +126,30 @@ const DeliverySection = ({ facture }: DeliverySectionProps) => {
           </Select>
         </div>
 
+        {statutLivraison !== facture.statut_livraison && (
+          <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+            <p className="text-sm text-blue-800">
+              <strong>Aperçu des changements :</strong>
+            </p>
+            <ul className="text-xs text-blue-700 mt-1">
+              <li>• Statut : {getDeliveryStatusLabel(facture.statut_livraison || 'En attente')} → {getDeliveryStatusLabel(statutLivraison)}</li>
+              <li>• Quantités livrées : {totalLivree} → {quantitesPrevisionnelles.livree}</li>
+              {statutLivraison === 'Livrée' && (
+                <li className="text-green-700 font-medium">• Toutes les lignes seront marquées comme livrées</li>
+              )}
+              {statutLivraison === 'En attente' && (
+                <li className="text-orange-700 font-medium">• Toutes les quantités livrées seront remises à 0</li>
+              )}
+            </ul>
+          </div>
+        )}
+
         <Button 
           onClick={handleUpdateDeliveryStatus}
-          disabled={updateFacture.isPending || statutLivraison === facture.statut_livraison}
+          disabled={updateFactureStatut.isPending || statutLivraison === facture.statut_livraison}
           className="w-full"
         >
-          {updateFacture.isPending ? 'Mise à jour...' : 'Mettre à jour le statut'}
+          {updateFactureStatut.isPending ? 'Mise à jour...' : 'Mettre à jour le statut'}
         </Button>
       </CardContent>
     </Card>

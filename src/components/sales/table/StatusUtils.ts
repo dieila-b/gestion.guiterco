@@ -113,41 +113,34 @@ export const getActualDeliveryStatus = (facture: FactureVente) => {
     return (facture as any).statut_livraison_calcule;
   }
   
-  // Normaliser le statut de la facture pour gérer les formats mixtes (PascalCase vs minuscule)
-  const normalizeStatus = (status: string) => {
-    if (!status) return 'en_attente';
-    const normalized = status.toLowerCase()
-      .replace('livrée', 'livree')
-      .replace('en attente', 'en_attente')
-      .replace('partiellement livrée', 'partiellement_livree')
-      .replace('partiellement_livree', 'partiellement_livree')
-      .replace(' ', '_');
-    return normalized;
-  };
+  // CORRECTION: Priorité absolue au statut de la facture dans la BDD
+  if (facture.statut_livraison) {
+    const normalizeStatus = (status: string) => {
+      const normalized = status.toLowerCase()
+        .replace('livrée', 'livree')
+        .replace('en attente', 'en_attente')
+        .replace('partiellement livrée', 'partiellement_livree')
+        .replace('partiellement_livree', 'partiellement_livree')
+        .replace(' ', '_');
+      return normalized;
+    };
 
-  // PRIORITÉ 1: Vérifier le statut direct de la facture dans la BDD avec normalisation
-  const statutNormalise = normalizeStatus(facture.statut_livraison || '');
-  console.log('🚚 Statut normalisé:', statutNormalise);
-  
-  // PRIORITÉ 2: Si pas de lignes de facture, utiliser le statut normalisé de la facture
-  if (!facture.lignes_facture || !Array.isArray(facture.lignes_facture) || facture.lignes_facture.length === 0) {
-    console.log('🚚 Pas de lignes facture - utilisation statut facture normalisé:', statutNormalise);
+    const statutNormalise = normalizeStatus(facture.statut_livraison);
+    console.log('🚚 Statut BDD normalisé utilisé:', statutNormalise);
     return statutNormalise;
   }
   
-  // PRIORITÉ 3: Calcul basé sur les quantités réellement livrées SEULEMENT si le statut n'est pas déjà défini
+  // FALLBACK: Si pas de statut en BDD, calculer basé sur les quantités
+  if (!facture.lignes_facture || !Array.isArray(facture.lignes_facture) || facture.lignes_facture.length === 0) {
+    console.log('🚚 Pas de lignes facture - statut par défaut: en_attente');
+    return 'en_attente';
+  }
+  
   const totalQuantiteCommandee = facture.lignes_facture.reduce((sum, ligne) => sum + ligne.quantite, 0);
   const totalQuantiteLivree = facture.lignes_facture.reduce((sum, ligne) => sum + (ligne.quantite_livree || 0), 0);
   
   console.log('🚚 Calcul basé sur quantités - Commandé:', totalQuantiteCommandee, 'Livré:', totalQuantiteLivree);
   
-  // Si le statut de la facture est déjà défini, le respecter
-  if (statutNormalise && statutNormalise !== 'en_attente') {
-    console.log('🚚 Statut facture prioritaire:', statutNormalise);
-    return statutNormalise;
-  }
-  
-  // Sinon, calculer le statut basé sur les quantités
   let status;
   if (totalQuantiteLivree === 0) {
     status = 'en_attente';
