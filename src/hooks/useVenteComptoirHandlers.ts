@@ -31,12 +31,14 @@ export const useVenteComptoirHandlers = ({
 }: UseVenteComptoirHandlersProps) => {
   const [paymentPromiseResolve, setPaymentPromiseResolve] = useState<((paymentData: any) => void) | null>(null);
 
-  const handleQuantityChange = (id: string, newQuantity: number) => {
-    updateQuantity(id, newQuantity);
+  const handleQuantityChange = (id: string, newQuantity: string) => {
+    const numericQuantity = parseInt(newQuantity, 10) || 0;
+    updateQuantity(id, numericQuantity);
   };
 
-  const handleRemiseChange = (id: string, newRemise: number) => {
-    updateRemise(id, newRemise);
+  const handleRemiseChange = (id: string, newRemise: string) => {
+    const numericRemise = parseFloat(newRemise) || 0;
+    updateRemise(id, numericRemise);
   };
 
   const handlePayment = () => {
