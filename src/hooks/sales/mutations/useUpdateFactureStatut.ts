@@ -103,19 +103,19 @@ export const useUpdateFactureStatut = () => {
       return facture;
     },
     onSuccess: (facture) => {
-      // Invalider TOUTES les queries liées aux factures
+      // Invalider TOUTES les queries liées aux factures avec rechargement IMMÉDIAT
       queryClient.invalidateQueries({ queryKey: ['factures_vente'] });
       queryClient.invalidateQueries({ queryKey: ['facture', facture.id] });
       
-      // Utiliser la fonction Supabase pour recharger les données
-      queryClient.invalidateQueries({ queryKey: ['factures-vente-details'] });
-      
-      // Forcer le refetch immédiat
+      // Forcer le refetch IMMÉDIAT de toutes les queries actives
       queryClient.refetchQueries({ queryKey: ['factures_vente'] });
+      
+      // Forcer la mise à jour du cache avec les nouvelles données
+      queryClient.setQueryData(['facture', facture.id], facture);
       
       toast.success('Statut de livraison mis à jour');
       
-      console.log('✅ Queries invalidées et rafraîchies après mise à jour statut');
+      console.log('✅ Queries invalidées et rechargées IMMÉDIATEMENT après mise à jour statut');
     },
     onError: (error: Error) => {
       console.error('❌ Erreur lors de la mise à jour du statut:', error);

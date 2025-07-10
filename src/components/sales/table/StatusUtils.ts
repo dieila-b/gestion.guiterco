@@ -104,42 +104,60 @@ export const getArticleCount = (facture: FactureVente) => {
 
 export const getActualDeliveryStatus = (facture: FactureVente) => {
   console.log('🚚 getActualDeliveryStatus - Facture:', facture.numero_facture);
-  console.log('🚚 Statut BDD facture:', facture.statut_livraison);
-  console.log('🚚 Nombre de lignes:', facture.lignes_facture?.length || 0);
+  console.log('🚚 Statut BDD original:', facture.statut_livraison);
+  console.log('🚚 Statut calculé disponible:', (facture as any).statut_livraison_calcule);
   
-  // Utiliser le statut calculé si disponible
+  // PRIORITÉ ABSOLUE : Utiliser le statut calculé par la query si disponible
   if ((facture as any).statut_livraison_calcule) {
-    console.log('🚚 Utilisation statut calculé:', (facture as any).statut_livraison_calcule);
-    return (facture as any).statut_livraison_calcule;
+    const statutCalcule = (facture as any).statut_livraison_calcule;
+    console.log('🚚 ✅ Utilisation statut calculé de la query:', statutCalcule);
+    return statutCalcule;
   }
   
-  // CORRECTION: Priorité absolue au statut de la facture dans la BDD
+  // PRIORITÉ 2 : Statut de la facture dans la BDD avec normalisation
   if (facture.statut_livraison) {
     const normalizeStatus = (status: string) => {
-      const normalized = status.toLowerCase()
-        .replace('livrée', 'livree')
-        .replace('en attente', 'en_attente')
-        .replace('partiellement livrée', 'partiellement_livree')
-        .replace('partiellement_livree', 'partiellement_livree')
-        .replace(' ', '_');
-      return normalized;
+      const statusStr = String(status).toLowerCase().trim();
+      
+      // Normalisation directe
+      if (statusStr.includes('livr') && !statusStr.includes('partiel')) {
+        return 'livree';
+      }
+      if (statusStr.includes('partiel')) {
+        return 'partiellement_livree';
+      }
+      if (statusStr.includes('attente')) {
+        return 'en_attente';
+      }
+      
+      // Mappage direct
+      const mapping: { [key: string]: string } = {
+        'livrée': 'livree',
+        'livree': 'livree',
+        'partiellement livrée': 'partiellement_livree',
+        'partiellement_livree': 'partiellement_livree',
+        'en attente': 'en_attente',
+        'en_attente': 'en_attente'
+      };
+      
+      return mapping[statusStr] || 'en_attente';
     };
 
     const statutNormalise = normalizeStatus(facture.statut_livraison);
-    console.log('🚚 Statut BDD normalisé utilisé:', statutNormalise);
+    console.log('🚚 ✅ Statut BDD normalisé utilisé:', statutNormalise);
     return statutNormalise;
   }
   
-  // FALLBACK: Si pas de statut en BDD, calculer basé sur les quantités
+  // FALLBACK : Calcul basé sur les quantités si pas de statut en BDD
   if (!facture.lignes_facture || !Array.isArray(facture.lignes_facture) || facture.lignes_facture.length === 0) {
-    console.log('🚚 Pas de lignes facture - statut par défaut: en_attente');
+    console.log('🚚 ⚠️ Pas de lignes facture - statut par défaut: en_attente');
     return 'en_attente';
   }
   
-  const totalQuantiteCommandee = facture.lignes_facture.reduce((sum, ligne) => sum + ligne.quantite, 0);
+  const totalQuantiteCommandee = facture.lignes_facture.reduce((sum, ligne) => sum + (ligne.quantite || 0), 0);
   const totalQuantiteLivree = facture.lignes_facture.reduce((sum, ligne) => sum + (ligne.quantite_livree || 0), 0);
   
-  console.log('🚚 Calcul basé sur quantités - Commandé:', totalQuantiteCommandee, 'Livré:', totalQuantiteLivree);
+  console.log('🚚 Calcul fallback - Commandé:', totalQuantiteCommandee, 'Livré:', totalQuantiteLivree);
   
   let status;
   if (totalQuantiteLivree === 0) {
@@ -150,6 +168,6 @@ export const getActualDeliveryStatus = (facture: FactureVente) => {
     status = 'partiellement_livree';
   }
   
-  console.log('🚚 Statut livraison calculé final:', status);
+  console.log('🚚 ⚠️ Statut livraison calculé en fallback:', status);
   return status;
 };

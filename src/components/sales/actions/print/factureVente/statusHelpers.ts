@@ -19,6 +19,10 @@ export const getPaymentStatus = (facture: FactureVente) => {
 export const getDeliveryStatusInfo = (facture: FactureVente) => {
   const deliveryStatus = getActualDeliveryStatus(facture);
   
+  console.log('📄 PDF - Calcul statut livraison pour facture:', facture.numero_facture);
+  console.log('📄 PDF - Statut calculé:', deliveryStatus);
+  console.log('📄 PDF - Statut BDD original:', facture.statut_livraison);
+  
   if (deliveryStatus === 'livree') {
     return { label: 'Livré', badge: 'badge-delivered' };
   } else if (deliveryStatus === 'partiellement_livree') {

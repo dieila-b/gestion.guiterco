@@ -14,7 +14,7 @@ const DeliveryStatusBadge = ({ facture }: DeliveryStatusBadgeProps) => {
   
   console.log('🚚 DeliveryStatusBadge - Rendu pour facture:', facture.numero_facture);
   console.log('🚚 Statut BDD facture:', facture.statut_livraison);
-  console.log('🚚 Statut calculé final:', statut);
+  console.log('🚚 Statut calculé final UTILISÉ:', statut);
   console.log('🚚 Nombre de lignes:', facture.lignes_facture?.length || 0);
   
   switch (statut) {
