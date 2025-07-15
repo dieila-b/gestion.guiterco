@@ -35,3 +35,26 @@ export interface RapportMargePeriode {
   taux_marge_moyen: number;
   nombre_factures: number;
 }
+
+export interface MargeGlobaleStock {
+  id: string;
+  nom: string;
+  reference: string;
+  stock_total: number;
+  prix_achat?: number;
+  prix_vente?: number;
+  cout_total_unitaire: number;
+  marge_unitaire: number;
+  taux_marge: number;
+  marge_totale_article: number;
+  valeur_stock_cout: number;
+  valeur_stock_vente: number;
+}
+
+export interface ResumeMargesGlobalesStock {
+  total_articles_en_stock: number;
+  valeur_totale_stock_cout: number;
+  valeur_totale_stock_vente: number;
+  marge_totale_globale: number;
+  taux_marge_moyen_pondere: number;
+}

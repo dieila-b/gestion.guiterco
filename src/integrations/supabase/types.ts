@@ -58,6 +58,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "articles_bon_commande_article_id_fkey"
+            columns: ["article_id"]
+            isOneToOne: false
+            referencedRelation: "vue_marges_globales_stock"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "articles_bon_commande_bon_commande_id_fkey"
             columns: ["bon_commande_id"]
             isOneToOne: false
@@ -123,6 +130,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "articles_bon_livraison_article_id_fkey"
+            columns: ["article_id"]
+            isOneToOne: false
+            referencedRelation: "vue_marges_globales_stock"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "articles_bon_livraison_bon_livraison_id_fkey"
             columns: ["bon_livraison_id"]
             isOneToOne: false
@@ -182,6 +196,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "articles_facture_achat_article_id_fkey"
+            columns: ["article_id"]
+            isOneToOne: false
+            referencedRelation: "vue_marges_globales_stock"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "articles_facture_achat_facture_achat_id_fkey"
             columns: ["facture_achat_id"]
             isOneToOne: false
@@ -234,6 +255,13 @@ export type Database = {
             columns: ["article_id"]
             isOneToOne: false
             referencedRelation: "vue_marges_articles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "articles_retour_client_article_id_fkey"
+            columns: ["article_id"]
+            isOneToOne: false
+            referencedRelation: "vue_marges_globales_stock"
             referencedColumns: ["id"]
           },
           {
@@ -993,6 +1021,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "entrees_stock_article_id_fkey"
+            columns: ["article_id"]
+            isOneToOne: false
+            referencedRelation: "vue_marges_globales_stock"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "entrees_stock_entrepot_id_fkey"
             columns: ["entrepot_id"]
             isOneToOne: false
@@ -1459,6 +1494,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "lignes_commande_article_id_fkey"
+            columns: ["article_id"]
+            isOneToOne: false
+            referencedRelation: "vue_marges_globales_stock"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "lignes_commande_commande_id_fkey"
             columns: ["commande_id"]
             isOneToOne: false
@@ -1508,6 +1550,13 @@ export type Database = {
             columns: ["article_id"]
             isOneToOne: false
             referencedRelation: "vue_marges_articles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lignes_devis_article_id_fkey"
+            columns: ["article_id"]
+            isOneToOne: false
+            referencedRelation: "vue_marges_globales_stock"
             referencedColumns: ["id"]
           },
           {
@@ -1569,6 +1618,13 @@ export type Database = {
             columns: ["article_id"]
             isOneToOne: false
             referencedRelation: "vue_marges_articles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lignes_facture_vente_article_id_fkey"
+            columns: ["article_id"]
+            isOneToOne: false
+            referencedRelation: "vue_marges_globales_stock"
             referencedColumns: ["id"]
           },
           {
@@ -1644,6 +1700,13 @@ export type Database = {
             columns: ["article_id"]
             isOneToOne: false
             referencedRelation: "vue_marges_articles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lignes_precommande_article_id_fkey"
+            columns: ["article_id"]
+            isOneToOne: false
+            referencedRelation: "vue_marges_globales_stock"
             referencedColumns: ["id"]
           },
           {
@@ -2299,6 +2362,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "sorties_stock_article_id_fkey"
+            columns: ["article_id"]
+            isOneToOne: false
+            referencedRelation: "vue_marges_globales_stock"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "sorties_stock_entrepot_id_fkey"
             columns: ["entrepot_id"]
             isOneToOne: false
@@ -2351,6 +2421,13 @@ export type Database = {
             columns: ["article_id"]
             isOneToOne: false
             referencedRelation: "vue_marges_articles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_pdv_article_id_fkey"
+            columns: ["article_id"]
+            isOneToOne: false
+            referencedRelation: "vue_marges_globales_stock"
             referencedColumns: ["id"]
           },
           {
@@ -2412,6 +2489,13 @@ export type Database = {
             columns: ["article_id"]
             isOneToOne: false
             referencedRelation: "vue_marges_articles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_principal_article_id_fkey"
+            columns: ["article_id"]
+            isOneToOne: false
+            referencedRelation: "vue_marges_globales_stock"
             referencedColumns: ["id"]
           },
           {
@@ -2545,6 +2629,13 @@ export type Database = {
             columns: ["article_id"]
             isOneToOne: false
             referencedRelation: "vue_marges_articles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transferts_article_id_fkey"
+            columns: ["article_id"]
+            isOneToOne: false
+            referencedRelation: "vue_marges_globales_stock"
             referencedColumns: ["id"]
           },
           {
@@ -2785,6 +2876,13 @@ export type Database = {
             referencedRelation: "vue_marges_articles"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "lignes_commande_article_id_fkey"
+            columns: ["article_id"]
+            isOneToOne: false
+            referencedRelation: "vue_marges_globales_stock"
+            referencedColumns: ["id"]
+          },
         ]
       }
       vue_facture_vente_detaillee: {
@@ -2843,6 +2941,23 @@ export type Database = {
           reference: string | null
           taux_marge: number | null
           updated_at: string | null
+        }
+        Relationships: []
+      }
+      vue_marges_globales_stock: {
+        Row: {
+          cout_total_unitaire: number | null
+          id: string | null
+          marge_totale_article: number | null
+          marge_unitaire: number | null
+          nom: string | null
+          prix_achat: number | null
+          prix_vente: number | null
+          reference: string | null
+          stock_total: number | null
+          taux_marge: number | null
+          valeur_stock_cout: number | null
+          valeur_stock_vente: number | null
         }
         Relationships: []
       }
@@ -3147,6 +3262,16 @@ export type Database = {
           benefice_total: number
           taux_marge_moyen: number
           nombre_factures: number
+        }[]
+      }
+      get_resume_marges_globales_stock: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          total_articles_en_stock: number
+          valeur_totale_stock_cout: number
+          valeur_totale_stock_vente: number
+          marge_totale_globale: number
+          taux_marge_moyen_pondere: number
         }[]
       }
       get_user_permissions: {

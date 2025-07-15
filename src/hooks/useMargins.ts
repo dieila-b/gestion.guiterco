@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import type { ArticleWithMargin, FactureWithMargin, RapportMargePeriode } from '@/types/margins';
+import type { ArticleWithMargin, FactureWithMargin, RapportMargePeriode, MargeGlobaleStock, ResumeMargesGlobalesStock } from '@/types/margins';
 
 export const useArticlesWithMargins = () => {
   return useQuery({
@@ -98,5 +98,55 @@ export const useRapportMargePeriode = (dateDebut: Date, dateFin: Date) => {
     },
     enabled: !!dateDebut && !!dateFin,
     staleTime: 1000 * 60 * 5
+  });
+};
+
+export const useMargesGlobalesStock = () => {
+  return useQuery({
+    queryKey: ['marges-globales-stock'],
+    queryFn: async () => {
+      console.log('🔍 Récupération des marges globales de stock...');
+      
+      const { data, error } = await supabase
+        .from('vue_marges_globales_stock')
+        .select('*')
+        .order('nom', { ascending: true });
+
+      if (error) {
+        console.error('❌ Erreur lors de la récupération des marges globales de stock:', error);
+        throw error;
+      }
+
+      console.log('✅ Marges globales de stock récupérées:', data?.length);
+      return data as MargeGlobaleStock[];
+    },
+    staleTime: 1000 * 60 * 2, // 2 minutes
+    refetchOnWindowFocus: false
+  });
+};
+
+export const useResumeMargesGlobalesStock = () => {
+  return useQuery({
+    queryKey: ['resume-marges-globales-stock'],
+    queryFn: async () => {
+      console.log('🔍 Récupération du résumé des marges globales de stock...');
+      
+      const { data, error } = await supabase.rpc('get_resume_marges_globales_stock');
+
+      if (error) {
+        console.error('❌ Erreur lors de la récupération du résumé des marges globales de stock:', error);
+        throw error;
+      }
+
+      console.log('✅ Résumé des marges globales de stock récupéré:', data);
+      return data?.[0] as ResumeMargesGlobalesStock || {
+        total_articles_en_stock: 0,
+        valeur_totale_stock_cout: 0,
+        valeur_totale_stock_vente: 0,
+        marge_totale_globale: 0,
+        taux_marge_moyen_pondere: 0
+      };
+    },
+    staleTime: 1000 * 60 * 2 // 2 minutes
   });
 };
