@@ -1,3 +1,4 @@
+
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -43,12 +44,17 @@ export const useRoles = () => {
   return useQuery({
     queryKey: ['roles'],
     queryFn: async () => {
+      console.log('Fetching roles...');
       const { data, error } = await supabase
         .from('roles')
         .select('*')
         .order('name');
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching roles:', error);
+        throw error;
+      }
+      console.log('Roles fetched:', data);
       return data as Role[];
     }
   });
@@ -59,12 +65,17 @@ export const usePermissions = () => {
   return useQuery({
     queryKey: ['permissions'],
     queryFn: async () => {
+      console.log('Fetching permissions...');
       const { data, error } = await supabase
         .from('permissions')
         .select('*')
         .order('menu, submenu, action');
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching permissions:', error);
+        throw error;
+      }
+      console.log('Permissions fetched:', data);
       return data as Permission[];
     }
   });
@@ -77,6 +88,7 @@ export const useRolePermissions = (roleId?: string) => {
     queryFn: async () => {
       if (!roleId) return [];
       
+      console.log('Fetching role permissions for role:', roleId);
       const { data, error } = await supabase
         .from('role_permissions')
         .select(`
@@ -85,7 +97,11 @@ export const useRolePermissions = (roleId?: string) => {
         `)
         .eq('role_id', roleId);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching role permissions:', error);
+        throw error;
+      }
+      console.log('Role permissions fetched:', data);
       return data;
     },
     enabled: !!roleId
@@ -99,6 +115,7 @@ export const useUserRoles = (userId?: string) => {
     queryFn: async () => {
       if (!userId) return [];
       
+      console.log('Fetching user roles for user:', userId);
       const { data, error } = await supabase
         .from('user_roles')
         .select(`
@@ -108,10 +125,42 @@ export const useUserRoles = (userId?: string) => {
         .eq('user_id', userId)
         .eq('is_active', true);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching user roles:', error);
+        throw error;
+      }
+      console.log('User roles fetched:', data);
       return data;
     },
     enabled: !!userId
+  });
+};
+
+// Hook pour récupérer tous les utilisateurs avec leurs rôles
+export const useUsersWithRoles = () => {
+  return useQuery({
+    queryKey: ['users-with-roles'],
+    queryFn: async () => {
+      console.log('Fetching users with roles...');
+      const { data, error } = await supabase
+        .from('utilisateurs_internes')
+        .select(`
+          *,
+          role:role_id (
+            id,
+            nom,
+            description
+          )
+        `)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching users with roles:', error);
+        throw error;
+      }
+      console.log('Users with roles fetched:', data);
+      return data;
+    }
   });
 };
 
@@ -232,6 +281,7 @@ export const useAssignUserRole = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['user-roles'] });
+      queryClient.invalidateQueries({ queryKey: ['users-with-roles'] });
       toast({
         title: "Rôle assigné",
         description: "Le rôle a été assigné à l'utilisateur avec succès.",
@@ -254,6 +304,7 @@ export const useUserPermissions = (userId?: string) => {
     queryFn: async () => {
       if (!userId) return [];
       
+      console.log('Fetching user permissions for user:', userId);
       // Get user permissions with role info
       const { data, error } = await supabase
         .from('user_roles')
@@ -268,7 +319,10 @@ export const useUserPermissions = (userId?: string) => {
         .eq('user_id', userId)
         .eq('is_active', true);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching user permissions:', error);
+        throw error;
+      }
       
       // Flatten permissions from all roles  
       const permissions = (data as any[])?.flatMap((ur: any) => 
@@ -278,6 +332,7 @@ export const useUserPermissions = (userId?: string) => {
         })) || []
       ) || [];
       
+      console.log('User permissions fetched:', permissions);
       return permissions.filter((p: any) => p.can_access);
     },
     enabled: !!userId

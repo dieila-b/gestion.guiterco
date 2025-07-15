@@ -1,21 +1,12 @@
+
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Key, Eye, Edit, Trash2 } from 'lucide-react';
+import { Key, Eye, Edit, Trash2, AlertCircle } from 'lucide-react';
 import { usePermissions } from '@/hooks/usePermissions';
 
 const PermissionsManagement = () => {
-  const { data: permissions, isLoading } = usePermissions();
-
-  // Grouper les permissions par menu
-  const groupedPermissions = permissions?.reduce((acc, permission) => {
-    const menuKey = permission.menu;
-    if (!acc[menuKey]) {
-      acc[menuKey] = [];
-    }
-    acc[menuKey].push(permission);
-    return acc;
-  }, {} as Record<string, typeof permissions>);
+  const { data: permissions, isLoading, error } = usePermissions();
 
   const getActionBadgeVariant = (action: string) => {
     switch (action) {
@@ -53,6 +44,30 @@ const PermissionsManagement = () => {
       </div>
     );
   }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <div className="text-center">
+          <AlertCircle className="h-12 w-12 text-destructive mx-auto mb-4" />
+          <h3 className="text-lg font-medium mb-2">Erreur de chargement</h3>
+          <p className="text-muted-foreground mb-4">
+            Impossible de charger les permissions : {error.message}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // Grouper les permissions par menu
+  const groupedPermissions = permissions?.reduce((acc, permission) => {
+    const menuKey = permission.menu;
+    if (!acc[menuKey]) {
+      acc[menuKey] = [];
+    }
+    acc[menuKey].push(permission);
+    return acc;
+  }, {} as Record<string, typeof permissions>);
 
   return (
     <div className="space-y-6">
@@ -106,7 +121,7 @@ const PermissionsManagement = () => {
         ))}
       </div>
 
-      {(!permissions || permissions.length === 0) && (
+      {(!permissions || permissions.length === 0) && !isLoading && (
         <Card>
           <CardContent className="text-center py-8">
             <Key className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
