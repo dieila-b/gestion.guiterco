@@ -9,6 +9,8 @@ import { Settings, Edit2 } from 'lucide-react';
 
 const PermissionsMatrix = () => {
   const [selectedRole, setSelectedRole] = useState<string | null>(null);
+  
+  // Fetch permissions and roles data
   const { data: permissions = [] } = usePermissions();
   const { data: roles = [] } = useRoles();
   const { data: rolePermissions = [] } = useRolePermissions(selectedRole || undefined);
