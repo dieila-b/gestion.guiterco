@@ -18,7 +18,7 @@ import DepotsStockage from '@/components/settings/DepotsStockage';
 import DepotsPDV from '@/components/settings/DepotsPDV';
 import ClientsSettings from '@/components/settings/ClientsSettings';
 import UtilisateursInternes from '@/components/settings/UtilisateursInternes';
-import PermissionsManagement from '@/components/settings/permissions/PermissionsManagement';
+import AccesPermissions from '@/components/settings/AccesPermissions';
 
 const settingsCards = [
   {
@@ -64,9 +64,9 @@ const settingsCards = [
     color: 'bg-indigo-500/10 border-indigo-500/20 hover:bg-indigo-500/15'
   },
   {
-    id: 'permissions',
-    title: 'Permissions',
-    description: 'Configurez les rôles et permissions d\'accès',
+    id: 'acces-permissions',
+    title: 'Accès & Permissions',
+    description: 'Configurez les rôles et permissions utilisateurs',
     icon: Shield,
     color: 'bg-red-500/10 border-red-500/20 hover:bg-red-500/15'
   }
@@ -97,7 +97,7 @@ const Settings = () => {
             <TabsTrigger value="depots-pdv">Dépôts PDV</TabsTrigger>
             <TabsTrigger value="clients">Clients</TabsTrigger>
             <TabsTrigger value="utilisateurs-internes">Utilisateurs</TabsTrigger>
-            <TabsTrigger value="permissions">Permissions</TabsTrigger>
+            <TabsTrigger value="acces-permissions">Permissions</TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview" className="mt-6">
@@ -149,8 +149,8 @@ const Settings = () => {
             <UtilisateursInternes />
           </TabsContent>
 
-          <TabsContent value="permissions" className="mt-6">
-            <PermissionsManagement />
+          <TabsContent value="acces-permissions" className="mt-6">
+            <AccesPermissions />
           </TabsContent>
         </Tabs>
       </div>

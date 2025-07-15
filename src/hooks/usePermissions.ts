@@ -2,25 +2,64 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Role, Permission, RolePermission, UserRole, PermissionMatrix } from '@/types/permissions';
 
-// Hook pour récupérer tous les rôles
-export const useRoles = () => {
+export interface Module {
+  id: string;
+  nom: string;
+  description: string;
+}
+
+export interface TypePermission {
+  id: string;
+  nom: string;
+  description: string;
+}
+
+export interface Permission {
+  id: string;
+  nom: string;
+  description: string;
+  module: Module;
+  type_permission: TypePermission;
+}
+
+export interface RolePermission {
+  id: string;
+  role_id: string;
+  permission_id: string;
+  permission: Permission;
+}
+
+export const useModules = () => {
   return useQuery({
-    queryKey: ['roles'],
+    queryKey: ['modules'],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('roles')
+        .from('modules_application')
         .select('*')
-        .order('name');
+        .order('nom');
 
       if (error) throw error;
-      return data as Role[];
+      return data as Module[];
     }
   });
 };
 
-// Hook pour récupérer toutes les permissions
+export const useTypesPermissions = () => {
+  return useQuery({
+    queryKey: ['types-permissions'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('types_permissions')
+        .select('*')
+        .order('nom');
+
+      if (error) throw error;
+      return data as TypePermission[];
+    }
+  });
+};
+
 export const usePermissions = () => {
   return useQuery({
     queryKey: ['permissions'],
@@ -28,15 +67,30 @@ export const usePermissions = () => {
       const { data, error } = await supabase
         .from('permissions')
         .select('*')
-        .order('menu, submenu, action');
+        .order('action');
 
       if (error) throw error;
-      return data as Permission[];
+      
+      // Transformer les données pour correspondre à l'interface Permission
+      return data.map(permission => ({
+        id: permission.id,
+        nom: `${permission.module}_${permission.action}`,
+        description: permission.description,
+        module: {
+          id: permission.module,
+          nom: permission.module,
+          description: permission.module
+        },
+        type_permission: {
+          id: permission.action,
+          nom: permission.action,
+          description: permission.action
+        }
+      })) as Permission[];
     }
   });
 };
 
-// Hook pour récupérer les permissions d'un rôle
 export const useRolePermissions = (roleId?: string) => {
   return useQuery({
     queryKey: ['role-permissions', roleId],
@@ -44,272 +98,110 @@ export const useRolePermissions = (roleId?: string) => {
       if (!roleId) return [];
       
       const { data, error } = await supabase
-        .from('role_permissions')
-        .select(`
-          *,
-          permission:permissions(*)
-        `)
+        .from('roles_permissions')
+        .select('*')
         .eq('role_id', roleId);
 
       if (error) throw error;
-      return data as RolePermission[];
+      
+      // Récupérer les détails des permissions séparément
+      const rolePermissions: RolePermission[] = [];
+      
+      for (const rp of data || []) {
+        const { data: permissionData, error: permError } = await supabase
+          .from('permissions')
+          .select('*')
+          .eq('id', rp.permission_id)
+          .single();
+          
+        if (!permError && permissionData) {
+          rolePermissions.push({
+            id: rp.id,
+            role_id: rp.role_id,
+            permission_id: rp.permission_id,
+            permission: {
+              id: permissionData.id,
+              nom: `${permissionData.module}_${permissionData.action}`,
+              description: permissionData.description,
+              module: {
+                id: permissionData.module,
+                nom: permissionData.module,
+                description: permissionData.module
+              },
+              type_permission: {
+                id: permissionData.action,
+                nom: permissionData.action,
+                description: permissionData.action
+              }
+            }
+          });
+        }
+      }
+      
+      return rolePermissions;
     },
     enabled: !!roleId
   });
 };
 
-// Hook pour récupérer le rôle d'un utilisateur
-export const useUserRole = (userId?: string) => {
-  return useQuery({
-    queryKey: ['user-role', userId],
-    queryFn: async () => {
-      if (!userId) return null;
-      
-      console.log('🔍 Récupération du rôle pour l\'utilisateur:', userId);
-      
-      const { data, error } = await supabase
-        .from('user_roles')
-        .select(`
-          *,
-          role:roles(*)
-        `)
-        .eq('user_id', userId)
-        .eq('is_active', true)
-        .maybeSingle();
-
-      if (error) {
-        console.error('❌ Erreur lors de la récupération du rôle utilisateur:', error);
-        throw error;
-      }
-      
-      console.log('✅ Rôle récupéré:', data);
-      return data as UserRole | null;
-    },
-    enabled: !!userId
-  });
-};
-
-// Hook pour récupérer la matrice complète des permissions
-export const usePermissionMatrix = () => {
-  return useQuery({
-    queryKey: ['permission-matrix'],
-    queryFn: async () => {
-      // Récupérer toutes les permissions
-      const { data: permissions, error: permError } = await supabase
-        .from('permissions')
-        .select('*')
-        .order('menu, submenu, action');
-
-      if (permError) throw permError;
-
-      // Récupérer tous les rôles
-      const { data: roles, error: rolesError } = await supabase
-        .from('roles')
-        .select('*')
-        .order('name');
-
-      if (rolesError) throw rolesError;
-
-      // Récupérer toutes les associations rôle-permission
-      const { data: rolePermissions, error: rpError } = await supabase
-        .from('role_permissions')
-        .select('*');
-
-      if (rpError) throw rpError;
-
-      // Organiser les données en matrice
-      const matrix: PermissionMatrix[] = [];
-      const menuSubmenuMap = new Map<string, PermissionMatrix>();
-
-      // Grouper les permissions par menu/submenu
-      permissions?.forEach(perm => {
-        const key = `${perm.menu}|${perm.submenu || ''}`;
-        
-        if (!menuSubmenuMap.has(key)) {
-          menuSubmenuMap.set(key, {
-            menu: perm.menu,
-            submenu: perm.submenu,
-            permissions: {
-              read: null,
-              write: null,
-              delete: null
-            },
-            roleAccess: {}
-          });
-        }
-
-        const matrixItem = menuSubmenuMap.get(key)!;
-        
-        // Assigner les permissions par type
-        if (perm.action === 'read') matrixItem.permissions.read = perm;
-        if (perm.action === 'write') matrixItem.permissions.write = perm;
-        if (perm.action === 'delete') matrixItem.permissions.delete = perm;
-
-        // Initialiser les accès pour chaque rôle
-        roles?.forEach(role => {
-          if (!matrixItem.roleAccess[role.id]) {
-            matrixItem.roleAccess[role.id] = {
-              read: false,
-              write: false,
-              delete: false
-            };
-          }
-        });
-      });
-
-      // Remplir les accès réels basés sur role_permissions
-      rolePermissions?.forEach(rp => {
-        const permission = permissions?.find(p => p.id === rp.permission_id);
-        if (permission) {
-          const key = `${permission.menu}|${permission.submenu || ''}`;
-          const matrixItem = menuSubmenuMap.get(key);
-          
-          if (matrixItem && matrixItem.roleAccess[rp.role_id]) {
-            if (permission.action === 'read') matrixItem.roleAccess[rp.role_id].read = rp.can_access;
-            if (permission.action === 'write') matrixItem.roleAccess[rp.role_id].write = rp.can_access;
-            if (permission.action === 'delete') matrixItem.roleAccess[rp.role_id].delete = rp.can_access;
-          }
-        }
-      });
-
-      return Array.from(menuSubmenuMap.values());
-    }
-  });
-};
-
-// Hook pour mettre à jour les permissions d'un rôle
 export const useUpdateRolePermissions = () => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
   return useMutation({
-    mutationFn: async ({ 
-      roleId, 
-      permissionId, 
-      canAccess 
-    }: { 
-      roleId: string; 
-      permissionId: string; 
-      canAccess: boolean;
-    }) => {
-      // Vérifier si l'association existe déjà
-      const { data: existing, error: existingError } = await supabase
-        .from('role_permissions')
-        .select('*')
-        .eq('role_id', roleId)
-        .eq('permission_id', permissionId)
-        .maybeSingle();
+    mutationFn: async ({ roleId, permissionIds }: { roleId: string; permissionIds: string[] }) => {
+      // Supprimer toutes les permissions existantes pour ce rôle
+      const { error: deleteError } = await supabase
+        .from('roles_permissions')
+        .delete()
+        .eq('role_id', roleId);
 
-      if (existingError) throw existingError;
+      if (deleteError) throw deleteError;
 
-      if (existing) {
-        // Mettre à jour l'association existante
-        const { error } = await supabase
-          .from('role_permissions')
-          .update({ can_access: canAccess })
-          .eq('id', existing.id);
+      // Ajouter les nouvelles permissions
+      if (permissionIds.length > 0) {
+        const { error: insertError } = await supabase
+          .from('roles_permissions')
+          .insert(
+            permissionIds.map(permissionId => ({
+              role_id: roleId,
+              permission_id: permissionId
+            }))
+          );
 
-        if (error) throw error;
-      } else {
-        // Créer une nouvelle association
-        const { error } = await supabase
-          .from('role_permissions')
-          .insert({
-            role_id: roleId,
-            permission_id: permissionId,
-            can_access: canAccess
-          });
-
-        if (error) throw error;
+        if (insertError) throw insertError;
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['permission-matrix'] });
       queryClient.invalidateQueries({ queryKey: ['role-permissions'] });
       toast({
-        title: "Permission mise à jour",
-        description: "La permission a été mise à jour avec succès.",
+        title: "Permissions mises à jour",
+        description: "Les permissions du rôle ont été mises à jour avec succès.",
       });
     },
     onError: (error: any) => {
       toast({
         title: "Erreur",
-        description: error.message || "Impossible de mettre à jour la permission",
+        description: error.message || "Impossible de mettre à jour les permissions",
         variant: "destructive",
       });
     }
   });
 };
 
-// Hook pour assigner un rôle à un utilisateur
-export const useAssignUserRole = () => {
-  const queryClient = useQueryClient();
-  const { toast } = useToast();
-
-  return useMutation({
-    mutationFn: async ({ userId, roleId }: { userId: string; roleId: string }) => {
-      console.log('🔄 Assignation du rôle:', { userId, roleId });
-      
-      // Désactiver les anciens rôles de l'utilisateur
-      const { error: deactivateError } = await supabase
-        .from('user_roles')
-        .update({ is_active: false })
-        .eq('user_id', userId);
-
-      if (deactivateError) {
-        console.error('❌ Erreur lors de la désactivation des anciens rôles:', deactivateError);
-        throw deactivateError;
-      }
-
-      // Assigner le nouveau rôle
-      const { error } = await supabase
-        .from('user_roles')
-        .insert({
-          user_id: userId,
-          role_id: roleId,
-          is_active: true
-        });
-
-      if (error) {
-        console.error('❌ Erreur lors de l\'assignation du nouveau rôle:', error);
-        throw error;
-      }
-      
-      console.log('✅ Rôle assigné avec succès');
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['user-role'] });
-      queryClient.invalidateQueries({ queryKey: ['user-roles'] });
-      toast({
-        title: "Rôle assigné",
-        description: "Le rôle a été assigné à l'utilisateur avec succès.",
-      });
-    },
-    onError: (error: any) => {
-      console.error('❌ Erreur lors de l\'assignation du rôle:', error);
-      toast({
-        title: "Erreur",
-        description: error.message || "Impossible d'assigner le rôle",
-        variant: "destructive",
-      });
-    }
-  });
-};
-
-// Hook pour vérifier si l'utilisateur actuel a une permission
-export const useUserPermission = (menu: string, submenu?: string, action: string = 'read') => {
+export const useUserPermissions = (userId?: string) => {
   return useQuery({
-    queryKey: ['user-permission', menu, submenu, action],
+    queryKey: ['user-permissions', userId],
     queryFn: async () => {
-      const { data, error } = await supabase.rpc('user_has_permission', {
-        user_uuid: (await supabase.auth.getUser()).data.user?.id,
-        menu_name: menu,
-        submenu_name: submenu || null,
-        action_name: action
+      if (!userId) return [];
+      
+      const { data, error } = await supabase.rpc('get_user_permissions', {
+        user_id: userId
       });
 
       if (error) throw error;
-      return data as boolean;
-    }
+      return data || [];
+    },
+    enabled: !!userId
   });
 };
