@@ -10,7 +10,7 @@ interface SummarySectionProps {
   fraisLivraison: number;
   fraisLogistique: number;
   transitDouane: number;
-  surstaries: number;
+  surestaries: number;
   montantHT: number;
   tauxTva: number;
   tva: number;
@@ -25,7 +25,7 @@ export const SummarySection = ({
   fraisLivraison,
   fraisLogistique,
   transitDouane,
-  surstaries,
+  surestaries,
   montantHT,
   tauxTva,
   tva,
@@ -60,8 +60,8 @@ export const SummarySection = ({
           <span>{formatCurrency(transitDouane)}</span>
         </div>
         <div className="flex justify-between">
-          <span>Surstaries:</span>
-          <span>{formatCurrency(surstaries)}</span>
+          <span>Surestaries:</span>
+          <span>{formatCurrency(surestaries)}</span>
         </div>
         <Separator />
         <div className="flex justify-between">

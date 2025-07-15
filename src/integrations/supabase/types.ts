@@ -264,7 +264,7 @@ export type Database = {
           remise: number | null
           statut: string
           statut_paiement: string | null
-          surstaries: number | null
+          surestaries: number | null
           taux_tva: number | null
           transit_douane: number | null
           tva: number | null
@@ -288,7 +288,7 @@ export type Database = {
           remise?: number | null
           statut?: string
           statut_paiement?: string | null
-          surstaries?: number | null
+          surestaries?: number | null
           taux_tva?: number | null
           transit_douane?: number | null
           tva?: number | null
@@ -312,7 +312,7 @@ export type Database = {
           remise?: number | null
           statut?: string
           statut_paiement?: string | null
-          surstaries?: number | null
+          surestaries?: number | null
           taux_tva?: number | null
           transit_douane?: number | null
           tva?: number | null

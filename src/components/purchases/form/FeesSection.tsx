@@ -61,12 +61,12 @@ export const FeesSection = ({ form }: FeesSectionProps) => {
         </div>
 
         <div>
-          <Label htmlFor="surstaries">Surstaries (GNF)</Label>
+          <Label htmlFor="surestaries">Surestaries (GNF)</Label>
           <Input
-            id="surstaries"
+            id="surestaries"
             type="number"
             step="1"
-            {...form.register('surstaries', { valueAsNumber: true })}
+            {...form.register('surestaries', { valueAsNumber: true })}
             placeholder="0"
           />
         </div>

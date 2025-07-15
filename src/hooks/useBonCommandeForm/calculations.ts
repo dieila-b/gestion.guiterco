@@ -11,9 +11,9 @@ export const calculateMontantHT = (
   fraisLivraison: number,
   fraisLogistique: number,
   transitDouane: number,
-  surstaries: number
+  surestaries: number
 ): number => {
-  return Math.round(sousTotal - remise + fraisLivraison + fraisLogistique + transitDouane + surstaries);
+  return Math.round(sousTotal - remise + fraisLivraison + fraisLogistique + transitDouane + surestaries);
 };
 
 export const calculateTVA = (montantHT: number, tauxTva: number): number => {

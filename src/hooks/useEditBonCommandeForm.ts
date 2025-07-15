@@ -106,9 +106,9 @@ export const useEditBonCommandeForm = (bon: any, onSuccess: () => void) => {
   const fraisLivraison = Math.round(form.watch('frais_livraison') || 0);
   const fraisLogistique = Math.round(form.watch('frais_logistique') || 0);
   const transitDouane = Math.round(form.watch('transit_douane') || 0);
-  const surstaries = Math.round(form.watch('surstaries') || 0);
+  const surestaries = Math.round(form.watch('surestaries') || 0);
   const tauxTva = form.watch('taux_tva') || 0; // Changed from 20 to 0
-  const montantHT = calculateMontantHT(sousTotal, remise, fraisLivraison, fraisLogistique, transitDouane, surstaries);
+  const montantHT = calculateMontantHT(sousTotal, remise, fraisLivraison, fraisLogistique, transitDouane, surestaries);
   const tva = calculateTVA(montantHT, tauxTva);
   const montantTTC = calculateMontantTTC(montantHT, tva);
   const resteAPayer = calculateResteAPayer(montantTTC, montantPaye);
