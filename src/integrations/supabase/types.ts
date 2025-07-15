@@ -1864,6 +1864,33 @@ export type Database = {
         }
         Relationships: []
       }
+      permissions: {
+        Row: {
+          action: string
+          created_at: string
+          description: string | null
+          id: string
+          menu: string
+          submenu: string | null
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          menu: string
+          submenu?: string | null
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          menu?: string
+          submenu?: string | null
+        }
+        Relationships: []
+      }
       points_de_vente: {
         Row: {
           adresse: string | null
@@ -2169,6 +2196,72 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      role_permissions: {
+        Row: {
+          can_access: boolean | null
+          created_at: string
+          id: string
+          permission_id: string
+          role_id: string
+        }
+        Insert: {
+          can_access?: boolean | null
+          created_at?: string
+          id?: string
+          permission_id: string
+          role_id: string
+        }
+        Update: {
+          can_access?: boolean | null
+          created_at?: string
+          id?: string
+          permission_id?: string
+          role_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "role_permissions_permission_id_fkey"
+            columns: ["permission_id"]
+            isOneToOne: false
+            referencedRelation: "permissions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "role_permissions_role_id_fkey"
+            columns: ["role_id"]
+            isOneToOne: false
+            referencedRelation: "roles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      roles: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          is_system_role: boolean | null
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_system_role?: boolean | null
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_system_role?: boolean | null
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       roles_utilisateurs: {
         Row: {
@@ -2614,6 +2707,41 @@ export type Database = {
         }
         Relationships: []
       }
+      user_roles: {
+        Row: {
+          assigned_at: string
+          assigned_by: string | null
+          id: string
+          is_active: boolean | null
+          role_id: string
+          user_id: string
+        }
+        Insert: {
+          assigned_at?: string
+          assigned_by?: string | null
+          id?: string
+          is_active?: boolean | null
+          role_id: string
+          user_id: string
+        }
+        Update: {
+          assigned_at?: string
+          assigned_by?: string | null
+          id?: string
+          is_active?: boolean | null
+          role_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_roles_role_id_fkey"
+            columns: ["role_id"]
+            isOneToOne: false
+            referencedRelation: "roles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       utilisateurs_internes: {
         Row: {
           adresse: string | null
@@ -2949,6 +3077,10 @@ export type Database = {
       }
     }
     Functions: {
+      assign_all_permissions_to_admin: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
       audit_entrees_stock_propres: {
         Args: Record<PropertyKey, never>
         Returns: {
@@ -3213,7 +3345,14 @@ export type Database = {
         Returns: undefined
       }
       user_has_permission: {
-        Args: { user_id: string; permission_name: string }
+        Args:
+          | { user_id: string; permission_name: string }
+          | {
+              user_uuid: string
+              menu_name: string
+              submenu_name?: string
+              action_name?: string
+            }
         Returns: boolean
       }
       verifier_integrite_entrees_stock: {
