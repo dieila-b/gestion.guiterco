@@ -1740,30 +1740,6 @@ export type Database = {
         }
         Relationships: []
       }
-      modules_application: {
-        Row: {
-          created_at: string | null
-          description: string | null
-          id: string
-          nom: string
-          updated_at: string | null
-        }
-        Insert: {
-          created_at?: string | null
-          description?: string | null
-          id?: string
-          nom: string
-          updated_at?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          description?: string | null
-          id?: string
-          nom?: string
-          updated_at?: string | null
-        }
-        Relationships: []
-      }
       notifications_precommandes: {
         Row: {
           created_at: string
@@ -1885,30 +1861,6 @@ export type Database = {
           id?: string
           indicatif_tel?: string | null
           nom?: string
-        }
-        Relationships: []
-      }
-      permissions: {
-        Row: {
-          action: string
-          created_at: string | null
-          description: string | null
-          id: string
-          module: string
-        }
-        Insert: {
-          action: string
-          created_at?: string | null
-          description?: string | null
-          id?: string
-          module: string
-        }
-        Update: {
-          action?: string
-          created_at?: string | null
-          description?: string | null
-          id?: string
-          module?: string
         }
         Relationships: []
       }
@@ -2214,35 +2166,6 @@ export type Database = {
             columns: ["facture_achat_id"]
             isOneToOne: false
             referencedRelation: "factures_achat"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      roles_permissions: {
-        Row: {
-          created_at: string | null
-          id: string
-          permission_id: string | null
-          role_id: string | null
-        }
-        Insert: {
-          created_at?: string | null
-          id?: string
-          permission_id?: string | null
-          role_id?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          id?: string
-          permission_id?: string | null
-          role_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "roles_permissions_role_id_fkey"
-            columns: ["role_id"]
-            isOneToOne: false
-            referencedRelation: "roles_utilisateurs"
             referencedColumns: ["id"]
           },
         ]
@@ -2660,27 +2583,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
-      }
-      types_permissions: {
-        Row: {
-          created_at: string | null
-          description: string | null
-          id: string
-          nom: string
-        }
-        Insert: {
-          created_at?: string | null
-          description?: string | null
-          id?: string
-          nom: string
-        }
-        Update: {
-          created_at?: string | null
-          description?: string | null
-          id?: string
-          nom?: string
-        }
-        Relationships: []
       }
       unites: {
         Row: {
@@ -3272,15 +3174,6 @@ export type Database = {
           valeur_totale_stock_vente: number
           marge_totale_globale: number
           taux_marge_moyen_pondere: number
-        }[]
-      }
-      get_user_permissions: {
-        Args: { user_id: string }
-        Returns: {
-          module_nom: string
-          type_permission: string
-          permission_nom: string
-          permission_description: string
         }[]
       }
       get_user_role_for_rls: {
