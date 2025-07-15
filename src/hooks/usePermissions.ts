@@ -254,15 +254,31 @@ export const useUserPermissions = (userId?: string) => {
     queryFn: async () => {
       if (!userId) return [];
       
-      const { data, error } = await supabase.rpc('user_has_permission', {
-        user_uuid: userId,
-        menu_name: '',
-        submenu_name: null,
-        action_name: 'read'
-      });
+      // Get user permissions with role info
+      const { data, error } = await supabase
+        .from('user_roles')
+        .select(`
+          *,
+          role:roles(*),
+          role_permissions:role_permissions(
+            *,
+            permission:permissions(*)
+          )
+        `)
+        .eq('user_id', userId)
+        .eq('is_active', true);
 
       if (error) throw error;
-      return data || [];
+      
+      // Flatten permissions from all roles  
+      const permissions = (data as any[])?.flatMap((ur: any) => 
+        (ur.role_permissions as any[])?.map((rp: any) => ({
+          ...rp.permission,
+          can_access: rp.can_access
+        })) || []
+      ) || [];
+      
+      return permissions.filter((p: any) => p.can_access);
     },
     enabled: !!userId
   });

@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -9,28 +8,26 @@ import { Shield, Check, X } from 'lucide-react';
 
 const AccessControl = () => {
   const { user, utilisateurInterne } = useAuth();
-  const { data: userPermissions } = useUserPermissions(user?.id);
+  const { data: userPermissions = [] } = useUserPermissions(user?.id);
 
-  // Grouper les permissions par module
-  const groupedPermissions = userPermissions?.reduce((acc, permission) => {
-    const moduleName = permission.module_nom;
-    if (!acc[moduleName]) {
-      acc[moduleName] = [];
+  // Grouper les permissions par menu
+  const groupedPermissions = (userPermissions as any[]).reduce((acc, permission) => {
+    const menuName = permission.menu || 'Général';
+    if (!acc[menuName]) {
+      acc[menuName] = [];
     }
-    acc[moduleName].push(permission);
+    acc[menuName].push(permission);
     return acc;
   }, {} as Record<string, any[]>);
 
-  const getPermissionTypeColor = (type: string) => {
-    switch (type) {
-      case 'lecture':
+  const getPermissionTypeColor = (action: string) => {
+    switch (action) {
+      case 'read':
         return 'bg-green-100 text-green-800';
-      case 'ecriture':
+      case 'write':
         return 'bg-blue-100 text-blue-800';
-      case 'suppression':
+      case 'delete':
         return 'bg-red-100 text-red-800';
-      case 'administration':
-        return 'bg-purple-100 text-purple-800';
       default:
         return 'bg-gray-100 text-gray-800';
     }
@@ -83,22 +80,22 @@ const AccessControl = () => {
         <CardHeader>
           <CardTitle>Vos Permissions</CardTitle>
           <CardDescription>
-            Liste détaillée de vos permissions par module
+            Liste détaillée de vos permissions par menu
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {Object.entries(groupedPermissions || {}).map(([moduleName, permissions]) => (
-            <div key={moduleName} className="mb-6 last:mb-0">
-              <h4 className="font-medium mb-3 capitalize">{moduleName}</h4>
+          {Object.entries(groupedPermissions).map(([menuName, permissions]) => (
+            <div key={menuName} className="mb-6 last:mb-0">
+              <h4 className="font-medium mb-3 capitalize">{menuName}</h4>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                {permissions.map((permission, index) => (
+                {(permissions as any[]).map((permission: any, index: number) => (
                   <div key={index} className="flex items-center space-x-2">
                     <Check className="h-4 w-4 text-green-500" />
                     <Badge 
                       variant="outline"
-                      className={getPermissionTypeColor(permission.type_permission)}
+                      className={getPermissionTypeColor(permission.action)}
                     >
-                      {permission.type_permission}
+                      {permission.action}
                     </Badge>
                   </div>
                 ))}
@@ -125,18 +122,18 @@ const AccessControl = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {['lecture', 'ecriture', 'suppression', 'administration'].map((type) => {
-                const typePermissions = userPermissions?.filter(p => p.type_permission === type) || [];
-                const moduleCount = new Set(typePermissions.map(p => p.module_nom)).size;
+              {['read', 'write', 'delete'].map((action) => {
+                const actionPermissions = (userPermissions as any[]).filter(p => p.action === action);
+                const moduleCount = new Set(actionPermissions.map(p => p.menu)).size;
                 
                 return (
-                  <TableRow key={type}>
+                  <TableRow key={action}>
                     <TableCell>
                       <Badge 
                         variant="outline"
-                        className={getPermissionTypeColor(type)}
+                        className={getPermissionTypeColor(action)}
                       >
-                        {type}
+                        {action}
                       </Badge>
                     </TableCell>
                     <TableCell>

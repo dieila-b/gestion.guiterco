@@ -5,9 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Edit, Users } from 'lucide-react';
 import { useRolesUtilisateurs } from '@/hooks/useRolesUtilisateurs';
-import EditRolePermissionsDialog from './EditRolePermissionsDialog';
-import CreateRoleDialog from './CreateRoleDialog';
-import AssignUsersToRoleDialog from './AssignUsersToRoleDialog';
+// import EditRolePermissionsDialog from './EditRolePermissionsDialog';
+// import CreateRoleDialog from './CreateRoleDialog';
+// import AssignUsersToRoleDialog from './AssignUsersToRoleDialog';
 
 const RolesManagement = () => {
   const { data: roles, isLoading } = useRolesUtilisateurs();
@@ -51,7 +51,7 @@ const RolesManagement = () => {
             Configurez les rôles utilisateurs et leurs permissions
           </p>
         </div>
-        <CreateRoleDialog />
+        {/* <CreateRoleDialog /> */}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -70,19 +70,15 @@ const RolesManagement = () => {
             </CardHeader>
             <CardContent>
               <div className="flex items-center justify-between space-x-2">
-                <AssignUsersToRoleDialog role={role}>
-                  <Button variant="outline" size="sm">
-                    <Users className="h-4 w-4 mr-1" />
-                    Utilisateurs
-                  </Button>
-                </AssignUsersToRoleDialog>
+                <Button variant="outline" size="sm" disabled>
+                  <Users className="h-4 w-4 mr-1" />
+                  Utilisateurs
+                </Button>
                 
-                <EditRolePermissionsDialog role={role}>
-                  <Button variant="outline" size="sm">
-                    <Edit className="h-4 w-4 mr-1" />
-                    Permissions
-                  </Button>
-                </EditRolePermissionsDialog>
+                <Button variant="outline" size="sm" disabled>
+                  <Edit className="h-4 w-4 mr-1" />
+                  Permissions
+                </Button>
               </div>
             </CardContent>
           </Card>
