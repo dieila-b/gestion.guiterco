@@ -1,13 +1,16 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useRoles, useAssignUserRole } from '@/hooks/usePermissions';
+import { useUtilisateursInternes } from '@/hooks/useUtilisateursInternes';
 import { User, UserPlus } from 'lucide-react';
 
 const UserRolesManager = () => {
   const { data: roles, isLoading: rolesLoading } = useRoles();
+  const { data: utilisateurs, isLoading: utilisateursLoading } = useUtilisateursInternes();
   const assignRole = useAssignUserRole();
   const [selectedUserId, setSelectedUserId] = useState<string>('');
   const [selectedRoleId, setSelectedRoleId] = useState<string>('');
@@ -39,8 +42,11 @@ const UserRolesManager = () => {
     }
   };
 
-  if (rolesLoading) {
-    return <div>Chargement des rôles...</div>;
+  // Filtrer les utilisateurs actifs uniquement
+  const utilisateursActifs = utilisateurs?.filter(user => user.statut === 'actif') || [];
+
+  if (rolesLoading || utilisateursLoading) {
+    return <div>Chargement des données...</div>;
   }
 
   return (
@@ -69,9 +75,11 @@ const UserRolesManager = () => {
                   <SelectValue placeholder="Sélectionner un utilisateur" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="user1">John Doe (john@example.com)</SelectItem>
-                  <SelectItem value="user2">Jane Smith (jane@example.com)</SelectItem>
-                  <SelectItem value="user3">Bob Johnson (bob@example.com)</SelectItem>
+                  {utilisateursActifs.map((user) => (
+                    <SelectItem key={user.id} value={user.user_id}>
+                      {user.prenom} {user.nom} ({user.email})
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
