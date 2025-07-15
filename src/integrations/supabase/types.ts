@@ -3315,10 +3315,6 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: string
       }
-      is_admin_user: {
-        Args: Record<PropertyKey, never>
-        Returns: boolean
-      }
       is_internal_user_active: {
         Args: { user_id: string }
         Returns: boolean
