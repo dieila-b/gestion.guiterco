@@ -95,6 +95,7 @@ export const CreateBonCommandeForm = ({ onSuccess }: CreateBonCommandeFormProps)
           fraisLivraison={fraisLivraison}
           fraisLogistique={fraisLogistique}
           transitDouane={transitDouane}
+          surstaries={Math.round(form.watch('surstaries') || 0)}
           montantHT={montantHT}
           tauxTva={tauxTva}
           tva={tva}

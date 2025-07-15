@@ -61,6 +61,17 @@ export const FeesSection = ({ form }: FeesSectionProps) => {
         </div>
 
         <div>
+          <Label htmlFor="surstaries">Surstaries (GNF)</Label>
+          <Input
+            id="surstaries"
+            type="number"
+            step="1"
+            {...form.register('surstaries', { valueAsNumber: true })}
+            placeholder="0"
+          />
+        </div>
+
+        <div>
           <Label htmlFor="taux_tva">Taux de TVA (%)</Label>
           <Input
             id="taux_tva"

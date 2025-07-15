@@ -11,6 +11,7 @@ export const bonCommandeSchema = z.object({
   frais_livraison: z.number().min(0).default(0),
   frais_logistique: z.number().min(0).default(0),
   transit_douane: z.number().min(0).default(0),
+  surstaries: z.number().min(0).default(0),
   taux_tva: z.number().min(0).max(100).default(20),
   observations: z.string().optional(),
 });
