@@ -65,6 +65,8 @@ export const useUserRole = (userId?: string) => {
     queryFn: async () => {
       if (!userId) return null;
       
+      console.log('🔍 Récupération du rôle pour l\'utilisateur:', userId);
+      
       const { data, error } = await supabase
         .from('user_roles')
         .select(`
@@ -75,7 +77,12 @@ export const useUserRole = (userId?: string) => {
         .eq('is_active', true)
         .maybeSingle();
 
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Erreur lors de la récupération du rôle utilisateur:', error);
+        throw error;
+      }
+      
+      console.log('✅ Rôle récupéré:', data);
       return data as UserRole | null;
     },
     enabled: !!userId
@@ -241,13 +248,18 @@ export const useAssignUserRole = () => {
 
   return useMutation({
     mutationFn: async ({ userId, roleId }: { userId: string; roleId: string }) => {
+      console.log('🔄 Assignation du rôle:', { userId, roleId });
+      
       // Désactiver les anciens rôles de l'utilisateur
       const { error: deactivateError } = await supabase
         .from('user_roles')
         .update({ is_active: false })
         .eq('user_id', userId);
 
-      if (deactivateError) throw deactivateError;
+      if (deactivateError) {
+        console.error('❌ Erreur lors de la désactivation des anciens rôles:', deactivateError);
+        throw deactivateError;
+      }
 
       // Assigner le nouveau rôle
       const { error } = await supabase
@@ -258,7 +270,12 @@ export const useAssignUserRole = () => {
           is_active: true
         });
 
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Erreur lors de l\'assignation du nouveau rôle:', error);
+        throw error;
+      }
+      
+      console.log('✅ Rôle assigné avec succès');
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['user-role'] });
@@ -269,6 +286,7 @@ export const useAssignUserRole = () => {
       });
     },
     onError: (error: any) => {
+      console.error('❌ Erreur lors de l\'assignation du rôle:', error);
       toast({
         title: "Erreur",
         description: error.message || "Impossible d'assigner le rôle",

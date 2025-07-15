@@ -18,23 +18,38 @@ const UserRolesManager = () => {
   // Récupérer le rôle actuel de l'utilisateur sélectionné
   const { data: currentUserRole, isLoading: userRoleLoading } = useUserRole(selectedUserId);
 
-  // Mettre à jour le rôle sélectionné quand l'utilisateur change
+  // Mettre à jour le rôle sélectionné quand l'utilisateur change ou que le rôle est récupéré
   useEffect(() => {
+    console.log('🔄 Effet déclenché - utilisateur sélectionné:', selectedUserId);
+    console.log('🔄 Rôle actuel récupéré:', currentUserRole);
+    
     if (currentUserRole?.role) {
+      console.log('✅ Mise à jour du rôle sélectionné vers:', currentUserRole.role.id);
       setSelectedRoleId(currentUserRole.role.id);
     } else {
+      console.log('ℹ️ Aucun rôle trouvé, réinitialisation de la sélection');
       setSelectedRoleId('');
     }
-  }, [currentUserRole]);
+  }, [currentUserRole, selectedUserId]);
 
   const handleUserChange = (userId: string) => {
+    console.log('👤 Changement d\'utilisateur vers:', userId);
     setSelectedUserId(userId);
     // Le rôle sera automatiquement mis à jour via useEffect
   };
 
+  const handleRoleChange = (roleId: string) => {
+    console.log('🎭 Changement de rôle vers:', roleId);
+    setSelectedRoleId(roleId);
+  };
+
   const handleAssignRole = () => {
-    if (!selectedUserId || !selectedRoleId) return;
+    if (!selectedUserId || !selectedRoleId) {
+      console.warn('⚠️ Utilisateur ou rôle manquant:', { selectedUserId, selectedRoleId });
+      return;
+    }
     
+    console.log('🚀 Assignation du rôle:', { userId: selectedUserId, roleId: selectedRoleId });
     assignRole.mutate({
       userId: selectedUserId,
       roleId: selectedRoleId
@@ -108,7 +123,7 @@ const UserRolesManager = () => {
               </label>
               <Select 
                 value={selectedRoleId} 
-                onValueChange={setSelectedRoleId}
+                onValueChange={handleRoleChange}
                 disabled={userRoleLoading}
               >
                 <SelectTrigger>
@@ -143,6 +158,17 @@ const UserRolesManager = () => {
               <p className="text-xs text-muted-foreground mt-1">
                 Assigné le {new Date(currentUserRole.assigned_at).toLocaleDateString('fr-FR')}
               </p>
+            </div>
+          )}
+
+          {/* Debug info - à supprimer en production */}
+          {selectedUserId && (
+            <div className="mt-4 p-2 bg-gray-50 rounded text-xs">
+              <p><strong>Debug:</strong></p>
+              <p>Utilisateur sélectionné: {selectedUserId}</p>
+              <p>Rôle sélectionné: {selectedRoleId}</p>
+              <p>Chargement du rôle: {userRoleLoading ? 'Oui' : 'Non'}</p>
+              <p>Rôle trouvé: {currentUserRole?.role?.name || 'Aucun'}</p>
             </div>
           )}
         </CardContent>
