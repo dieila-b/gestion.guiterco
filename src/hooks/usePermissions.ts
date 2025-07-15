@@ -1,3 +1,4 @@
+
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -54,6 +55,30 @@ export const useRolePermissions = (roleId?: string) => {
       return data as RolePermission[];
     },
     enabled: !!roleId
+  });
+};
+
+// Hook pour récupérer le rôle d'un utilisateur
+export const useUserRole = (userId?: string) => {
+  return useQuery({
+    queryKey: ['user-role', userId],
+    queryFn: async () => {
+      if (!userId) return null;
+      
+      const { data, error } = await supabase
+        .from('user_roles')
+        .select(`
+          *,
+          role:roles(*)
+        `)
+        .eq('user_id', userId)
+        .eq('is_active', true)
+        .maybeSingle();
+
+      if (error) throw error;
+      return data as UserRole | null;
+    },
+    enabled: !!userId
   });
 };
 
@@ -216,6 +241,15 @@ export const useAssignUserRole = () => {
 
   return useMutation({
     mutationFn: async ({ userId, roleId }: { userId: string; roleId: string }) => {
+      // Désactiver les anciens rôles de l'utilisateur
+      const { error: deactivateError } = await supabase
+        .from('user_roles')
+        .update({ is_active: false })
+        .eq('user_id', userId);
+
+      if (deactivateError) throw deactivateError;
+
+      // Assigner le nouveau rôle
       const { error } = await supabase
         .from('user_roles')
         .insert({
@@ -227,6 +261,7 @@ export const useAssignUserRole = () => {
       if (error) throw error;
     },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['user-role'] });
       queryClient.invalidateQueries({ queryKey: ['user-roles'] });
       toast({
         title: "Rôle assigné",

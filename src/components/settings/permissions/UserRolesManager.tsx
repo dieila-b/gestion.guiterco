@@ -1,10 +1,10 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useRoles, useAssignUserRole } from '@/hooks/usePermissions';
+import { useRoles, useAssignUserRole, useUserRole } from '@/hooks/usePermissions';
 import { useUtilisateursInternes } from '@/hooks/useUtilisateursInternes';
 import { User, UserPlus } from 'lucide-react';
 
@@ -15,6 +15,23 @@ const UserRolesManager = () => {
   const [selectedUserId, setSelectedUserId] = useState<string>('');
   const [selectedRoleId, setSelectedRoleId] = useState<string>('');
 
+  // Récupérer le rôle actuel de l'utilisateur sélectionné
+  const { data: currentUserRole, isLoading: userRoleLoading } = useUserRole(selectedUserId);
+
+  // Mettre à jour le rôle sélectionné quand l'utilisateur change
+  useEffect(() => {
+    if (currentUserRole?.role) {
+      setSelectedRoleId(currentUserRole.role.id);
+    } else {
+      setSelectedRoleId('');
+    }
+  }, [currentUserRole]);
+
+  const handleUserChange = (userId: string) => {
+    setSelectedUserId(userId);
+    // Le rôle sera automatiquement mis à jour via useEffect
+  };
+
   const handleAssignRole = () => {
     if (!selectedUserId || !selectedRoleId) return;
     
@@ -22,9 +39,6 @@ const UserRolesManager = () => {
       userId: selectedUserId,
       roleId: selectedRoleId
     });
-    
-    setSelectedUserId('');
-    setSelectedRoleId('');
   };
 
   const getRoleColor = (roleName: string) => {
@@ -70,7 +84,7 @@ const UserRolesManager = () => {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
             <div className="space-y-2">
               <label className="text-sm font-medium">Utilisateur</label>
-              <Select value={selectedUserId} onValueChange={setSelectedUserId}>
+              <Select value={selectedUserId} onValueChange={handleUserChange}>
                 <SelectTrigger>
                   <SelectValue placeholder="Sélectionner un utilisateur" />
                 </SelectTrigger>
@@ -85,8 +99,18 @@ const UserRolesManager = () => {
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-medium">Rôle</label>
-              <Select value={selectedRoleId} onValueChange={setSelectedRoleId}>
+              <label className="text-sm font-medium">
+                Rôle {currentUserRole?.role && (
+                  <span className="text-xs text-muted-foreground ml-2">
+                    (Actuel: {currentUserRole.role.name})
+                  </span>
+                )}
+              </label>
+              <Select 
+                value={selectedRoleId} 
+                onValueChange={setSelectedRoleId}
+                disabled={userRoleLoading}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Sélectionner un rôle" />
                 </SelectTrigger>
@@ -102,11 +126,25 @@ const UserRolesManager = () => {
 
             <Button 
               onClick={handleAssignRole}
-              disabled={!selectedUserId || !selectedRoleId || assignRole.isPending}
+              disabled={!selectedUserId || !selectedRoleId || assignRole.isPending || userRoleLoading}
             >
-              {assignRole.isPending ? 'Assignation...' : 'Assigner le rôle'}
+              {assignRole.isPending ? 'Assignation...' : 
+               currentUserRole?.role ? 'Modifier le rôle' : 'Assigner le rôle'}
             </Button>
           </div>
+
+          {/* Affichage du rôle actuel */}
+          {selectedUserId && currentUserRole?.role && (
+            <div className="mt-4 p-3 bg-muted rounded-lg">
+              <p className="text-sm text-muted-foreground">Rôle actuel :</p>
+              <Badge className={getRoleColor(currentUserRole.role.name)} variant="outline">
+                {currentUserRole.role.name}
+              </Badge>
+              <p className="text-xs text-muted-foreground mt-1">
+                Assigné le {new Date(currentUserRole.assigned_at).toLocaleDateString('fr-FR')}
+              </p>
+            </div>
+          )}
         </CardContent>
       </Card>
 
