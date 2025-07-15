@@ -28,6 +28,7 @@ export interface RolePermission {
   permission_id: string;
   can_access: boolean;
   created_at: string;
+  permission?: Permission;
 }
 
 export interface UserRole {
@@ -37,6 +38,7 @@ export interface UserRole {
   assigned_at: string;
   assigned_by?: string;
   is_active: boolean;
+  role?: Role;
 }
 
 // Hook pour récupérer tous les rôles
@@ -102,7 +104,7 @@ export const useRolePermissions = (roleId?: string) => {
         throw error;
       }
       console.log('Role permissions fetched:', data);
-      return data;
+      return data as RolePermission[];
     },
     enabled: !!roleId
   });
@@ -130,7 +132,7 @@ export const useUserRoles = (userId?: string) => {
         throw error;
       }
       console.log('User roles fetched:', data);
-      return data;
+      return data as UserRole[];
     },
     enabled: !!userId
   });
@@ -218,15 +220,16 @@ export const useUpdateRolePermissions = () => {
 
       if (deleteError) throw deleteError;
 
-      // Ajouter les nouvelles permissions
-      if (permissionUpdates.length > 0) {
+      // Ajouter les nouvelles permissions (seulement celles qui sont actives)
+      const activePermissions = permissionUpdates.filter(update => update.can_access);
+      if (activePermissions.length > 0) {
         const { error: insertError } = await supabase
           .from('role_permissions')
           .insert(
-            permissionUpdates.map(update => ({
+            activePermissions.map(update => ({
               role_id: roleId,
               permission_id: update.permission_id,
-              can_access: update.can_access
+              can_access: true
             }))
           );
 
@@ -305,7 +308,7 @@ export const useUserPermissions = (userId?: string) => {
       if (!userId) return [];
       
       console.log('Fetching user permissions for user:', userId);
-      // Get user permissions with role info
+      // Get user permissions via user_roles and role_permissions
       const { data, error } = await supabase
         .from('user_roles')
         .select(`

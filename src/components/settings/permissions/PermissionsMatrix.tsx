@@ -40,11 +40,17 @@ const PermissionsMatrix = () => {
     let newPermissionUpdates;
     
     if (enabled) {
+      // Ajouter cette permission
+      const existingPermissions = currentPermissions.map(rp => ({ 
+        permission_id: rp.permission_id, 
+        can_access: true 
+      }));
       newPermissionUpdates = [
-        ...currentPermissions.map(rp => ({ permission_id: rp.permission_id, can_access: true })),
+        ...existingPermissions,
         { permission_id: permissionId, can_access: true }
       ];
     } else {
+      // Retirer cette permission
       newPermissionUpdates = currentPermissions
         .filter(rp => rp.permission_id !== permissionId)
         .map(rp => ({ permission_id: rp.permission_id, can_access: true }));
