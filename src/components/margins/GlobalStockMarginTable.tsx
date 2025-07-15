@@ -13,7 +13,7 @@ const GlobalStockMarginTable = ({ marges, isLoading }: GlobalStockMarginTablePro
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('fr-FR', {
       style: 'currency',
-      currency: 'XOF',
+      currency: 'GNF',
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
     }).format(value);

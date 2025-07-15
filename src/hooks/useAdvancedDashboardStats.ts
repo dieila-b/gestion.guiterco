@@ -146,52 +146,76 @@ export const useAdvancedDashboardStats = () => {
 
       const nombreClients = clientsCount || 0;
 
-      // 7. Stock Global et calculs de valeur
-      const { data: stockData, error: stockError } = await supabase
-        .from('stock_principal')
-        .select(`
-          quantite_disponible,
-          article:article_id(prix_unitaire)
-        `);
+      // 7. Récupération des données des marges globales de stock
+      const { data: resumeMargesStock, error: resumeMargesError } = await supabase
+        .rpc('get_resume_marges_globales_stock');
       
-      if (stockError) {
-        console.error('Error fetching stock data:', stockError);
-        throw stockError;
+      if (resumeMargesError) {
+        console.error('Error fetching resume marges globales stock:', resumeMargesError);
+        throw resumeMargesError;
       }
 
-      // Stock PDV
-      const { data: stockPDV, error: stockPDVError } = await supabase
-        .from('stock_pdv')
-        .select(`
-          quantite_disponible,
-          article:article_id(prix_unitaire)
-        `);
-      
-      if (stockPDVError) {
-        console.error('Error fetching PDV stock data:', stockPDVError);
-        throw stockPDVError;
-      }
+      // Utiliser les données des marges globales si disponibles, sinon calcul de fallback
+      let totalCatalogue = catalogueCount || 0;
+      let stockGlobal = 0;
+      let valeurStockAchat = 0;
+      let valeurStockVente = 0;
+      let margeGlobaleStock = 0;
+      let margePourcentage = 0;
 
-      // Calculs des indicateurs
-      const totalCatalogue = catalogueCount || 0;
-      
-      const stockPrincipalTotal = stockData?.reduce((sum, item) => sum + (item.quantite_disponible || 0), 0) || 0;
-      const stockPDVTotal = stockPDV?.reduce((sum, item) => sum + (item.quantite_disponible || 0), 0) || 0;
-      const stockGlobal = stockPrincipalTotal + stockPDVTotal;
-      
-      const valeurStockAchat = (stockData?.reduce((sum, item) => {
-        const prix = item.article?.prix_unitaire || 0;
-        const quantite = item.quantite_disponible || 0;
-        return sum + (prix * quantite);
-      }, 0) || 0) + (stockPDV?.reduce((sum, item) => {
-        const prix = item.article?.prix_unitaire || 0;
-        const quantite = item.quantite_disponible || 0;
-        return sum + (prix * quantite);
-      }, 0) || 0);
-      
-      const valeurStockVente = valeurStockAchat * 1.3;
-      const margeGlobaleStock = valeurStockVente - valeurStockAchat;
-      const margePourcentage = valeurStockAchat > 0 ? ((margeGlobaleStock / valeurStockAchat) * 100) : 0;
+      if (resumeMargesStock && resumeMargesStock.length > 0) {
+        const resume = resumeMargesStock[0];
+        stockGlobal = Number(resume.total_articles_en_stock) || 0;
+        valeurStockAchat = Number(resume.valeur_totale_stock_cout) || 0;
+        valeurStockVente = Number(resume.valeur_totale_stock_vente) || 0;
+        margeGlobaleStock = Number(resume.marge_totale_globale) || 0;
+        margePourcentage = Number(resume.taux_marge_moyen_pondere) || 0;
+        
+        console.log('📊 Données des marges globales de stock récupérées:', {
+          stockGlobal,
+          valeurStockAchat,
+          valeurStockVente,
+          margeGlobaleStock,
+          margePourcentage
+        });
+      } else {
+        // Calcul de fallback si les marges globales ne sont pas disponibles
+        console.log('⚠️ Utilisation du calcul de fallback pour les marges globales de stock');
+        
+        const { data: stockData, error: stockError } = await supabase
+          .from('stock_principal')
+          .select(`
+            quantite_disponible,
+            article:article_id(prix_unitaire)
+          `);
+        
+        const { data: stockPDV, error: stockPDVError } = await supabase
+          .from('stock_pdv')
+          .select(`
+            quantite_disponible,
+            article:article_id(prix_unitaire)
+          `);
+        
+        if (!stockError && !stockPDVError) {
+          const stockPrincipalTotal = stockData?.reduce((sum, item) => sum + (item.quantite_disponible || 0), 0) || 0;
+          const stockPDVTotal = stockPDV?.reduce((sum, item) => sum + (item.quantite_disponible || 0), 0) || 0;
+          stockGlobal = stockPrincipalTotal + stockPDVTotal;
+          
+          valeurStockAchat = (stockData?.reduce((sum, item) => {
+            const prix = item.article?.prix_unitaire || 0;
+            const quantite = item.quantite_disponible || 0;
+            return sum + (prix * quantite);
+          }, 0) || 0) + (stockPDV?.reduce((sum, item) => {
+            const prix = item.article?.prix_unitaire || 0;
+            const quantite = item.quantite_disponible || 0;
+            return sum + (prix * quantite);
+          }, 0) || 0);
+          
+          valeurStockVente = valeurStockAchat * 1.3;
+          margeGlobaleStock = valeurStockVente - valeurStockAchat;
+          margePourcentage = valeurStockAchat > 0 ? ((margeGlobaleStock / valeurStockAchat) * 100) : 0;
+        }
+      }
 
       // 8. Calculs financiers pour la situation
       // Solde Avoir = Montant total que nous devons aux clients (remboursements, avoirs, etc.)
