@@ -3293,6 +3293,14 @@ export type Database = {
           statut_livraison: string
         }[]
       }
+      get_precommande_quantities: {
+        Args: { p_article_id: string }
+        Returns: {
+          total_precommande: number
+          total_livre: number
+          en_attente: number
+        }[]
+      }
       get_precommandes_info_for_article: {
         Args: { p_article_id: string }
         Returns: {
@@ -3322,6 +3330,10 @@ export type Database = {
           marge_totale_globale: number
           taux_marge_moyen_pondere: number
         }[]
+      }
+      get_total_stock_available: {
+        Args: { p_article_id: string }
+        Returns: number
       }
       get_user_role_for_rls: {
         Args: Record<PropertyKey, never>

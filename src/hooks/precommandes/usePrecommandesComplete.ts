@@ -22,7 +22,36 @@ export const usePrecommandesComplete = () => {
         .order('created_at', { ascending: false });
       
       if (error) throw error;
-      return data as PrecommandeComplete[];
+      
+      // Enrichir les données avec les informations de stock
+      const enrichedData = await Promise.all(
+        (data || []).map(async (precommande) => {
+          const lignesEnrichies = await Promise.all(
+            (precommande.lignes_precommande || []).map(async (ligne) => {
+              // Calculer le stock disponible pour cet article
+              const { data: stockData } = await supabase.rpc('get_total_stock_available', {
+                p_article_id: ligne.article_id
+              });
+              
+              return {
+                ...ligne,
+                stock_disponible: {
+                  entrepot: 0, // Sera calculé côté serveur
+                  pdv: 0, // Sera calculé côté serveur
+                  total: stockData || 0
+                }
+              };
+            })
+          );
+          
+          return {
+            ...precommande,
+            lignes_precommande: lignesEnrichies
+          };
+        })
+      );
+      
+      return enrichedData as PrecommandeComplete[];
     }
   });
 };

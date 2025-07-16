@@ -2,6 +2,7 @@
 import React, { useState, useMemo } from 'react';
 import { usePrecommandesComplete } from '@/hooks/precommandes/usePrecommandesComplete';
 import PrecommandesTable from './precommandes/PrecommandesTable';
+import PrecommandesTableRowRestructured from './precommandes/PrecommandesTableRowRestructured';
 import PrecommandesFilters from './precommandes/PrecommandesFilters';
 import CreatePrecommandeDialog from './precommandes/CreatePrecommandeDialog';
 import PrecommandesManagementTabs from './precommandes/PrecommandesManagementTabs';
@@ -96,7 +97,52 @@ const Precommandes = () => {
                 )}
               </div>
             ) : (
-              <PrecommandesTable precommandes={filteredPrecommandes} />
+              <div className="rounded-md border overflow-hidden">
+                <table className="w-full">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        N° Précommande
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Date
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Client
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Disponibilité Stock
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Statut de Livraison
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Statut de Paiement
+                      </th>
+                      <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Montant TTC
+                      </th>
+                      <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Montant Payé
+                      </th>
+                      <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Reste à Payer
+                      </th>
+                      <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Actions
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {filteredPrecommandes.map((precommande) => (
+                      <PrecommandesTableRowRestructured 
+                        key={precommande.id} 
+                        precommande={precommande} 
+                      />
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             )}
 
             <CreatePrecommandeDialog 

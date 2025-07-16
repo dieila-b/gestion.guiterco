@@ -58,7 +58,26 @@ const PrecommandesTableRowRestructured = ({ precommande }: PrecommandesTableRowR
 
         {/* Disponibilité Stock */}
         <TableCell>
-          <StockStatusBadge status={precommande.stock_status} />
+          <div className="space-y-1">
+            <StockStatusBadge status={precommande.stock_status} />
+            {precommande.lignes_precommande && precommande.lignes_precommande.length > 0 && (
+              <div className="text-xs text-gray-600">
+                {(() => {
+                  const totalCommande = precommande.lignes_precommande.reduce((sum, ligne) => sum + ligne.quantite, 0);
+                  const totalStockDisponible = precommande.lignes_precommande.reduce((sum, ligne) => 
+                    sum + (ligne.stock_disponible?.total || 0), 0);
+                  
+                  if (totalStockDisponible >= totalCommande) {
+                    return `Disponible : ${totalStockDisponible}`;
+                  } else if (totalStockDisponible === 0) {
+                    return "En attente";
+                  } else {
+                    return `Partiel : ${totalStockDisponible}/${totalCommande}`;
+                  }
+                })()}
+              </div>
+            )}
+          </div>
         </TableCell>
 
         {/* Statut de livraison */}
