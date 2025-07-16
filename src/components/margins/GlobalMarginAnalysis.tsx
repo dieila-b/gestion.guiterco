@@ -43,8 +43,11 @@ const GlobalMarginAnalysis = () => {
         endDate = new Date(now.getFullYear(), now.getMonth(), 0);
         break;
       case 'thisQuarter':
-        const quarter = Math.floor(now.getMonth() / 3);
-        startDate = new Date(now.getFullYear(), quarter * 3, 1);
+        // Calculer le trimestre actuel (0-3)
+        const currentQuarter = Math.floor(now.getMonth() / 3);
+        // Premier mois du trimestre actuel
+        const quarterStartMonth = currentQuarter * 3;
+        startDate = new Date(now.getFullYear(), quarterStartMonth, 1);
         endDate = new Date();
         break;
       case 'thisYear':
@@ -179,7 +182,6 @@ const GlobalMarginAnalysis = () => {
         <GlobalMarginStatsCards rapport={rapport} isLoading={isLoading} />
       )}
 
-      {/* Détails supplémentaires */}
       {rapport && !isLoading && (
         <Card>
           <CardHeader>
