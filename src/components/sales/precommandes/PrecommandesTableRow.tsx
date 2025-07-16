@@ -67,10 +67,7 @@ const PrecommandesTableRow = ({ precommande }: PrecommandesTableRowProps) => {
         <TableCell>
           <div className="space-y-1">
             <PrecommandesStatusBadge statut={precommande.statut} />
-            <DeliveryStatusBadge 
-              lignes={precommande.lignes_precommande || []}
-              statut={deliveryStatus}
-            />
+            <DeliveryStatusBadge status={deliveryStatus} />
           </div>
         </TableCell>
         <TableCell className="text-right">

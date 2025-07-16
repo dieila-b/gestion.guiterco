@@ -55,10 +55,7 @@ const EditPrecommandeDialog = ({ precommande, open, onClose }: EditPrecommandeDi
               Éditer la précommande {precommande?.numero_precommande}
             </DialogTitle>
             {precommande && (
-              <DeliveryStatusBadge 
-                lignes={precommande.lignes_precommande || []}
-                statut={precommande.statut}
-              />
+              <DeliveryStatusBadge status={precommande.statut} />
             )}
           </div>
         </DialogHeader>
