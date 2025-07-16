@@ -101,6 +101,7 @@ export type SortieStock = {
 
 export type Transfert = {
   id: string;
+  reference: string | null;
   article_id: string | null;
   entrepot_source_id: string | null;
   entrepot_destination_id: string | null;

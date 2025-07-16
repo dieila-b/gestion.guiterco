@@ -2615,6 +2615,7 @@ export type Database = {
           observations: string | null
           pdv_destination_id: string | null
           quantite: number
+          reference: string | null
           statut: string | null
         }
         Insert: {
@@ -2630,6 +2631,7 @@ export type Database = {
           observations?: string | null
           pdv_destination_id?: string | null
           quantite: number
+          reference?: string | null
           statut?: string | null
         }
         Update: {
@@ -2645,6 +2647,7 @@ export type Database = {
           observations?: string | null
           pdv_destination_id?: string | null
           quantite?: number
+          reference?: string | null
           statut?: string | null
         }
         Relationships: [
@@ -3214,6 +3217,10 @@ export type Database = {
         Returns: string
       }
       generate_product_reference: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
+      generate_transfert_reference: {
         Args: Record<PropertyKey, never>
         Returns: string
       }

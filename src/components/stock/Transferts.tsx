@@ -29,7 +29,6 @@ const Transferts = () => {
     entrepot_destination_id: '',
     pdv_destination_id: '',
     quantite: 0,
-    numero_transfert: '',
     observations: '',
     created_by: 'Utilisateur'
   });
@@ -58,13 +57,14 @@ const Transferts = () => {
 
     try {
       await createTransfert.mutateAsync({
+        reference: null, // Auto-générée par le trigger
         article_id: formData.article_id,
         entrepot_source_id: formData.entrepot_source_id,
         entrepot_destination_id: formData.destination_type === 'entrepot' ? formData.entrepot_destination_id : null,
         pdv_destination_id: formData.destination_type === 'pdv' ? formData.pdv_destination_id : null,
         quantite: Number(formData.quantite),
         statut: 'en_cours',
-        numero_transfert: formData.numero_transfert || null,
+        numero_transfert: null,
         date_expedition: null,
         date_reception: null,
         observations: formData.observations || null,
@@ -78,7 +78,6 @@ const Transferts = () => {
         entrepot_destination_id: '',
         pdv_destination_id: '',
         quantite: 0,
-        numero_transfert: '',
         observations: '',
         created_by: 'Utilisateur'
       });
@@ -128,6 +127,7 @@ const Transferts = () => {
   };
 
   const filteredTransferts = transferts?.filter(transfert => 
+    transfert.reference?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     transfert.article?.nom.toLowerCase().includes(searchTerm.toLowerCase()) || 
     transfert.entrepot_source?.nom.toLowerCase().includes(searchTerm.toLowerCase()) ||
     transfert.entrepot_destination?.nom.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -175,6 +175,7 @@ const Transferts = () => {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead>Référence</TableHead>
                   <TableHead>Date</TableHead>
                   <TableHead>Article</TableHead>
                   <TableHead>Source</TableHead>
@@ -190,6 +191,9 @@ const Transferts = () => {
                 {filteredTransferts && filteredTransferts.length > 0 ? (
                   filteredTransferts.map((transfert) => (
                     <TableRow key={transfert.id}>
+                      <TableCell className="font-mono font-medium">
+                        {transfert.reference || 'N/A'}
+                      </TableCell>
                       <TableCell>
                         {format(new Date(transfert.created_at), 'dd/MM/yyyy', { locale: fr })}
                       </TableCell>
@@ -290,7 +294,7 @@ const Transferts = () => {
                   ))
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">
                       Aucun transfert trouvé
                     </TableCell>
                   </TableRow>
@@ -415,15 +419,6 @@ const Transferts = () => {
               />
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="numero_transfert">Numéro de transfert</Label>
-              <Input
-                id="numero_transfert"
-                name="numero_transfert"
-                value={formData.numero_transfert}
-                onChange={handleInputChange}
-              />
-            </div>
 
             <div className="space-y-2">
               <Label htmlFor="observations">Observations</Label>

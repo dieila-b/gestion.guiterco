@@ -13,7 +13,20 @@ export const useTransferts = () => {
       const { data, error } = await supabase
         .from('transferts')
         .select(`
-          *,
+          id,
+          reference,
+          article_id,
+          entrepot_source_id,
+          entrepot_destination_id,
+          pdv_destination_id,
+          quantite,
+          statut,
+          numero_transfert,
+          date_expedition,
+          date_reception,
+          observations,
+          created_at,
+          created_by,
           article:catalogue!inner(
             id,
             reference,
