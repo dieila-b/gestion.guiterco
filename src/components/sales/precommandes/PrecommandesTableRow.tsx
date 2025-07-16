@@ -26,9 +26,9 @@ const PrecommandesTableRow = ({ precommande }: PrecommandesTableRowProps) => {
   const [showFacture, setShowFacture] = useState(false);
   const [showPayment, setShowPayment] = useState(false);
 
-  const calculateDeliveryStatus = () => {
+  const calculateDeliveryStatus = (): 'confirmee' | 'en_preparation' | 'prete' | 'livree' | 'partiellement_livree' | 'annulee' | 'convertie_en_vente' => {
     if (!precommande.lignes_precommande || precommande.lignes_precommande.length === 0) {
-      return 'en_attente';
+      return 'confirmee';
     }
 
     const totalQuantite = precommande.lignes_precommande.reduce((sum, ligne) => sum + ligne.quantite, 0);
@@ -39,7 +39,7 @@ const PrecommandesTableRow = ({ precommande }: PrecommandesTableRowProps) => {
     } else if (totalLivree > 0) {
       return 'partiellement_livree';
     } else {
-      return 'en_attente';
+      return 'confirmee';
     }
   };
 
