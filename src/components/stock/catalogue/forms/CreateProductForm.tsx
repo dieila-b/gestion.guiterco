@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -44,6 +45,7 @@ interface CreateProductFormProps {
   }) => void;
   onFormDataChange: (updates: Partial<FormData>) => void;
   onCancel: () => void;
+  isEditMode?: boolean;
 }
 
 const CreateProductForm = ({ 
@@ -51,7 +53,8 @@ const CreateProductForm = ({
   loading, 
   onSubmit, 
   onFormDataChange, 
-  onCancel 
+  onCancel,
+  isEditMode = false
 }: CreateProductFormProps) => {
   const { data: categories } = useCategories();
   const { data: unites } = useUnites();
@@ -135,7 +138,6 @@ const CreateProductForm = ({
           />
         </div>
 
-        {/* Nouveau champ d'upload d'image */}
         <div>
           <ImageUpload
             onImageUploaded={handleImageUploaded}
@@ -330,7 +332,7 @@ const CreateProductForm = ({
           Annuler
         </Button>
         <Button type="submit" disabled={loading || !formData.nom}>
-          {loading ? 'Création...' : 'Créer le produit'}
+          {loading ? (isEditMode ? 'Modification...' : 'Création...') : (isEditMode ? 'Modifier le produit' : 'Créer le produit')}
         </Button>
       </div>
     </form>
