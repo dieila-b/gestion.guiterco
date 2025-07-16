@@ -2,7 +2,6 @@
 import React, { useState } from 'react';
 import { TableCell, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Eye, Edit, FileText, Trash2 } from 'lucide-react';
 import { formatCurrency } from '@/lib/currency';
@@ -12,8 +11,9 @@ import PrecommandeDetails from './PrecommandeDetails';
 import EditPrecommandeDialog from './EditPrecommandeDialog';
 import DeletePrecommandeDialog from './DeletePrecommandeDialog';
 import PrecommandeFactureDialog from './PrecommandeFactureDialog';
+import PaymentStatusBadge from './PaymentStatusBadge';
+import StockStatusBadge from './StockStatusBadge';
 import DeliveryStatusBadge from './DeliveryStatusBadge';
-import AvailabilityStatusBadge from './AvailabilityStatusBadge';
 
 interface PrecommandesTableRowRestructuredProps {
   precommande: PrecommandeComplete;
@@ -25,45 +25,15 @@ const PrecommandesTableRowRestructured = ({ precommande }: PrecommandesTableRowR
   const [showDelete, setShowDelete] = useState(false);
   const [showFacture, setShowFacture] = useState(false);
 
-  // Calculer les totaux de quantité
-  const totalQuantite = precommande.lignes_precommande?.reduce((sum, ligne) => sum + ligne.quantite, 0) || 0;
-  const totalQuantiteLivree = precommande.lignes_precommande?.reduce((sum, ligne) => sum + (ligne.quantite_livree || 0), 0) || 0;
-
-  // Calculer les informations de paiement
-  const montantTTC = precommande.montant_ttc || 0;
-  const acompteVerse = precommande.acompte_verse || 0;
-  const resteAPayer = montantTTC - acompteVerse;
-
-  // Obtenir le statut de paiement
-  const getStatutPaiement = () => {
-    if (acompteVerse === 0) return { label: 'Non payé', color: 'bg-red-100 text-red-800' };
-    if (acompteVerse >= montantTTC) return { label: 'Payé', color: 'bg-green-100 text-green-800' };
-    return { label: 'Partiel', color: 'bg-orange-100 text-orange-800' };
-  };
-
-  // Obtenir le statut de livraison
-  const getStatutLivraison = () => {
-    if (totalQuantiteLivree === 0) return 'en_preparation';
-    if (totalQuantiteLivree < totalQuantite) return 'partiellement_livree';
-    return 'livree';
-  };
-
-  const statutPaiement = getStatutPaiement();
-  const statutLivraison = getStatutLivraison();
+  // Condition pour masquer les actions Modifier et Supprimer
+  const isCompletedOrder = precommande.statut === 'livree' && precommande.payment_status === 'paye';
 
   return (
     <TooltipProvider>
       <TableRow className="hover:bg-gray-50">
         {/* N° Précommande */}
         <TableCell className="font-medium">
-          <div className="space-y-1">
-            <div className="text-sm font-semibold">{precommande.numero_precommande}</div>
-            {precommande.notifications && precommande.notifications.length > 0 && (
-              <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700">
-                {precommande.notifications.length} notification(s)
-              </Badge>
-            )}
-          </div>
+          <div className="text-sm font-semibold">{precommande.numero_precommande}</div>
         </TableCell>
 
         {/* Date */}
@@ -86,42 +56,37 @@ const PrecommandesTableRowRestructured = ({ precommande }: PrecommandesTableRowR
           </div>
         </TableCell>
 
-        {/* Disponibilité */}
+        {/* Disponibilité Stock */}
         <TableCell>
-          <AvailabilityStatusBadge 
-            lignes={precommande.lignes_precommande || []}
-            dateLivraisonPrevue={precommande.date_livraison_prevue}
-          />
+          <StockStatusBadge status={precommande.stock_status} />
         </TableCell>
 
-        {/* Statut de livraison uniquement */}
+        {/* Statut de livraison */}
         <TableCell>
-          <DeliveryStatusBadge 
-            lignes={precommande.lignes_precommande || []}
-            statut={statutLivraison}
-          />
+          <DeliveryStatusBadge status={precommande.statut} />
         </TableCell>
 
-        {/* Montant avec détails */}
+        {/* Statut de paiement */}
+        <TableCell>
+          <PaymentStatusBadge status={precommande.payment_status} />
+        </TableCell>
+
+        {/* Montant TTC */}
         <TableCell className="text-right">
-          <div className="space-y-1">
-            <div className="font-semibold text-sm">{formatCurrency(montantTTC)}</div>
-            {acompteVerse > 0 && (
-              <div className="text-xs text-green-600">
-                Acompte: {formatCurrency(acompteVerse)}
-              </div>
-            )}
-            {resteAPayer > 0 && (
-              <div className="text-xs text-blue-600 font-medium">
-                Reste: {formatCurrency(resteAPayer)}
-              </div>
-            )}
-            <div className="text-xs text-gray-500">
-              Qté: {totalQuantiteLivree}/{totalQuantite}
-            </div>
-            <Badge className={`text-xs ${statutPaiement.color}`}>
-              {statutPaiement.label}
-            </Badge>
+          <div className="font-semibold text-sm">{formatCurrency(precommande.montant_ttc)}</div>
+        </TableCell>
+
+        {/* Montant payé */}
+        <TableCell className="text-right">
+          <div className="text-sm text-green-600 font-medium">
+            {formatCurrency(precommande.amount_paid)}
+          </div>
+        </TableCell>
+
+        {/* Reste à payer */}
+        <TableCell className="text-right">
+          <div className="text-sm text-blue-600 font-medium">
+            {formatCurrency(precommande.amount_due)}
           </div>
         </TableCell>
 
@@ -144,21 +109,24 @@ const PrecommandesTableRowRestructured = ({ precommande }: PrecommandesTableRowR
               </TooltipContent>
             </Tooltip>
 
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setShowEdit(true)}
-                  className="h-8 w-8 p-0 text-green-600 hover:text-green-700"
-                >
-                  <Edit className="h-4 w-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Modifier</p>
-              </TooltipContent>
-            </Tooltip>
+            {/* Bouton Modifier : masqué si livré ET payé */}
+            {!isCompletedOrder && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setShowEdit(true)}
+                    className="h-8 w-8 p-0 text-green-600 hover:text-green-700"
+                  >
+                    <Edit className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Modifier</p>
+                </TooltipContent>
+              </Tooltip>
+            )}
 
             <Tooltip>
               <TooltipTrigger asChild>
@@ -176,21 +144,24 @@ const PrecommandesTableRowRestructured = ({ precommande }: PrecommandesTableRowR
               </TooltipContent>
             </Tooltip>
 
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setShowDelete(true)}
-                  className="h-8 w-8 p-0 text-red-600 hover:text-red-700"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Supprimer</p>
-              </TooltipContent>
-            </Tooltip>
+            {/* Bouton Supprimer : masqué si livré ET payé */}
+            {!isCompletedOrder && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setShowDelete(true)}
+                    className="h-8 w-8 p-0 text-red-600 hover:text-red-700"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Supprimer</p>
+                </TooltipContent>
+              </Tooltip>
+            )}
           </div>
         </TableCell>
       </TableRow>

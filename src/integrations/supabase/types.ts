@@ -1927,6 +1927,8 @@ export type Database = {
       precommandes: {
         Row: {
           acompte_verse: number | null
+          amount_due: number | null
+          amount_paid: number | null
           bon_livraison_genere: boolean | null
           bon_livraison_id: string | null
           client_id: string
@@ -1940,10 +1942,12 @@ export type Database = {
           notification_envoyee: boolean | null
           numero_precommande: string
           observations: string | null
+          payment_status: string | null
           prete_pour_conversion: boolean | null
           reste_a_payer: number | null
           statut: string
           statut_livraison: string | null
+          stock_status: string | null
           taux_tva: number | null
           total_commande: number | null
           tva: number
@@ -1951,6 +1955,8 @@ export type Database = {
         }
         Insert: {
           acompte_verse?: number | null
+          amount_due?: number | null
+          amount_paid?: number | null
           bon_livraison_genere?: boolean | null
           bon_livraison_id?: string | null
           client_id: string
@@ -1964,10 +1970,12 @@ export type Database = {
           notification_envoyee?: boolean | null
           numero_precommande: string
           observations?: string | null
+          payment_status?: string | null
           prete_pour_conversion?: boolean | null
           reste_a_payer?: number | null
           statut?: string
           statut_livraison?: string | null
+          stock_status?: string | null
           taux_tva?: number | null
           total_commande?: number | null
           tva?: number
@@ -1975,6 +1983,8 @@ export type Database = {
         }
         Update: {
           acompte_verse?: number | null
+          amount_due?: number | null
+          amount_paid?: number | null
           bon_livraison_genere?: boolean | null
           bon_livraison_id?: string | null
           client_id?: string
@@ -1988,10 +1998,12 @@ export type Database = {
           notification_envoyee?: boolean | null
           numero_precommande?: string
           observations?: string | null
+          payment_status?: string | null
           prete_pour_conversion?: boolean | null
           reste_a_payer?: number | null
           statut?: string
           statut_livraison?: string | null
+          stock_status?: string | null
           taux_tva?: number | null
           total_commande?: number | null
           tva?: number

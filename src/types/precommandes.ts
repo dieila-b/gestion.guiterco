@@ -31,6 +31,13 @@ export interface PrecommandeComplete {
   date_notification?: string;
   bon_livraison_genere?: boolean;
   bon_livraison_id?: string;
+  
+  // Nouveaux champs ajoutés
+  payment_status: 'en_attente' | 'partiellement_paye' | 'paye';
+  amount_paid: number;
+  amount_due: number;
+  stock_status: 'disponible' | 'en_attente' | 'partiellement_disponible';
+  
   created_at: string;
   updated_at: string;
   client?: {
