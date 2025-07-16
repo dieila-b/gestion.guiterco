@@ -10,6 +10,7 @@ interface Article {
   reference: string;
   prix_vente?: number;
   image_url?: string;
+  categorie?: string;
 }
 
 interface ProductGridProps {
@@ -37,11 +38,14 @@ const ProductGrid: React.FC<ProductGridProps> = ({
   searchProduct,
   selectedCategory
 }) => {
+  console.log('ProductGrid - stockPDV:', stockPDV);
+  console.log('ProductGrid - selectedCategory:', selectedCategory);
+
   // Filtrer les produits en fonction de la recherche et de la catégorie
   const filteredProducts = React.useMemo(() => {
     if (!stockPDV) return [];
     
-    return stockPDV.filter(stockItem => {
+    const filtered = stockPDV.filter(stockItem => {
       const article = stockItem.article;
       if (!article) return false;
 
@@ -50,13 +54,26 @@ const ProductGrid: React.FC<ProductGridProps> = ({
         article.nom.toLowerCase().includes(searchProduct.toLowerCase()) ||
         article.reference.toLowerCase().includes(searchProduct.toLowerCase());
 
-      // Filtre par catégorie
+      // Filtre par catégorie - utiliser la catégorie normalisée
+      const articleCategory = article.categorie || '';
       const matchesCategory = selectedCategory === 'Tous' || 
         !selectedCategory || 
-        article.categorie === selectedCategory;
+        selectedCategory === '' ||
+        articleCategory === selectedCategory;
+
+      console.log('Filtering article:', {
+        nom: article.nom,
+        categorie: articleCategory,
+        selectedCategory,
+        matchesCategory,
+        matchesSearch
+      });
 
       return matchesSearch && matchesCategory;
     });
+
+    console.log('Filtered products:', filtered.length, 'from', stockPDV.length);
+    return filtered;
   }, [stockPDV, searchProduct, selectedCategory]);
 
   const getStockIndicator = (quantite: number) => {
@@ -81,6 +98,11 @@ const ProductGrid: React.FC<ProductGridProps> = ({
           <h3 className="text-lg font-bold text-gray-800">Produits disponibles</h3>
           <p className="text-sm text-gray-500">
             {filteredProducts.length} produits trouvés - Stock mis à jour en temps réel
+            {selectedCategory && selectedCategory !== 'Tous' && (
+              <span className="ml-2 text-blue-600 font-medium">
+                Catégorie: {selectedCategory}
+              </span>
+            )}
           </p>
         </div>
 
@@ -101,7 +123,12 @@ const ProductGrid: React.FC<ProductGridProps> = ({
             <div className="text-center py-8 text-gray-500">
               <Image className="h-12 w-12 mx-auto mb-4 text-gray-300" />
               <p>Aucun produit trouvé</p>
-              <p className="text-sm">Essayez de changer les filtres ou sélectionner un autre PDV</p>
+              <p className="text-sm">
+                {selectedCategory && selectedCategory !== 'Tous' 
+                  ? `Aucun produit dans la catégorie "${selectedCategory}"`
+                  : 'Essayez de changer les filtres ou sélectionner un autre PDV'
+                }
+              </p>
             </div>
           ) : (
             <>
@@ -141,6 +168,13 @@ const ProductGrid: React.FC<ProductGridProps> = ({
                       <div className="text-sm font-medium truncate mb-2" title={article.nom}>
                         {article.nom}
                       </div>
+                      
+                      {/* Affichage de la catégorie pour debug */}
+                      {article.categorie && (
+                        <div className="text-xs text-gray-400 mb-1">
+                          {article.categorie}
+                        </div>
+                      )}
                       
                       {/* Stock disponible avec couleur et indication temps réel */}
                       <div className={`text-xs font-medium mb-1 ${getStockColor(stockDisponible)}`}>

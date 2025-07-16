@@ -17,7 +17,7 @@ export const useStockQueries = (selectedPDV?: string) => {
     }
   });
 
-  // Hook pour récupérer le stock PDV avec filtrage par point de vente
+  // Hook pour récupérer le stock PDV avec filtrage par point de vente et relations complètes
   const { data: stockPDV } = useQuery({
     queryKey: ['stock_pdv', selectedPDV],
     queryFn: async () => {
@@ -31,13 +31,36 @@ export const useStockQueries = (selectedPDV?: string) => {
         .from('stock_pdv')
         .select(`
           *,
-          article:catalogue!inner(id, nom, prix_vente, reference, image_url, categorie),
+          article:catalogue!inner(
+            id, 
+            nom, 
+            prix_vente, 
+            reference, 
+            image_url, 
+            categorie,
+            categorie_id,
+            unite_mesure,
+            unite_id,
+            categorie_article:categories_catalogue(nom),
+            unite_article:unites(nom)
+          ),
           point_vente:points_de_vente!inner(nom)
         `)
-        .eq('point_vente_id', pdvSelected.id);
+        .eq('point_vente_id', pdvSelected.id)
+        .gt('quantite_disponible', 0); // Ne récupérer que les articles en stock
       
       if (error) throw error;
-      return data;
+      
+      // Normaliser les données pour la compatibilité
+      return data?.map(item => ({
+        ...item,
+        article: {
+          ...item.article,
+          // Prioriser le nom de la catégorie depuis la relation
+          categorie: item.article.categorie_article?.nom || item.article.categorie || '',
+          unite_mesure: item.article.unite_article?.nom || item.article.unite_mesure || ''
+        }
+      })) || [];
     },
     enabled: !!selectedPDV && !!pointsDeVente
   });

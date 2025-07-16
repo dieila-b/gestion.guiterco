@@ -29,16 +29,24 @@ export const useVenteComptoirState = () => {
     selectedCategory === 'Tous' ? '' : selectedCategory
   );
 
-  // Éliminer les doublons de catégories basés sur le stock PDV
+  // Éliminer les doublons de catégories basés sur le stock PDV avec les relations correctes
   const uniqueCategories = useMemo(() => {
     if (!venteComptoir.stockPDV) return [];
+    
+    console.log('Calculating categories from stockPDV:', venteComptoir.stockPDV);
+    
     const categorySet = new Set<string>();
     venteComptoir.stockPDV.forEach(stockItem => {
       if (stockItem.article?.categorie && stockItem.article.categorie.trim()) {
         categorySet.add(stockItem.article.categorie);
+        console.log('Added category:', stockItem.article.categorie);
       }
     });
-    return Array.from(categorySet);
+    
+    const categories = Array.from(categorySet).sort();
+    console.log('Final unique categories:', categories);
+    
+    return categories;
   }, [venteComptoir.stockPDV]);
 
   // Calculer les totaux du panier
