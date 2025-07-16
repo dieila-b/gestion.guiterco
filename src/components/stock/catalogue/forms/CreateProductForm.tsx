@@ -40,6 +40,8 @@ interface CreateProductFormProps {
     frais_douane?: number;
     frais_transport?: number;
     autres_frais?: number;
+    categorie_id?: string;
+    unite_id?: string;
     seuil_alerte?: number;
     image_url?: string;
   }) => void;
@@ -82,6 +84,8 @@ const CreateProductForm = ({
       frais_douane: fraisDouane || undefined,
       frais_transport: fraisTransport || undefined,
       autres_frais: autresFrais || undefined,
+      categorie_id: formData.categorie_id || undefined,
+      unite_id: formData.unite_id || undefined,
       seuil_alerte: parseInt(formData.seuil_alerte) || undefined,
       image_url: formData.image_url || undefined,
     };

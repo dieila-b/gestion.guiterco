@@ -133,14 +133,17 @@ export const useTransferts = () => {
       
       if (error) throw error;
 
-      // Si le statut passe à 'expedie', débiter l'entrepôt source
-      if (transfert.statut === 'expedie' && currentTransfert.statut !== 'expedie') {
-        await handleStockMovement(currentTransfert, 'expedie');
-      }
-
-      // Si le statut passe à 'recu', créditer la destination
-      if (transfert.statut === 'recu' && currentTransfert.statut !== 'recu') {
-        await handleStockMovement(currentTransfert, 'recu');
+      // Gérer les mouvements de stock selon le changement de statut
+      if (transfert.statut !== currentTransfert.statut) {
+        if (transfert.statut === 'expedie' && currentTransfert.statut !== 'expedie') {
+          // Débiter l'entrepôt source lors de l'expédition
+          await handleStockMovement(currentTransfert, 'expedie');
+        }
+        
+        if (transfert.statut === 'recu' && currentTransfert.statut !== 'recu') {
+          // Créditer la destination lors de la réception (sans redébiter la source)
+          await handleStockMovement(currentTransfert, 'recu');
+        }
       }
 
       return data as Transfert;
@@ -167,21 +170,34 @@ export const useTransferts = () => {
   const handleStockMovement = async (transfert: any, newStatus: string) => {
     try {
       if (newStatus === 'expedie') {
-        // Débiter l'entrepôt source
-        await supabase
+        // Vérifier qu'il n'y a pas déjà une sortie de stock pour ce transfert
+        const { data: existingSortie } = await supabase
           .from('sorties_stock')
-          .insert({
-            article_id: transfert.article_id,
-            entrepot_id: transfert.entrepot_source_id,
-            quantite: transfert.quantite,
-            type_sortie: 'transfert',
-            destination: transfert.entrepot_destination_id ? 'Entrepôt' : 'Point de vente',
-            numero_bon: `TRF-${transfert.numero_transfert || transfert.id.slice(0, 8)}`,
-            observations: `Transfert expédié vers ${transfert.entrepot_destination_id ? 'entrepôt' : 'PDV'}`,
-            created_by: transfert.created_by || 'Système'
-          });
+          .select('id')
+          .eq('numero_bon', `TRF-${transfert.reference || transfert.id.slice(0, 8)}`)
+          .eq('type_sortie', 'transfert')
+          .eq('article_id', transfert.article_id)
+          .maybeSingle();
 
-        console.log(`Stock débité de l'entrepôt source pour le transfert ${transfert.id}`);
+        if (!existingSortie) {
+          // Débiter l'entrepôt source
+          await supabase
+            .from('sorties_stock')
+            .insert({
+              article_id: transfert.article_id,
+              entrepot_id: transfert.entrepot_source_id,
+              quantite: transfert.quantite,
+              type_sortie: 'transfert',
+              destination: transfert.entrepot_destination_id ? 'Entrepôt' : 'Point de vente',
+              numero_bon: `TRF-${transfert.reference || transfert.id.slice(0, 8)}`,
+              observations: `Transfert expédié vers ${transfert.entrepot_destination_id ? 'entrepôt' : 'PDV'}`,
+              created_by: transfert.created_by || 'Système'
+            });
+
+          console.log(`Stock débité de l'entrepôt source pour le transfert ${transfert.id}`);
+        } else {
+          console.log(`Sortie de stock déjà existante pour le transfert ${transfert.id}`);
+        }
       }
 
       if (newStatus === 'recu') {
@@ -194,7 +210,7 @@ export const useTransferts = () => {
               entrepot_id: transfert.entrepot_destination_id,
               quantite: transfert.quantite,
               type_entree: 'transfert',
-              numero_bon: `TRF-${transfert.numero_transfert || transfert.id.slice(0, 8)}`,
+              numero_bon: `TRF-${transfert.reference || transfert.id.slice(0, 8)}`,
               fournisseur: 'Transfert interne',
               observations: `Transfert reçu de l'entrepôt source`,
               created_by: transfert.created_by || 'Système'
