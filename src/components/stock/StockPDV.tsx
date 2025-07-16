@@ -112,15 +112,20 @@ const StockPDV = () => {
                           <TableCell className="text-muted-foreground">
                             {item.article?.reference || 'N/A'}
                           </TableCell>
-                          <TableCell className="text-muted-foreground">
-                            {item.article?.categorie || 'N/A'}
-                          </TableCell>
+                           <TableCell className="text-muted-foreground">
+                             {item.article?.categorie_article?.nom || item.article?.categorie || 'N/A'}
+                           </TableCell>
                           <TableCell className="text-muted-foreground">
                             {item.point_vente?.nom || 'N/A'}
                           </TableCell>
-                          <TableCell className="text-center text-foreground font-medium">
-                            {item.quantite_disponible}
-                          </TableCell>
+                           <TableCell className="text-center text-foreground font-medium">
+                             {item.quantite_disponible}
+                             {(item.article?.unite_article?.nom || item.article?.unite_mesure) && (
+                               <span className="text-muted-foreground ml-1">
+                                 {item.article?.unite_article?.nom || item.article.unite_mesure}
+                               </span>
+                             )}
+                           </TableCell>
                           <TableCell className="text-right text-foreground">
                             {formatCurrency(prixUnitaire)}
                           </TableCell>

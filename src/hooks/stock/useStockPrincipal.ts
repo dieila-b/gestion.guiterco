@@ -28,7 +28,9 @@ export const useStockPrincipal = () => {
             statut,
             seuil_alerte,
             created_at,
-            updated_at
+            updated_at,
+            categorie_article:categories_catalogue(nom),
+            unite_article:unites(nom)
           ),
           entrepot:entrepots!inner(
             id,

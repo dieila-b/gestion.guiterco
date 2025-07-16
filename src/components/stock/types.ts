@@ -36,6 +36,8 @@ export type Article = {
   statut: string | null;
   created_at: string;
   updated_at: string;
+  categorie_article?: { nom: string };
+  unite_article?: { nom: string };
 };
 
 export type StockPrincipal = {

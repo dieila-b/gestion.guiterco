@@ -183,23 +183,23 @@ const StockEntrepot = () => {
                           <TableCell className="font-medium text-foreground">
                             {item.article?.reference || 'N/A'}
                           </TableCell>
-                          <TableCell className="text-muted-foreground">
-                            {item.article?.categorie || 'Non classé'}
-                          </TableCell>
+                           <TableCell className="text-muted-foreground">
+                             {item.article?.categorie_article?.nom || item.article?.categorie || 'Non classé'}
+                           </TableCell>
                           <TableCell className="font-medium text-foreground">
                             {item.article?.nom || 'N/A'}
                           </TableCell>
                           <TableCell className="text-muted-foreground">
                             {item.entrepot?.nom || 'N/A'}
                           </TableCell>
-                          <TableCell className="text-right font-medium text-foreground">
-                            {item.quantite_disponible}
-                            {item.article?.unite_mesure && (
-                              <span className="text-muted-foreground ml-1">
-                                {item.article.unite_mesure}
-                              </span>
-                            )}
-                          </TableCell>
+                           <TableCell className="text-right font-medium text-foreground">
+                             {item.quantite_disponible}
+                             {(item.article?.unite_article?.nom || item.article?.unite_mesure) && (
+                               <span className="text-muted-foreground ml-1">
+                                 {item.article?.unite_article?.nom || item.article.unite_mesure}
+                               </span>
+                             )}
+                           </TableCell>
                           <TableCell className="text-right text-foreground">
                             {formatCurrency(unitPrice)}
                           </TableCell>
