@@ -21,7 +21,7 @@ export interface DevModeConfig {
 
 export const useDevMode = (): DevModeConfig => {
   const [config, setConfig] = useState<DevModeConfig>(() => {
-    // Initialiser immédiatement le mode dev pour éviter les délais
+    // Détecter l'environnement de développement
     const hostname = window.location.hostname;
     const isDev = hostname === 'localhost' || 
                   hostname.includes('lovableproject.com') || 
@@ -35,12 +35,10 @@ export const useDevMode = (): DevModeConfig => {
     if (isDev) {
       const manualOverride = localStorage.getItem('dev_bypass_auth');
       
-      // En mode développement, activer le bypass par défaut si pas de préférence
-      if (manualOverride === null) {
+      // Changement : Ne plus activer le bypass par défaut
+      // Le bypass ne s'active que si explicitement activé par l'utilisateur
+      if (manualOverride === 'true') {
         bypassEnabled = true;
-        localStorage.setItem('dev_bypass_auth', 'true');
-      } else {
-        bypassEnabled = manualOverride === 'true';
       }
       
       // Vérifier aussi la variable d'environnement
@@ -89,13 +87,13 @@ export const useDevMode = (): DevModeConfig => {
     if (isDev) {
       const manualOverride = localStorage.getItem('dev_bypass_auth');
       
-      // En mode développement, activer le bypass par défaut
-      if (manualOverride === null) {
+      // Changement : Plus d'activation automatique par défaut
+      // Le bypass ne s'active que si explicitement demandé
+      if (manualOverride === 'true') {
         bypassEnabled = true;
-        localStorage.setItem('dev_bypass_auth', 'true');
-        console.log('🚀 Bypass d\'authentification activé automatiquement en mode dev');
+        console.log('🚀 Bypass d\'authentification activé manuellement');
       } else {
-        bypassEnabled = manualOverride === 'true';
+        console.log('🔒 Bypass d\'authentification désactivé par défaut');
       }
       
       // Vérifier aussi la variable d'environnement
