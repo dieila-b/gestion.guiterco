@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -122,26 +121,28 @@ const EditUserForm = ({ user, onSuccess, onCancel }: EditUserFormProps) => {
         throw updateError;
       }
 
-      // 2. Si un nouveau mot de passe est fourni, le mettre à jour
+      // 2. Pour la mise à jour du mot de passe, on ne peut pas utiliser l'API Admin
+      // On va plutôt demander à l'utilisateur de changer son mot de passe lors de sa prochaine connexion
       if (data.password && data.password.length > 0) {
-        // Récupérer l'user_id pour mettre à jour le mot de passe
-        const { data: userData } = await supabase
+        // Marquer que l'utilisateur doit changer son mot de passe
+        const { error: passwordFlagError } = await supabase
           .from('utilisateurs_internes')
-          .select('user_id')
-          .eq('id', user.id)
-          .single();
+          .update({ 
+            doit_changer_mot_de_passe: true,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', user.id);
 
-        if (userData?.user_id) {
-          const { error: passwordError } = await supabase.auth.admin.updateUserById(
-            userData.user_id,
-            { password: data.password }
-          );
-
-          if (passwordError) {
-            console.error('❌ Erreur mise à jour mot de passe:', passwordError);
-            throw passwordError;
-          }
+        if (passwordFlagError) {
+          console.error('❌ Erreur flag mot de passe:', passwordFlagError);
+          throw passwordFlagError;
         }
+
+        // Informer l'utilisateur que le changement de mot de passe sera requis
+        toast({
+          title: "Mot de passe",
+          description: "L'utilisateur devra définir un nouveau mot de passe lors de sa prochaine connexion.",
+        });
       }
 
       return { success: true };
@@ -273,39 +274,46 @@ const EditUserForm = ({ user, onSuccess, onCancel }: EditUserFormProps) => {
                 size="sm"
                 onClick={() => setIsChangingPassword(!isChangingPassword)}
               >
-                {isChangingPassword ? 'Annuler' : 'Modifier le mot de passe'}
+                {isChangingPassword ? 'Annuler' : 'Forcer le changement'}
               </Button>
             </div>
 
             {isChangingPassword && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="password">Nouveau mot de passe</Label>
-                  <Input
-                    id="password"
-                    type="password"
-                    {...register('password')}
-                    placeholder="8 caractères minimum"
-                    className={errors.password ? 'border-red-500' : ''}
-                  />
+              <div className="space-y-4">
+                <div className="p-3 bg-blue-50 border border-blue-200 rounded-md">
+                  <p className="text-sm text-blue-800">
+                    📝 L'utilisateur sera obligé de définir un nouveau mot de passe lors de sa prochaine connexion.
+                  </p>
                 </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="confirmPassword">Confirmer le mot de passe</Label>
-                  <Input
-                    id="confirmPassword"
-                    type="password"
-                    {...register('confirmPassword')}
-                    placeholder="Confirmez le mot de passe"
-                    className={errors.confirmPassword ? 'border-red-500' : ''}
-                  />
-                </div>
-                
-                {errors.confirmPassword && (
-                  <div className="col-span-2">
-                    <p className="text-sm text-red-500">{errors.confirmPassword.message}</p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="password">Nouveau mot de passe (optionnel)</Label>
+                    <Input
+                      id="password"
+                      type="password"
+                      {...register('password')}
+                      placeholder="8 caractères minimum"
+                      className={errors.password ? 'border-red-500' : ''}
+                    />
                   </div>
-                )}
+
+                  <div className="space-y-2">
+                    <Label htmlFor="confirmPassword">Confirmer le mot de passe</Label>
+                    <Input
+                      id="confirmPassword"
+                      type="password"
+                      {...register('confirmPassword')}
+                      placeholder="Confirmez le mot de passe"
+                      className={errors.confirmPassword ? 'border-red-500' : ''}
+                    />
+                  </div>
+                  
+                  {errors.confirmPassword && (
+                    <div className="col-span-2">
+                      <p className="text-sm text-red-500">{errors.confirmPassword.message}</p>
+                    </div>
+                  )}
+                </div>
               </div>
             )}
 
