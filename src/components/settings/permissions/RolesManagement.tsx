@@ -1,15 +1,19 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { Edit, Users, Plus, Trash2, Shield, Crown, User, Briefcase, AlertCircle } from 'lucide-react';
+import { Edit, Users, Plus, Trash2, Shield, Crown, User, Briefcase, AlertCircle, Settings } from 'lucide-react';
 import { useRoles, useCreateRole } from '@/hooks/usePermissions';
 import { useForm } from "react-hook-form";
+import RoleUsersDialog from './RoleUsersDialog';
+import RolePermissionsDialog from './RolePermissionsDialog';
+import DeleteRoleDialog from './DeleteRoleDialog';
 
 interface CreateRoleFormData {
   name: string;
@@ -20,7 +24,6 @@ const RolesManagement = () => {
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const { data: roles = [], isLoading } = useRoles();
   const createRole = useCreateRole();
-  // const deleteRole = useDeleteRole();
 
   const { register, handleSubmit, reset, formState: { errors } } = useForm<CreateRoleFormData>();
 
@@ -32,11 +35,6 @@ const RolesManagement = () => {
     } catch (error) {
       console.error('Error creating role:', error);
     }
-  };
-
-  const onDeleteRole = async (roleId: string) => {
-    // TODO: Implement delete role functionality
-    console.log('Delete role:', roleId);
   };
 
   const getRoleIcon = (roleName: string) => {
@@ -147,21 +145,6 @@ const RolesManagement = () => {
                   rows={3}
                 />
               </div>
-              <DialogFooter>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setCreateDialogOpen(false)}
-                >
-                  Annuler
-                </Button>
-                <Button
-                  type="submit"
-                  disabled={createRole.isPending}
-                >
-                  {createRole.isPending ? 'Création...' : 'Créer le rôle'}
-                </Button>
-              </DialogFooter>
             </form>
           </DialogContent>
         </Dialog>
@@ -192,52 +175,34 @@ const RolesManagement = () => {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="flex items-center justify-between space-x-2">
+              <div className="flex flex-col space-y-2">
                 <div className="flex space-x-2">
-                  <Button variant="outline" size="sm">
-                    <Users className="h-4 w-4 mr-1" />
-                    Utilisateurs
-                  </Button>
+                  <RoleUsersDialog role={role}>
+                    <Button variant="outline" size="sm" className="flex-1">
+                      <Users className="h-4 w-4 mr-1" />
+                      Utilisateurs
+                    </Button>
+                  </RoleUsersDialog>
                   
-                  <Button variant="outline" size="sm">
-                    <Edit className="h-4 w-4 mr-1" />
-                    Permissions
-                  </Button>
+                  <RolePermissionsDialog role={role}>
+                    <Button variant="outline" size="sm" className="flex-1">
+                      <Settings className="h-4 w-4 mr-1" />
+                      Permissions
+                    </Button>
+                  </RolePermissionsDialog>
                 </div>
                 
                 {!role.is_system && (
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        className="text-destructive hover:text-destructive"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle className="flex items-center space-x-2">
-                          <AlertCircle className="h-5 w-5 text-destructive" />
-                          <span>Supprimer le rôle "{role.name}"</span>
-                        </AlertDialogTitle>
-                        <AlertDialogDescription>
-                          Cette action est irréversible. Le rôle sera supprimé et tous les utilisateurs 
-                          assignés à ce rôle perdront leurs permissions associées.
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>Annuler</AlertDialogCancel>
-                        <AlertDialogAction
-                          onClick={() => onDeleteRole(role.id)}
-                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                        >
-                          Supprimer
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
+                  <DeleteRoleDialog role={role}>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      className="w-full text-destructive hover:text-destructive hover:bg-destructive/10"
+                    >
+                      <Trash2 className="h-4 w-4 mr-1" />
+                      Supprimer
+                    </Button>
+                  </DeleteRoleDialog>
                 )}
               </div>
               
