@@ -34,7 +34,7 @@ const AccessControl = () => {
       user.nom.toLowerCase().includes(searchTerm.toLowerCase()) ||
       user.email.toLowerCase().includes(searchTerm.toLowerCase());
     
-    const matchesRole = filterRole === 'all' || user.role_name === filterRole;
+    const matchesRole = filterRole === 'all' || user.role?.nom === filterRole;
     
     return matchesSearch && matchesRole;
   });
@@ -261,16 +261,16 @@ const AccessControl = () => {
                   </TableCell>
                   <TableCell>{user.email}</TableCell>
                   <TableCell>
-                    <Badge variant="outline" className={`${getRoleColor(user.role_name)} capitalize`}>
+                    <Badge variant="outline" className={`${getRoleColor(user.role?.nom || '')} capitalize`}>
                       <div className="flex items-center space-x-1">
-                        {getRoleIcon(user.role_name)}
-                        <span>{user.role_name || 'Aucun rôle'}</span>
+                        {getRoleIcon(user.role?.nom || '')}
+                        <span>{user.role?.nom || 'Aucun rôle'}</span>
                       </div>
                     </Badge>
                   </TableCell>
                   <TableCell>
                     <Select 
-                      value={roles.find(r => r.name === user.role_name)?.id || ''} 
+                      value={roles.find(r => r.name === user.role?.nom)?.id || ''} 
                       onValueChange={(roleId) => handleRoleAssignment(user.user_id, roleId)}
                       disabled={assignUserRole.isPending}
                     >

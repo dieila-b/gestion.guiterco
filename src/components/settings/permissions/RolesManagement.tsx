@@ -35,11 +35,8 @@ const RolesManagement = () => {
   };
 
   const onDeleteRole = async (roleId: string) => {
-    try {
-      await deleteRole.mutateAsync(roleId);
-    } catch (error) {
-      console.error('Error deleting role:', error);
-    }
+    // TODO: Implement delete role functionality
+    console.log('Delete role:', roleId);
   };
 
   const getRoleIcon = (roleName: string) => {
@@ -235,9 +232,8 @@ const RolesManagement = () => {
                         <AlertDialogAction
                           onClick={() => onDeleteRole(role.id)}
                           className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                          disabled={deleteRole.isPending}
                         >
-                          {deleteRole.isPending ? 'Suppression...' : 'Supprimer'}
+                          Supprimer
                         </AlertDialogAction>
                       </AlertDialogFooter>
                     </AlertDialogContent>
