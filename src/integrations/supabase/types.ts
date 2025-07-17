@@ -3009,6 +3009,22 @@ export type Database = {
         }
         Relationships: []
       }
+      vue_permissions_utilisateurs: {
+        Row: {
+          action: string | null
+          can_access: boolean | null
+          email: string | null
+          menu: string | null
+          nom: string | null
+          permission_description: string | null
+          prenom: string | null
+          role_description: string | null
+          role_name: string | null
+          submenu: string | null
+          user_id: string | null
+        }
+        Relationships: []
+      }
       vue_precommandes_pretes: {
         Row: {
           acompte_verse: number | null
@@ -3106,6 +3122,15 @@ export type Database = {
           nombre_entrees: number
           details: string
         }[]
+      }
+      check_user_permission: {
+        Args: {
+          p_user_id: string
+          p_menu: string
+          p_submenu?: string
+          p_action?: string
+        }
+        Returns: boolean
       }
       complete_precommande_payment: {
         Args: {

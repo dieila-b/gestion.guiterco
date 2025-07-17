@@ -1,14 +1,18 @@
-
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { useAuth } from '@/components/auth/AuthContext';
 import { useUserPermissions, useUsersWithRoles, useRoles, useAssignUserRole } from '@/hooks/usePermissions';
-import { Shield, Check, X, AlertCircle, Users } from 'lucide-react';
+import { Shield, Check, X, AlertCircle, Users, Search, Crown, Briefcase, User, Eye, Edit, Trash2 } from 'lucide-react';
 
 const AccessControl = () => {
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterRole, setFilterRole] = useState<string>('all');
+  
   const { user, utilisateurInterne } = useAuth();
   const { data: userPermissions = [], isLoading: permissionsLoading } = useUserPermissions(user?.id);
   const { data: usersWithRoles = [], isLoading: usersLoading, error: usersError } = useUsersWithRoles();
@@ -23,6 +27,18 @@ const AccessControl = () => {
     }
   };
 
+  // Filtrer les utilisateurs
+  const filteredUsers = usersWithRoles.filter(user => {
+    const matchesSearch = !searchTerm || 
+      user.prenom.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user.nom.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user.email.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    const matchesRole = filterRole === 'all' || user.role_name === filterRole;
+    
+    return matchesSearch && matchesRole;
+  });
+
   // Grouper les permissions par menu
   const groupedPermissions = (userPermissions as any[]).reduce((acc, permission) => {
     const menuName = permission.menu || 'Général';
@@ -36,13 +52,52 @@ const AccessControl = () => {
   const getPermissionTypeColor = (action: string) => {
     switch (action) {
       case 'read':
-        return 'bg-green-100 text-green-800';
+        return 'bg-green-50 text-green-700 border-green-200';
       case 'write':
-        return 'bg-blue-100 text-blue-800';
+        return 'bg-blue-50 text-blue-700 border-blue-200';
       case 'delete':
-        return 'bg-red-100 text-red-800';
+        return 'bg-red-50 text-red-700 border-red-200';
       default:
-        return 'bg-gray-100 text-gray-800';
+        return 'bg-gray-50 text-gray-700 border-gray-200';
+    }
+  };
+
+  const getPermissionIcon = (action: string) => {
+    switch (action) {
+      case 'read':
+        return <Eye className="h-3 w-3" />;
+      case 'write':
+        return <Edit className="h-3 w-3" />;
+      case 'delete':
+        return <Trash2 className="h-3 w-3" />;
+      default:
+        return <Shield className="h-3 w-3" />;
+    }
+  };
+
+  const getRoleIcon = (roleName: string) => {
+    switch (roleName?.toLowerCase()) {
+      case 'administrateur':
+        return <Crown className="h-4 w-4" />;
+      case 'manager':
+        return <Briefcase className="h-4 w-4" />;
+      default:
+        return <User className="h-4 w-4" />;
+    }
+  };
+
+  const getRoleColor = (roleName: string) => {
+    switch (roleName?.toLowerCase()) {
+      case 'administrateur':
+        return 'bg-red-50 text-red-700 border-red-200';
+      case 'manager':
+        return 'bg-blue-50 text-blue-700 border-blue-200';
+      case 'vendeur':
+        return 'bg-green-50 text-green-700 border-green-200';
+      case 'caissier':
+        return 'bg-purple-50 text-purple-700 border-purple-200';
+      default:
+        return 'bg-gray-50 text-gray-700 border-gray-200';
     }
   };
 
@@ -53,7 +108,7 @@ const AccessControl = () => {
       <div className="flex items-center justify-center p-8">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-          <p className="mt-2 text-muted-foreground">Chargement des données...</p>
+          <p className="mt-2 text-muted-foreground">Chargement des données d'accès...</p>
         </div>
       </div>
     );
@@ -78,7 +133,7 @@ const AccessControl = () => {
       <div>
         <h3 className="text-lg font-medium">Contrôle d'Accès</h3>
         <p className="text-sm text-muted-foreground">
-          Gérez les rôles des utilisateurs et consultez vos permissions
+          Gérez les rôles des utilisateurs et consultez les permissions du système
         </p>
       </div>
 
@@ -88,18 +143,18 @@ const AccessControl = () => {
           <div className="flex items-center space-x-2">
             <Shield className="h-5 w-5" />
             <div>
-              <CardTitle>Informations Utilisateur</CardTitle>
+              <CardTitle>Votre Profil d'Accès</CardTitle>
               <CardDescription>
-                Vos informations de rôle et statut actuel
+                Informations sur votre compte et vos permissions actuelles
               </CardDescription>
             </div>
           </div>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div className="space-y-2">
-              <label className="text-sm font-medium text-muted-foreground">Nom</label>
-              <p className="text-sm">
+              <label className="text-sm font-medium text-muted-foreground">Nom complet</label>
+              <p className="text-sm font-medium">
                 {utilisateurInterne?.prenom} {utilisateurInterne?.nom}
               </p>
             </div>
@@ -108,9 +163,18 @@ const AccessControl = () => {
               <p className="text-sm">{user?.email}</p>
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium text-muted-foreground">Rôle</label>
-              <Badge variant="outline" className="capitalize">
-                {utilisateurInterne?.role?.nom}
+              <label className="text-sm font-medium text-muted-foreground">Rôle assigné</label>
+              <Badge variant="outline" className={`${getRoleColor(utilisateurInterne?.role?.nom || '')} capitalize`}>
+                <div className="flex items-center space-x-1">
+                  {getRoleIcon(utilisateurInterne?.role?.nom || '')}
+                  <span>{utilisateurInterne?.role?.nom}</span>
+                </div>
+              </Badge>
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-muted-foreground">Statut</label>
+              <Badge variant="default" className="bg-green-100 text-green-800">
+                Actif
               </Badge>
             </div>
           </div>
@@ -120,60 +184,106 @@ const AccessControl = () => {
       {/* Gestion des rôles utilisateurs */}
       <Card>
         <CardHeader>
-          <div className="flex items-center space-x-2">
-            <Users className="h-5 w-5" />
-            <div>
-              <CardTitle>Gestion des Rôles Utilisateurs</CardTitle>
-              <CardDescription>
-                Assignez des rôles aux utilisateurs du système
-              </CardDescription>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              <Users className="h-5 w-5" />
+              <div>
+                <CardTitle>Gestion des Utilisateurs</CardTitle>
+                <CardDescription>
+                  Assignez et gérez les rôles des utilisateurs système
+                </CardDescription>
+              </div>
             </div>
+            <Badge variant="outline">
+              {filteredUsers.length} utilisateur(s)
+            </Badge>
           </div>
         </CardHeader>
         <CardContent>
+          {/* Filtres */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Recherche</label>
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Rechercher un utilisateur..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-9"
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Filtrer par rôle</label>
+              <Select value={filterRole} onValueChange={setFilterRole}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Tous les rôles" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Tous les rôles</SelectItem>
+                  {roles.map((role) => (
+                    <SelectItem key={role.id} value={role.name}>
+                      <div className="flex items-center space-x-2">
+                        {getRoleIcon(role.name)}
+                        <span>{role.name}</span>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          {/* Table des utilisateurs */}
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>Utilisateur</TableHead>
                 <TableHead>Email</TableHead>
                 <TableHead>Rôle Actuel</TableHead>
-                <TableHead>Statut</TableHead>
-                <TableHead>Actions</TableHead>
+                <TableHead>Modifier le Rôle</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {usersWithRoles.map((user) => (
-                <TableRow key={user.id}>
+              {filteredUsers.map((user) => (
+                <TableRow key={user.user_id}>
                   <TableCell>
-                    <div>
-                      <p className="font-medium">{user.prenom} {user.nom}</p>
-                      <p className="text-sm text-muted-foreground">{user.type_compte}</p>
+                    <div className="flex items-center space-x-3">
+                      <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                        <User className="h-4 w-4" />
+                      </div>
+                      <div>
+                        <p className="font-medium">{user.prenom} {user.nom}</p>
+                        <p className="text-sm text-muted-foreground">Utilisateur interne</p>
+                      </div>
                     </div>
                   </TableCell>
                   <TableCell>{user.email}</TableCell>
                   <TableCell>
-                    <Badge variant="outline" className="capitalize">
-                      {user.role?.nom || 'Aucun rôle'}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={user.statut === 'actif' ? 'default' : 'secondary'}>
-                      {user.statut}
+                    <Badge variant="outline" className={`${getRoleColor(user.role_name)} capitalize`}>
+                      <div className="flex items-center space-x-1">
+                        {getRoleIcon(user.role_name)}
+                        <span>{user.role_name || 'Aucun rôle'}</span>
+                      </div>
                     </Badge>
                   </TableCell>
                   <TableCell>
                     <Select 
-                      value={user.role_id || ''} 
+                      value={roles.find(r => r.name === user.role_name)?.id || ''} 
                       onValueChange={(roleId) => handleRoleAssignment(user.user_id, roleId)}
                       disabled={assignUserRole.isPending}
                     >
-                      <SelectTrigger className="w-40">
+                      <SelectTrigger className="w-48">
                         <SelectValue placeholder="Choisir un rôle" />
                       </SelectTrigger>
                       <SelectContent>
                         {roles.map((role) => (
                           <SelectItem key={role.id} value={role.id}>
-                            {role.name}
+                            <div className="flex items-center space-x-2">
+                              {getRoleIcon(role.name)}
+                              <span>{role.name}</span>
+                            </div>
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -183,96 +293,103 @@ const AccessControl = () => {
               ))}
             </TableBody>
           </Table>
-        </CardContent>
-      </Card>
 
-      {/* Vos permissions */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Vos Permissions</CardTitle>
-          <CardDescription>
-            Liste détaillée de vos permissions par menu
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {Object.entries(groupedPermissions).length > 0 ? (
-            Object.entries(groupedPermissions).map(([menuName, permissions]) => (
-              <div key={menuName} className="mb-6 last:mb-0">
-                <h4 className="font-medium mb-3 capitalize">{menuName}</h4>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                  {(permissions as any[]).map((permission: any, index: number) => (
-                    <div key={index} className="flex items-center space-x-2">
-                      <Check className="h-4 w-4 text-green-500" />
-                      <Badge 
-                        variant="outline"
-                        className={getPermissionTypeColor(permission.action)}
-                      >
-                        {permission.action}
-                      </Badge>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ))
-          ) : (
+          {filteredUsers.length === 0 && (
             <div className="text-center py-8">
-              <Shield className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-              <h3 className="text-lg font-medium mb-2">Aucune permission trouvée</h3>
+              <Users className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+              <h3 className="text-lg font-medium mb-2">Aucun utilisateur trouvé</h3>
               <p className="text-muted-foreground">
-                Contactez votre administrateur pour obtenir des permissions
+                {searchTerm || filterRole !== 'all'
+                  ? 'Aucun utilisateur ne correspond à vos critères de recherche'
+                  : 'Aucun utilisateur configuré dans le système'
+                }
               </p>
             </div>
           )}
         </CardContent>
       </Card>
 
-      {/* Résumé des accès */}
+      {/* Vos permissions détaillées */}
       <Card>
         <CardHeader>
-          <CardTitle>Résumé des Accès</CardTitle>
+          <CardTitle>Vos Permissions Détaillées</CardTitle>
           <CardDescription>
-            Vue d'ensemble de vos droits d'accès par type
+            Vue complète de toutes vos permissions par module
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Type de Permission</TableHead>
-                <TableHead>Modules Autorisés</TableHead>
-                <TableHead>Statut</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {['read', 'write', 'delete'].map((action) => {
-                const actionPermissions = (userPermissions as any[]).filter(p => p.action === action);
-                const moduleCount = new Set(actionPermissions.map(p => p.menu)).size;
-                
-                return (
-                  <TableRow key={action}>
-                    <TableCell>
-                      <Badge 
-                        variant="outline"
-                        className={getPermissionTypeColor(action)}
-                      >
-                        {action}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      {moduleCount > 0 ? `${moduleCount} module(s)` : 'Aucun'}
-                    </TableCell>
-                    <TableCell>
-                      {moduleCount > 0 ? (
+          {Object.entries(groupedPermissions).length > 0 ? (
+            <div className="space-y-6">
+              {Object.entries(groupedPermissions).map(([menuName, permissions]) => (
+                <div key={menuName} className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h4 className="font-medium capitalize">{menuName}</h4>
+                    <Badge variant="outline">
+                      {(permissions as any[]).length} permission(s)
+                    </Badge>
+                  </div>
+                  <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-2">
+                    {(permissions as any[]).map((permission: any, index: number) => (
+                      <div key={index} className="flex items-center space-x-2">
                         <Check className="h-4 w-4 text-green-500" />
-                      ) : (
-                        <X className="h-4 w-4 text-red-500" />
-                      )}
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
+                        <Badge 
+                          variant="outline"
+                          className={`${getPermissionTypeColor(permission.action)} text-xs`}
+                        >
+                          <div className="flex items-center space-x-1">
+                            {getPermissionIcon(permission.action)}
+                            <span className="capitalize">{permission.action}</span>
+                          </div>
+                        </Badge>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-8">
+              <Shield className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+              <h3 className="text-lg font-medium mb-2">Aucune permission configurée</h3>
+              <p className="text-muted-foreground">
+                Contactez votre administrateur pour obtenir les permissions nécessaires
+              </p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Résumé statistique */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Statistiques d'Accès</CardTitle>
+          <CardDescription>
+            Vue d'ensemble des permissions et utilisateurs système
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="text-center p-4 bg-muted rounded-lg">
+              <div className="text-2xl font-bold text-primary">{usersWithRoles.length}</div>
+              <div className="text-sm text-muted-foreground">Total Utilisateurs</div>
+            </div>
+            <div className="text-center p-4 bg-muted rounded-lg">
+              <div className="text-2xl font-bold text-green-600">{roles.length}</div>
+              <div className="text-sm text-muted-foreground">Rôles Configurés</div>
+            </div>
+            <div className="text-center p-4 bg-muted rounded-lg">
+              <div className="text-2xl font-bold text-blue-600">
+                {(userPermissions as any[]).filter(p => p.action === 'read').length}
+              </div>
+              <div className="text-sm text-muted-foreground">Permissions Lecture</div>
+            </div>
+            <div className="text-center p-4 bg-muted rounded-lg">
+              <div className="text-2xl font-bold text-purple-600">
+                {(userPermissions as any[]).filter(p => p.action === 'write').length}
+              </div>
+              <div className="text-sm text-muted-foreground">Permissions Écriture</div>
+            </div>
+          </div>
         </CardContent>
       </Card>
     </div>
