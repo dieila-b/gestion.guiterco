@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -45,16 +44,33 @@ const GlobalMarginAnalysis = () => {
       case 'thisQuarter':
         // Calculer le trimestre actuel (0-3)
         const currentQuarter = Math.floor(now.getMonth() / 3);
-        // Premier mois du trimestre actuel
+        // Premier mois du trimestre actuel (0, 3, 6, ou 9)
         const quarterStartMonth = currentQuarter * 3;
+        // Date de début du trimestre
         startDate = new Date(now.getFullYear(), quarterStartMonth, 1);
-        endDate = new Date();
+        // Date de fin du trimestre (dernier jour du 3ème mois)
+        endDate = new Date(now.getFullYear(), quarterStartMonth + 3, 0);
+        
+        // Si nous sommes encore dans le trimestre, utiliser la date actuelle comme fin
+        if (endDate > now) {
+          endDate = new Date();
+        }
         break;
       case 'thisYear':
         startDate = new Date(now.getFullYear(), 0, 1);
         endDate = new Date();
         break;
     }
+
+    console.log(`📅 Période sélectionnée (${period}):`, {
+      debut: startDate.toLocaleDateString('fr-FR'),
+      fin: endDate.toLocaleDateString('fr-FR'),
+      quarterInfo: period === 'thisQuarter' ? {
+        currentQuarter: Math.floor(now.getMonth() / 3) + 1,
+        quarterStartMonth: Math.floor(now.getMonth() / 3) * 3,
+        months: `${format(startDate, 'MMMM', { locale: fr })} - ${format(endDate, 'MMMM', { locale: fr })}`
+      } : null
+    });
 
     setDateDebut(startDate);
     setDateFin(endDate);
