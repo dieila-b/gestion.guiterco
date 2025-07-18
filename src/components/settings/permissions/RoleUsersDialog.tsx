@@ -3,44 +3,55 @@ import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useUsersWithRoles, useAssignUserRole } from '@/hooks/usePermissions';
-import { Search, User, UserPlus, Crown, Briefcase } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { Users, User } from 'lucide-react';
 
 interface RoleUsersDialogProps {
-  role: any;
+  role: {
+    id: string;
+    name: string;
+    description?: string;
+  };
   children: React.ReactNode;
 }
 
 const RoleUsersDialog = ({ role, children }: RoleUsersDialogProps) => {
   const [isOpen, setIsOpen] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
-  const { data: users = [], isLoading } = useUsersWithRoles();
-  const assignUserRole = useAssignUserRole();
 
-  // Filtrer les utilisateurs pour ce rôle et par terme de recherche
-  const roleUsers = users.filter(user => 
-    user.role?.nom === role.name &&
-    (user.prenom.toLowerCase().includes(searchTerm.toLowerCase()) ||
-     user.nom.toLowerCase().includes(searchTerm.toLowerCase()) ||
-     user.email.toLowerCase().includes(searchTerm.toLowerCase()))
-  );
+  // Récupérer les utilisateurs ayant ce rôle
+  const { data: usersWithRole = [], isLoading } = useQuery({
+    queryKey: ['role-users', role.id],
+    queryFn: async () => {
+      console.log('🔍 Fetching users for role:', role.id);
+      
+      const { data, error } = await supabase
+        .from('utilisateurs_internes')
+        .select(`
+          user_id,
+          prenom,
+          nom,
+          email,
+          statut,
+          created_at
+        `)
+        .eq('role_id', role.id)
+        .eq('statut', 'actif')
+        .order('created_at', { ascending: false });
 
-  const getRoleIcon = (roleName: string) => {
-    switch (roleName?.toLowerCase()) {
-      case 'administrateur':
-        return <Crown className="h-4 w-4" />;
-      case 'manager':
-        return <Briefcase className="h-4 w-4" />;
-      default:
-        return <User className="h-4 w-4" />;
-    }
-  };
+      if (error) {
+        console.error('❌ Error fetching users for role:', error);
+        throw error;
+      }
+
+      console.log('✅ Users with role fetched:', data?.length || 0);
+      return data || [];
+    },
+    enabled: isOpen
+  });
 
   const getRoleColor = (roleName: string) => {
-    switch (roleName?.toLowerCase()) {
+    switch (roleName.toLowerCase()) {
       case 'administrateur':
         return 'bg-red-50 text-red-700 border-red-200';
       case 'manager':
@@ -54,92 +65,71 @@ const RoleUsersDialog = ({ role, children }: RoleUsersDialogProps) => {
     }
   };
 
-  if (isLoading) {
-    return null;
-  }
-
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
         {children}
       </DialogTrigger>
-      <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center space-x-2">
-            {getRoleIcon(role.name)}
-            <span>Utilisateurs du rôle "{role.name}"</span>
-            <Badge variant="outline" className={getRoleColor(role.name)}>
-              {roleUsers.length} utilisateur(s)
-            </Badge>
+            <Users className="h-5 w-5" />
+            <span>Utilisateurs avec le rôle "{role.name}"</span>
+            <Badge variant="outline">{usersWithRole.length} utilisateur(s)</Badge>
           </DialogTitle>
         </DialogHeader>
         
         <div className="space-y-4">
-          {/* Barre de recherche */}
-          <div className="flex items-center space-x-2">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Rechercher un utilisateur..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-9"
-              />
+          {role.description && (
+            <div className="p-3 bg-muted rounded-lg">
+              <p className="text-sm text-muted-foreground">{role.description}</p>
             </div>
-          </div>
+          )}
 
-          {/* Liste des utilisateurs */}
-          {roleUsers.length > 0 ? (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Utilisateur</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Statut</TableHead>
-                  <TableHead>Date d'assignation</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {roleUsers.map((user) => (
-                  <TableRow key={user.user_id}>
-                    <TableCell>
-                      <div className="flex items-center space-x-3">
-                        <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                          <User className="h-4 w-4" />
-                        </div>
-                        <div>
-                          <p className="font-medium">{user.prenom} {user.nom}</p>
-                          <p className="text-sm text-muted-foreground">Utilisateur interne</p>
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell>{user.email}</TableCell>
-                    <TableCell>
-                      <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-                        Actif
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <span className="text-sm text-muted-foreground">
-                        {new Date(user.created_at).toLocaleDateString('fr-FR')}
-                      </span>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+          {isLoading ? (
+            <div className="flex items-center justify-center p-8">
+              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
+              <span className="ml-2">Chargement...</span>
+            </div>
+          ) : usersWithRole.length > 0 ? (
+            <div className="space-y-3">
+              {usersWithRole.map((user) => (
+                <div key={user.user_id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                      <User className="h-5 w-5 text-primary" />
+                    </div>
+                    <div>
+                      <p className="font-medium">{user.prenom} {user.nom}</p>
+                      <p className="text-sm text-muted-foreground">{user.email}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Badge variant="outline" className={getRoleColor(role.name)}>
+                      {role.name}
+                    </Badge>
+                    <Badge variant="secondary" className="text-xs">
+                      Actif
+                    </Badge>
+                  </div>
+                </div>
+              ))}
+            </div>
           ) : (
             <div className="text-center py-8">
-              <UserPlus className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-              <h3 className="text-lg font-medium mb-2">Aucun utilisateur assigné</h3>
+              <Users className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+              <h3 className="text-lg font-medium mb-2">Aucun utilisateur</h3>
               <p className="text-muted-foreground">
-                {searchTerm 
-                  ? 'Aucun utilisateur ne correspond à votre recherche'
-                  : `Aucun utilisateur n'est actuellement assigné au rôle "${role.name}"`
-                }
+                Aucun utilisateur n'a actuellement le rôle "{role.name}"
               </p>
             </div>
           )}
+        </div>
+
+        <div className="flex justify-end pt-4">
+          <Button variant="outline" onClick={() => setIsOpen(false)}>
+            Fermer
+          </Button>
         </div>
       </DialogContent>
     </Dialog>
