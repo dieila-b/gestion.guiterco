@@ -53,8 +53,9 @@ export const useUtilisateursInternes = () => {
 
       // Transform data to match expected interface
       const transformedData = data?.map(user => {
-        const userRole = user.user_roles?.[0];
-        const roleData = userRole?.roles;
+        // Handle the case where user_roles is an array
+        const userRoleData = Array.isArray(user.user_roles) ? user.user_roles[0] : user.user_roles;
+        const roleData = userRoleData?.roles;
         
         return {
           ...user,
