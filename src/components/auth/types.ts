@@ -25,4 +25,5 @@ export interface AuthContextType {
   signIn: (email: string, password: string) => Promise<{ error?: any }>;
   signOut: () => Promise<void>;
   isInternalUser: boolean;
+  isDevMode: boolean;
 }

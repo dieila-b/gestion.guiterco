@@ -203,5 +203,6 @@ export const useAuthState = (bypassAuth: boolean, mockUser: UtilisateurInterne, 
     signIn,
     signOut,
     isInternalUser: !!isInternalUser,
+    isDevMode,
   };
 };
