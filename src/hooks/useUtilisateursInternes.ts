@@ -12,6 +12,7 @@ export interface UtilisateurInterneWithRole {
   adresse?: string;
   photo_url?: string;
   role_id: string;
+  matricule?: string;
   statut: string;
   type_compte: string;
   doit_changer_mot_de_passe: boolean;
