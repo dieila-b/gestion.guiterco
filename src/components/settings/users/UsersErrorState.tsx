@@ -2,7 +2,7 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { AlertCircle, RefreshCw, UserPlus } from 'lucide-react';
+import { AlertCircle, RefreshCw } from 'lucide-react';
 import CreateUserDialog from '../CreateUserDialog';
 
 interface UsersErrorStateProps {
@@ -72,12 +72,9 @@ const UsersErrorState = ({ error, onUserCreated }: UsersErrorStateProps) => {
             Recharger la page
           </Button>
           
-          <CreateUserDialog onUserCreated={onUserCreated}>
-            <Button variant="default" className="flex-1">
-              <UserPlus className="h-4 w-4 mr-2" />
-              Créer un utilisateur
-            </Button>
-          </CreateUserDialog>
+          <div className="flex-1">
+            <CreateUserDialog onUserCreated={onUserCreated} />
+          </div>
         </div>
 
         <div className="mt-4 p-3 bg-muted rounded-md">
