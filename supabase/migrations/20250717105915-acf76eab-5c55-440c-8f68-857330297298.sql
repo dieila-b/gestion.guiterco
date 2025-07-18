@@ -1,4 +1,5 @@
 
+
 -- Supprimer les politiques RLS restrictives existantes sur la table roles
 DROP POLICY IF EXISTS "Allow read access to roles for authenticated users" ON public.roles;
 DROP POLICY IF EXISTS "Allow all operations on roles for authenticated users" ON public.roles;
@@ -40,3 +41,4 @@ USING (NOT is_system OR is_system IS NULL);
 
 -- Invalider le cache PostgREST pour appliquer les changements
 NOTIFY pgrst, 'reload schema';
+

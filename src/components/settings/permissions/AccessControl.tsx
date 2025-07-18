@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -14,7 +15,7 @@ const AccessControl = () => {
   const [filterRole, setFilterRole] = useState<string>('all');
   
   const { user, utilisateurInterne } = useAuth();
-  const { data: userPermissions = [], isLoading: permissionsLoading } = useUserPermissions(user?.id);
+  const { data: userPermissions = [], isLoading: permissionsLoading, error: permissionsError } = useUserPermissions(user?.id);
   const { data: usersWithRoles = [], isLoading: usersLoading, error: usersError } = useUsersWithRoles();
   const { data: roles = [], isLoading: rolesLoading } = useRoles();
   const assignUserRole = useAssignUserRole();
@@ -164,12 +165,18 @@ const AccessControl = () => {
             </div>
             <div className="space-y-2">
               <label className="text-sm font-medium text-muted-foreground">Rôle assigné</label>
-              <Badge variant="outline" className={`${getRoleColor(utilisateurInterne?.role?.nom || '')} capitalize`}>
-                <div className="flex items-center space-x-1">
-                  {getRoleIcon(utilisateurInterne?.role?.nom || '')}
-                  <span>{utilisateurInterne?.role?.nom}</span>
-                </div>
-              </Badge>
+              {utilisateurInterne?.role?.nom ? (
+                <Badge variant="outline" className={`${getRoleColor(utilisateurInterne.role.nom)} capitalize`}>
+                  <div className="flex items-center space-x-1">
+                    {getRoleIcon(utilisateurInterne.role.nom)}
+                    <span>{utilisateurInterne.role.nom}</span>
+                  </div>
+                </Badge>
+              ) : (
+                <Badge variant="outline" className="bg-gray-50 text-gray-700 border-gray-200">
+                  Aucun rôle
+                </Badge>
+              )}
             </div>
             <div className="space-y-2">
               <label className="text-sm font-medium text-muted-foreground">Statut</label>
@@ -261,12 +268,18 @@ const AccessControl = () => {
                   </TableCell>
                   <TableCell>{user.email}</TableCell>
                   <TableCell>
-                    <Badge variant="outline" className={`${getRoleColor(user.role?.nom || '')} capitalize`}>
-                      <div className="flex items-center space-x-1">
-                        {getRoleIcon(user.role?.nom || '')}
-                        <span>{user.role?.nom || 'Aucun rôle'}</span>
-                      </div>
-                    </Badge>
+                    {user.role ? (
+                      <Badge variant="outline" className={`${getRoleColor(user.role.nom)} capitalize`}>
+                        <div className="flex items-center space-x-1">
+                          {getRoleIcon(user.role.nom)}
+                          <span>{user.role.nom}</span>
+                        </div>
+                      </Badge>
+                    ) : (
+                      <Badge variant="outline" className="bg-gray-50 text-gray-700 border-gray-200">
+                        Aucun rôle
+                      </Badge>
+                    )}
                   </TableCell>
                   <TableCell>
                     <Select 
@@ -318,7 +331,15 @@ const AccessControl = () => {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {Object.entries(groupedPermissions).length > 0 ? (
+          {permissionsError ? (
+            <div className="text-center py-8">
+              <AlertCircle className="h-12 w-12 mx-auto text-amber-500 mb-4" />
+              <h3 className="text-lg font-medium mb-2">Permissions indisponibles</h3>
+              <p className="text-muted-foreground">
+                ID utilisateur invalide ou permissions non configurées
+              </p>
+            </div>
+          ) : Object.entries(groupedPermissions).length > 0 ? (
             <div className="space-y-6">
               {Object.entries(groupedPermissions).map(([menuName, permissions]) => (
                 <div key={menuName} className="space-y-3">

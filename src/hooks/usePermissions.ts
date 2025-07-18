@@ -52,6 +52,12 @@ export interface UserWithRole {
   } | null;
 }
 
+// Fonction utilitaire pour valider les UUID
+const isValidUUID = (str: string): boolean => {
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  return uuidRegex.test(str);
+};
+
 // Hook pour récupérer tous les rôles
 export const useRoles = () => {
   return useQuery({
@@ -130,24 +136,56 @@ export const useUserPermissions = (userId?: string) => {
   return useQuery({
     queryKey: ['user-permissions', userId],
     queryFn: async () => {
-      if (!userId) return [];
+      if (!userId || !isValidUUID(userId)) {
+        console.log('⚠️ Invalid or missing user ID for permissions:', userId);
+        return [];
+      }
       
       console.log('🔍 Fetching permissions for user:', userId);
+      
+      // Vérifier d'abord si la vue existe, sinon utiliser une requête directe
       const { data, error } = await supabase
-        .from('vue_permissions_utilisateurs')
-        .select('*')
+        .from('user_roles')
+        .select(`
+          role_id,
+          roles!inner (
+            name,
+            role_permissions!inner (
+              permission_id,
+              can_access,
+              permissions (
+                menu,
+                submenu,
+                action,
+                description
+              )
+            )
+          )
+        `)
         .eq('user_id', userId)
-        .eq('can_access', true);
+        .eq('is_active', true)
+        .eq('roles.role_permissions.can_access', true);
 
       if (error) {
         console.error('❌ Error fetching user permissions:', error);
         throw error;
       }
 
-      console.log('✅ User permissions fetched:', data?.length || 0);
-      return data;
+      // Flatten les permissions
+      const permissions = data?.flatMap(userRole => 
+        userRole.roles?.role_permissions?.map(rp => ({
+          menu: rp.permissions?.menu,
+          submenu: rp.permissions?.submenu,
+          action: rp.permissions?.action,
+          description: rp.permissions?.description,
+          can_access: rp.can_access
+        })) || []
+      ) || [];
+
+      console.log('✅ User permissions fetched:', permissions.length);
+      return permissions;
     },
-    enabled: !!userId
+    enabled: !!userId && isValidUUID(userId)
   });
 };
 
@@ -164,7 +202,7 @@ export const useUsersWithRoles = () => {
           prenom,
           nom,
           email,
-          role:role_id (
+          roles_utilisateurs!inner (
             id,
             nom
           )
@@ -176,8 +214,20 @@ export const useUsersWithRoles = () => {
         throw error;
       }
 
-      console.log('✅ Users with roles fetched:', data?.length || 0);
-      return data as UserWithRole[];
+      // Transformer les données pour correspondre à l'interface
+      const transformedData = data?.map(user => ({
+        user_id: user.user_id,
+        prenom: user.prenom,
+        nom: user.nom,
+        email: user.email,
+        role: user.roles_utilisateurs ? {
+          id: user.roles_utilisateurs.id,
+          nom: user.roles_utilisateurs.nom
+        } : null
+      })) || [];
+
+      console.log('✅ Users with roles fetched:', transformedData.length);
+      return transformedData as UserWithRole[];
     }
   });
 };
@@ -230,6 +280,25 @@ export const useAssignUserRole = () => {
     mutationFn: async ({ userId, roleId }: { userId: string; roleId: string }) => {
       console.log('🔨 Assigning role to user:', { userId, roleId });
       
+      if (!isValidUUID(userId)) {
+        throw new Error('ID utilisateur invalide');
+      }
+
+      if (!isValidUUID(roleId)) {
+        throw new Error('ID rôle invalide');
+      }
+
+      // Utiliser la nouvelle table roles au lieu de roles_utilisateurs
+      const { data: roleData, error: roleError } = await supabase
+        .from('roles')
+        .select('id, name')
+        .eq('id', roleId)
+        .single();
+
+      if (roleError || !roleData) {
+        throw new Error('Rôle non trouvé');
+      }
+
       // D'abord, désactiver les rôles existants pour cet utilisateur
       await supabase
         .from('user_roles')
@@ -250,11 +319,20 @@ export const useAssignUserRole = () => {
 
       if (error) throw error;
 
-      // Mettre à jour aussi la table utilisateurs_internes pour la compatibilité
-      await supabase
-        .from('utilisateurs_internes')
-        .update({ role_id: roleId })
-        .eq('user_id', userId);
+      // Essayer de mettre à jour aussi la table utilisateurs_internes si elle utilise roles_utilisateurs
+      // Trouver le role_id correspondant dans roles_utilisateurs
+      const { data: oldRoleData } = await supabase
+        .from('roles_utilisateurs')
+        .select('id')
+        .eq('nom', roleData.name)
+        .single();
+
+      if (oldRoleData) {
+        await supabase
+          .from('utilisateurs_internes')
+          .update({ role_id: oldRoleData.id })
+          .eq('user_id', userId);
+      }
 
       return data;
     },
