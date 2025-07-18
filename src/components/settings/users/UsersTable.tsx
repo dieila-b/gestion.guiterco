@@ -6,6 +6,7 @@ import UserTableRow from './UserTableRow';
 
 interface UtilisateurInterne {
   id: string;
+  user_id: string;
   prenom: string;
   nom: string;
   email: string;
@@ -17,8 +18,9 @@ interface UtilisateurInterne {
   created_at: string;
   role_id?: string;
   role: {
-    nom: string;
-    description: string;
+    id: string;
+    name: string;
+    description?: string;
   } | null;
 }
 

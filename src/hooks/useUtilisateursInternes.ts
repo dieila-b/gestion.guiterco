@@ -52,14 +52,19 @@ export const useUtilisateursInternes = () => {
       }
 
       // Transform data to match expected interface
-      const transformedData = data?.map(user => ({
-        ...user,
-        role: user.user_roles?.[0]?.roles ? {
-          id: user.user_roles[0].roles.id,
-          name: user.user_roles[0].roles.name,
-          description: user.user_roles[0].roles.description
-        } : null
-      })) || [];
+      const transformedData = data?.map(user => {
+        const userRole = user.user_roles?.[0];
+        const roleData = userRole?.roles;
+        
+        return {
+          ...user,
+          role: roleData ? {
+            id: roleData.id,
+            name: roleData.name,
+            description: roleData.description
+          } : null
+        };
+      }) || [];
 
       console.log('✅ Utilisateurs internes fetched:', transformedData.length);
       return transformedData as UtilisateurInterneWithRole[];
