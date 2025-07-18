@@ -19,7 +19,7 @@ export interface UtilisateurInterneWithRole {
   updated_at: string;
   role?: {
     id: string;
-    nom: string;
+    name: string;
     description?: string;
   };
 }
@@ -28,20 +28,64 @@ export const useUtilisateursInternes = () => {
   return useQuery({
     queryKey: ['utilisateurs-internes'],
     queryFn: async () => {
+      console.log('🔍 Fetching utilisateurs internes with unified roles...');
+      
       const { data, error } = await supabase
         .from('utilisateurs_internes')
         .select(`
           *,
-          role:role_id (
-            id,
-            nom,
-            description
+          user_roles!inner (
+            role_id,
+            roles!inner (
+              id,
+              name,
+              description
+            )
           )
         `)
+        .eq('user_roles.is_active', true)
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
-      return data as UtilisateurInterneWithRole[];
+      if (error) {
+        console.error('❌ Error fetching utilisateurs internes:', error);
+        throw error;
+      }
+
+      // Transform data to match expected interface
+      const transformedData = data?.map(user => ({
+        ...user,
+        role: user.user_roles?.[0]?.roles ? {
+          id: user.user_roles[0].roles.id,
+          name: user.user_roles[0].roles.name,
+          description: user.user_roles[0].roles.description
+        } : null
+      })) || [];
+
+      console.log('✅ Utilisateurs internes fetched:', transformedData.length);
+      return transformedData as UtilisateurInterneWithRole[];
+    }
+  });
+};
+
+// Hook pour récupérer tous les rôles disponibles (unifié)
+export const useRolesForUsers = () => {
+  return useQuery({
+    queryKey: ['roles-for-users'],
+    queryFn: async () => {
+      console.log('🔍 Fetching unified roles for user assignment...');
+      
+      const { data, error } = await supabase
+        .from('roles')
+        .select('*')
+        .order('name');
+
+      if (error) {
+        console.error('❌ Error fetching roles:', error);
+        throw error;
+      }
+
+      console.log('✅ Unified roles fetched:', data?.length || 0);
+      return data;
     }
   });
 };

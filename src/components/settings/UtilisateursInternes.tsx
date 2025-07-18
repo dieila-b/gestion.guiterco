@@ -2,61 +2,24 @@
 import React from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { useUtilisateursInternes } from '@/hooks/useUtilisateursInternes';
+import { useRealTimeRoles } from '@/hooks/useRealTimeRoles';
 import UsersHeader from './users/UsersHeader';
 import UsersTable from './users/UsersTable';
 import UsersErrorState from './users/UsersErrorState';
 import UsersLoadingState from './users/UsersLoadingState';
 
-interface UtilisateurInterne {
-  id: string;
-  prenom: string;
-  nom: string;
-  email: string;
-  telephone?: string;
-  adresse?: string;
-  photo_url?: string;
-  statut: string;
-  doit_changer_mot_de_passe: boolean;
-  created_at: string;
-  role_id?: string;
-  role: {
-    nom: string;
-    description: string;
-  } | null;
-}
-
 const UtilisateursInternes = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  
+  // Activer la synchronisation temps réel
+  useRealTimeRoles();
 
-  // Récupérer les utilisateurs internes
-  const { data: utilisateurs, isLoading, error } = useQuery({
-    queryKey: ['utilisateurs-internes'],
-    queryFn: async () => {
-      console.log('🔍 Chargement des utilisateurs internes...');
-      
-      const { data, error } = await supabase
-        .from('utilisateurs_internes')
-        .select(`
-          *,
-          role:role_id (
-            nom,
-            description
-          )
-        `)
-        .order('created_at', { ascending: false });
-
-      if (error) {
-        console.error('❌ Erreur lors du chargement des utilisateurs:', error);
-        throw error;
-      }
-
-      console.log('✅ Utilisateurs chargés:', data?.length || 0, 'utilisateurs trouvés');
-      return data as UtilisateurInterne[];
-    }
-  });
+  // Récupérer les utilisateurs internes avec les rôles unifiés
+  const { data: utilisateurs, isLoading, error } = useUtilisateursInternes();
 
   // Mutation pour supprimer un utilisateur
   const deleteUser = useMutation({
@@ -112,6 +75,9 @@ const UtilisateursInternes = () => {
               {utilisateurs && utilisateurs.length > 0 && (
                 <div className="mb-4 text-sm text-muted-foreground">
                   {utilisateurs.length} utilisateur{utilisateurs.length > 1 ? 's' : ''} trouvé{utilisateurs.length > 1 ? 's' : ''}
+                  <span className="ml-2 px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs">
+                    ✅ Synchronisation temps réel activée
+                  </span>
                 </div>
               )}
               

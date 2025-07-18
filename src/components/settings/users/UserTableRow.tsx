@@ -2,12 +2,14 @@
 import React from 'react';
 import { TableCell, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Trash2, UserCheck } from 'lucide-react';
+import { Trash2, Shield, AlertCircle } from 'lucide-react';
 import EditUserDialog from '../EditUserDialog';
 
 interface UtilisateurInterne {
   id: string;
+  user_id: string;
   prenom: string;
   nom: string;
   email: string;
@@ -18,9 +20,10 @@ interface UtilisateurInterne {
   doit_changer_mot_de_passe: boolean;
   created_at: string;
   role_id?: string;
-  role: {
-    nom: string;
-    description: string;
+  role?: {
+    id: string;
+    name: string;
+    description?: string;
   } | null;
 }
 
@@ -32,74 +35,97 @@ interface UserTableRowProps {
 }
 
 const UserTableRow = ({ utilisateur, onDelete, onUserUpdated, isDeleting }: UserTableRowProps) => {
-  const getRoleLabel = (role: { nom: string } | null) => {
-    if (!role) return 'Non défini';
-    
-    switch (role.nom) {
-      case 'employe':
-        return 'Employé';
-      case 'administrateur':
-        return 'Administrateur';
-      case 'manager':
-        return 'Manager';
+  const getInitials = (prenom: string, nom: string) => {
+    return `${prenom.charAt(0)}${nom.charAt(0)}`.toUpperCase();
+  };
+
+  const getStatusBadge = (statut: string) => {
+    switch (statut) {
+      case 'actif':
+        return <Badge variant="default" className="bg-green-100 text-green-800">Actif</Badge>;
+      case 'inactif':
+        return <Badge variant="secondary">Inactif</Badge>;
+      case 'suspendu':
+        return <Badge variant="destructive">Suspendu</Badge>;
       default:
-        return role.nom;
+        return <Badge variant="secondary">{statut}</Badge>;
     }
   };
 
-  const getStatutBadge = (statut: string) => {
-    return statut === 'actif' ? 
-      <Badge className="bg-green-100 text-green-800 border-green-200">Actif</Badge> : 
-      <Badge className="bg-red-100 text-red-800 border-red-200">Inactif</Badge>;
+  const getRoleBadge = (role: UtilisateurInterne['role']) => {
+    if (!role) {
+      return (
+        <Badge variant="outline" className="bg-gray-50 text-gray-600">
+          <AlertCircle className="h-3 w-3 mr-1" />
+          Aucun rôle
+        </Badge>
+      );
+    }
+
+    const getRoleColor = (roleName: string) => {
+      switch (roleName.toLowerCase()) {
+        case 'administrateur':
+          return 'bg-red-50 text-red-700 border-red-200';
+        case 'manager':
+          return 'bg-blue-50 text-blue-700 border-blue-200';
+        case 'vendeur':
+          return 'bg-green-50 text-green-700 border-green-200';
+        case 'caissier':
+          return 'bg-purple-50 text-purple-700 border-purple-200';
+        default:
+          return 'bg-gray-50 text-gray-700 border-gray-200';
+      }
+    };
+
+    return (
+      <Badge variant="outline" className={getRoleColor(role.name)}>
+        <Shield className="h-3 w-3 mr-1" />
+        {role.name}
+      </Badge>
+    );
   };
 
   return (
     <TableRow>
       <TableCell>
-        {utilisateur.photo_url ? (
-          <img 
-            src={utilisateur.photo_url} 
-            alt={`${utilisateur.prenom} ${utilisateur.nom}`}
-            className="w-8 h-8 rounded-full object-cover"
-          />
-        ) : (
-          <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center">
-            <UserCheck className="h-4 w-4 text-gray-500" />
-          </div>
-        )}
+        <Avatar className="h-10 w-10">
+          <AvatarImage src={utilisateur.photo_url} alt={`${utilisateur.prenom} ${utilisateur.nom}`} />
+          <AvatarFallback className="bg-primary/10 text-primary">
+            {getInitials(utilisateur.prenom, utilisateur.nom)}
+          </AvatarFallback>
+        </Avatar>
       </TableCell>
-      <TableCell className="font-medium">
-        {utilisateur.prenom} {utilisateur.nom}
+      <TableCell>
+        <div>
+          <p className="font-medium">{utilisateur.prenom} {utilisateur.nom}</p>
+          <p className="text-sm text-muted-foreground">ID: {utilisateur.id.slice(0, 8)}...</p>
+        </div>
       </TableCell>
       <TableCell>{utilisateur.email}</TableCell>
       <TableCell>{utilisateur.telephone || '-'}</TableCell>
-      <TableCell>{getRoleLabel(utilisateur.role)}</TableCell>
-      <TableCell>{getStatutBadge(utilisateur.statut)}</TableCell>
+      <TableCell>{getRoleBadge(utilisateur.role)}</TableCell>
+      <TableCell>{getStatusBadge(utilisateur.statut)}</TableCell>
       <TableCell>
         {utilisateur.doit_changer_mot_de_passe ? (
-          <Badge variant="outline" className="text-orange-600 border-orange-600">
-            Requis
+          <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">
+            <AlertCircle className="h-3 w-3 mr-1" />
+            Oui
           </Badge>
         ) : (
-          <Badge variant="outline" className="text-green-600 border-green-600">
-            Non requis
+          <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+            Non
           </Badge>
         )}
       </TableCell>
       <TableCell className="text-right">
-        <div className="flex justify-end space-x-2">
-          <EditUserDialog 
-            user={{
-              ...utilisateur,
-              role_id: utilisateur.role_id
-            }}
-            onUserUpdated={onUserUpdated}
-          />
-          <Button 
-            variant="outline" 
-            size="sm" 
+        <div className="flex items-center justify-end space-x-2">
+          <EditUserDialog user={utilisateur} onUserUpdated={onUserUpdated} />
+          <Button
+            variant="outline"
+            size="sm"
             onClick={() => onDelete(utilisateur.id)}
             disabled={isDeleting}
+            className="text-destructive hover:text-destructive"
           >
             <Trash2 className="h-4 w-4" />
           </Button>
