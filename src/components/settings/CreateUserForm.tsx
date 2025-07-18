@@ -25,9 +25,11 @@ interface CreateUserFormData {
   nom: string;
   email: string;
   password: string;
+  confirmPassword: string;
   telephone?: string;
   adresse?: string;
   role_id: string;
+  statut: string;
   doit_changer_mot_de_passe: boolean;
   photo_url?: string;
 }
@@ -42,11 +44,15 @@ const CreateUserForm = ({ onSuccess, onCancel }: CreateUserFormProps) => {
   
   const { register, handleSubmit, setValue, watch, formState: { errors } } = useForm<CreateUserFormData>({
     defaultValues: {
-      doit_changer_mot_de_passe: true
+      doit_changer_mot_de_passe: true,
+      statut: 'actif'
     }
   });
 
   const selectedRoleId = watch('role_id');
+  const selectedStatut = watch('statut');
+  const password = watch('password');
+  const confirmPassword = watch('confirmPassword');
 
   // Handle photo upload
   const handlePhotoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -56,22 +62,27 @@ const CreateUserForm = ({ onSuccess, onCancel }: CreateUserFormProps) => {
     try {
       const fileExt = file.name.split('.').pop();
       const fileName = `${Math.random()}.${fileExt}`;
-      const filePath = `avatars/${fileName}`;
+      const filePath = `${fileName}`;
 
       const { error: uploadError } = await supabase.storage
-        .from('public')
+        .from('avatars')
         .upload(filePath, file);
 
       if (uploadError) throw uploadError;
 
       const { data: { publicUrl } } = supabase.storage
-        .from('public')
+        .from('avatars')
         .getPublicUrl(filePath);
 
       setPhotoPreview(publicUrl);
       setValue('photo_url', publicUrl);
+      
+      toast({
+        title: "Succès",
+        description: "Photo téléchargée avec succès.",
+      });
     } catch (error) {
-      console.error('Error uploading photo:', error);
+      console.error('Erreur lors du téléchargement de la photo:', error);
       toast({
         title: "Erreur",
         description: "Impossible de télécharger la photo",
@@ -83,6 +94,11 @@ const CreateUserForm = ({ onSuccess, onCancel }: CreateUserFormProps) => {
   const createUser = useMutation({
     mutationFn: async (userData: CreateUserFormData) => {
       setIsCreating(true);
+      
+      // Vérifier que les mots de passe correspondent
+      if (userData.password !== userData.confirmPassword) {
+        throw new Error('Les mots de passe ne correspondent pas');
+      }
       
       // 1. Créer l'utilisateur dans Auth
       const { data: authData, error: authError } = await supabase.auth.admin.createUser({
@@ -110,7 +126,7 @@ const CreateUserForm = ({ onSuccess, onCancel }: CreateUserFormProps) => {
           adresse: userData.adresse,
           photo_url: userData.photo_url,
           doit_changer_mot_de_passe: userData.doit_changer_mot_de_passe,
-          statut: 'actif',
+          statut: userData.statut,
           type_compte: 'interne'
         })
         .select()
@@ -137,7 +153,7 @@ const CreateUserForm = ({ onSuccess, onCancel }: CreateUserFormProps) => {
       onSuccess();
     },
     onError: (error: any) => {
-      console.error('❌ Error creating user:', error);
+      console.error('❌ Erreur lors de la création de l\'utilisateur:', error);
       toast({
         title: "Erreur",
         description: error.message || "Impossible de créer l'utilisateur",
@@ -158,6 +174,16 @@ const CreateUserForm = ({ onSuccess, onCancel }: CreateUserFormProps) => {
       });
       return;
     }
+    
+    if (data.password !== data.confirmPassword) {
+      toast({
+        title: "Erreur",
+        description: "Les mots de passe ne correspondent pas",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     createUser.mutate(data);
   };
 
@@ -234,23 +260,41 @@ const CreateUserForm = ({ onSuccess, onCancel }: CreateUserFormProps) => {
         )}
       </div>
 
-      <div className="space-y-2">
-        <Label htmlFor="password">Mot de passe *</Label>
-        <Input
-          id="password"
-          type="password"
-          {...register("password", { 
-            required: "Le mot de passe est requis",
-            minLength: {
-              value: 6,
-              message: "Le mot de passe doit contenir au moins 6 caractères"
-            }
-          })}
-          disabled={isCreating}
-        />
-        {errors.password && (
-          <p className="text-sm text-destructive">{errors.password.message}</p>
-        )}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label htmlFor="password">Mot de passe *</Label>
+          <Input
+            id="password"
+            type="password"
+            {...register("password", { 
+              required: "Le mot de passe est requis",
+              minLength: {
+                value: 6,
+                message: "Le mot de passe doit contenir au moins 6 caractères"
+              }
+            })}
+            disabled={isCreating}
+          />
+          {errors.password && (
+            <p className="text-sm text-destructive">{errors.password.message}</p>
+          )}
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="confirmPassword">Confirmer le mot de passe *</Label>
+          <Input
+            id="confirmPassword"
+            type="password"
+            {...register("confirmPassword", { 
+              required: "La confirmation du mot de passe est requise",
+              validate: value => value === password || "Les mots de passe ne correspondent pas"
+            })}
+            disabled={isCreating}
+          />
+          {errors.confirmPassword && (
+            <p className="text-sm text-destructive">{errors.confirmPassword.message}</p>
+          )}
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -302,16 +346,36 @@ const CreateUserForm = ({ onSuccess, onCancel }: CreateUserFormProps) => {
         />
       </div>
 
-      <div className="flex items-center space-x-2">
-        <Switch
-          id="doit_changer_mot_de_passe"
-          checked={watch('doit_changer_mot_de_passe')}
-          onCheckedChange={value => setValue('doit_changer_mot_de_passe', value)}
-          disabled={isCreating}
-        />
-        <Label htmlFor="doit_changer_mot_de_passe">
-          Forcer le changement de mot de passe à la première connexion
-        </Label>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label htmlFor="statut">Statut *</Label>
+          <Select 
+            value={selectedStatut} 
+            onValueChange={value => setValue('statut', value)}
+            disabled={isCreating}
+          >
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="actif">Actif</SelectItem>
+              <SelectItem value="inactif">Inactif</SelectItem>
+              <SelectItem value="suspendu">Suspendu</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="flex items-center space-x-2">
+          <Switch
+            id="doit_changer_mot_de_passe"
+            checked={watch('doit_changer_mot_de_passe')}
+            onCheckedChange={value => setValue('doit_changer_mot_de_passe', value)}
+            disabled={isCreating}
+          />
+          <Label htmlFor="doit_changer_mot_de_passe">
+            Forcer le changement de mot de passe à la première connexion
+          </Label>
+        </div>
       </div>
 
       <div className="flex justify-end space-x-2 pt-4">

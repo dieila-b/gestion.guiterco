@@ -85,7 +85,9 @@ const UserTableRow = ({ utilisateur, onDelete, onUserUpdated, isDeleting }: User
       <TableCell>
         <div>
           <p className="font-medium">{utilisateur.prenom} {utilisateur.nom}</p>
-          <p className="text-sm text-muted-foreground">ID: {utilisateur.id.slice(0, 8)}...</p>
+          <p className="text-sm text-muted-foreground">
+            {utilisateur.matricule && `${utilisateur.matricule} • `}ID: {utilisateur.id.slice(0, 8)}...
+          </p>
         </div>
       </TableCell>
       <TableCell>{utilisateur.email}</TableCell>

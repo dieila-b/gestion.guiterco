@@ -2767,6 +2767,7 @@ export type Database = {
           doit_changer_mot_de_passe: boolean | null
           email: string
           id: string
+          matricule: string | null
           nom: string
           photo_url: string | null
           prenom: string
@@ -2783,6 +2784,7 @@ export type Database = {
           doit_changer_mot_de_passe?: boolean | null
           email: string
           id?: string
+          matricule?: string | null
           nom: string
           photo_url?: string | null
           prenom: string
@@ -2799,6 +2801,7 @@ export type Database = {
           doit_changer_mot_de_passe?: boolean | null
           email?: string
           id?: string
+          matricule?: string | null
           nom?: string
           photo_url?: string | null
           prenom?: string
@@ -3235,6 +3238,10 @@ export type Database = {
       }
       generate_facture_vente_number: {
         Args: Record<PropertyKey, never>
+        Returns: string
+      }
+      generate_matricule: {
+        Args: { prenom_val: string; nom_val: string }
         Returns: string
       }
       generate_precommande_number: {
