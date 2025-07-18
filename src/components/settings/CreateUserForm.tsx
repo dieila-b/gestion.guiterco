@@ -7,6 +7,8 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Upload, User } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
@@ -22,14 +24,17 @@ interface CreateUserFormData {
   prenom: string;
   nom: string;
   email: string;
+  password: string;
   telephone?: string;
   adresse?: string;
   role_id: string;
   doit_changer_mot_de_passe: boolean;
+  photo_url?: string;
 }
 
 const CreateUserForm = ({ onSuccess, onCancel }: CreateUserFormProps) => {
   const [isCreating, setIsCreating] = useState(false);
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { data: roles = [] } = useRolesForUsers();
@@ -43,16 +48,46 @@ const CreateUserForm = ({ onSuccess, onCancel }: CreateUserFormProps) => {
 
   const selectedRoleId = watch('role_id');
 
+  // Handle photo upload
+  const handlePhotoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Math.random()}.${fileExt}`;
+      const filePath = `avatars/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('public')
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('public')
+        .getPublicUrl(filePath);
+
+      setPhotoPreview(publicUrl);
+      setValue('photo_url', publicUrl);
+    } catch (error) {
+      console.error('Error uploading photo:', error);
+      toast({
+        title: "Erreur",
+        description: "Impossible de télécharger la photo",
+        variant: "destructive",
+      });
+    }
+  };
+
   const createUser = useMutation({
     mutationFn: async (userData: CreateUserFormData) => {
       setIsCreating(true);
       
       // 1. Créer l'utilisateur dans Auth
-      const tempPassword = `Temp${Math.random().toString(36).slice(-8)}!`;
-      
       const { data: authData, error: authError } = await supabase.auth.admin.createUser({
         email: userData.email,
-        password: tempPassword,
+        password: userData.password,
         email_confirm: true,
         user_metadata: {
           prenom: userData.prenom,
@@ -73,6 +108,7 @@ const CreateUserForm = ({ onSuccess, onCancel }: CreateUserFormProps) => {
           email: userData.email,
           telephone: userData.telephone,
           adresse: userData.adresse,
+          photo_url: userData.photo_url,
           doit_changer_mot_de_passe: userData.doit_changer_mot_de_passe,
           statut: 'actif',
           type_compte: 'interne'
@@ -82,7 +118,7 @@ const CreateUserForm = ({ onSuccess, onCancel }: CreateUserFormProps) => {
 
       if (userInterneError) throw userInterneError;
 
-      // 3. Assigner le rôle si spécifié
+      // 3. Assigner le rôle
       if (userData.role_id) {
         await assignRole.mutateAsync({
           userId: authData.user.id,
@@ -114,11 +150,45 @@ const CreateUserForm = ({ onSuccess, onCancel }: CreateUserFormProps) => {
   });
 
   const onSubmit = (data: CreateUserFormData) => {
+    if (!selectedRoleId) {
+      toast({
+        title: "Erreur",
+        description: "Veuillez sélectionner un rôle",
+        variant: "destructive",
+      });
+      return;
+    }
     createUser.mutate(data);
   };
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+      {/* Photo de profil */}
+      <div className="flex flex-col items-center space-y-4">
+        <div className="relative">
+          <Avatar className="h-24 w-24">
+            <AvatarImage src={photoPreview || undefined} />
+            <AvatarFallback className="bg-muted">
+              <User className="h-12 w-12 text-muted-foreground" />
+            </AvatarFallback>
+          </Avatar>
+          <label
+            htmlFor="photo-upload"
+            className="absolute -bottom-2 -right-2 bg-primary text-primary-foreground rounded-full p-2 cursor-pointer hover:bg-primary/90 transition-colors"
+          >
+            <Upload className="h-4 w-4" />
+          </label>
+          <input
+            id="photo-upload"
+            type="file"
+            accept="image/*"
+            onChange={handlePhotoUpload}
+            className="hidden"
+          />
+        </div>
+        <Label className="text-sm text-muted-foreground">Photo de profil</Label>
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label htmlFor="prenom">Prénom *</Label>
@@ -161,6 +231,25 @@ const CreateUserForm = ({ onSuccess, onCancel }: CreateUserFormProps) => {
         />
         {errors.email && (
           <p className="text-sm text-destructive">{errors.email.message}</p>
+        )}
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="password">Mot de passe *</Label>
+        <Input
+          id="password"
+          type="password"
+          {...register("password", { 
+            required: "Le mot de passe est requis",
+            minLength: {
+              value: 6,
+              message: "Le mot de passe doit contenir au moins 6 caractères"
+            }
+          })}
+          disabled={isCreating}
+        />
+        {errors.password && (
+          <p className="text-sm text-destructive">{errors.password.message}</p>
         )}
       </div>
 

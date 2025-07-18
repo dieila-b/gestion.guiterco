@@ -30,42 +30,59 @@ export const useUtilisateursInternes = () => {
     queryFn: async () => {
       console.log('🔍 Fetching utilisateurs internes with unified roles...');
       
-      const { data, error } = await supabase
+      // First, get all utilisateurs_internes
+      const { data: utilisateurs, error: utilisateursError } = await supabase
         .from('utilisateurs_internes')
-        .select(`
-          *,
-          user_roles!inner (
-            role_id,
-            roles!inner (
-              id,
-              name,
-              description
-            )
-          )
-        `)
-        .eq('user_roles.is_active', true)
+        .select('*')
         .order('created_at', { ascending: false });
 
-      if (error) {
-        console.error('❌ Error fetching utilisateurs internes:', error);
-        throw error;
+      if (utilisateursError) {
+        console.error('❌ Error fetching utilisateurs internes:', utilisateursError);
+        throw utilisateursError;
+      }
+
+      if (!utilisateurs || utilisateurs.length === 0) {
+        console.log('✅ No utilisateurs internes found');
+        return [];
+      }
+
+      // Get user roles with role details for each user
+      const userIds = utilisateurs.map(u => u.user_id).filter(Boolean);
+      
+      const { data: userRoles, error: rolesError } = await supabase
+        .from('user_roles')
+        .select(`
+          user_id,
+          role_id,
+          is_active,
+          roles!inner (
+            id,
+            name,
+            description
+          )
+        `)
+        .in('user_id', userIds)
+        .eq('is_active', true);
+
+      if (rolesError) {
+        console.error('❌ Error fetching user roles:', rolesError);
+        // Don't throw here, just continue without roles
       }
 
       // Transform data to match expected interface
-      const transformedData = data?.map(user => {
-        // Handle the case where user_roles is an array
-        const userRoleData = Array.isArray(user.user_roles) ? user.user_roles[0] : user.user_roles;
-        const roleData = userRoleData?.roles;
+      const transformedData = utilisateurs.map(user => {
+        // Find the active role for this user
+        const userRole = userRoles?.find(ur => ur.user_id === user.user_id);
         
         return {
           ...user,
-          role: roleData ? {
-            id: roleData.id,
-            name: roleData.name,
-            description: roleData.description
+          role: userRole?.roles ? {
+            id: userRole.roles.id,
+            name: userRole.roles.name,
+            description: userRole.roles.description
           } : null
         };
-      }) || [];
+      });
 
       console.log('✅ Utilisateurs internes fetched:', transformedData.length);
       return transformedData as UtilisateurInterneWithRole[];
