@@ -30,12 +30,10 @@ export const useDevMode = (): DevModeConfig => {
                   import.meta.env.DEV ||
                   import.meta.env.MODE === 'development';
 
-    let bypassEnabled = false;
+    // En mode développement, activer le bypass par défaut pour faciliter les tests
+    let bypassEnabled = isDev;
     
     if (isDev) {
-      // En mode développement, activer le bypass par défaut pour faciliter les tests
-      bypassEnabled = true;
-      
       // Permettre à l'utilisateur de désactiver le bypass manuellement si nécessaire
       const manualOverride = localStorage.getItem('dev_bypass_auth');
       if (manualOverride === 'false') {
@@ -47,6 +45,13 @@ export const useDevMode = (): DevModeConfig => {
         bypassEnabled = false;
       }
     }
+
+    console.log('🔧 Configuration DevMode initiale:', {
+      hostname,
+      isDev,
+      bypassEnabled,
+      env: import.meta.env.MODE
+    });
 
     return {
       isDevMode: isDev,

@@ -55,73 +55,77 @@ export const useAuthState = (bypassAuth: boolean, mockUser: UtilisateurInterne, 
       
       setUser(mockSupabaseUser);
       setSession(mockSession);
-      setLoading(false);
+      setLoading(false); // CRITIQUE: Arrêter le loading
       
-      console.log('✅ Mock session créée:', { user: mockSupabaseUser, session: mockSession });
-      return;
-    }
-
-    // Si on était en mode bypass et qu'on le désactive, nettoyer l'état
-    if (!bypassAuth && (user?.id === 'dev-user-123' || session?.access_token === 'mock-token-dev')) {
-      console.log('🔒 Désactivation du bypass - nettoyage de l\'état mock');
-      setUser(null);
-      setSession(null);
-      setUtilisateurInterne(null);
-      setLoading(false);
+      console.log('✅ Mock session créée et loading terminé');
       return;
     }
 
     // Comportement normal en production ou si bypass désactivé
-    if (!bypassAuth) {
-      console.log('🔐 Mode authentification normale');
+    console.log('🔐 Mode authentification normale');
+    
+    let isMounted = true; // Flag pour éviter les mises à jour après unmount
+
+    // Fonction pour gérer les changements d'état d'auth
+    const handleAuthStateChange = async (event: string, newSession: Session | null) => {
+      if (!isMounted) return;
       
-      // Configurer l'écoute des changements d'état d'authentification
-      const { data: { subscription } } = supabase.auth.onAuthStateChange(
-        async (event, session) => {
-          console.log('🔐 Auth state change:', { event, session: !!session, userId: session?.user?.id });
-          
-          setSession(session);
-          setUser(session?.user ?? null);
+      console.log('🔐 Auth state change:', { event, hasSession: !!newSession, userId: newSession?.user?.id });
+      
+      setSession(newSession);
+      setUser(newSession?.user ?? null);
 
-          if (session?.user) {
-            try {
-              console.log('👤 Vérification utilisateur interne pour:', session.user.email);
-              const internalUser = await checkInternalUser(session.user.id);
-              
-              console.log('🔍 Résultat vérification utilisateur interne:', internalUser);
-              
-              if (internalUser && internalUser.statut === 'actif' && internalUser.type_compte === 'interne') {
-                console.log('✅ Utilisateur interne autorisé:', internalUser);
-                setUtilisateurInterne(internalUser);
-              } else {
-                console.log('❌ Utilisateur non autorisé ou inactif');
-                // Ne pas déconnecter automatiquement, laisser l'utilisateur voir l'erreur
-                setUtilisateurInterne(null);
-                toast({
-                  title: "Accès refusé",
-                  description: "Votre compte n'est pas autorisé à accéder à cette application ou est désactivé",
-                  variant: "destructive",
-                });
-              }
-            } catch (error) {
-              console.error('❌ Erreur lors de la vérification de l\'utilisateur interne:', error);
-              setUtilisateurInterne(null);
-              toast({
-                title: "Erreur de vérification",
-                description: "Impossible de vérifier vos autorisations",
-                variant: "destructive",
-              });
-            }
+      if (newSession?.user) {
+        try {
+          console.log('👤 Vérification utilisateur interne pour:', newSession.user.email);
+          const internalUser = await checkInternalUser(newSession.user.id);
+          
+          if (!isMounted) return; // Vérifier si le composant est encore monté
+          
+          console.log('🔍 Résultat vérification utilisateur interne:', internalUser);
+          
+          if (internalUser && internalUser.statut === 'actif' && internalUser.type_compte === 'interne') {
+            console.log('✅ Utilisateur interne autorisé:', internalUser);
+            setUtilisateurInterne(internalUser);
           } else {
+            console.log('❌ Utilisateur non autorisé ou inactif');
             setUtilisateurInterne(null);
+            toast({
+              title: "Accès refusé",
+              description: "Votre compte n'est pas autorisé à accéder à cette application ou est désactivé",
+              variant: "destructive",
+            });
           }
+        } catch (error) {
+          if (!isMounted) return;
           
-          setLoading(false);
+          console.error('❌ Erreur lors de la vérification de l\'utilisateur interne:', error);
+          setUtilisateurInterne(null);
+          toast({
+            title: "Erreur de vérification",
+            description: "Impossible de vérifier vos autorisations",
+            variant: "destructive",
+          });
         }
-      );
+      } else {
+        setUtilisateurInterne(null);
+      }
+      
+      if (isMounted) {
+        setLoading(false); // CRITIQUE: Toujours arrêter le loading
+      }
+    };
 
-      // Vérifier la session existante
-      supabase.auth.getSession().then(async ({ data: { session }, error }) => {
+    // Configurer l'écoute des changements d'état d'authentification
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(handleAuthStateChange);
+
+    // Vérifier la session existante
+    const checkInitialSession = async () => {
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession();
+        
+        if (!isMounted) return;
+        
         if (error) {
           console.error('❌ Erreur lors de la récupération de la session:', error);
           setLoading(false);
@@ -130,32 +134,24 @@ export const useAuthState = (bypassAuth: boolean, mockUser: UtilisateurInterne, 
 
         console.log('🔍 Session existante:', { hasSession: !!session, userId: session?.user?.id });
         
-        setSession(session);
-        setUser(session?.user ?? null);
+        // Traiter la session initiale
+        await handleAuthStateChange('INITIAL_SESSION', session);
         
-        if (session?.user) {
-          try {
-            const internalUser = await checkInternalUser(session.user.id);
-            console.log('🔍 Utilisateur interne trouvé:', internalUser);
-            
-            if (internalUser && internalUser.statut === 'actif' && internalUser.type_compte === 'interne') {
-              setUtilisateurInterne(internalUser);
-            } else {
-              setUtilisateurInterne(null);
-            }
-          } catch (error) {
-            console.error('❌ Erreur lors de la vérification initiale:', error);
-            setUtilisateurInterne(null);
-          }
-        }
+      } catch (error) {
+        if (!isMounted) return;
         
+        console.error('❌ Erreur lors de la vérification initiale:', error);
         setLoading(false);
-      });
+      }
+    };
 
-      return () => subscription.unsubscribe();
-    } else {
-      setLoading(false);
-    }
+    // Lancer la vérification initiale
+    checkInitialSession();
+
+    return () => {
+      isMounted = false;
+      subscription.unsubscribe();
+    };
   }, [toast, bypassAuth, mockUser, isDevMode]);
 
   const signIn = async (email: string, password: string) => {
@@ -169,12 +165,11 @@ export const useAuthState = (bypassAuth: boolean, mockUser: UtilisateurInterne, 
     console.log('🚪 Déconnexion...');
     
     if (bypassAuth && isDevMode) {
-      // En mode bypass, on nettoie l'état local et recharge
+      // En mode bypass, on nettoie l'état local
       console.log('🚪 Déconnexion en mode bypass');
       setUser(null);
       setSession(null);
       setUtilisateurInterne(null);
-      // Pas de rechargement automatique, laisser l'utilisateur naviguer
       return;
     }
     

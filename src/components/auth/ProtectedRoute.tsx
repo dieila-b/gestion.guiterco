@@ -27,7 +27,9 @@ const ProtectedRoute = ({ children, requireRole }: ProtectedRouteProps) => {
                    !window.location.hostname.includes('.local')
   });
 
+  // CRITIQUE: Afficher le loader seulement pendant le vrai chargement
   if (loading) {
+    console.log('⏳ ProtectedRoute - Affichage du loader de vérification');
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
@@ -101,7 +103,7 @@ const ProtectedRoute = ({ children, requireRole }: ProtectedRouteProps) => {
     }
   }
 
-  console.log('✅ ProtectedRoute - Accès autorisé');
+  console.log('✅ ProtectedRoute - Accès autorisé, affichage du contenu');
   return <>{children}</>;
 };
 
