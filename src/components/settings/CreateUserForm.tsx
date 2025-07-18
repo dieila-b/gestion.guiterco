@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
@@ -10,9 +11,8 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Upload, User } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRolesForUsers } from '@/hooks/useUtilisateursInternes';
-import { useUserRoleAssignment } from '@/hooks/useUserRoleAssignment';
+import { useCreateInternalUser } from '@/hooks/useCreateInternalUser';
 
 interface CreateUserFormProps {
   onSuccess: () => void;
@@ -34,13 +34,11 @@ interface CreateUserFormData {
 }
 
 const CreateUserForm = ({ onSuccess, onCancel }: CreateUserFormProps) => {
-  const [isCreating, setIsCreating] = useState(false);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
   const { toast } = useToast();
-  const queryClient = useQueryClient();
   const { data: roles = [] } = useRolesForUsers();
-  const { assignRole } = useUserRoleAssignment();
+  const createUser = useCreateInternalUser();
   
   const { register, handleSubmit, setValue, watch, formState: { errors } } = useForm<CreateUserFormData>({
     defaultValues: {
@@ -52,7 +50,6 @@ const CreateUserForm = ({ onSuccess, onCancel }: CreateUserFormProps) => {
   const selectedRoleId = watch('role_id');
   const selectedStatut = watch('statut');
   const password = watch('password');
-  const confirmPassword = watch('confirmPassword');
 
   // Handle photo upload
   const handlePhotoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -130,105 +127,6 @@ const CreateUserForm = ({ onSuccess, onCancel }: CreateUserFormProps) => {
     }
   };
 
-  const createUser = useMutation({
-    mutationFn: async (userData: CreateUserFormData) => {
-      setIsCreating(true);
-      
-      // Vérifier que les mots de passe correspondent
-      if (userData.password !== userData.confirmPassword) {
-        throw new Error('Les mots de passe ne correspondent pas');
-      }
-      
-      console.log('🔄 Création de l\'utilisateur...', { email: userData.email });
-      
-      // 1. Créer l'utilisateur dans Auth
-      const { data: authData, error: authError } = await supabase.auth.admin.createUser({
-        email: userData.email,
-        password: userData.password,
-        email_confirm: true,
-        user_metadata: {
-          prenom: userData.prenom,
-          nom: userData.nom
-        }
-      });
-
-      if (authError) {
-        console.error('❌ Erreur création Auth:', authError);
-        throw authError;
-      }
-      if (!authData.user) throw new Error('Utilisateur non créé');
-
-      console.log('✅ Utilisateur Auth créé:', authData.user.id);
-
-      // 2. Créer l'entrée dans utilisateurs_internes
-      const { data: userInterne, error: userInterneError } = await supabase
-        .from('utilisateurs_internes')
-        .insert({
-          user_id: authData.user.id,
-          prenom: userData.prenom,
-          nom: userData.nom,
-          email: userData.email,
-          telephone: userData.telephone,
-          adresse: userData.adresse,
-          photo_url: userData.photo_url,
-          doit_changer_mot_de_passe: userData.doit_changer_mot_de_passe,
-          statut: userData.statut,
-          type_compte: 'interne'
-        })
-        .select()
-        .single();
-
-      if (userInterneError) {
-        console.error('❌ Erreur création utilisateur interne:', userInterneError);
-        throw userInterneError;
-      }
-
-      console.log('✅ Utilisateur interne créé:', userInterne.id);
-
-      // 3. Assigner le rôle
-      if (userData.role_id) {
-        console.log('🔄 Attribution du rôle:', userData.role_id);
-        await assignRole.mutateAsync({
-          userId: authData.user.id,
-          roleId: userData.role_id
-        });
-        console.log('✅ Rôle attribué');
-      }
-
-      return { authData, userInterne };
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['utilisateurs-internes'] });
-      toast({
-        title: "Utilisateur créé",
-        description: "L'utilisateur interne a été créé avec succès.",
-      });
-      onSuccess();
-    },
-    onError: (error: any) => {
-      console.error('❌ Erreur lors de la création de l\'utilisateur:', error);
-      
-      let errorMessage = "Impossible de créer l'utilisateur";
-      
-      if (error.message?.includes('User already registered')) {
-        errorMessage = "Un utilisateur avec cette adresse email existe déjà";
-      } else if (error.message?.includes('Email already registered')) {
-        errorMessage = "Cette adresse email est déjà utilisée";
-      } else if (error.message) {
-        errorMessage = error.message;
-      }
-      
-      toast({
-        title: "Erreur",
-        description: errorMessage,
-        variant: "destructive",
-      });
-    },
-    onSettled: () => {
-      setIsCreating(false);
-    }
-  });
-
   const onSubmit = (data: CreateUserFormData) => {
     if (!selectedRoleId) {
       toast({
@@ -248,7 +146,23 @@ const CreateUserForm = ({ onSuccess, onCancel }: CreateUserFormProps) => {
       return;
     }
     
-    createUser.mutate(data);
+    // Utiliser le hook qui appelle l'Edge Function
+    createUser.mutate({
+      prenom: data.prenom,
+      nom: data.nom,
+      email: data.email,
+      password: data.password,
+      telephone: data.telephone,
+      adresse: data.adresse,
+      photo_url: data.photo_url,
+      role_id: data.role_id,
+      doit_changer_mot_de_passe: data.doit_changer_mot_de_passe,
+      statut: data.statut
+    }, {
+      onSuccess: () => {
+        onSuccess();
+      }
+    });
   };
 
   return (
@@ -290,7 +204,7 @@ const CreateUserForm = ({ onSuccess, onCancel }: CreateUserFormProps) => {
           <Input
             id="prenom"
             {...register("prenom", { required: "Le prénom est requis" })}
-            disabled={isCreating}
+            disabled={createUser.isPending}
           />
           {errors.prenom && (
             <p className="text-sm text-destructive">{errors.prenom.message}</p>
@@ -302,7 +216,7 @@ const CreateUserForm = ({ onSuccess, onCancel }: CreateUserFormProps) => {
           <Input
             id="nom"
             {...register("nom", { required: "Le nom est requis" })}
-            disabled={isCreating}
+            disabled={createUser.isPending}
           />
           {errors.nom && (
             <p className="text-sm text-destructive">{errors.nom.message}</p>
@@ -322,7 +236,7 @@ const CreateUserForm = ({ onSuccess, onCancel }: CreateUserFormProps) => {
               message: "Email invalide"
             }
           })}
-          disabled={isCreating}
+          disabled={createUser.isPending}
         />
         {errors.email && (
           <p className="text-sm text-destructive">{errors.email.message}</p>
@@ -342,7 +256,7 @@ const CreateUserForm = ({ onSuccess, onCancel }: CreateUserFormProps) => {
                 message: "Le mot de passe doit contenir au moins 6 caractères"
               }
             })}
-            disabled={isCreating}
+            disabled={createUser.isPending}
           />
           {errors.password && (
             <p className="text-sm text-destructive">{errors.password.message}</p>
@@ -358,7 +272,7 @@ const CreateUserForm = ({ onSuccess, onCancel }: CreateUserFormProps) => {
               required: "La confirmation du mot de passe est requise",
               validate: value => value === password || "Les mots de passe ne correspondent pas"
             })}
-            disabled={isCreating}
+            disabled={createUser.isPending}
           />
           {errors.confirmPassword && (
             <p className="text-sm text-destructive">{errors.confirmPassword.message}</p>
@@ -372,7 +286,7 @@ const CreateUserForm = ({ onSuccess, onCancel }: CreateUserFormProps) => {
           <Input
             id="telephone"
             {...register("telephone")}
-            disabled={isCreating}
+            disabled={createUser.isPending}
           />
         </div>
 
@@ -381,7 +295,7 @@ const CreateUserForm = ({ onSuccess, onCancel }: CreateUserFormProps) => {
           <Select 
             value={selectedRoleId} 
             onValueChange={value => setValue('role_id', value)}
-            disabled={isCreating}
+            disabled={createUser.isPending}
           >
             <SelectTrigger>
               <SelectValue placeholder="Sélectionner un rôle" />
@@ -411,7 +325,7 @@ const CreateUserForm = ({ onSuccess, onCancel }: CreateUserFormProps) => {
           id="adresse"
           {...register("adresse")}
           rows={3}
-          disabled={isCreating}
+          disabled={createUser.isPending}
         />
       </div>
 
@@ -421,7 +335,7 @@ const CreateUserForm = ({ onSuccess, onCancel }: CreateUserFormProps) => {
           <Select 
             value={selectedStatut} 
             onValueChange={value => setValue('statut', value)}
-            disabled={isCreating}
+            disabled={createUser.isPending}
           >
             <SelectTrigger>
               <SelectValue />
@@ -439,7 +353,7 @@ const CreateUserForm = ({ onSuccess, onCancel }: CreateUserFormProps) => {
             id="doit_changer_mot_de_passe"
             checked={watch('doit_changer_mot_de_passe')}
             onCheckedChange={value => setValue('doit_changer_mot_de_passe', value)}
-            disabled={isCreating}
+            disabled={createUser.isPending}
           />
           <Label htmlFor="doit_changer_mot_de_passe">
             Forcer le changement de mot de passe à la première connexion
@@ -452,15 +366,15 @@ const CreateUserForm = ({ onSuccess, onCancel }: CreateUserFormProps) => {
           type="button" 
           variant="outline" 
           onClick={onCancel}
-          disabled={isCreating}
+          disabled={createUser.isPending}
         >
           Annuler
         </Button>
         <Button 
           type="submit" 
-          disabled={isCreating || !selectedRoleId || isUploadingPhoto}
+          disabled={createUser.isPending || !selectedRoleId || isUploadingPhoto}
         >
-          {isCreating ? 'Création...' : 'Créer l\'utilisateur'}
+          {createUser.isPending ? 'Création...' : 'Créer l\'utilisateur'}
         </Button>
       </div>
     </form>
