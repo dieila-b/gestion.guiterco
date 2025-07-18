@@ -3374,18 +3374,6 @@ export type Database = {
         Args: { p_article_id: string }
         Returns: number
       }
-      get_user_role_for_rls: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
-      is_admin_or_manager: {
-        Args: Record<PropertyKey, never>
-        Returns: boolean
-      }
-      is_internal_user_active: {
-        Args: { user_id: string }
-        Returns: boolean
-      }
       rapport_nettoyage_doublons: {
         Args: Record<PropertyKey, never>
         Returns: {
