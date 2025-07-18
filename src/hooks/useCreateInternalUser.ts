@@ -2,7 +2,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { useAuth } from '@/components/auth/AuthContext';
 
 interface CreateUserData {
   prenom: string;
@@ -14,66 +13,102 @@ interface CreateUserData {
   photo_url?: string;
   role_id: string;
   doit_changer_mot_de_passe: boolean;
-  statut?: string;
+  statut: string;
 }
 
 export const useCreateInternalUser = () => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
-  const { isDevMode } = useAuth();
 
   return useMutation({
     mutationFn: async (userData: CreateUserData) => {
-      console.log('🔄 Calling Edge Function to create user...', { email: userData.email });
-      
-      let sessionToken = null;
-      
-      if (!isDevMode) {
-        // En mode production, récupérer la vraie session
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session) {
-          throw new Error('Session non disponible');
-        }
-        sessionToken = session.access_token;
-      } else {
-        // En mode développement, utiliser un token simulé
-        console.log('🔧 Mode développement détecté - utilisation d\'un token simulé');
-        sessionToken = 'dev-mode-token';
-      }
+      console.log('🔄 Creating new internal user:', userData.email);
 
-      // Call the Edge Function
-      const { data, error } = await supabase.functions.invoke('create-internal-user', {
-        body: { 
-          ...userData,
-          dev_mode: isDevMode 
-        },
-        headers: {
-          Authorization: `Bearer ${sessionToken}`,
-        },
+      // 1. Créer l'utilisateur dans Supabase Auth
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: userData.email,
+        password: userData.password,
+        options: {
+          emailRedirectTo: `${window.location.origin}/`,
+          data: {
+            first_name: userData.prenom,
+            last_name: userData.nom,
+          }
+        }
       });
 
-      if (error) {
-        console.error('❌ Edge Function error:', error);
-        throw error;
+      if (authError) {
+        console.error('❌ Auth error:', authError);
+        throw authError;
       }
 
-      if (!data.success) {
-        console.error('❌ User creation failed:', data.error);
-        throw new Error(data.error || 'Échec de la création de l\'utilisateur');
+      if (!authData.user) {
+        throw new Error('Erreur lors de la création de l\'utilisateur dans Auth');
       }
 
-      console.log('✅ User created successfully via Edge Function');
-      return data;
+      console.log('✅ User created in auth:', authData.user.id);
+
+      // 2. Créer l'entrée dans utilisateurs_internes
+      const { data: internalUser, error: internalError } = await supabase
+        .from('utilisateurs_internes')
+        .insert({
+          user_id: authData.user.id,
+          prenom: userData.prenom,
+          nom: userData.nom,
+          email: userData.email,
+          telephone: userData.telephone,
+          adresse: userData.adresse,
+          photo_url: userData.photo_url,
+          role_id: null, // On va utiliser le système unifié
+          doit_changer_mot_de_passe: userData.doit_changer_mot_de_passe,
+          type_compte: 'interne',
+          statut: userData.statut
+        })
+        .select()
+        .single();
+
+      if (internalError) {
+        console.error('❌ Internal user creation error:', internalError);
+        throw new Error(`Erreur lors de la création de l'utilisateur interne: ${internalError.message}`);
+      }
+
+      console.log('✅ Internal user created:', internalUser.id);
+
+      // 3. Assigner le rôle dans le système unifié
+      if (userData.role_id) {
+        const { error: roleError } = await supabase
+          .from('user_roles')
+          .insert({
+            user_id: authData.user.id,
+            role_id: userData.role_id,
+            is_active: true,
+            assigned_by: (await supabase.auth.getUser()).data.user?.id
+          });
+
+        if (roleError) {
+          console.error('❌ Role assignment error:', roleError);
+          // Ne pas faire échouer complètement la création pour un problème de rôle
+          console.warn('⚠️ User created but role assignment failed');
+        } else {
+          console.log('✅ Role assigned successfully');
+        }
+      }
+
+      return internalUser;
     },
     onSuccess: () => {
+      // Invalider toutes les requêtes liées aux utilisateurs
       queryClient.invalidateQueries({ queryKey: ['utilisateurs-internes'] });
+      queryClient.invalidateQueries({ queryKey: ['users-with-roles'] });
+      queryClient.invalidateQueries({ queryKey: ['roles-for-users'] });
+      
       toast({
         title: "Utilisateur créé",
-        description: "L'utilisateur interne a été créé avec succès.",
+        description: "Le nouvel utilisateur interne a été créé avec succès",
       });
     },
     onError: (error: any) => {
-      console.error('❌ Erreur lors de la création de l\'utilisateur:', error);
+      console.error('❌ Complete error in user creation:', error);
       
       let errorMessage = "Impossible de créer l'utilisateur";
       
@@ -81,12 +116,8 @@ export const useCreateInternalUser = () => {
         errorMessage = "Un utilisateur avec cette adresse email existe déjà";
       } else if (error.message?.includes('Email already registered')) {
         errorMessage = "Cette adresse email est déjà utilisée";
-      } else if (error.message?.includes('Insufficient permissions')) {
-        errorMessage = "Permissions insuffisantes. Rôle administrateur requis.";
-      } else if (error.message?.includes('Unauthorized')) {
-        errorMessage = "Non autorisé. Veuillez vous reconnecter.";
-      } else if (error.message?.includes('Session non disponible')) {
-        errorMessage = "Session expirée. Veuillez vous reconnecter.";
+      } else if (error.message?.includes('duplicate key')) {
+        errorMessage = "Un utilisateur avec ces informations existe déjà";
       } else if (error.message) {
         errorMessage = error.message;
       }
