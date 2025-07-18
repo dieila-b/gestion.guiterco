@@ -7,11 +7,30 @@ export const useRealTimeRoles = () => {
   const queryClient = useQueryClient();
 
   useEffect(() => {
-    console.log('🔄 Setting up real-time synchronization for roles...');
+    console.log('🔄 Setting up real-time subscriptions for roles and users...');
 
-    // Canal pour les modifications de rôles
+    // Subscription pour les utilisateurs internes
+    const utilisateursChannel = supabase
+      .channel('utilisateurs_internes_changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'utilisateurs_internes'
+        },
+        (payload) => {
+          console.log('🔄 Real-time change in utilisateurs_internes:', payload);
+          queryClient.invalidateQueries({ queryKey: ['utilisateurs-internes'] });
+        }
+      )
+      .subscribe((status) => {
+        console.log('📡 Utilisateurs subscription status:', status);
+      });
+
+    // Subscription pour les rôles
     const rolesChannel = supabase
-      .channel('roles-changes')
+      .channel('roles_changes')
       .on(
         'postgres_changes',
         {
@@ -20,18 +39,18 @@ export const useRealTimeRoles = () => {
           table: 'roles'
         },
         (payload) => {
-          console.log('🔄 Roles table changed:', payload);
-          // Invalider toutes les requêtes liées aux rôles
-          queryClient.invalidateQueries({ queryKey: ['roles'] });
+          console.log('🔄 Real-time change in roles:', payload);
           queryClient.invalidateQueries({ queryKey: ['roles-for-users'] });
-          queryClient.invalidateQueries({ queryKey: ['users-with-roles'] });
+          queryClient.invalidateQueries({ queryKey: ['utilisateurs-internes'] });
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log('📡 Roles subscription status:', status);
+      });
 
-    // Canal pour les modifications d'assignation de rôles
+    // Subscription pour les user_roles
     const userRolesChannel = supabase
-      .channel('user-roles-changes')
+      .channel('user_roles_changes')
       .on(
         'postgres_changes',
         {
@@ -40,41 +59,22 @@ export const useRealTimeRoles = () => {
           table: 'user_roles'
         },
         (payload) => {
-          console.log('🔄 User roles table changed:', payload);
-          // Invalider toutes les requêtes liées aux utilisateurs et rôles
+          console.log('🔄 Real-time change in user_roles:', payload);
           queryClient.invalidateQueries({ queryKey: ['utilisateurs-internes'] });
-          queryClient.invalidateQueries({ queryKey: ['users-with-roles'] });
-          queryClient.invalidateQueries({ queryKey: ['user-roles'] });
-          queryClient.invalidateQueries({ queryKey: ['role-users'] });
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log('📡 User roles subscription status:', status);
+      });
 
-    // Canal pour les modifications de permissions
-    const permissionsChannel = supabase
-      .channel('permissions-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'role_permissions'
-        },
-        (payload) => {
-          console.log('🔄 Role permissions changed:', payload);
-          // Invalider les requêtes de permissions
-          queryClient.invalidateQueries({ queryKey: ['role-permissions'] });
-          queryClient.invalidateQueries({ queryKey: ['user-permissions'] });
-        }
-      )
-      .subscribe();
-
-    // Nettoyage au démontage
+    // Cleanup function
     return () => {
-      console.log('🔄 Cleaning up real-time subscriptions...');
+      console.log('🧹 Cleaning up real-time subscriptions...');
+      supabase.removeChannel(utilisateursChannel);
       supabase.removeChannel(rolesChannel);
-      supabase.removeChannel(userRolesChannel);  
-      supabase.removeChannel(permissionsChannel);
+      supabase.removeChannel(userRolesChannel);
     };
   }, [queryClient]);
+
+  return null; // Ce hook ne retourne rien, il configure juste les subscriptions
 };

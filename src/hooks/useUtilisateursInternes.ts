@@ -29,7 +29,7 @@ export const useUtilisateursInternes = () => {
   return useQuery({
     queryKey: ['utilisateurs-internes'],
     queryFn: async () => {
-      console.log('🔍 Fetching utilisateurs internes with unified roles...');
+      console.log('🔍 Fetching utilisateurs internes with simplified RLS...');
       
       try {
         // Récupérer tous les utilisateurs internes
@@ -40,7 +40,7 @@ export const useUtilisateursInternes = () => {
 
         if (utilisateursError) {
           console.error('❌ Error fetching utilisateurs internes:', utilisateursError);
-          throw utilisateursError;
+          throw new Error(`Erreur lors de la récupération des utilisateurs: ${utilisateursError.message}`);
         }
 
         if (!utilisateurs || utilisateurs.length === 0) {
@@ -76,6 +76,7 @@ export const useUtilisateursInternes = () => {
         if (rolesError) {
           console.error('❌ Error fetching user roles:', rolesError);
           // Continuer sans les rôles plutôt que de faire échouer
+          console.log('⚠️ Continuing without roles due to error');
         }
 
         console.log('📊 Found user roles:', userRoles?.length || 0);
@@ -98,11 +99,28 @@ export const useUtilisateursInternes = () => {
         console.log('✅ Utilisateurs internes with roles processed:', transformedData.length);
         return transformedData as UtilisateurInterneWithRole[];
 
-      } catch (error) {
+      } catch (error: any) {
         console.error('💥 Critical error in useUtilisateursInternes:', error);
-        throw error;
+        
+        // Fournir un message d'erreur plus clair pour l'utilisateur
+        if (error.message?.includes('infinite recursion')) {
+          throw new Error('Erreur de configuration RLS détectée. Veuillez contacter l\'administrateur.');
+        } else if (error.message?.includes('relation') && error.message?.includes('does not exist')) {
+          throw new Error('Table manquante dans la base de données. Veuillez vérifier la configuration.');
+        } else {
+          throw new Error(`Erreur lors du chargement des utilisateurs: ${error.message || 'Erreur inconnue'}`);
+        }
       }
-    }
+    },
+    retry: (failureCount, error: any) => {
+      // Ne pas réessayer si c'est une erreur de récursion RLS
+      if (error?.message?.includes('infinite recursion')) {
+        return false;
+      }
+      // Réessayer jusqu'à 2 fois pour les autres erreurs
+      return failureCount < 2;
+    },
+    retryDelay: 1000, // Attendre 1 seconde entre les tentatives
   });
 };
 
@@ -121,15 +139,17 @@ export const useRolesForUsers = () => {
 
         if (error) {
           console.error('❌ Error fetching roles:', error);
-          throw error;
+          throw new Error(`Erreur lors de la récupération des rôles: ${error.message}`);
         }
 
         console.log('✅ Unified roles fetched:', data?.length || 0);
         return data || [];
-      } catch (error) {
+      } catch (error: any) {
         console.error('💥 Critical error in useRolesForUsers:', error);
-        throw error;
+        throw new Error(`Erreur lors du chargement des rôles: ${error.message || 'Erreur inconnue'}`);
       }
-    }
+    },
+    retry: 2,
+    retryDelay: 1000,
   });
 };
