@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -10,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { usePermissions, useRoles, useRolePermissions, useUpdateRolePermissions } from '@/hooks/usePermissions';
 import { useToast } from '@/hooks/use-toast';
 
-// Structure complète des menus de l'application
+// Structure complète des menus de l'application mise à jour
 const APPLICATION_MENUS = [
   {
     menu: 'Dashboard',
@@ -41,6 +40,18 @@ const APPLICATION_MENUS = [
     submenu: 'Transferts',
     actions: ['read', 'write'],
     description: 'Gestion des transferts de stock'
+  },
+  {
+    menu: 'Stock',
+    submenu: 'Entrées',
+    actions: ['read', 'write'],
+    description: 'Gestion des entrées de stock'
+  },
+  {
+    menu: 'Stock',
+    submenu: 'Sorties',
+    actions: ['read', 'write'],
+    description: 'Gestion des sorties de stock'
   },
   {
     menu: 'Achats',
@@ -79,16 +90,52 @@ const APPLICATION_MENUS = [
     description: 'Gestion des devis'
   },
   {
+    menu: 'Ventes',
+    submenu: 'Vente au Comptoir',
+    actions: ['read', 'write'],
+    description: 'Gestion des ventes au comptoir'
+  },
+  {
+    menu: 'Ventes',
+    submenu: 'Factures impayées',
+    actions: ['read', 'write'],
+    description: 'Gestion des factures impayées'
+  },
+  {
+    menu: 'Ventes',
+    submenu: 'Retours Clients',
+    actions: ['read', 'write'],
+    description: 'Gestion des retours clients'
+  },
+  {
     menu: 'Clients',
     submenu: null,
     actions: ['read', 'write'],
     description: 'Gestion des clients'
   },
   {
+    menu: 'Clients',
+    submenu: 'Clients',
+    actions: ['read', 'write'],
+    description: 'Gestion détaillée des clients'
+  },
+  {
     menu: 'Caisse',
     submenu: null,
     actions: ['read', 'write'],
     description: 'Gestion de la caisse'
+  },
+  {
+    menu: 'Caisse',
+    submenu: 'Dépenses',
+    actions: ['read', 'write'],
+    description: 'Gestion des dépenses de caisse'
+  },
+  {
+    menu: 'Caisse',
+    submenu: 'Aperçu du jour',
+    actions: ['read'],
+    description: 'Consultation de l\'aperçu journalier'
   },
   {
     menu: 'Marges',
@@ -104,6 +151,12 @@ const APPLICATION_MENUS = [
   },
   {
     menu: 'Paramètres',
+    submenu: null,
+    actions: ['read', 'write'],
+    description: 'Accès aux paramètres généraux'
+  },
+  {
+    menu: 'Paramètres',
     submenu: 'Utilisateurs',
     actions: ['read', 'write'],
     description: 'Gestion des utilisateurs'
@@ -113,6 +166,12 @@ const APPLICATION_MENUS = [
     submenu: 'Permissions',
     actions: ['read', 'write'],
     description: 'Gestion des permissions'
+  },
+  {
+    menu: 'Paramètres',
+    submenu: 'Fournisseurs',
+    actions: ['read', 'write'],
+    description: 'Gestion des fournisseurs'
   }
 ];
 
