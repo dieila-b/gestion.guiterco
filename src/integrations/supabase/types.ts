@@ -3414,6 +3414,21 @@ export type Database = {
         }
         Returns: undefined
       }
+      update_user_profile: {
+        Args: {
+          p_user_id: string
+          p_prenom: string
+          p_nom: string
+          p_email: string
+          p_telephone?: string
+          p_adresse?: string
+          p_photo_url?: string
+          p_matricule?: string
+          p_statut?: string
+          p_doit_changer_mot_de_passe?: boolean
+        }
+        Returns: boolean
+      }
       user_has_permission: {
         Args:
           | { user_id: string; permission_name: string }

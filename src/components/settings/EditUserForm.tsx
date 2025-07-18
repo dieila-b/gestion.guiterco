@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
@@ -10,9 +11,9 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Upload, User } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRolesForUsers } from '@/hooks/useUtilisateursInternes';
 import { useUserRoleAssignment } from '@/hooks/useUserRoleAssignment';
+import { useUpdateInternalUser } from '@/hooks/useUpdateInternalUser';
 
 interface EditUserFormProps {
   user: {
@@ -50,14 +51,13 @@ interface EditUserFormData {
 }
 
 const EditUserForm = ({ user, onSuccess, onCancel }: EditUserFormProps) => {
-  const [isUpdating, setIsUpdating] = useState(false);
   const [photoPreview, setPhotoPreview] = useState<string | null>(user.photo_url || null);
   const [updatePassword, setUpdatePassword] = useState(false);
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
   const { toast } = useToast();
-  const queryClient = useQueryClient();
   const { data: roles = [] } = useRolesForUsers();
   const { assignRole } = useUserRoleAssignment();
+  const updateUser = useUpdateInternalUser();
   
   const { register, handleSubmit, setValue, watch, formState: { errors } } = useForm<EditUserFormData>();
 
@@ -167,41 +167,51 @@ const EditUserForm = ({ user, onSuccess, onCancel }: EditUserFormProps) => {
     }
   };
 
-  const updateUser = useMutation({
-    mutationFn: async (userData: EditUserFormData) => {
-      setIsUpdating(true);
-      
+  const onSubmit = async (data: EditUserFormData) => {
+    try {
       // Vérifier que les mots de passe correspondent si on les change
-      if (updatePassword && userData.password !== userData.confirmPassword) {
-        throw new Error('Les mots de passe ne correspondent pas');
+      if (updatePassword && data.password !== data.confirmPassword) {
+        toast({
+          title: "Erreur",
+          description: "Les mots de passe ne correspondent pas",
+          variant: "destructive",
+        });
+        return;
       }
-      
-      // 1. Mettre à jour les informations utilisateur
-      const { error: updateError } = await supabase
-        .from('utilisateurs_internes')
-        .update({
-          prenom: userData.prenom,
-          nom: userData.nom,
-          email: userData.email,
-          telephone: userData.telephone,
-          adresse: userData.adresse,
-          doit_changer_mot_de_passe: userData.doit_changer_mot_de_passe,
-          statut: userData.statut,
-          matricule: userData.matricule,
-          photo_url: userData.photo_url,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', user.id);
 
-      if (updateError) throw updateError;
+      console.log('🔄 Submitting user update:', data);
+
+      // 1. Mettre à jour les informations utilisateur principales
+      await updateUser.mutateAsync({
+        id: user.id,
+        prenom: data.prenom,
+        nom: data.nom,
+        email: data.email,
+        telephone: data.telephone,
+        adresse: data.adresse,
+        photo_url: data.photo_url,
+        matricule: data.matricule,
+        statut: data.statut,
+        doit_changer_mot_de_passe: data.doit_changer_mot_de_passe
+      });
 
       // 2. Mettre à jour le mot de passe si demandé
-      if (updatePassword && userData.password && user.user_id) {
+      if (updatePassword && data.password && user.user_id) {
+        console.log('🔄 Updating password for user:', user.user_id);
         const { error: passwordError } = await supabase.auth.admin.updateUserById(
           user.user_id,
-          { password: userData.password }
+          { password: data.password }
         );
-        if (passwordError) throw passwordError;
+        if (passwordError) {
+          console.error('❌ Password update error:', passwordError);
+          toast({
+            title: "Avertissement",
+            description: "Utilisateur mis à jour mais erreur lors du changement de mot de passe",
+            variant: "destructive",
+          });
+        } else {
+          console.log('✅ Password updated successfully');
+        }
       }
 
       // 3. Mettre à jour le rôle si nécessaire
@@ -211,47 +221,21 @@ const EditUserForm = ({ user, onSuccess, onCancel }: EditUserFormProps) => {
         r.name === user.role?.nom
       )?.id;
 
-      if (userData.role_id !== currentRoleId && user.user_id) {
+      if (data.role_id !== currentRoleId && user.user_id) {
+        console.log('🔄 Updating role from', currentRoleId, 'to', data.role_id);
         await assignRole.mutateAsync({
           userId: user.user_id,
-          roleId: userData.role_id
+          roleId: data.role_id
         });
       }
 
-      return userData;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['utilisateurs-internes'] });
-      toast({
-        title: "Utilisateur modifié",
-        description: "Les informations de l'utilisateur ont été mises à jour avec succès.",
-      });
+      console.log('✅ User update completed successfully');
       onSuccess();
-    },
-    onError: (error: any) => {
-      console.error('❌ Erreur lors de la modification de l\'utilisateur:', error);
-      toast({
-        title: "Erreur",
-        description: error.message || "Impossible de modifier l'utilisateur",
-        variant: "destructive",
-      });
-    },
-    onSettled: () => {
-      setIsUpdating(false);
+      
+    } catch (error: any) {
+      console.error('❌ Error in form submission:', error);
+      // L'erreur est déjà gérée par les hooks individuels
     }
-  });
-
-  const onSubmit = (data: EditUserFormData) => {
-    if (updatePassword && data.password !== data.confirmPassword) {
-      toast({
-        title: "Erreur",
-        description: "Les mots de passe ne correspondent pas",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    updateUser.mutate(data);
   };
 
   return (
@@ -293,7 +277,7 @@ const EditUserForm = ({ user, onSuccess, onCancel }: EditUserFormProps) => {
           <Input
             id="prenom"
             {...register("prenom", { required: "Le prénom est requis" })}
-            disabled={isUpdating}
+            disabled={updateUser.isPending}
           />
           {errors.prenom && (
             <p className="text-sm text-destructive">{errors.prenom.message}</p>
@@ -305,7 +289,7 @@ const EditUserForm = ({ user, onSuccess, onCancel }: EditUserFormProps) => {
           <Input
             id="nom"
             {...register("nom", { required: "Le nom est requis" })}
-            disabled={isUpdating}
+            disabled={updateUser.isPending}
           />
           {errors.nom && (
             <p className="text-sm text-destructive">{errors.nom.message}</p>
@@ -326,7 +310,7 @@ const EditUserForm = ({ user, onSuccess, onCancel }: EditUserFormProps) => {
                 message: "Email invalide"
               }
             })}
-            disabled={isUpdating}
+            disabled={updateUser.isPending}
           />
           {errors.email && (
             <p className="text-sm text-destructive">{errors.email.message}</p>
@@ -338,7 +322,7 @@ const EditUserForm = ({ user, onSuccess, onCancel }: EditUserFormProps) => {
           <Input
             id="matricule"
             {...register("matricule")}
-            disabled={isUpdating}
+            disabled={updateUser.isPending}
             placeholder="Généré automatiquement"
           />
         </div>
@@ -351,7 +335,7 @@ const EditUserForm = ({ user, onSuccess, onCancel }: EditUserFormProps) => {
             id="updatePassword"
             checked={updatePassword}
             onCheckedChange={setUpdatePassword}
-            disabled={isUpdating}
+            disabled={updateUser.isPending}
           />
           <Label htmlFor="updatePassword">Modifier le mot de passe</Label>
         </div>
@@ -370,7 +354,7 @@ const EditUserForm = ({ user, onSuccess, onCancel }: EditUserFormProps) => {
                     message: "Le mot de passe doit contenir au moins 6 caractères"
                   }
                 })}
-                disabled={isUpdating}
+                disabled={updateUser.isPending}
               />
               {errors.password && (
                 <p className="text-sm text-destructive">{errors.password.message}</p>
@@ -386,7 +370,7 @@ const EditUserForm = ({ user, onSuccess, onCancel }: EditUserFormProps) => {
                   required: updatePassword ? "La confirmation du mot de passe est requise" : false,
                   validate: value => !updatePassword || value === password || "Les mots de passe ne correspondent pas"
                 })}
-                disabled={isUpdating}
+                disabled={updateUser.isPending}
               />
               {errors.confirmPassword && (
                 <p className="text-sm text-destructive">{errors.confirmPassword.message}</p>
@@ -402,7 +386,7 @@ const EditUserForm = ({ user, onSuccess, onCancel }: EditUserFormProps) => {
           <Input
             id="telephone"
             {...register("telephone")}
-            disabled={isUpdating}
+            disabled={updateUser.isPending}
           />
         </div>
 
@@ -411,7 +395,7 @@ const EditUserForm = ({ user, onSuccess, onCancel }: EditUserFormProps) => {
           <Select 
             value={selectedRoleId} 
             onValueChange={value => setValue('role_id', value)}
-            disabled={isUpdating}
+            disabled={updateUser.isPending}
           >
             <SelectTrigger>
               <SelectValue placeholder="Sélectionner un rôle" />
@@ -438,7 +422,7 @@ const EditUserForm = ({ user, onSuccess, onCancel }: EditUserFormProps) => {
           id="adresse"
           {...register("adresse")}
           rows={3}
-          disabled={isUpdating}
+          disabled={updateUser.isPending}
         />
       </div>
 
@@ -448,7 +432,7 @@ const EditUserForm = ({ user, onSuccess, onCancel }: EditUserFormProps) => {
           <Select 
             value={selectedStatut} 
             onValueChange={value => setValue('statut', value)}
-            disabled={isUpdating}
+            disabled={updateUser.isPending}
           >
             <SelectTrigger>
               <SelectValue />
@@ -466,7 +450,7 @@ const EditUserForm = ({ user, onSuccess, onCancel }: EditUserFormProps) => {
             id="doit_changer_mot_de_passe"
             checked={watch('doit_changer_mot_de_passe')}
             onCheckedChange={value => setValue('doit_changer_mot_de_passe', value)}
-            disabled={isUpdating}
+            disabled={updateUser.isPending}
           />
           <Label htmlFor="doit_changer_mot_de_passe">
             Forcer le changement de mot de passe
@@ -479,15 +463,15 @@ const EditUserForm = ({ user, onSuccess, onCancel }: EditUserFormProps) => {
           type="button" 
           variant="outline" 
           onClick={onCancel}
-          disabled={isUpdating}
+          disabled={updateUser.isPending}
         >
           Annuler
         </Button>
         <Button 
           type="submit" 
-          disabled={isUpdating || isUploadingPhoto}
+          disabled={updateUser.isPending || isUploadingPhoto}
         >
-          {isUpdating ? 'Modification...' : 'Modifier l\'utilisateur'}
+          {updateUser.isPending ? 'Modification...' : 'Modifier l\'utilisateur'}
         </Button>
       </div>
     </form>
