@@ -3,29 +3,10 @@ import React from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { UserCheck } from 'lucide-react';
 import UserTableRow from './UserTableRow';
-
-interface UtilisateurInterne {
-  id: string;
-  user_id: string;
-  prenom: string;
-  nom: string;
-  email: string;
-  telephone?: string;
-  adresse?: string;
-  photo_url?: string;
-  statut: string;
-  doit_changer_mot_de_passe: boolean;
-  created_at: string;
-  role_id?: string;
-  role: {
-    id: string;
-    name: string;
-    description?: string;
-  } | null;
-}
+import { UtilisateurInterneWithRole } from '@/hooks/useUtilisateursInternes';
 
 interface UsersTableProps {
-  utilisateurs: UtilisateurInterne[] | undefined;
+  utilisateurs: UtilisateurInterneWithRole[] | undefined;
   onDelete: (id: string) => void;
   onUserUpdated: () => void;
   isDeleting: boolean;

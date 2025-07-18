@@ -17,11 +17,11 @@ export interface UtilisateurInterneWithRole {
   doit_changer_mot_de_passe: boolean;
   created_at: string;
   updated_at: string;
-  role?: {
+  role: {
     id: string;
     name: string;
     description?: string;
-  };
+  } | null;
 }
 
 export const useUtilisateursInternes = () => {

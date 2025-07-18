@@ -4,7 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { useUtilisateursInternes, UtilisateurInterneWithRole } from '@/hooks/useUtilisateursInternes';
+import { useUtilisateursInternes } from '@/hooks/useUtilisateursInternes';
 import { useRealTimeRoles } from '@/hooks/useRealTimeRoles';
 import UsersHeader from './users/UsersHeader';
 import UsersTable from './users/UsersTable';

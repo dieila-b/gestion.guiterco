@@ -6,29 +6,10 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Trash2, Shield, AlertCircle } from 'lucide-react';
 import EditUserDialog from '../EditUserDialog';
-
-interface UtilisateurInterne {
-  id: string;
-  user_id: string;
-  prenom: string;
-  nom: string;
-  email: string;
-  telephone?: string;
-  adresse?: string;
-  photo_url?: string;
-  statut: string;
-  doit_changer_mot_de_passe: boolean;
-  created_at: string;
-  role_id?: string;
-  role?: {
-    id: string;
-    name: string;
-    description?: string;
-  } | null;
-}
+import { UtilisateurInterneWithRole } from '@/hooks/useUtilisateursInternes';
 
 interface UserTableRowProps {
-  utilisateur: UtilisateurInterne;
+  utilisateur: UtilisateurInterneWithRole;
   onDelete: (id: string) => void;
   onUserUpdated: () => void;
   isDeleting: boolean;
@@ -52,7 +33,7 @@ const UserTableRow = ({ utilisateur, onDelete, onUserUpdated, isDeleting }: User
     }
   };
 
-  const getRoleBadge = (role: UtilisateurInterne['role']) => {
+  const getRoleBadge = (role: UtilisateurInterneWithRole['role']) => {
     if (!role) {
       return (
         <Badge variant="outline" className="bg-gray-50 text-gray-600">
