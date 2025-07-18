@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
@@ -37,6 +36,7 @@ interface CreateUserFormData {
 const CreateUserForm = ({ onSuccess, onCancel }: CreateUserFormProps) => {
   const [isCreating, setIsCreating] = useState(false);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { data: roles = [] } = useRolesForUsers();
@@ -59,20 +59,57 @@ const CreateUserForm = ({ onSuccess, onCancel }: CreateUserFormProps) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
+    // Vérifications du fichier
+    if (!file.type.startsWith('image/')) {
+      toast({
+        title: "Erreur",
+        description: "Veuillez sélectionner un fichier image valide (PNG, JPG, GIF).",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) { // 5MB max
+      toast({
+        title: "Erreur",
+        description: "Le fichier est trop volumineux. Taille maximum: 5MB.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsUploadingPhoto(true);
+
     try {
+      console.log('🔄 Début de l\'upload de la photo...');
+      
+      // Créer un nom de fichier unique
       const fileExt = file.name.split('.').pop();
-      const fileName = `${Math.random()}.${fileExt}`;
-      const filePath = `${fileName}`;
+      const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
 
-      const { error: uploadError } = await supabase.storage
+      console.log('📁 Upload vers le bucket avatars:', fileName);
+
+      // Upload vers Supabase Storage
+      const { data, error } = await supabase.storage
         .from('avatars')
-        .upload(filePath, file);
+        .upload(fileName, file, {
+          cacheControl: '3600',
+          upsert: false
+        });
 
-      if (uploadError) throw uploadError;
+      if (error) {
+        console.error('❌ Erreur upload:', error);
+        throw new Error(`Erreur d'upload: ${error.message}`);
+      }
 
+      console.log('✅ Upload réussi:', data);
+
+      // Obtenir l'URL publique
       const { data: { publicUrl } } = supabase.storage
         .from('avatars')
-        .getPublicUrl(filePath);
+        .getPublicUrl(data.path);
+
+      console.log('🔗 URL publique générée:', publicUrl);
 
       setPhotoPreview(publicUrl);
       setValue('photo_url', publicUrl);
@@ -81,13 +118,15 @@ const CreateUserForm = ({ onSuccess, onCancel }: CreateUserFormProps) => {
         title: "Succès",
         description: "Photo téléchargée avec succès.",
       });
-    } catch (error) {
-      console.error('Erreur lors du téléchargement de la photo:', error);
+    } catch (error: any) {
+      console.error('💥 Erreur complète lors de l\'upload:', error);
       toast({
-        title: "Erreur",
-        description: "Impossible de télécharger la photo",
+        title: "Erreur d'upload",
+        description: error.message || "Impossible de télécharger la photo. Vérifiez votre connexion.",
         variant: "destructive",
       });
+    } finally {
+      setIsUploadingPhoto(false);
     }
   };
 
@@ -100,6 +139,8 @@ const CreateUserForm = ({ onSuccess, onCancel }: CreateUserFormProps) => {
         throw new Error('Les mots de passe ne correspondent pas');
       }
       
+      console.log('🔄 Création de l\'utilisateur...', { email: userData.email });
+      
       // 1. Créer l'utilisateur dans Auth
       const { data: authData, error: authError } = await supabase.auth.admin.createUser({
         email: userData.email,
@@ -111,8 +152,13 @@ const CreateUserForm = ({ onSuccess, onCancel }: CreateUserFormProps) => {
         }
       });
 
-      if (authError) throw authError;
+      if (authError) {
+        console.error('❌ Erreur création Auth:', authError);
+        throw authError;
+      }
       if (!authData.user) throw new Error('Utilisateur non créé');
+
+      console.log('✅ Utilisateur Auth créé:', authData.user.id);
 
       // 2. Créer l'entrée dans utilisateurs_internes
       const { data: userInterne, error: userInterneError } = await supabase
@@ -132,14 +178,21 @@ const CreateUserForm = ({ onSuccess, onCancel }: CreateUserFormProps) => {
         .select()
         .single();
 
-      if (userInterneError) throw userInterneError;
+      if (userInterneError) {
+        console.error('❌ Erreur création utilisateur interne:', userInterneError);
+        throw userInterneError;
+      }
+
+      console.log('✅ Utilisateur interne créé:', userInterne.id);
 
       // 3. Assigner le rôle
       if (userData.role_id) {
+        console.log('🔄 Attribution du rôle:', userData.role_id);
         await assignRole.mutateAsync({
           userId: authData.user.id,
           roleId: userData.role_id
         });
+        console.log('✅ Rôle attribué');
       }
 
       return { authData, userInterne };
@@ -154,9 +207,20 @@ const CreateUserForm = ({ onSuccess, onCancel }: CreateUserFormProps) => {
     },
     onError: (error: any) => {
       console.error('❌ Erreur lors de la création de l\'utilisateur:', error);
+      
+      let errorMessage = "Impossible de créer l'utilisateur";
+      
+      if (error.message?.includes('User already registered')) {
+        errorMessage = "Un utilisateur avec cette adresse email existe déjà";
+      } else if (error.message?.includes('Email already registered')) {
+        errorMessage = "Cette adresse email est déjà utilisée";
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
       toast({
         title: "Erreur",
-        description: error.message || "Impossible de créer l'utilisateur",
+        description: errorMessage,
         variant: "destructive",
       });
     },
@@ -200,7 +264,9 @@ const CreateUserForm = ({ onSuccess, onCancel }: CreateUserFormProps) => {
           </Avatar>
           <label
             htmlFor="photo-upload"
-            className="absolute -bottom-2 -right-2 bg-primary text-primary-foreground rounded-full p-2 cursor-pointer hover:bg-primary/90 transition-colors"
+            className={`absolute -bottom-2 -right-2 bg-primary text-primary-foreground rounded-full p-2 cursor-pointer hover:bg-primary/90 transition-colors ${
+              isUploadingPhoto ? 'opacity-50 cursor-not-allowed' : ''
+            }`}
           >
             <Upload className="h-4 w-4" />
           </label>
@@ -209,10 +275,13 @@ const CreateUserForm = ({ onSuccess, onCancel }: CreateUserFormProps) => {
             type="file"
             accept="image/*"
             onChange={handlePhotoUpload}
+            disabled={isUploadingPhoto}
             className="hidden"
           />
         </div>
-        <Label className="text-sm text-muted-foreground">Photo de profil</Label>
+        <Label className="text-sm text-muted-foreground">
+          {isUploadingPhoto ? 'Upload en cours...' : 'Photo de profil'}
+        </Label>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -389,7 +458,7 @@ const CreateUserForm = ({ onSuccess, onCancel }: CreateUserFormProps) => {
         </Button>
         <Button 
           type="submit" 
-          disabled={isCreating || !selectedRoleId}
+          disabled={isCreating || !selectedRoleId || isUploadingPhoto}
         >
           {isCreating ? 'Création...' : 'Créer l\'utilisateur'}
         </Button>

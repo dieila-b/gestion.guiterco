@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
@@ -54,6 +53,7 @@ const EditUserForm = ({ user, onSuccess, onCancel }: EditUserFormProps) => {
   const [isUpdating, setIsUpdating] = useState(false);
   const [photoPreview, setPhotoPreview] = useState<string | null>(user.photo_url || null);
   const [updatePassword, setUpdatePassword] = useState(false);
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { data: roles = [] } = useRolesForUsers();
@@ -96,20 +96,57 @@ const EditUserForm = ({ user, onSuccess, onCancel }: EditUserFormProps) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
+    // Vérifications du fichier
+    if (!file.type.startsWith('image/')) {
+      toast({
+        title: "Erreur",
+        description: "Veuillez sélectionner un fichier image valide (PNG, JPG, GIF).",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) { // 5MB max
+      toast({
+        title: "Erreur",
+        description: "Le fichier est trop volumineux. Taille maximum: 5MB.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsUploadingPhoto(true);
+
     try {
+      console.log('🔄 Début de l\'upload de la photo...');
+      
+      // Créer un nom de fichier unique
       const fileExt = file.name.split('.').pop();
-      const fileName = `${Math.random()}.${fileExt}`;
-      const filePath = `${fileName}`;
+      const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
 
-      const { error: uploadError } = await supabase.storage
+      console.log('📁 Upload vers le bucket avatars:', fileName);
+
+      // Upload vers Supabase Storage
+      const { data, error } = await supabase.storage
         .from('avatars')
-        .upload(filePath, file);
+        .upload(fileName, file, {
+          cacheControl: '3600',
+          upsert: false
+        });
 
-      if (uploadError) throw uploadError;
+      if (error) {
+        console.error('❌ Erreur upload:', error);
+        throw new Error(`Erreur d'upload: ${error.message}`);
+      }
 
+      console.log('✅ Upload réussi:', data);
+
+      // Obtenir l'URL publique
       const { data: { publicUrl } } = supabase.storage
         .from('avatars')
-        .getPublicUrl(filePath);
+        .getPublicUrl(data.path);
+
+      console.log('🔗 URL publique générée:', publicUrl);
 
       setPhotoPreview(publicUrl);
       setValue('photo_url', publicUrl);
@@ -118,13 +155,15 @@ const EditUserForm = ({ user, onSuccess, onCancel }: EditUserFormProps) => {
         title: "Succès",
         description: "Photo téléchargée avec succès.",
       });
-    } catch (error) {
-      console.error('Erreur lors du téléchargement de la photo:', error);
+    } catch (error: any) {
+      console.error('💥 Erreur complète lors de l\'upload:', error);
       toast({
-        title: "Erreur",
-        description: "Impossible de télécharger la photo",
+        title: "Erreur d'upload",
+        description: error.message || "Impossible de télécharger la photo. Vérifiez votre connexion.",
         variant: "destructive",
       });
+    } finally {
+      setIsUploadingPhoto(false);
     }
   };
 
@@ -228,7 +267,9 @@ const EditUserForm = ({ user, onSuccess, onCancel }: EditUserFormProps) => {
           </Avatar>
           <label
             htmlFor="photo-upload"
-            className="absolute -bottom-2 -right-2 bg-primary text-primary-foreground rounded-full p-2 cursor-pointer hover:bg-primary/90 transition-colors"
+            className={`absolute -bottom-2 -right-2 bg-primary text-primary-foreground rounded-full p-2 cursor-pointer hover:bg-primary/90 transition-colors ${
+              isUploadingPhoto ? 'opacity-50 cursor-not-allowed' : ''
+            }`}
           >
             <Upload className="h-4 w-4" />
           </label>
@@ -237,10 +278,13 @@ const EditUserForm = ({ user, onSuccess, onCancel }: EditUserFormProps) => {
             type="file"
             accept="image/*"
             onChange={handlePhotoUpload}
+            disabled={isUploadingPhoto}
             className="hidden"
           />
         </div>
-        <Label className="text-sm text-muted-foreground">Photo de profil</Label>
+        <Label className="text-sm text-muted-foreground">
+          {isUploadingPhoto ? 'Upload en cours...' : 'Photo de profil'}
+        </Label>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -441,7 +485,7 @@ const EditUserForm = ({ user, onSuccess, onCancel }: EditUserFormProps) => {
         </Button>
         <Button 
           type="submit" 
-          disabled={isUpdating}
+          disabled={isUpdating || isUploadingPhoto}
         >
           {isUpdating ? 'Modification...' : 'Modifier l\'utilisateur'}
         </Button>
