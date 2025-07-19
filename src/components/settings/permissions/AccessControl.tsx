@@ -233,10 +233,10 @@ const AccessControl = () => {
                 <SelectContent>
                   <SelectItem value="all">Tous les rôles</SelectItem>
                   {roles.map((role) => (
-                    <SelectItem key={role.id} value={role.nom}>
+                    <SelectItem key={role.id} value={role.name}>
                       <div className="flex items-center space-x-2">
-                        {getRoleIcon(role.nom)}
-                        <span>{role.nom}</span>
+                        {getRoleIcon(role.name)}
+                        <span>{role.name}</span>
                       </div>
                     </SelectItem>
                   ))}
@@ -297,8 +297,8 @@ const AccessControl = () => {
                         {roles.map((role) => (
                           <SelectItem key={role.id} value={role.id}>
                             <div className="flex items-center space-x-2">
-                              {getRoleIcon(role.nom)}
-                              <span>{role.nom}</span>
+                              {getRoleIcon(role.name)}
+                              <span>{role.name}</span>
                             </div>
                           </SelectItem>
                         ))}
