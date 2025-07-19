@@ -1,4 +1,3 @@
-
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -160,50 +159,75 @@ export const useUserPermissions = (userId?: string) => {
   });
 };
 
-// Hook pour récupérer les utilisateurs avec leurs rôles
+// Hook pour récupérer les utilisateurs avec leurs rôles - VERSION CORRIGÉE
 export const useUsersWithRoles = () => {
   return useQuery({
     queryKey: ['users-with-roles'],
     queryFn: async () => {
       console.log('🔍 Fetching users with roles...');
-      const { data, error } = await supabase
-        .from('utilisateurs_internes')
-        .select(`
-          user_id,
-          prenom,
-          nom,
-          email,
-          user_roles!inner (
+      
+      try {
+        // Récupérer d'abord tous les utilisateurs
+        const { data: users, error: usersError } = await supabase
+          .from('utilisateurs_internes')
+          .select('user_id, prenom, nom, email')
+          .eq('statut', 'actif');
+
+        if (usersError) {
+          console.error('❌ Error fetching users:', usersError);
+          throw usersError;
+        }
+
+        if (!users || users.length === 0) {
+          console.log('✅ No users found');
+          return [];
+        }
+
+        // Récupérer les rôles pour chaque utilisateur
+        const userIds = users.map(u => u.user_id).filter(Boolean);
+        
+        const { data: userRoles, error: rolesError } = await supabase
+          .from('user_roles')
+          .select(`
+            user_id,
             role_id,
             is_active,
-            roles (
+            roles!inner (
               id,
               name
             )
-          )
-        `)
-        .eq('statut', 'actif')
-        .eq('user_roles.is_active', true);
+          `)
+          .in('user_id', userIds)
+          .eq('is_active', true);
 
-      if (error) {
-        console.error('❌ Error fetching users with roles:', error);
-        throw error;
+        if (rolesError) {
+          console.error('❌ Error fetching user roles:', rolesError);
+          // Continuer sans les rôles plutôt que de faire échouer
+        }
+
+        // Transformer les données pour correspondre à l'interface
+        const transformedData = users.map(user => {
+          const userRole = userRoles?.find(ur => ur.user_id === user.user_id);
+          
+          return {
+            user_id: user.user_id,
+            prenom: user.prenom,
+            nom: user.nom,
+            email: user.email,
+            role: userRole?.roles ? {
+              id: userRole.roles.id,
+              nom: userRole.roles.name
+            } : null
+          };
+        });
+
+        console.log('✅ Users with roles fetched:', transformedData.length);
+        return transformedData as UserWithRole[];
+
+      } catch (error: any) {
+        console.error('💥 Critical error in useUsersWithRoles:', error);
+        throw new Error(`Erreur lors du chargement des utilisateurs: ${error.message || 'Erreur inconnue'}`);
       }
-
-      // Transformer les données pour correspondre à l'interface
-      const transformedData = data?.map(user => ({
-        user_id: user.user_id,
-        prenom: user.prenom,
-        nom: user.nom,
-        email: user.email,
-        role: user.user_roles?.[0]?.roles ? {
-          id: user.user_roles[0].roles.id,
-          nom: user.user_roles[0].roles.name
-        } : null
-      })) || [];
-
-      console.log('✅ Users with roles fetched:', transformedData.length);
-      return transformedData as UserWithRole[];
     }
   });
 };
@@ -275,10 +299,16 @@ export const useAssignUserRole = () => {
         throw new Error('Rôle non trouvé');
       }
 
+      // Obtenir l'utilisateur actuel pour assigned_by
+      const { data: { user: currentUser } } = await supabase.auth.getUser();
+
       // D'abord, désactiver les rôles existants pour cet utilisateur
       await supabase
         .from('user_roles')
-        .update({ is_active: false })
+        .update({ 
+          is_active: false,
+          updated_at: new Date().toISOString()
+        })
         .eq('user_id', userId);
 
       // Ensuite, créer ou réactiver le nouveau rôle
@@ -288,7 +318,9 @@ export const useAssignUserRole = () => {
           user_id: userId,
           role_id: roleId,
           is_active: true,
-          assigned_by: (await supabase.auth.getUser()).data.user?.id
+          assigned_by: currentUser?.id,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
         })
         .select()
         .single();
