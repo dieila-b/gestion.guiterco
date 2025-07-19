@@ -25,33 +25,28 @@ export const useDevMode = (): DevModeConfig => {
     const hostname = window.location.hostname;
     const isDev = hostname === 'localhost' || 
                   hostname.includes('lovableproject.com') || 
-                  hostname.includes('lovable.app') ||
                   hostname.includes('127.0.0.1') ||
                   hostname.includes('.local') ||
                   import.meta.env.DEV ||
                   import.meta.env.MODE === 'development';
 
-    // En mode développement, activer le bypass par défaut et réinitialiser le localStorage
-    let bypassEnabled = isDev;
+    let bypassEnabled = false;
     
     if (isDev) {
-      // Forcer l'activation du bypass en mode dev et nettoyer le localStorage
-      localStorage.removeItem('dev_bypass_auth');
+      // En mode développement, activer le bypass par défaut pour faciliter les tests
       bypassEnabled = true;
       
-      // Vérifier aussi la variable d'environnement
+      // Permettre à l'utilisateur de désactiver le bypass manuellement si nécessaire
+      const manualOverride = localStorage.getItem('dev_bypass_auth');
+      if (manualOverride === 'false') {
+        bypassEnabled = false;
+      }
+      
+      // Vérifier aussi la variable d'environnement pour forcer l'activation/désactivation
       if (import.meta.env.VITE_DEV_BYPASS_AUTH === 'false') {
         bypassEnabled = false;
       }
     }
-
-    console.log('🔧 Configuration DevMode initiale:', {
-      hostname,
-      isDev,
-      bypassEnabled,
-      env: import.meta.env.MODE,
-      localStorage: localStorage.getItem('dev_bypass_auth')
-    });
 
     return {
       isDevMode: isDev,
@@ -76,7 +71,6 @@ export const useDevMode = (): DevModeConfig => {
     const hostname = window.location.hostname;
     const isDev = hostname === 'localhost' || 
                   hostname.includes('lovableproject.com') || 
-                  hostname.includes('lovable.app') ||
                   hostname.includes('127.0.0.1') ||
                   hostname.includes('.local') ||
                   import.meta.env.DEV ||
@@ -89,25 +83,34 @@ export const useDevMode = (): DevModeConfig => {
       dev: import.meta.env.DEV
     });
 
-    let bypassEnabled = isDev; // Par défaut activé en dev
+    let bypassEnabled = false;
     
     if (isDev) {
-      // Forcer l'activation du bypass en mode dev
-      localStorage.removeItem('dev_bypass_auth');
+      // En mode développement, bypass activé par défaut
       bypassEnabled = true;
-      console.log('🚀 Bypass d\'authentification forcé activé (mode dev)');
+      
+      const manualOverride = localStorage.getItem('dev_bypass_auth');
+      
+      // L'utilisateur peut désactiver manuellement le bypass
+      if (manualOverride === 'false') {
+        bypassEnabled = false;
+        console.log('🔒 Bypass d\'authentification désactivé manuellement');
+      } else {
+        console.log('🚀 Bypass d\'authentification activé par défaut (mode dev)');
+      }
       
       // Vérifier aussi la variable d'environnement
       if (import.meta.env.VITE_DEV_BYPASS_AUTH === 'false') {
         bypassEnabled = false;
-        console.log('🔒 Bypass désactivé par variable d\'environnement');
       }
       
       console.log('🔧 Configuration bypass:', { 
+        manualOverride, 
         bypassEnabled,
         envVar: import.meta.env.VITE_DEV_BYPASS_AUTH 
       });
     } else {
+      // En production, authentification toujours requise
       console.log('🏢 Mode production: Authentification obligatoire');
     }
 
@@ -138,8 +141,10 @@ export const useDevMode = (): DevModeConfig => {
   };
 
   useEffect(() => {
+    // Mettre à jour immédiatement
     updateBypassState();
     
+    // Écouter les changements du localStorage
     const handleStorageChange = () => {
       updateBypassState();
     };

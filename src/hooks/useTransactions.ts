@@ -51,9 +51,7 @@ export const useTransactions = (cashRegisterId?: string) => {
       });
       
       return filteredData as Transaction[];
-    },
-    staleTime: 30000, // Cache pendant 30 secondes
-    retry: 1
+    }
   });
 };
 
@@ -114,9 +112,7 @@ export const useTodayTransactions = (cashRegisterId?: string) => {
       });
       
       return filteredData as Transaction[];
-    },
-    staleTime: 30000,
-    retry: 1
+    }
   });
 };
 
@@ -130,56 +126,51 @@ export const useAllFinancialTransactions = () => {
       const tomorrow = new Date(today);
       tomorrow.setDate(tomorrow.getDate() + 1);
 
-      console.log('💰 Récupération optimisée des transactions du jour...');
+      console.log('💰 Récupération simplifiée des transactions du jour...');
 
       try {
-        // Récupération parallèle des données pour améliorer les performances
-        const [transactionsResult, cashOpsResult, expensesResult] = await Promise.allSettled([
-          // 1. Récupérer les transactions principales
-          supabase
-            .from('transactions')
-            .select('id, type, amount, montant, description, date_operation, created_at, source')
-            .gte('date_operation', today.toISOString())
-            .lt('date_operation', tomorrow.toISOString()),
-          
-          // 2. Récupérer les opérations de caisse
-          supabase
-            .from('cash_operations')
-            .select('*')
-            .gte('created_at', today.toISOString())
-            .lt('created_at', tomorrow.toISOString()),
-          
-          // 3. Récupérer les sorties financières
-          supabase
-            .from('sorties_financieres')
-            .select('*')
-            .gte('date_sortie', today.toISOString())
-            .lt('date_sortie', tomorrow.toISOString())
-        ]);
+        // 1. Récupérer les transactions principales
+        const { data: transactions, error: transError } = await supabase
+          .from('transactions')
+          .select('id, type, amount, montant, description, date_operation, created_at, source')
+          .gte('date_operation', today.toISOString())
+          .lt('date_operation', tomorrow.toISOString());
 
-        // Traitement des résultats avec gestion d'erreur
-        const transactions = transactionsResult.status === 'fulfilled' ? transactionsResult.value.data || [] : [];
-        const cashOps = cashOpsResult.status === 'fulfilled' ? cashOpsResult.value.data || [] : [];
-        const expenses = expensesResult.status === 'fulfilled' ? expensesResult.value.data || [] : [];
-
-        if (transactionsResult.status === 'rejected') {
-          console.warn('⚠️ Erreur transactions:', transactionsResult.reason);
-        }
-        if (cashOpsResult.status === 'rejected') {
-          console.warn('⚠️ Erreur cash operations:', cashOpsResult.reason);
-        }
-        if (expensesResult.status === 'rejected') {
-          console.warn('⚠️ Erreur sorties financières:', expensesResult.reason);
+        if (transError) {
+          console.error('❌ Erreur transactions:', transError);
+          throw transError;
         }
 
-        console.log('✅ Données récupérées:', {
-          transactions: transactions.length,
-          cashOps: cashOps.length,
-          expenses: expenses.length
-        });
+        console.log('✅ Transactions récupérées:', transactions?.length || 0);
+
+        // 2. Récupérer les opérations de caisse
+        const { data: cashOps, error: cashError } = await supabase
+          .from('cash_operations')
+          .select('*')
+          .gte('created_at', today.toISOString())
+          .lt('created_at', tomorrow.toISOString());
+
+        if (cashError) {
+          console.warn('⚠️ Erreur cash_operations (continuant sans):', cashError);
+        }
+
+        console.log('✅ Cash operations récupérées:', cashOps?.length || 0);
+
+        // 3. Récupérer les sorties financières
+        const { data: expenses, error: expError } = await supabase
+          .from('sorties_financieres')
+          .select('*')
+          .gte('date_sortie', today.toISOString())
+          .lt('date_sortie', tomorrow.toISOString());
+
+        if (expError) {
+          console.warn('⚠️ Erreur sorties_financieres (continuant sans):', expError);
+        }
+
+        console.log('✅ Sorties financières récupérées:', expenses?.length || 0);
 
         // Normaliser les transactions principales
-        const normalizedTransactions = transactions
+        const normalizedTransactions = (transactions || [])
           .filter((t): t is Transaction & { type: 'income' | 'expense' } => t.type === 'income' || t.type === 'expense')
           .filter(t => !isInternalSettlement(t.description || ''))
           .map(t => ({
@@ -192,7 +183,7 @@ export const useAllFinancialTransactions = () => {
           }));
 
         // Normaliser les opérations de caisse
-        const normalizedCashOps = cashOps
+        const normalizedCashOps = (cashOps || [])
           .filter(c => !isInternalSettlement(c.commentaire || ''))
           .map(c => ({
             id: c.id,
@@ -204,7 +195,7 @@ export const useAllFinancialTransactions = () => {
           }));
 
         // Normaliser les sorties financières
-        const normalizedExpenses = expenses
+        const normalizedExpenses = (expenses || [])
           .filter(e => !isInternalSettlement(e.description || ''))
           .map(e => ({
             id: e.id,
@@ -225,7 +216,7 @@ export const useAllFinancialTransactions = () => {
           return dateB - dateA;
         });
         
-        console.log('💰 Total transactions financières:', result.length);
+        console.log('💰 Total transactions financières récupérées:', result.length);
         
         return result;
         
@@ -235,9 +226,9 @@ export const useAllFinancialTransactions = () => {
         return [];
       }
     },
-    staleTime: 30000, // Cache pendant 30 secondes
     retry: 1,
-    retryDelay: 500
+    retryDelay: 500,
+    staleTime: 30000 // Cache pendant 30 secondes
   });
 };
 
@@ -246,7 +237,7 @@ export const useCashRegisterBalance = () => {
   return useQuery({
     queryKey: ['cash-register-balance'],
     queryFn: async () => {
-      console.log('🔄 Calcul optimisé du solde...');
+      console.log('🔄 Calcul du solde simplifié...');
       
       try {
         // D'abord essayer la vue si elle existe
@@ -292,8 +283,8 @@ export const useCashRegisterBalance = () => {
         return { balance: 0 };
       }
     },
-    staleTime: 30000,
     retry: 1,
-    retryDelay: 500
+    retryDelay: 500,
+    staleTime: 30000
   });
 };

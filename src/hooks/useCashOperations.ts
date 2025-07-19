@@ -1,73 +1,57 @@
 
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
-type CashOperation = {
-  id: string;
-  type: 'depot' | 'retrait';
-  montant: number;
-  commentaire?: string;
-  created_at: string;
-};
-
-type CashOperationInsert = {
-  type: 'depot' | 'retrait';
-  montant: number;
-  commentaire?: string;
-};
-
-export const useCashOperations = (year: number, month: number) => {
+export function useCashOperations(year?: number, month?: number) {
   return useQuery({
-    queryKey: ['cash-operations', year, month],
+    queryKey: ["cash-operations", year, month],
     queryFn: async () => {
-      console.log('🔄 Chargement des opérations de caisse...');
-      
-      const startDate = new Date(year, month - 1, 1);
-      const endDate = new Date(year, month, 0, 23, 59, 59);
-      
-      const { data, error } = await supabase
-        .from('cash_operations')
-        .select('*')
-        .gte('created_at', startDate.toISOString())
-        .lte('created_at', endDate.toISOString())
-        .order('created_at', { ascending: false });
-      
-      if (error) {
-        console.error('❌ Erreur cash operations:', error);
-        throw error;
+      let query = supabase
+        .from("cash_operations")
+        .select("*")
+        .order("created_at", { ascending: false });
+      if (year && month) {
+        const start = new Date(year, month - 1, 1);
+        const end = new Date(year, month, 0, 23, 59, 59);
+        query = query
+          .gte("created_at", start.toISOString())
+          .lte("created_at", end.toISOString());
       }
-      
-      console.log('✅ Opérations chargées:', data?.length || 0);
-      return data as CashOperation[];
+      const { data, error } = await query;
+      if (error) throw error;
+      return data || [];
     },
-    staleTime: 30000, // Cache pendant 30 secondes
-    retry: 1
   });
-};
+}
 
-export const useAddCashOperation = () => {
+export function useAddCashOperation() {
   const queryClient = useQueryClient();
-  
   return useMutation({
-    mutationFn: async (operation: CashOperationInsert) => {
-      console.log('💾 Ajout opération:', operation);
-      
-      const { data, error } = await supabase
-        .from('cash_operations')
-        .insert(operation)
-        .select()
-        .single();
-      
-      if (error) {
-        console.error('❌ Erreur ajout:', error);
-        throw error;
-      }
-      
-      return data;
+    mutationFn: async ({
+      type,
+      montant,
+      commentaire,
+      point_vente_id,
+      utilisateur_id,
+    }: {
+      type: "retrait" | "depot";
+      montant: number;
+      commentaire?: string;
+      point_vente_id?: string;
+      utilisateur_id?: string;
+    }) => {
+      const { error } = await supabase.from("cash_operations").insert([
+        {
+          type,
+          montant,
+          commentaire,
+          point_vente_id,
+          utilisateur_id,
+        },
+      ]);
+      if (error) throw error;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['cash-operations'] });
-      console.log('✅ Opération ajoutée avec succès');
-    }
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: ["cash-operations"] }),
   });
-};
+}
