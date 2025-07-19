@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
@@ -14,6 +13,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useRolesForUsers } from '@/hooks/useUtilisateursInternes';
 import { useUserRoleAssignment } from '@/hooks/useUserRoleAssignment';
 import { useUpdateInternalUser } from '@/hooks/useUpdateInternalUser';
+import { usePasswordUpdate } from '@/hooks/usePasswordUpdate';
 
 interface EditUserFormProps {
   user: {
@@ -58,6 +58,7 @@ const EditUserForm = ({ user, onSuccess, onCancel }: EditUserFormProps) => {
   const { data: roles = [] } = useRolesForUsers();
   const { assignRole } = useUserRoleAssignment();
   const updateUser = useUpdateInternalUser();
+  const { updatePassword: updatePasswordFn, isLoading: isUpdatingPassword } = usePasswordUpdate();
   
   const { register, handleSubmit, setValue, watch, formState: { errors } } = useForm<EditUserFormData>();
 
@@ -196,22 +197,13 @@ const EditUserForm = ({ user, onSuccess, onCancel }: EditUserFormProps) => {
       });
 
       // 2. Mettre à jour le mot de passe si demandé
+      let passwordUpdateResult = { success: true };
       if (updatePassword && data.password && user.user_id) {
         console.log('🔄 Updating password for user:', user.user_id);
-        const { error: passwordError } = await supabase.auth.admin.updateUserById(
-          user.user_id,
-          { password: data.password }
-        );
-        if (passwordError) {
-          console.error('❌ Password update error:', passwordError);
-          toast({
-            title: "Avertissement",
-            description: "Utilisateur mis à jour mais erreur lors du changement de mot de passe",
-            variant: "destructive",
-          });
-        } else {
-          console.log('✅ Password updated successfully');
-        }
+        passwordUpdateResult = await updatePasswordFn({
+          userId: user.user_id,
+          newPassword: data.password
+        });
       }
 
       // 3. Mettre à jour le rôle si nécessaire
@@ -230,6 +222,16 @@ const EditUserForm = ({ user, onSuccess, onCancel }: EditUserFormProps) => {
       }
 
       console.log('✅ User update completed successfully');
+      
+      // Afficher un message spécifique si le mot de passe nécessite une action manuelle
+      if (passwordUpdateResult.requiresManualReset) {
+        toast({
+          title: "Utilisateur mis à jour",
+          description: "L'utilisateur devra changer son mot de passe à la prochaine connexion.",
+          variant: "default",
+        });
+      }
+      
       onSuccess();
       
     } catch (error: any) {
@@ -237,6 +239,8 @@ const EditUserForm = ({ user, onSuccess, onCancel }: EditUserFormProps) => {
       // L'erreur est déjà gérée par les hooks individuels
     }
   };
+
+  const isFormLoading = updateUser.isPending || isUpdatingPassword || isUploadingPhoto;
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
@@ -463,15 +467,15 @@ const EditUserForm = ({ user, onSuccess, onCancel }: EditUserFormProps) => {
           type="button" 
           variant="outline" 
           onClick={onCancel}
-          disabled={updateUser.isPending}
+          disabled={isFormLoading}
         >
           Annuler
         </Button>
         <Button 
           type="submit" 
-          disabled={updateUser.isPending || isUploadingPhoto}
+          disabled={isFormLoading}
         >
-          {updateUser.isPending ? 'Modification...' : 'Modifier l\'utilisateur'}
+          {isFormLoading ? 'Modification...' : 'Modifier l\'utilisateur'}
         </Button>
       </div>
     </form>
