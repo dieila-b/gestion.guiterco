@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -183,47 +183,30 @@ const PermissionsMatrix = () => {
   // Fetch permissions and roles data
   const { data: permissions = [], isLoading: permissionsLoading, error: permissionsError } = usePermissions();
   const { data: roles = [], isLoading: rolesLoading, error: rolesError } = useRoles();
-  const { data: rolePermissions = [], isLoading: rolePermissionsLoading } = useRolePermissions(selectedRole || undefined);
+  const { data: rolePermissions = [], isLoading: rolePermissionsLoading, refetch: refetchRolePermissions } = useRolePermissions(selectedRole || undefined);
   const updateRolePermissions = useUpdateRolePermissions();
 
-  const getActionIcon = (action: string) => {
-    switch (action) {
-      case 'read':
-        return <Eye className="h-4 w-4" />;
-      case 'write':
-        return <Edit className="h-4 w-4" />;
-      case 'delete':
-        return <Trash2 className="h-4 w-4" />;
-      default:
-        return <Plus className="h-4 w-4" />;
+  // Effet pour appliquer les permissions par défaut pour l'Administrateur
+  useEffect(() => {
+    if (selectedRole && roles.length > 0) {
+      const currentRole = roles.find(r => r.id === selectedRole);
+      if (currentRole?.name?.toLowerCase() === 'administrateur') {
+        // Pour l'administrateur, cocher toutes les permissions par défaut
+        const adminChanges: Record<string, boolean> = {};
+        APPLICATION_MENUS.forEach(menuItem => {
+          menuItem.actions.forEach(action => {
+            const key = getPermissionKey(menuItem.menu, menuItem.submenu, action);
+            if (!hasPermission(menuItem.menu, menuItem.submenu, action)) {
+              adminChanges[key] = true;
+            }
+          });
+        });
+        if (Object.keys(adminChanges).length > 0) {
+          setPendingChanges(adminChanges);
+        }
+      }
     }
-  };
-
-  const getActionColor = (action: string) => {
-    switch (action) {
-      case 'read':
-        return 'text-green-600 bg-green-50';
-      case 'write':
-        return 'text-blue-600 bg-blue-50';
-      case 'delete':
-        return 'text-red-600 bg-red-50';
-      default:
-        return 'text-gray-600 bg-gray-50';
-    }
-  };
-
-  const getActionLabel = (action: string) => {
-    switch (action) {
-      case 'read':
-        return 'Lecture';
-      case 'write':
-        return 'Écriture';
-      case 'delete':
-        return 'Suppression';
-      default:
-        return action;
-    }
-  };
+  }, [selectedRole, roles, rolePermissions]);
 
   const hasPermission = (menu: string, submenu: string | null, action: string) => {
     if (!selectedRole) return false;
@@ -254,18 +237,30 @@ const PermissionsMatrix = () => {
     if (!selectedRole) return;
 
     try {
-      // Récupérer toutes les permissions actuelles
-      const currentPermissions = rolePermissions?.filter(rp => rp.can_access) || [];
+      console.log('🔄 Applying permission changes for role:', selectedRole);
+      console.log('📋 Pending changes:', pendingChanges);
+
+      // Construire la liste complète des permissions à enregistrer
+      const permissionUpdates: { permission_id: string; can_access: boolean }[] = [];
       
-      // Construire la nouvelle liste de permissions
-      const newPermissions = [...currentPermissions];
-      
-      // Appliquer les changements en attente
+      // D'abord, ajouter toutes les permissions actuelles
+      rolePermissions?.forEach(rp => {
+        if (rp.permission) {
+          const key = getPermissionKey(rp.permission.menu, rp.permission.submenu, rp.permission.action);
+          const newStatus = pendingChanges.hasOwnProperty(key) ? pendingChanges[key] : rp.can_access;
+          
+          permissionUpdates.push({
+            permission_id: rp.permission.id,
+            can_access: newStatus
+          });
+        }
+      });
+
+      // Ensuite, ajouter les nouvelles permissions des changements en attente
       Object.entries(pendingChanges).forEach(([key, enabled]) => {
         const [menu, submenuStr, action] = key.split('-');
         const submenu = submenuStr === 'null' ? null : submenuStr;
         
-        // Trouver la permission correspondante
         const permission = permissions.find(p => 
           p.menu === menu && 
           p.submenu === submenu && 
@@ -273,36 +268,33 @@ const PermissionsMatrix = () => {
         );
         
         if (permission) {
-          const existingIndex = newPermissions.findIndex(rp => rp.permission_id === permission.id);
+          const existingIndex = permissionUpdates.findIndex(pu => pu.permission_id === permission.id);
           
-          if (enabled && existingIndex === -1) {
-            // Ajouter la permission
-            newPermissions.push({
-              id: '',
-              role_id: selectedRole,
+          if (existingIndex === -1) {
+            // Nouvelle permission pas encore dans la liste
+            permissionUpdates.push({
               permission_id: permission.id,
-              can_access: true,
-              created_at: new Date().toISOString(),
-              permission: permission
+              can_access: enabled
             });
-          } else if (!enabled && existingIndex !== -1) {
-            // Retirer la permission
-            newPermissions.splice(existingIndex, 1);
+          } else {
+            // Mettre à jour l'existante
+            permissionUpdates[existingIndex].can_access = enabled;
           }
         }
       });
 
-      // Mettre à jour les permissions du rôle
+      console.log('📤 Sending permission updates:', permissionUpdates);
+
       await updateRolePermissions.mutateAsync({
         roleId: selectedRole,
-        permissionUpdates: newPermissions.map(p => ({
-          permission_id: p.permission_id,
-          can_access: true
-        }))
+        permissionUpdates: permissionUpdates
       });
 
       // Réinitialiser les changements en attente
       setPendingChanges({});
+      
+      // Forcer le rechargement des permissions
+      await refetchRolePermissions();
       
       toast({
         title: "Permissions mises à jour",
@@ -310,7 +302,7 @@ const PermissionsMatrix = () => {
       });
 
     } catch (error) {
-      console.error('Error updating permissions:', error);
+      console.error('❌ Error updating permissions:', error);
       toast({
         title: "Erreur",
         description: "Impossible de mettre à jour les permissions.",

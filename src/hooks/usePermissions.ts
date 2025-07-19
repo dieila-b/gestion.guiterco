@@ -1,4 +1,3 @@
-
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -116,8 +115,7 @@ export const useRolePermissions = (roleId?: string) => {
           *,
           permission:permissions(*)
         `)
-        .eq('role_id', roleId)
-        .eq('can_access', true);
+        .eq('role_id', roleId);
 
       if (error) {
         console.error('❌ Error fetching role permissions:', error);
@@ -355,7 +353,7 @@ export const useAssignUserRole = () => {
   });
 };
 
-// Hook pour mettre à jour les permissions d'un rôle
+// Hook pour mettre à jour les permissions d'un rôle - VERSION AMÉLIORÉE
 export const useUpdateRolePermissions = () => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -370,32 +368,58 @@ export const useUpdateRolePermissions = () => {
     }) => {
       console.log('🔨 Updating role permissions:', { roleId, permissionUpdates });
       
-      // Supprimer toutes les permissions existantes pour ce rôle
-      await supabase
-        .from('role_permissions')
-        .delete()
-        .eq('role_id', roleId);
-
-      // Insérer les nouvelles permissions
-      if (permissionUpdates.length > 0) {
-        const { error } = await supabase
+      try {
+        // Étape 1: Supprimer toutes les permissions existantes pour ce rôle
+        const { error: deleteError } = await supabase
           .from('role_permissions')
-          .insert(
-            permissionUpdates.map(update => ({
-              role_id: roleId,
-              permission_id: update.permission_id,
-              can_access: update.can_access
-            }))
-          );
+          .delete()
+          .eq('role_id', roleId);
 
-        if (error) throw error;
+        if (deleteError) {
+          console.error('❌ Error deleting existing permissions:', deleteError);
+          throw deleteError;
+        }
+
+        console.log('✅ Existing permissions deleted for role:', roleId);
+
+        // Étape 2: Insérer les nouvelles permissions (seulement celles avec can_access = true)
+        const permissionsToInsert = permissionUpdates.filter(update => update.can_access);
+        
+        if (permissionsToInsert.length > 0) {
+          const { error: insertError } = await supabase
+            .from('role_permissions')
+            .insert(
+              permissionsToInsert.map(update => ({
+                role_id: roleId,
+                permission_id: update.permission_id,
+                can_access: true
+              }))
+            );
+
+          if (insertError) {
+            console.error('❌ Error inserting new permissions:', insertError);
+            throw insertError;
+          }
+
+          console.log('✅ New permissions inserted:', permissionsToInsert.length);
+        }
+
+        return { success: true };
+      } catch (error) {
+        console.error('💥 Critical error updating role permissions:', error);
+        throw error;
       }
-
-      return { success: true };
     },
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
+      // Invalider et recharger toutes les requêtes liées
       queryClient.invalidateQueries({ queryKey: ['role-permissions'] });
+      queryClient.invalidateQueries({ queryKey: ['role-permissions', variables.roleId] });
       queryClient.invalidateQueries({ queryKey: ['user-permissions'] });
+      queryClient.invalidateQueries({ queryKey: ['permissions'] });
+      
+      // Forcer le rechargement immédiat
+      queryClient.refetchQueries({ queryKey: ['role-permissions', variables.roleId] });
+      
       toast({
         title: "Permissions mises à jour",
         description: "Les permissions du rôle ont été mises à jour avec succès.",

@@ -19,33 +19,57 @@ interface RoleUsersDialogProps {
 const RoleUsersDialog = ({ role, children }: RoleUsersDialogProps) => {
   const [isOpen, setIsOpen] = useState(false);
 
-  // Récupérer les utilisateurs ayant ce rôle
+  // Récupérer les utilisateurs ayant ce rôle via user_roles
   const { data: usersWithRole = [], isLoading } = useQuery({
     queryKey: ['role-users', role.id],
     queryFn: async () => {
-      console.log('🔍 Fetching users for role:', role.id);
+      console.log('🔍 Fetching users for role:', role.id, role.name);
       
-      const { data, error } = await supabase
-        .from('utilisateurs_internes')
-        .select(`
-          user_id,
-          prenom,
-          nom,
-          email,
-          statut,
-          created_at
-        `)
-        .eq('role_id', role.id)
-        .eq('statut', 'actif')
-        .order('created_at', { ascending: false });
+      try {
+        // Récupérer les utilisateurs via la table user_roles et utilisateurs_internes
+        const { data, error } = await supabase
+          .from('user_roles')
+          .select(`
+            user_id,
+            is_active,
+            utilisateurs_internes!inner (
+              user_id,
+              prenom,
+              nom,
+              email,
+              statut,
+              created_at
+            )
+          `)
+          .eq('role_id', role.id)
+          .eq('is_active', true)
+          .eq('utilisateurs_internes.statut', 'actif');
 
-      if (error) {
-        console.error('❌ Error fetching users for role:', error);
+        if (error) {
+          console.error('❌ Error fetching users for role:', error);
+          throw error;
+        }
+
+        console.log('📊 Raw data from query:', data);
+
+        // Transformer les données pour l'affichage
+        const transformedUsers = data?.map(item => ({
+          user_id: item.user_id,
+          prenom: item.utilisateurs_internes?.prenom || '',
+          nom: item.utilisateurs_internes?.nom || '',
+          email: item.utilisateurs_internes?.email || '',
+          statut: item.utilisateurs_internes?.statut || 'actif',
+          created_at: item.utilisateurs_internes?.created_at || new Date().toISOString()
+        })) || [];
+
+        console.log('✅ Users with role transformed:', transformedUsers.length);
+        console.log('👥 Users details:', transformedUsers);
+        
+        return transformedUsers;
+      } catch (error) {
+        console.error('💥 Critical error fetching users for role:', error);
         throw error;
       }
-
-      console.log('✅ Users with role fetched:', data?.length || 0);
-      return data || [];
     },
     enabled: isOpen
   });
@@ -109,7 +133,7 @@ const RoleUsersDialog = ({ role, children }: RoleUsersDialogProps) => {
                       {role.name}
                     </Badge>
                     <Badge variant="secondary" className="text-xs">
-                      Actif
+                      {user.statut}
                     </Badge>
                   </div>
                 </div>

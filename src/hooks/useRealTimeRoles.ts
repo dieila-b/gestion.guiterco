@@ -23,6 +23,7 @@ export const useRealTimeRoles = () => {
           console.log('🔄 Real-time change in utilisateurs_internes:', payload);
           queryClient.invalidateQueries({ queryKey: ['utilisateurs-internes'] });
           queryClient.invalidateQueries({ queryKey: ['users-with-roles'] });
+          queryClient.invalidateQueries({ queryKey: ['role-users'] });
         }
       )
       .subscribe((status) => {
@@ -45,6 +46,7 @@ export const useRealTimeRoles = () => {
           queryClient.invalidateQueries({ queryKey: ['utilisateurs-internes'] });
           queryClient.invalidateQueries({ queryKey: ['users-with-roles'] });
           queryClient.invalidateQueries({ queryKey: ['roles'] });
+          queryClient.invalidateQueries({ queryKey: ['role-users'] });
         }
       )
       .subscribe((status) => {
@@ -66,6 +68,7 @@ export const useRealTimeRoles = () => {
           queryClient.invalidateQueries({ queryKey: ['utilisateurs-internes'] });
           queryClient.invalidateQueries({ queryKey: ['users-with-roles'] });
           queryClient.invalidateQueries({ queryKey: ['user-roles'] });
+          queryClient.invalidateQueries({ queryKey: ['role-users'] });
           // Invalider aussi les permissions car elles dépendent des rôles
           queryClient.invalidateQueries({ queryKey: ['user-permissions'] });
         }
@@ -109,6 +112,8 @@ export const useRealTimeRoles = () => {
           console.log('🔄 Real-time change in role_permissions:', payload);
           queryClient.invalidateQueries({ queryKey: ['role-permissions'] });
           queryClient.invalidateQueries({ queryKey: ['user-permissions'] });
+          // Forcer le rechargement de toutes les queries liées aux permissions
+          queryClient.refetchQueries({ queryKey: ['role-permissions'] });
         }
       )
       .subscribe((status) => {
