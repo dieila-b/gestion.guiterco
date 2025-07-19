@@ -1,22 +1,31 @@
 
 import React from 'react';
-import { SidebarTrigger } from '@/components/ui/sidebar';
-import UserMenu from './UserMenu';
-import { useAuth } from '@/components/auth/AuthContext';
+import { Menu, Bell, User } from 'lucide-react';
+import { Button } from "@/components/ui/button";
 
 interface AppHeaderProps {
-  title: string;
+  title?: string;
 }
 
 export function AppHeader({ title }: AppHeaderProps) {
-  const { isInternalUser } = useAuth();
-
   return (
-    <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
-      <SidebarTrigger className="-ml-1" />
-      <div className="flex flex-1 items-center justify-between">
-        <h1 className="text-lg font-semibold">{title}</h1>
-        {isInternalUser && <UserMenu />}
+    <header className="bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between">
+      <div className="flex items-center space-x-4">
+        <Button variant="ghost" size="sm" className="md:hidden">
+          <Menu className="h-5 w-5" />
+        </Button>
+        <h1 className="text-xl font-semibold text-gray-900">
+          {title || 'Dashboard'}
+        </h1>
+      </div>
+      
+      <div className="flex items-center space-x-2">
+        <Button variant="ghost" size="sm">
+          <Bell className="h-5 w-5" />
+        </Button>
+        <Button variant="ghost" size="sm">
+          <User className="h-5 w-5" />
+        </Button>
       </div>
     </header>
   );

@@ -8,13 +8,14 @@ import CashRegisterOverview from '@/components/cash-register/CashRegisterOvervie
 import CompleteTransactionHistory from '@/components/cash-register/CompleteTransactionHistory';
 import AddCashRegisterDialog from '@/components/cash-register/AddCashRegisterDialog';
 import { useCashRegisters } from '@/hooks/useCashRegisters';
-import { useTransactions, useTodayTransactions } from '@/hooks/useTransactions';
 import ExpensesTab from '@/components/cash-register/ExpensesTab';
+import { LoadingSpinner } from '@/components/ui/loading-spinner';
 
 const CashRegisters: React.FC = () => {
   const { toast } = useToast();
   const [searchParams] = useSearchParams();
   const [selectedRegister, setSelectedRegister] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
   
   // Récupérer les paramètres d'URL
   const tabParam = searchParams.get('tab');
@@ -26,8 +27,6 @@ const CashRegisters: React.FC = () => {
 
   // Fetch data from Supabase
   const { data: cashRegisters, isLoading: registersLoading } = useCashRegisters();
-  const { data: transactions, isLoading: transactionsLoading } = useTransactions();
-  const { data: todayTransactions } = useTodayTransactions();
 
   // Set default selected register when data loads
   useEffect(() => {
@@ -43,6 +42,13 @@ const CashRegisters: React.FC = () => {
     }
   }, [tabParam]);
 
+  const handleTabChange = (value: string) => {
+    setLoading(true);
+    setActiveTab(value);
+    // Simuler un petit délai pour le chargement
+    setTimeout(() => setLoading(false), 200);
+  };
+
   const handleRegisterCreated = () => {
     toast({
       title: "Caisse créée",
@@ -50,13 +56,12 @@ const CashRegisters: React.FC = () => {
     });
   };
 
-  const activeRegister = cashRegisters?.find(register => register.id === selectedRegister);
-
   if (registersLoading) {
     return (
-      <AppLayout title="Gestion des caisses">
+      <AppLayout title="Gestion des finances">
         <div className="flex items-center justify-center h-64">
-          <p>Chargement des caisses...</p>
+          <LoadingSpinner size="lg" />
+          <span className="ml-2 text-gray-600">Chargement des caisses...</span>
         </div>
       </AppLayout>
     );
@@ -64,7 +69,7 @@ const CashRegisters: React.FC = () => {
 
   return (
     <AppLayout title="Gestion des finances">
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+      <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-4">
         <div className="flex justify-between items-center">
           <TabsList>
             <TabsTrigger value="overview">Aperçu</TabsTrigger>
@@ -76,24 +81,38 @@ const CashRegisters: React.FC = () => {
         </div>
 
         <TabsContent value="overview" className="space-y-4">
-          <Tabs value={activeSubTab} onValueChange={setActiveSubTab} className="space-y-4">
-            <TabsList>
-              <TabsTrigger value="daily">Aperçu du jour</TabsTrigger>
-              <TabsTrigger value="complete">Historique complet</TabsTrigger>
-            </TabsList>
+          {loading ? (
+            <div className="flex items-center justify-center h-64">
+              <LoadingSpinner size="lg" />
+              <span className="ml-2 text-gray-600">Chargement de l'aperçu...</span>
+            </div>
+          ) : (
+            <Tabs value={activeSubTab} onValueChange={setActiveSubTab} className="space-y-4">
+              <TabsList>
+                <TabsTrigger value="daily">Aperçu du jour</TabsTrigger>
+                <TabsTrigger value="complete">Historique complet</TabsTrigger>
+              </TabsList>
 
-            <TabsContent value="daily" className="space-y-4">
-              <CashRegisterOverview />
-            </TabsContent>
+              <TabsContent value="daily" className="space-y-4">
+                <CashRegisterOverview />
+              </TabsContent>
 
-            <TabsContent value="complete" className="space-y-4">
-              <CompleteTransactionHistory />
-            </TabsContent>
-          </Tabs>
+              <TabsContent value="complete" className="space-y-4">
+                <CompleteTransactionHistory />
+              </TabsContent>
+            </Tabs>
+          )}
         </TabsContent>
 
         <TabsContent value="expenses" className="space-y-4">
-          <ExpensesTab initialSubTab={subtabParam} />
+          {loading ? (
+            <div className="flex items-center justify-center h-64">
+              <LoadingSpinner size="lg" />
+              <span className="ml-2 text-gray-600">Chargement des dépenses...</span>
+            </div>
+          ) : (
+            <ExpensesTab initialSubTab={subtabParam} />
+          )}
         </TabsContent>
       </Tabs>
     </AppLayout>

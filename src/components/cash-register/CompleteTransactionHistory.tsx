@@ -1,307 +1,171 @@
-import React, { useState } from 'react';
+
+import React, { useState, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon, Download } from "lucide-react";
-import { format } from "date-fns";
-import { fr } from "date-fns/locale";
-import { useCompleteTransactionHistory } from "@/hooks/useCompleteTransactionHistory";
+import { Calendar, Download } from "lucide-react";
+import { useAllFinancialTransactions } from "@/hooks/useTransactions";
 import { formatCurrency } from "@/lib/currency";
-import CompleteHistoryStatsCards from './components/CompleteHistoryStatsCards';
 import CompleteHistoryTable from './components/CompleteHistoryTable';
-import ExportTransactionsDialog from './actions/ExportTransactionsDialog';
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
 
 const CompleteTransactionHistory: React.FC = () => {
-  const currentYear = new Date().getFullYear();
-  const currentMonth = new Date().getMonth() + 1;
-  
-  // États pour les filtres
-  const [filters, setFilters] = useState({
-    year: currentYear,
-    month: currentMonth,
-    day: undefined as number | undefined,
-    startDate: undefined as Date | undefined,
-    endDate: undefined as Date | undefined,
-    type: 'all' as string,
-    searchTerm: '',
-    source: '' as string
-  });
+  const [searchTerm, setSearchTerm] = useState("");
+  const [typeFilter, setTypeFilter] = useState<string>("all");
+  const [dateFilter, setDateFilter] = useState<string>("today");
 
-  const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
-  const [showCustomDateRange, setShowCustomDateRange] = useState(false);
+  const { data: transactions = [], isLoading, error } = useAllFinancialTransactions();
 
-  // Hook pour récupérer les données
-  const { 
-    data,
-    isLoading
-  } = useCompleteTransactionHistory(filters);
+  // Filtrer les transactions
+  const filteredTransactions = useMemo(() => {
+    let filtered = [...transactions];
 
-  // Extraire les données et statistiques de manière sécurisée
-  const transactions = data?.transactions || [];
-  const stats = data?.stats || {
-    soldeActif: 0,
-    totalEntrees: 0,
-    totalSorties: 0,
-    balance: 0
-  };
-
-  // Générer les années (10 dernières années)
-  const years = Array.from({ length: 10 }, (_, i) => currentYear - i);
-  
-  // Générer les mois
-  const months = [
-    { value: 1, label: "Janvier" },
-    { value: 2, label: "Février" },
-    { value: 3, label: "Mars" },
-    { value: 4, label: "Avril" },
-    { value: 5, label: "Mai" },
-    { value: 6, label: "Juin" },
-    { value: 7, label: "Juillet" },
-    { value: 8, label: "Août" },
-    { value: 9, label: "Septembre" },
-    { value: 10, label: "Octobre" },
-    { value: 11, label: "Novembre" },
-    { value: 12, label: "Décembre" }
-  ];
-
-  const handleDateSelect = (date: Date | undefined) => {
-    setSelectedDate(date);
-    if (date) {
-      setFilters(prev => ({
-        ...prev,
-        year: date.getFullYear(),
-        month: date.getMonth() + 1,
-        day: date.getDate(),
-        startDate: undefined,
-        endDate: undefined
-      }));
-      setShowCustomDateRange(false);
-    } else {
-      setFilters(prev => ({
-        ...prev,
-        day: undefined
-      }));
+    // Filtre par type
+    if (typeFilter !== "all") {
+      filtered = filtered.filter(t => t.type === typeFilter);
     }
-  };
 
-  const handleFilterChange = (key: string, value: any) => {
-    setFilters(prev => ({
-      ...prev,
-      [key]: value
-    }));
-  };
+    // Filtre par terme de recherche
+    if (searchTerm) {
+      filtered = filtered.filter(t => 
+        t.description.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
 
-  const handleCustomDateRange = (startDate: Date | undefined, endDate: Date | undefined) => {
-    setFilters(prev => ({
-      ...prev,
-      startDate,
-      endDate,
-      day: undefined
-    }));
-    setSelectedDate(undefined);
-  };
+    return filtered;
+  }, [transactions, typeFilter, searchTerm]);
 
-  const clearDayFilter = () => {
-    setSelectedDate(undefined);
-    setFilters(prev => ({
-      ...prev,
-      day: undefined
-    }));
-  };
+  // Calculer les totaux
+  const totals = useMemo(() => {
+    const income = filteredTransactions
+      .filter(t => t.type === 'income')
+      .reduce((sum, t) => sum + t.amount, 0);
+    
+    const expense = filteredTransactions
+      .filter(t => t.type === 'expense')
+      .reduce((sum, t) => sum + t.amount, 0);
 
-  const clearCustomDateRange = () => {
-    setFilters(prev => ({
-      ...prev,
-      startDate: undefined,
-      endDate: undefined
-    }));
-    setShowCustomDateRange(false);
-  };
+    return {
+      income,
+      expense,
+      balance: income - expense,
+      count: filteredTransactions.length
+    };
+  }, [filteredTransactions]);
+
+  if (error) {
+    return (
+      <Card>
+        <CardContent className="flex items-center justify-center py-8">
+          <div className="text-center">
+            <p className="text-red-600 mb-2">Erreur lors du chargement des transactions</p>
+            <p className="text-sm text-gray-500">Veuillez réessayer plus tard</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <div className="space-y-6">
-      {/* Statistiques en haut */}
-      <CompleteHistoryStatsCards stats={stats} />
+      {/* Résumé des totaux */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <Card>
+          <CardContent className="p-4">
+            <div className="text-sm font-medium text-gray-500">Total Entrées</div>
+            <div className="text-2xl font-bold text-green-600">
+              {formatCurrency(totals.income)}
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardContent className="p-4">
+            <div className="text-sm font-medium text-gray-500">Total Sorties</div>
+            <div className="text-2xl font-bold text-red-600">
+              {formatCurrency(totals.expense)}
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardContent className="p-4">
+            <div className="text-sm font-medium text-gray-500">Balance</div>
+            <div className={`text-2xl font-bold ${totals.balance >= 0 ? 'text-blue-600' : 'text-red-600'}`}>
+              {formatCurrency(totals.balance)}
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardContent className="p-4">
+            <div className="text-sm font-medium text-gray-500">Transactions</div>
+            <div className="text-2xl font-bold text-gray-900">
+              {totals.count}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
 
       {/* Filtres */}
       <Card>
         <CardHeader>
           <CardTitle>Historique complet des transactions</CardTitle>
-          <CardDescription>Filtrez et recherchez dans toutes les transactions</CardDescription>
+          <CardDescription>
+            Toutes les transactions financières avec filtres avancés
+          </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
-            {/* Choix du mode de filtrage */}
-            <div className="flex gap-2 mb-4">
-              <Button
-                variant={!showCustomDateRange ? "default" : "outline"}
-                onClick={() => setShowCustomDateRange(false)}
-                size="sm"
-              >
-                Filtres standards
-              </Button>
-              <Button
-                variant={showCustomDateRange ? "default" : "outline"}
-                onClick={() => setShowCustomDateRange(true)}
-                size="sm"
-              >
-                Période personnalisée
-              </Button>
-            </div>
+          <div className="flex flex-col md:flex-row gap-4 mb-4">
+            <Input
+              placeholder="Rechercher une transaction..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="flex-1"
+            />
+            
+            <Select value={typeFilter} onValueChange={setTypeFilter}>
+              <SelectTrigger className="w-40">
+                <SelectValue placeholder="Type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Toutes</SelectItem>
+                <SelectItem value="income">Entrées</SelectItem>
+                <SelectItem value="expense">Sorties</SelectItem>
+              </SelectContent>
+            </Select>
 
-            {!showCustomDateRange ? (
-              // Filtres standards
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                {/* Filtre Année */}
-                <div className="space-y-2">
-                  <Label>Année (obligatoire)</Label>
-                  <Select value={String(filters.year)} onValueChange={(value) => handleFilterChange('year', Number(value))}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {years.map((year) => (
-                        <SelectItem key={year} value={String(year)}>{year}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+            <Select value={dateFilter} onValueChange={setDateFilter}>
+              <SelectTrigger className="w-40">
+                <SelectValue placeholder="Période" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="today">Aujourd'hui</SelectItem>
+                <SelectItem value="week">Cette semaine</SelectItem>
+                <SelectItem value="month">Ce mois</SelectItem>
+                <SelectItem value="all">Toutes</SelectItem>
+              </SelectContent>
+            </Select>
 
-                {/* Filtre Mois */}
-                <div className="space-y-2">
-                  <Label>Mois</Label>
-                  <Select value={String(filters.month)} onValueChange={(value) => handleFilterChange('month', Number(value))}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {months.map((month) => (
-                        <SelectItem key={month.value} value={String(month.value)}>{month.label}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {/* Filtre Jour */}
-                <div className="space-y-2">
-                  <Label>Jour (optionnel)</Label>
-                  <div className="flex gap-2">
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button variant="outline" className="flex-1">
-                          <CalendarIcon className="mr-2 h-4 w-4" />
-                          {selectedDate ? format(selectedDate, 'dd/MM/yyyy', { locale: fr }) : <span>Sélectionner</span>}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0">
-                        <Calendar
-                          mode="single"
-                          selected={selectedDate}
-                          onSelect={handleDateSelect}
-                          locale={fr}
-                        />
-                      </PopoverContent>
-                    </Popover>
-                    {selectedDate && (
-                      <Button variant="outline" size="sm" onClick={clearDayFilter}>
-                        ×
-                      </Button>
-                    )}
-                  </div>
-                </div>
-
-                {/* Filtre Type */}
-                <div className="space-y-2">
-                  <Label>Type de transaction</Label>
-                  <Select value={filters.type} onValueChange={(value) => handleFilterChange('type', value)}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Toutes</SelectItem>
-                      <SelectItem value="vente">Vente</SelectItem>
-                      <SelectItem value="reglement">Règlement</SelectItem>
-                      <SelectItem value="entree_manuelle">Entrée manuelle</SelectItem>
-                      <SelectItem value="sortie_manuelle">Sortie manuelle</SelectItem>
-                      <SelectItem value="precommande">Précommande</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-            ) : (
-              // Période personnalisée
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Date de début</Label>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button variant="outline" className="w-full justify-start">
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {filters.startDate ? format(filters.startDate, 'dd/MM/yyyy', { locale: fr }) : <span>Sélectionner</span>}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0">
-                      <Calendar
-                        mode="single"
-                        selected={filters.startDate}
-                        onSelect={(date) => handleCustomDateRange(date, filters.endDate)}
-                        locale={fr}
-                      />
-                    </PopoverContent>
-                  </Popover>
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Date de fin</Label>
-                  <div className="flex gap-2">
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button variant="outline" className="flex-1 justify-start">
-                          <CalendarIcon className="mr-2 h-4 w-4" />
-                          {filters.endDate ? format(filters.endDate, 'dd/MM/yyyy', { locale: fr }) : <span>Sélectionner</span>}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0">
-                        <Calendar
-                          mode="single"
-                          selected={filters.endDate}
-                          onSelect={(date) => handleCustomDateRange(filters.startDate, date)}
-                          locale={fr}
-                        />
-                      </PopoverContent>
-                    </Popover>
-                    {(filters.startDate || filters.endDate) && (
-                      <Button variant="outline" size="sm" onClick={clearCustomDateRange}>
-                        ×
-                      </Button>
-                    )}
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Section Export (simplifié) */}
-            <div className="flex justify-end">
-              <ExportTransactionsDialog 
-                transactions={transactions}
-                filters={filters}
-                stats={stats}
-              />
-            </div>
+            <Button variant="outline" className="flex items-center gap-2">
+              <Download className="h-4 w-4" />
+              Exporter
+            </Button>
           </div>
 
-          {/* Tableau des transactions */}
-          <div className="mt-6">
-            <CompleteHistoryTable 
-              transactions={transactions}
+          {isLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <LoadingSpinner size="lg" />
+              <span className="ml-2 text-gray-600">Chargement des transactions...</span>
+            </div>
+          ) : (
+            <CompleteHistoryTable
+              transactions={filteredTransactions}
               isLoading={isLoading}
               formatCurrency={formatCurrency}
             />
-          </div>
+          )}
         </CardContent>
       </Card>
     </div>
