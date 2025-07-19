@@ -7,8 +7,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAuth } from '@/components/auth/AuthContext';
-import { useUserPermissions, useUsersWithRoles, useRoles, useAssignUserRole } from '@/hooks/usePermissions';
 import { Shield, Check, X, AlertCircle, Users, Search, Crown, Briefcase, User, Eye, Edit, Trash2 } from 'lucide-react';
+import { useUtilisateursInternes, useRolesForUsers } from '@/hooks/useUtilisateursInternes';
+import { useUserPermissions } from '@/hooks/useUserPermissions';
+import { useUserRoleAssignment } from '@/hooks/useUserRoleAssignment';
 
 const AccessControl = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -16,15 +18,16 @@ const AccessControl = () => {
   
   const { user, utilisateurInterne } = useAuth();
   const { data: userPermissions = [], isLoading: permissionsLoading, error: permissionsError } = useUserPermissions(user?.id);
-  const { data: usersWithRoles = [], isLoading: usersLoading, error: usersError } = useUsersWithRoles();
-  const { data: roles = [], isLoading: rolesLoading } = useRoles();
-  const assignUserRole = useAssignUserRole();
+  const { data: usersWithRoles = [], isLoading: usersLoading, error: usersError } = useUtilisateursInternes();
+  const { data: roles = [], isLoading: rolesLoading } = useRolesForUsers();
+  const { assignRole } = useUserRoleAssignment();
 
   const handleRoleAssignment = async (userId: string, roleId: string) => {
     try {
-      await assignUserRole.mutateAsync({ userId, roleId });
+      console.log('🔄 Assigning role:', { userId, roleId });
+      await assignRole.mutateAsync({ userId, roleId });
     } catch (error) {
-      console.error('Error assigning role:', error);
+      console.error('❌ Error assigning role:', error);
     }
   };
 
@@ -35,20 +38,20 @@ const AccessControl = () => {
       user.nom.toLowerCase().includes(searchTerm.toLowerCase()) ||
       user.email.toLowerCase().includes(searchTerm.toLowerCase());
     
-    const matchesRole = filterRole === 'all' || user.role?.nom === filterRole;
+    const matchesRole = filterRole === 'all' || user.role?.name === filterRole;
     
     return matchesSearch && matchesRole;
   });
 
   // Grouper les permissions par menu
-  const groupedPermissions = (userPermissions as any[]).reduce((acc, permission) => {
+  const groupedPermissions = userPermissions.reduce((acc, permission) => {
     const menuName = permission.menu || 'Général';
     if (!acc[menuName]) {
       acc[menuName] = [];
     }
     acc[menuName].push(permission);
     return acc;
-  }, {} as Record<string, any[]>);
+  }, {} as Record<string, typeof userPermissions>);
 
   const getPermissionTypeColor = (action: string) => {
     switch (action) {
@@ -165,11 +168,11 @@ const AccessControl = () => {
             </div>
             <div className="space-y-2">
               <label className="text-sm font-medium text-muted-foreground">Rôle assigné</label>
-              {utilisateurInterne?.role?.nom ? (
-                <Badge variant="outline" className={`${getRoleColor(utilisateurInterne.role.nom)} capitalize`}>
+              {utilisateurInterne?.role?.name ? (
+                <Badge variant="outline" className={`${getRoleColor(utilisateurInterne.role.name)} capitalize`}>
                   <div className="flex items-center space-x-1">
-                    {getRoleIcon(utilisateurInterne.role.nom)}
-                    <span>{utilisateurInterne.role.nom}</span>
+                    {getRoleIcon(utilisateurInterne.role.name)}
+                    <span>{utilisateurInterne.role.name}</span>
                   </div>
                 </Badge>
               ) : (
@@ -269,10 +272,10 @@ const AccessControl = () => {
                   <TableCell>{user.email}</TableCell>
                   <TableCell>
                     {user.role ? (
-                      <Badge variant="outline" className={`${getRoleColor(user.role.nom)} capitalize`}>
+                      <Badge variant="outline" className={`${getRoleColor(user.role.name)} capitalize`}>
                         <div className="flex items-center space-x-1">
-                          {getRoleIcon(user.role.nom)}
-                          <span>{user.role.nom}</span>
+                          {getRoleIcon(user.role.name)}
+                          <span>{user.role.name}</span>
                         </div>
                       </Badge>
                     ) : (
@@ -283,9 +286,9 @@ const AccessControl = () => {
                   </TableCell>
                   <TableCell>
                     <Select 
-                      value={roles.find(r => r.name === user.role?.nom)?.id || ''} 
+                      value={user.role?.id || ''} 
                       onValueChange={(roleId) => handleRoleAssignment(user.user_id, roleId)}
-                      disabled={assignUserRole.isPending}
+                      disabled={assignRole.isPending}
                     >
                       <SelectTrigger className="w-48">
                         <SelectValue placeholder="Choisir un rôle" />
@@ -346,11 +349,11 @@ const AccessControl = () => {
                   <div className="flex items-center justify-between">
                     <h4 className="font-medium capitalize">{menuName}</h4>
                     <Badge variant="outline">
-                      {(permissions as any[]).length} permission(s)
+                      {permissions.length} permission(s)
                     </Badge>
                   </div>
                   <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-2">
-                    {(permissions as any[]).map((permission: any, index: number) => (
+                    {permissions.map((permission, index) => (
                       <div key={index} className="flex items-center space-x-2">
                         <Check className="h-4 w-4 text-green-500" />
                         <Badge 
@@ -400,13 +403,13 @@ const AccessControl = () => {
             </div>
             <div className="text-center p-4 bg-muted rounded-lg">
               <div className="text-2xl font-bold text-blue-600">
-                {(userPermissions as any[]).filter(p => p.action === 'read').length}
+                {userPermissions.filter(p => p.action === 'read').length}
               </div>
               <div className="text-sm text-muted-foreground">Permissions Lecture</div>
             </div>
             <div className="text-center p-4 bg-muted rounded-lg">
               <div className="text-2xl font-bold text-purple-600">
-                {(userPermissions as any[]).filter(p => p.action === 'write').length}
+                {userPermissions.filter(p => p.action === 'write').length}
               </div>
               <div className="text-sm text-muted-foreground">Permissions Écriture</div>
             </div>

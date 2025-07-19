@@ -11,27 +11,66 @@ export const useUserRoleAssignment = () => {
     mutationFn: async ({ userId, roleId }: { userId: string; roleId: string }) => {
       console.log('🔨 Assigning unified role:', { userId, roleId });
       
-      // Désactiver tous les rôles existants pour cet utilisateur
-      await supabase
-        .from('user_roles')
-        .update({ is_active: false })
-        .eq('user_id', userId);
+      try {
+        // 1. D'abord, vérifier si un rôle existe déjà pour cet utilisateur
+        const { data: existingRole, error: checkError } = await supabase
+          .from('user_roles')
+          .select('id, role_id')
+          .eq('user_id', userId)
+          .eq('is_active', true)
+          .maybeSingle();
 
-      // Assigner le nouveau rôle
-      const { data, error } = await supabase
-        .from('user_roles')
-        .upsert({
-          user_id: userId,
-          role_id: roleId,
-          is_active: true,
-          assigned_by: (await supabase.auth.getUser()).data.user?.id
-        })
-        .select()
-        .single();
+        if (checkError) {
+          console.error('❌ Error checking existing role:', checkError);
+          throw new Error(`Erreur lors de la vérification du rôle existant: ${checkError.message}`);
+        }
 
-      if (error) throw error;
+        // 2. Si un rôle existe déjà et c'est le même, ne rien faire
+        if (existingRole?.role_id === roleId) {
+          console.log('✅ User already has this role, no change needed');
+          return existingRole;
+        }
 
-      return data;
+        // 3. Désactiver tous les rôles existants pour cet utilisateur
+        const { error: deactivateError } = await supabase
+          .from('user_roles')
+          .update({ is_active: false, updated_at: new Date().toISOString() })
+          .eq('user_id', userId);
+
+        if (deactivateError) {
+          console.error('❌ Error deactivating existing roles:', deactivateError);
+          throw new Error(`Erreur lors de la désactivation des rôles: ${deactivateError.message}`);
+        }
+
+        // 4. Obtenir l'utilisateur actuel pour assigned_by
+        const { data: { user: currentUser } } = await supabase.auth.getUser();
+        
+        // 5. Assigner le nouveau rôle
+        const { data, error } = await supabase
+          .from('user_roles')
+          .insert({
+            user_id: userId,
+            role_id: roleId,
+            is_active: true,
+            assigned_by: currentUser?.id || null,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          })
+          .select()
+          .single();
+
+        if (error) {
+          console.error('❌ Error assigning new role:', error);
+          throw new Error(`Erreur lors de l'assignation du rôle: ${error.message}`);
+        }
+
+        console.log('✅ Role assigned successfully:', data);
+        return data;
+
+      } catch (error: any) {
+        console.error('❌ Critical error in role assignment:', error);
+        throw error;
+      }
     },
     onSuccess: () => {
       // Invalider toutes les requêtes liées aux utilisateurs et rôles

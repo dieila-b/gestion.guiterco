@@ -29,7 +29,7 @@ export const useUtilisateursInternes = () => {
   return useQuery({
     queryKey: ['utilisateurs-internes'],
     queryFn: async () => {
-      console.log('🔍 Fetching utilisateurs internes with simplified RLS...');
+      console.log('🔍 Fetching utilisateurs internes with unified roles...');
       
       try {
         // Récupérer tous les utilisateurs internes
@@ -58,6 +58,7 @@ export const useUtilisateursInternes = () => {
           return utilisateurs.map(user => ({ ...user, role: null }));
         }
 
+        // Récupérer tous les rôles actifs pour ces utilisateurs
         const { data: userRoles, error: rolesError } = await supabase
           .from('user_roles')
           .select(`
