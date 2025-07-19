@@ -11,7 +11,7 @@ export interface UpdatePasswordResult {
 export const usePasswordUpdate = () => {
   const { toast } = useToast();
 
-  const updatePassword = useMutation({
+  const updatePasswordMutation = useMutation({
     mutationFn: async ({ 
       userId, 
       newPassword, 
@@ -78,5 +78,8 @@ export const usePasswordUpdate = () => {
     }
   });
 
-  return { updatePassword };
+  return { 
+    updatePassword: updatePasswordMutation.mutateAsync,
+    isLoading: updatePasswordMutation.isPending 
+  };
 };

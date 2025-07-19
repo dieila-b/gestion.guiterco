@@ -199,7 +199,7 @@ const EditUserForm = ({ user, onSuccess, onCancel }: EditUserFormProps) => {
       });
 
       // 2. Mettre à jour le mot de passe si demandé
-      let passwordUpdateResult = { success: true };
+      let passwordUpdateResult: { success: boolean; requiresManualReset: boolean } = { success: true, requiresManualReset: false };
       if (updatePassword && data.password && user.user_id) {
         console.log('🔄 Updating password for user:', user.user_id);
         passwordUpdateResult = await updatePasswordFn({
