@@ -7,11 +7,13 @@ export const useRealTimeRoles = () => {
   const queryClient = useQueryClient();
 
   useEffect(() => {
-    console.log('🔄 Setting up real-time subscriptions for roles and users...');
+    console.log('🔄 Setting up optimized real-time subscriptions...');
 
-    // Subscription pour les utilisateurs internes
-    const utilisateursChannel = supabase
-      .channel('utilisateurs_internes_changes')
+    let isActive = true;
+
+    // Canal unique pour toutes les tables liées
+    const unifiedChannel = supabase
+      .channel('user_management_realtime')
       .on(
         'postgres_changes',
         {
@@ -19,18 +21,13 @@ export const useRealTimeRoles = () => {
           schema: 'public',
           table: 'utilisateurs_internes'
         },
-        (payload) => {
-          console.log('🔄 Real-time change in utilisateurs_internes:', payload);
-          queryClient.invalidateQueries({ queryKey: ['utilisateurs-internes'] });
+        () => {
+          if (isActive) {
+            console.log('📡 Utilisateurs change detected');
+            queryClient.invalidateQueries({ queryKey: ['utilisateurs-internes'] });
+          }
         }
       )
-      .subscribe((status) => {
-        console.log('📡 Utilisateurs subscription status:', status);
-      });
-
-    // Subscription pour les rôles
-    const rolesChannel = supabase
-      .channel('roles_changes')
       .on(
         'postgres_changes',
         {
@@ -38,19 +35,14 @@ export const useRealTimeRoles = () => {
           schema: 'public',
           table: 'roles'
         },
-        (payload) => {
-          console.log('🔄 Real-time change in roles:', payload);
-          queryClient.invalidateQueries({ queryKey: ['roles-for-users'] });
-          queryClient.invalidateQueries({ queryKey: ['utilisateurs-internes'] });
+        () => {
+          if (isActive) {
+            console.log('📡 Roles change detected');
+            queryClient.invalidateQueries({ queryKey: ['roles-for-users'] });
+            queryClient.invalidateQueries({ queryKey: ['utilisateurs-internes'] });
+          }
         }
       )
-      .subscribe((status) => {
-        console.log('📡 Roles subscription status:', status);
-      });
-
-    // Subscription pour les user_roles
-    const userRolesChannel = supabase
-      .channel('user_roles_changes')
       .on(
         'postgres_changes',
         {
@@ -58,23 +50,24 @@ export const useRealTimeRoles = () => {
           schema: 'public',
           table: 'user_roles'
         },
-        (payload) => {
-          console.log('🔄 Real-time change in user_roles:', payload);
-          queryClient.invalidateQueries({ queryKey: ['utilisateurs-internes'] });
+        () => {
+          if (isActive) {
+            console.log('📡 User roles change detected');
+            queryClient.invalidateQueries({ queryKey: ['utilisateurs-internes'] });
+          }
         }
       )
       .subscribe((status) => {
-        console.log('📡 User roles subscription status:', status);
+        console.log('📡 Unified subscription status:', status);
       });
 
     // Cleanup function
     return () => {
       console.log('🧹 Cleaning up real-time subscriptions...');
-      supabase.removeChannel(utilisateursChannel);
-      supabase.removeChannel(rolesChannel);
-      supabase.removeChannel(userRolesChannel);
+      isActive = false;
+      supabase.removeChannel(unifiedChannel);
     };
   }, [queryClient]);
 
-  return null; // Ce hook ne retourne rien, il configure juste les subscriptions
+  return null;
 };

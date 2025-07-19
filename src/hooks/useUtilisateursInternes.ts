@@ -29,10 +29,10 @@ export const useUtilisateursInternes = () => {
   return useQuery({
     queryKey: ['utilisateurs-internes'],
     queryFn: async () => {
-      console.log('🔍 Fetching utilisateurs internes with simplified RLS...');
+      console.log('🔍 Fetching utilisateurs internes with optimized query...');
       
       try {
-        // Récupérer tous les utilisateurs internes
+        // Avec les nouvelles politiques RLS permissives, utiliser une requête simple
         const { data: utilisateurs, error: utilisateursError } = await supabase
           .from('utilisateurs_internes')
           .select('*')
@@ -40,7 +40,7 @@ export const useUtilisateursInternes = () => {
 
         if (utilisateursError) {
           console.error('❌ Error fetching utilisateurs internes:', utilisateursError);
-          throw new Error(`Erreur lors de la récupération des utilisateurs: ${utilisateursError.message}`);
+          throw new Error(`Erreur utilisateurs: ${utilisateursError.message}`);
         }
 
         if (!utilisateurs || utilisateurs.length === 0) {
@@ -50,77 +50,57 @@ export const useUtilisateursInternes = () => {
 
         console.log('📊 Found utilisateurs internes:', utilisateurs.length);
 
-        // Récupérer les rôles unifiés pour chaque utilisateur
-        const userIds = utilisateurs.map(u => u.user_id).filter(Boolean);
-        
-        if (userIds.length === 0) {
-          console.log('⚠️ No valid user_ids found');
-          return utilisateurs.map(user => ({ ...user, role: null }));
+        // Récupérer tous les rôles en parallèle
+        const [userRolesResponse, rolesResponse] = await Promise.all([
+          supabase
+            .from('user_roles')
+            .select('user_id, role_id, is_active')
+            .eq('is_active', true),
+          supabase
+            .from('roles')
+            .select('id, name, description')
+        ]);
+
+        const { data: userRoles, error: userRolesError } = userRolesResponse;
+        const { data: roles, error: rolesError } = rolesResponse;
+
+        if (userRolesError) {
+          console.warn('⚠️ Error fetching user roles:', userRolesError);
         }
-
-        const { data: userRoles, error: rolesError } = await supabase
-          .from('user_roles')
-          .select(`
-            user_id,
-            role_id,
-            is_active,
-            roles!inner (
-              id,
-              name,
-              description
-            )
-          `)
-          .in('user_id', userIds)
-          .eq('is_active', true);
-
         if (rolesError) {
-          console.error('❌ Error fetching user roles:', rolesError);
-          // Continuer sans les rôles plutôt que de faire échouer
-          console.log('⚠️ Continuing without roles due to error');
+          console.warn('⚠️ Error fetching roles:', rolesError);
         }
-
-        console.log('📊 Found user roles:', userRoles?.length || 0);
 
         // Transformer les données pour inclure les rôles
         const transformedData = utilisateurs.map(user => {
           // Trouver le rôle actif pour cet utilisateur
           const userRole = userRoles?.find(ur => ur.user_id === user.user_id);
+          const role = userRole ? roles?.find(r => r.id === userRole.role_id) : null;
           
           return {
             ...user,
-            role: userRole?.roles ? {
-              id: userRole.roles.id,
-              name: userRole.roles.name,
-              description: userRole.roles.description
+            role: role ? {
+              id: role.id,
+              name: role.name,
+              description: role.description
             } : null
           };
         });
 
-        console.log('✅ Utilisateurs internes with roles processed:', transformedData.length);
+        console.log('✅ Utilisateurs processed successfully:', transformedData.length);
         return transformedData as UtilisateurInterneWithRole[];
 
       } catch (error: any) {
-        console.error('💥 Critical error in useUtilisateursInternes:', error);
-        
-        // Fournir un message d'erreur plus clair pour l'utilisateur
-        if (error.message?.includes('infinite recursion')) {
-          throw new Error('Erreur de configuration RLS détectée. Veuillez contacter l\'administrateur.');
-        } else if (error.message?.includes('relation') && error.message?.includes('does not exist')) {
-          throw new Error('Table manquante dans la base de données. Veuillez vérifier la configuration.');
-        } else {
-          throw new Error(`Erreur lors du chargement des utilisateurs: ${error.message || 'Erreur inconnue'}`);
-        }
+        console.error('💥 Error in useUtilisateursInternes:', error);
+        throw new Error(`Erreur de chargement: ${error.message || 'Erreur inconnue'}`);
       }
     },
-    retry: (failureCount, error: any) => {
-      // Ne pas réessayer si c'est une erreur de récursion RLS
-      if (error?.message?.includes('infinite recursion')) {
-        return false;
-      }
-      // Réessayer jusqu'à 2 fois pour les autres erreurs
-      return failureCount < 2;
-    },
-    retryDelay: 1000, // Attendre 1 seconde entre les tentatives
+    retry: 1,
+    retryDelay: 2000,
+    staleTime: 60000, // 1 minute
+    gcTime: 300000, // 5 minutes  
+    refetchOnWindowFocus: false,
+    refetchOnMount: true,
   });
 };
 
