@@ -1,15 +1,15 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
-import { AlertCircle, Settings, Eye, Edit, Trash2, Plus, Save } from 'lucide-react';
+import { AlertCircle, Settings, Eye, Edit, Trash2, Save } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { usePermissions, useRoles, useRolePermissions, useUpdateRolePermissions } from '@/hooks/usePermissions';
 import { useToast } from '@/hooks/use-toast';
 
-// Structure complète des menus de l'application mise à jour
+// Structure complète des menus de l'application - SYNCHRONISÉE
 const APPLICATION_MENUS = [
   {
     menu: 'Dashboard',
@@ -180,36 +180,19 @@ const PermissionsMatrix = () => {
   const [pendingChanges, setPendingChanges] = useState<Record<string, boolean>>({});
   const { toast } = useToast();
   
-  // Fetch permissions and roles data
+  // Fetch data
   const { data: permissions = [], isLoading: permissionsLoading, error: permissionsError } = usePermissions();
   const { data: roles = [], isLoading: rolesLoading, error: rolesError } = useRoles();
   const { data: rolePermissions = [], isLoading: rolePermissionsLoading, refetch: refetchRolePermissions } = useRolePermissions(selectedRole || undefined);
   const updateRolePermissions = useUpdateRolePermissions();
 
-  // Effet pour appliquer les permissions par défaut pour l'Administrateur
-  useEffect(() => {
-    if (selectedRole && roles.length > 0) {
-      const currentRole = roles.find(r => r.id === selectedRole);
-      if (currentRole?.name?.toLowerCase() === 'administrateur') {
-        // Pour l'administrateur, cocher toutes les permissions par défaut
-        const adminChanges: Record<string, boolean> = {};
-        APPLICATION_MENUS.forEach(menuItem => {
-          menuItem.actions.forEach(action => {
-            const key = getPermissionKey(menuItem.menu, menuItem.submenu, action);
-            if (!hasPermission(menuItem.menu, menuItem.submenu, action)) {
-              adminChanges[key] = true;
-            }
-          });
-        });
-        if (Object.keys(adminChanges).length > 0) {
-          setPendingChanges(adminChanges);
-        }
-      }
-    }
-  }, [selectedRole, roles, rolePermissions]);
-
   const hasPermission = (menu: string, submenu: string | null, action: string) => {
     if (!selectedRole) return false;
+    
+    const key = getPermissionKey(menu, submenu, action);
+    if (key in pendingChanges) {
+      return pendingChanges[key];
+    }
     
     return rolePermissions?.some(rp => {
       const permission = rp.permission;
@@ -240,47 +223,29 @@ const PermissionsMatrix = () => {
       console.log('🔄 Applying permission changes for role:', selectedRole);
       console.log('📋 Pending changes:', pendingChanges);
 
-      // Construire la liste complète des permissions à enregistrer
+      // Construire la liste complète des permissions basée sur APPLICATION_MENUS
       const permissionUpdates: { permission_id: string; can_access: boolean }[] = [];
       
-      // D'abord, ajouter toutes les permissions actuelles
-      rolePermissions?.forEach(rp => {
-        if (rp.permission) {
-          const key = getPermissionKey(rp.permission.menu, rp.permission.submenu, rp.permission.action);
-          const newStatus = pendingChanges.hasOwnProperty(key) ? pendingChanges[key] : rp.can_access;
+      APPLICATION_MENUS.forEach(menuItem => {
+        menuItem.actions.forEach(action => {
+          const permission = permissions.find(p => 
+            p.menu === menuItem.menu && 
+            p.submenu === menuItem.submenu && 
+            p.action === action
+          );
           
-          permissionUpdates.push({
-            permission_id: rp.permission.id,
-            can_access: newStatus
-          });
-        }
-      });
-
-      // Ensuite, ajouter les nouvelles permissions des changements en attente
-      Object.entries(pendingChanges).forEach(([key, enabled]) => {
-        const [menu, submenuStr, action] = key.split('-');
-        const submenu = submenuStr === 'null' ? null : submenuStr;
-        
-        const permission = permissions.find(p => 
-          p.menu === menu && 
-          p.submenu === submenu && 
-          p.action === action
-        );
-        
-        if (permission) {
-          const existingIndex = permissionUpdates.findIndex(pu => pu.permission_id === permission.id);
-          
-          if (existingIndex === -1) {
-            // Nouvelle permission pas encore dans la liste
+          if (permission) {
+            const key = getPermissionKey(menuItem.menu, menuItem.submenu, action);
+            const isEnabled = pendingChanges.hasOwnProperty(key) 
+              ? pendingChanges[key] 
+              : hasPermission(menuItem.menu, menuItem.submenu, action);
+            
             permissionUpdates.push({
               permission_id: permission.id,
-              can_access: enabled
+              can_access: isEnabled
             });
-          } else {
-            // Mettre à jour l'existante
-            permissionUpdates[existingIndex].can_access = enabled;
           }
-        }
+        });
       });
 
       console.log('📤 Sending permission updates:', permissionUpdates);
@@ -290,10 +255,7 @@ const PermissionsMatrix = () => {
         permissionUpdates: permissionUpdates
       });
 
-      // Réinitialiser les changements en attente
       setPendingChanges({});
-      
-      // Forcer le rechargement des permissions
       await refetchRolePermissions();
       
       toast({
@@ -463,10 +425,7 @@ const PermissionsMatrix = () => {
                           <TableCell className="text-center">
                             {menuItem.actions.includes('read') && (
                               <Checkbox
-                                checked={
-                                  pendingChanges[getPermissionKey(menuItem.menu, menuItem.submenu, 'read')] ?? 
-                                  hasPermission(menuItem.menu, menuItem.submenu, 'read')
-                                }
+                                checked={hasPermission(menuItem.menu, menuItem.submenu, 'read')}
                                 onCheckedChange={(checked) =>
                                   handlePermissionToggle(menuItem.menu, menuItem.submenu, 'read', !!checked)
                                 }
@@ -478,10 +437,7 @@ const PermissionsMatrix = () => {
                           <TableCell className="text-center">
                             {menuItem.actions.includes('write') && (
                               <Checkbox
-                                checked={
-                                  pendingChanges[getPermissionKey(menuItem.menu, menuItem.submenu, 'write')] ?? 
-                                  hasPermission(menuItem.menu, menuItem.submenu, 'write')
-                                }
+                                checked={hasPermission(menuItem.menu, menuItem.submenu, 'write')}
                                 onCheckedChange={(checked) =>
                                   handlePermissionToggle(menuItem.menu, menuItem.submenu, 'write', !!checked)
                                 }
@@ -493,10 +449,7 @@ const PermissionsMatrix = () => {
                           <TableCell className="text-center">
                             {menuItem.actions.includes('delete') && (
                               <Checkbox
-                                checked={
-                                  pendingChanges[getPermissionKey(menuItem.menu, menuItem.submenu, 'delete')] ?? 
-                                  hasPermission(menuItem.menu, menuItem.submenu, 'delete')
-                                }
+                                checked={hasPermission(menuItem.menu, menuItem.submenu, 'delete')}
                                 onCheckedChange={(checked) =>
                                   handlePermissionToggle(menuItem.menu, menuItem.submenu, 'delete', !!checked)
                                 }
@@ -518,7 +471,7 @@ const PermissionsMatrix = () => {
             <Settings className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
             <h3 className="text-lg font-medium mb-2">Sélectionnez un rôle</h3>
             <p className="text-muted-foreground">
-              Choisissez un rôle ci-dessus pour afficher et modifier ses permissions dans la matrice
+              Choisissez un rôle ci-dessus pour configurer ses permissions dans la matrice
             </p>
           </CardContent>
         </Card>

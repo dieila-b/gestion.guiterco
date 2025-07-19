@@ -1,6 +1,9 @@
 
 import React, { useState } from 'react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Trash2, AlertTriangle } from 'lucide-react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -9,6 +12,7 @@ interface DeleteRoleDialogProps {
   role: {
     id: string;
     name: string;
+    description?: string;
     is_system?: boolean;
   };
   children: React.ReactNode;
@@ -16,42 +20,59 @@ interface DeleteRoleDialogProps {
 
 const DeleteRoleDialog = ({ role, children }: DeleteRoleDialogProps) => {
   const [isOpen, setIsOpen] = useState(false);
-  const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { toast } = useToast();
 
   const deleteRole = useMutation({
-    mutationFn: async (roleId: string) => {
-      console.log('🗑️ Deleting role:', roleId);
-      
-      // Vérifier d'abord s'il y a des utilisateurs avec ce rôle
-      const { data: usersWithRole, error: checkError } = await supabase
-        .from('utilisateurs_internes')
-        .select('id')
-        .eq('role_id', roleId)
-        .limit(1);
+    mutationFn: async () => {
+      console.log('🗑️ Deleting role:', role.id);
 
-      if (checkError) throw checkError;
+      // Vérifier s'il y a des utilisateurs avec ce rôle
+      const { data: usersWithRole, error: checkError } = await supabase
+        .from('user_roles')
+        .select('id')
+        .eq('role_id', role.id)
+        .eq('is_active', true);
+
+      if (checkError) {
+        console.error('❌ Error checking users with role:', checkError);
+        throw checkError;
+      }
 
       if (usersWithRole && usersWithRole.length > 0) {
-        throw new Error('Impossible de supprimer ce rôle car il est assigné à des utilisateurs.');
+        throw new Error(`Impossible de supprimer le rôle "${role.name}" car ${usersWithRole.length} utilisateur(s) l'utilisent encore.`);
       }
 
       // Supprimer d'abord les permissions du rôle
-      await supabase
+      const { error: permissionsError } = await supabase
         .from('role_permissions')
         .delete()
-        .eq('role_id', roleId);
+        .eq('role_id', role.id);
 
-      // Supprimer ensuite le rôle
-      const { error } = await supabase
+      if (permissionsError) {
+        console.error('❌ Error deleting role permissions:', permissionsError);
+        throw permissionsError;
+      }
+
+      // Supprimer le rôle
+      const { error: roleError } = await supabase
         .from('roles')
         .delete()
-        .eq('id', roleId);
+        .eq('id', role.id);
 
-      if (error) throw error;
+      if (roleError) {
+        console.error('❌ Error deleting role:', roleError);
+        throw roleError;
+      }
+
+      console.log('✅ Role deleted successfully');
+      return true;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['roles'] });
+      queryClient.invalidateQueries({ queryKey: ['role-permissions'] });
+      queryClient.invalidateQueries({ queryKey: ['users-with-roles'] });
+      
       toast({
         title: "Rôle supprimé",
         description: `Le rôle "${role.name}" a été supprimé avec succès.`,
@@ -68,13 +89,8 @@ const DeleteRoleDialog = ({ role, children }: DeleteRoleDialogProps) => {
     }
   });
 
-  const handleDelete = () => {
-    deleteRole.mutate(role.id);
-  };
-
-  // Ne pas permettre la suppression des rôles système
   if (role.is_system) {
-    return null;
+    return null; // Les rôles système ne peuvent pas être supprimés
   }
 
   return (
@@ -84,20 +100,45 @@ const DeleteRoleDialog = ({ role, children }: DeleteRoleDialogProps) => {
       </AlertDialogTrigger>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Supprimer le rôle</AlertDialogTitle>
-          <AlertDialogDescription>
-            Êtes-vous sûr de vouloir supprimer le rôle "{role.name}" ?
-            Cette action est irréversible et supprimera également toutes les permissions associées à ce rôle.
+          <div className="flex items-center space-x-2">
+            <AlertTriangle className="h-5 w-5 text-destructive" />
+            <AlertDialogTitle>Supprimer le rôle</AlertDialogTitle>
+          </div>
+          <AlertDialogDescription className="space-y-3">
+            <p>
+              Êtes-vous sûr de vouloir supprimer le rôle <strong>"{role.name}"</strong> ?
+            </p>
+            {role.description && (
+              <div className="p-3 bg-muted rounded-lg">
+                <p className="text-sm">{role.description}</p>
+              </div>
+            )}
+            <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-lg">
+              <p className="text-sm text-destructive-foreground">
+                <strong>⚠️ Attention :</strong> Cette action est irréversible. 
+                Tous les utilisateurs ayant ce rôle perdront leurs permissions associées.
+              </p>
+            </div>
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel>Annuler</AlertDialogCancel>
           <AlertDialogAction
-            onClick={handleDelete}
+            onClick={() => deleteRole.mutate()}
             disabled={deleteRole.isPending}
             className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
           >
-            {deleteRole.isPending ? 'Suppression...' : 'Supprimer'}
+            {deleteRole.isPending ? (
+              <>
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current mr-2"></div>
+                Suppression...
+              </>
+            ) : (
+              <>
+                <Trash2 className="h-4 w-4 mr-2" />
+                Supprimer
+              </>
+            )}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

@@ -1,3 +1,4 @@
+
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -141,47 +142,19 @@ export const useUserPermissions = (userId?: string) => {
       
       console.log('🔍 Fetching permissions for user:', userId);
       
-      // Vérifier d'abord si la vue existe, sinon utiliser une requête directe
+      // Utiliser la vue optimisée vue_permissions_utilisateurs
       const { data, error } = await supabase
-        .from('user_roles')
-        .select(`
-          role_id,
-          roles!inner (
-            name,
-            role_permissions!inner (
-              permission_id,
-              can_access,
-              permissions (
-                menu,
-                submenu,
-                action,
-                description
-              )
-            )
-          )
-        `)
-        .eq('user_id', userId)
-        .eq('is_active', true)
-        .eq('roles.role_permissions.can_access', true);
+        .from('vue_permissions_utilisateurs')
+        .select('*')
+        .eq('user_id', userId);
 
       if (error) {
         console.error('❌ Error fetching user permissions:', error);
         throw error;
       }
 
-      // Flatten les permissions
-      const permissions = data?.flatMap(userRole => 
-        userRole.roles?.role_permissions?.map(rp => ({
-          menu: rp.permissions?.menu,
-          submenu: rp.permissions?.submenu,
-          action: rp.permissions?.action,
-          description: rp.permissions?.description,
-          can_access: rp.can_access
-        })) || []
-      ) || [];
-
-      console.log('✅ User permissions fetched:', permissions.length);
-      return permissions;
+      console.log('✅ User permissions fetched:', data?.length || 0);
+      return data || [];
     },
     enabled: !!userId && isValidUUID(userId)
   });
@@ -200,12 +173,17 @@ export const useUsersWithRoles = () => {
           prenom,
           nom,
           email,
-          roles_utilisateurs!inner (
-            id,
-            nom
+          user_roles!inner (
+            role_id,
+            is_active,
+            roles (
+              id,
+              name
+            )
           )
         `)
-        .eq('statut', 'actif');
+        .eq('statut', 'actif')
+        .eq('user_roles.is_active', true);
 
       if (error) {
         console.error('❌ Error fetching users with roles:', error);
@@ -218,9 +196,9 @@ export const useUsersWithRoles = () => {
         prenom: user.prenom,
         nom: user.nom,
         email: user.email,
-        role: user.roles_utilisateurs ? {
-          id: user.roles_utilisateurs.id,
-          nom: user.roles_utilisateurs.nom
+        role: user.user_roles?.[0]?.roles ? {
+          id: user.user_roles[0].roles.id,
+          nom: user.user_roles[0].roles.name
         } : null
       })) || [];
 
@@ -269,7 +247,7 @@ export const useCreateRole = () => {
   });
 };
 
-// Hook pour assigner un rôle à un utilisateur
+// Hook pour assigner un rôle à un utilisateur - VERSION CORRIGÉE
 export const useAssignUserRole = () => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -286,7 +264,7 @@ export const useAssignUserRole = () => {
         throw new Error('ID rôle invalide');
       }
 
-      // Utiliser la nouvelle table roles au lieu de roles_utilisateurs
+      // Vérifier que le rôle existe
       const { data: roleData, error: roleError } = await supabase
         .from('roles')
         .select('id, name')
@@ -317,26 +295,12 @@ export const useAssignUserRole = () => {
 
       if (error) throw error;
 
-      // Essayer de mettre à jour aussi la table utilisateurs_internes si elle utilise roles_utilisateurs
-      // Trouver le role_id correspondant dans roles_utilisateurs
-      const { data: oldRoleData } = await supabase
-        .from('roles_utilisateurs')
-        .select('id')
-        .eq('nom', roleData.name)
-        .single();
-
-      if (oldRoleData) {
-        await supabase
-          .from('utilisateurs_internes')
-          .update({ role_id: oldRoleData.id })
-          .eq('user_id', userId);
-      }
-
       return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['users-with-roles'] });
       queryClient.invalidateQueries({ queryKey: ['user-roles'] });
+      queryClient.invalidateQueries({ queryKey: ['user-permissions'] });
       toast({
         title: "Rôle assigné",
         description: "Le rôle a été assigné avec succès à l'utilisateur.",
@@ -353,7 +317,7 @@ export const useAssignUserRole = () => {
   });
 };
 
-// Hook pour mettre à jour les permissions d'un rôle - VERSION AMÉLIORÉE
+// Hook pour mettre à jour les permissions d'un rôle - VERSION OPTIMISÉE
 export const useUpdateRolePermissions = () => {
   const queryClient = useQueryClient();
   const { toast } = useToast();

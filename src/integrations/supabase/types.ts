@@ -2240,6 +2240,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "role_permissions_permission_id_fkey"
+            columns: ["permission_id"]
+            isOneToOne: false
+            referencedRelation: "vue_permissions_utilisateurs"
+            referencedColumns: ["permission_id"]
+          },
+          {
             foreignKeyName: "role_permissions_role_id_fkey"
             columns: ["role_id"]
             isOneToOne: false
@@ -2732,6 +2739,7 @@ export type Database = {
           id: string
           is_active: boolean | null
           role_id: string
+          updated_at: string | null
           user_id: string
         }
         Insert: {
@@ -2740,6 +2748,7 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           role_id: string
+          updated_at?: string | null
           user_id: string
         }
         Update: {
@@ -2748,6 +2757,7 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           role_id?: string
+          updated_at?: string | null
           user_id?: string
         }
         Relationships: [
@@ -3016,13 +3026,9 @@ export type Database = {
         Row: {
           action: string | null
           can_access: boolean | null
-          email: string | null
+          description: string | null
           menu: string | null
-          nom: string | null
-          permission_description: string | null
-          prenom: string | null
-          role_description: string | null
-          role_name: string | null
+          permission_id: string | null
           submenu: string | null
           user_id: string | null
         }
@@ -3226,6 +3232,15 @@ export type Database = {
           frais_bon_commande: number
           cout_total_unitaire: number
           nb_bons_commande: number
+        }[]
+      }
+      diagnostic_permissions_system: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          check_name: string
+          status: string
+          count_value: number
+          details: string
         }[]
       }
       generate_bon_commande_number: {

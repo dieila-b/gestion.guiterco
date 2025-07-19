@@ -7,6 +7,172 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useRolePermissions, usePermissions, useUpdateRolePermissions } from '@/hooks/usePermissions';
 import { Settings, Eye, Edit, Trash2, Save } from 'lucide-react';
 
+// STRUCTURE SYNCHRONISÉE AVEC PermissionsMatrix et PermissionsManagement
+const APPLICATION_MENUS = [
+  {
+    menu: 'Dashboard',
+    submenu: null,
+    actions: ['read'],
+    description: 'Tableau de bord principal'
+  },
+  {
+    menu: 'Catalogue',
+    submenu: null,
+    actions: ['read', 'write', 'delete'],
+    description: 'Gestion du catalogue produits'
+  },
+  {
+    menu: 'Stock',
+    submenu: 'Entrepôts',
+    actions: ['read', 'write'],
+    description: 'Gestion des stocks entrepôts'
+  },
+  {
+    menu: 'Stock',
+    submenu: 'PDV',
+    actions: ['read', 'write'],
+    description: 'Gestion des stocks points de vente'
+  },
+  {
+    menu: 'Stock',
+    submenu: 'Transferts',
+    actions: ['read', 'write'],
+    description: 'Gestion des transferts de stock'
+  },
+  {
+    menu: 'Stock',
+    submenu: 'Entrées',
+    actions: ['read', 'write'],
+    description: 'Gestion des entrées de stock'
+  },
+  {
+    menu: 'Stock',
+    submenu: 'Sorties',
+    actions: ['read', 'write'],
+    description: 'Gestion des sorties de stock'
+  },
+  {
+    menu: 'Achats',
+    submenu: 'Bons de commande',
+    actions: ['read', 'write'],
+    description: 'Gestion des bons de commande'
+  },
+  {
+    menu: 'Achats',
+    submenu: 'Bons de livraison',
+    actions: ['read', 'write'],
+    description: 'Gestion des bons de livraison'
+  },
+  {
+    menu: 'Achats',
+    submenu: 'Factures',
+    actions: ['read', 'write'],
+    description: 'Gestion des factures d\'achat'
+  },
+  {
+    menu: 'Ventes',
+    submenu: 'Factures',
+    actions: ['read', 'write'],
+    description: 'Gestion des factures de vente'
+  },
+  {
+    menu: 'Ventes',
+    submenu: 'Précommandes',
+    actions: ['read', 'write'],
+    description: 'Gestion des précommandes'
+  },
+  {
+    menu: 'Ventes',
+    submenu: 'Devis',
+    actions: ['read', 'write'],
+    description: 'Gestion des devis'
+  },
+  {
+    menu: 'Ventes',
+    submenu: 'Vente au Comptoir',
+    actions: ['read', 'write'],
+    description: 'Gestion des ventes au comptoir'
+  },
+  {
+    menu: 'Ventes',
+    submenu: 'Factures impayées',
+    actions: ['read', 'write'],
+    description: 'Gestion des factures impayées'
+  },
+  {
+    menu: 'Ventes',
+    submenu: 'Retours Clients',
+    actions: ['read', 'write'],
+    description: 'Gestion des retours clients'
+  },
+  {
+    menu: 'Clients',
+    submenu: null,
+    actions: ['read', 'write'],
+    description: 'Gestion des clients'
+  },
+  {
+    menu: 'Clients',
+    submenu: 'Clients',
+    actions: ['read', 'write'],
+    description: 'Gestion détaillée des clients'
+  },
+  {
+    menu: 'Caisse',
+    submenu: null,
+    actions: ['read', 'write'],
+    description: 'Gestion de la caisse'
+  },
+  {
+    menu: 'Caisse',
+    submenu: 'Dépenses',
+    actions: ['read', 'write'],
+    description: 'Gestion des dépenses de caisse'
+  },
+  {
+    menu: 'Caisse',
+    submenu: 'Aperçu du jour',
+    actions: ['read'],
+    description: 'Consultation de l\'aperçu journalier'
+  },
+  {
+    menu: 'Marges',
+    submenu: null,
+    actions: ['read'],
+    description: 'Consultation des marges'
+  },
+  {
+    menu: 'Rapports',
+    submenu: null,
+    actions: ['read', 'write'],
+    description: 'Génération de rapports'
+  },
+  {
+    menu: 'Paramètres',
+    submenu: null,
+    actions: ['read', 'write'],
+    description: 'Accès aux paramètres généraux'
+  },
+  {
+    menu: 'Paramètres',
+    submenu: 'Utilisateurs',
+    actions: ['read', 'write'],
+    description: 'Gestion des utilisateurs'
+  },
+  {
+    menu: 'Paramètres',
+    submenu: 'Permissions',
+    actions: ['read', 'write'],
+    description: 'Gestion des permissions'
+  },
+  {
+    menu: 'Paramètres',
+    submenu: 'Fournisseurs',
+    actions: ['read', 'write'],
+    description: 'Gestion des fournisseurs'
+  }
+];
+
 interface RolePermissionsDialogProps {
   role: {
     id: string;
@@ -22,29 +188,28 @@ const RolePermissionsDialog = ({ role, children }: RolePermissionsDialogProps) =
   const [pendingChanges, setPendingChanges] = useState<Record<string, boolean>>({});
 
   const { data: permissions = [], isLoading: permissionsLoading } = usePermissions();
-  const { data: rolePermissions = [], isLoading: rolePermissionsLoading } = useRolePermissions(role.id);
+  const { data: rolePermissions = [], isLoading: rolePermissionsLoading, refetch: refetchRolePermissions } = useRolePermissions(role.id);
   const updateRolePermissions = useUpdateRolePermissions();
 
-  // Grouper les permissions par menu
-  const groupedPermissions = permissions.reduce((acc, permission) => {
-    const menuName = permission.menu || 'Général';
-    if (!acc[menuName]) {
-      acc[menuName] = [];
-    }
-    acc[menuName].push(permission);
-    return acc;
-  }, {} as Record<string, typeof permissions>);
-
-  const hasPermission = (permissionId: string) => {
-    const key = `permission-${permissionId}`;
+  const hasPermission = (menu: string, submenu: string | null, action: string) => {
+    const key = `${menu}-${submenu || 'null'}-${action}`;
     if (key in pendingChanges) {
       return pendingChanges[key];
     }
-    return rolePermissions.some(rp => rp.permission_id === permissionId && rp.can_access);
+    
+    // Chercher dans les permissions actuelles du rôle
+    return rolePermissions.some(rp => {
+      const permission = rp.permission;
+      return permission && 
+             permission.menu === menu &&
+             permission.submenu === submenu &&
+             permission.action === action &&
+             rp.can_access;
+    });
   };
 
-  const handlePermissionToggle = (permissionId: string, enabled: boolean) => {
-    const key = `permission-${permissionId}`;
+  const handlePermissionToggle = (menu: string, submenu: string | null, action: string, enabled: boolean) => {
+    const key = `${menu}-${submenu || 'null'}-${action}`;
     setPendingChanges(prev => ({
       ...prev,
       [key]: enabled
@@ -52,20 +217,47 @@ const RolePermissionsDialog = ({ role, children }: RolePermissionsDialogProps) =
   };
 
   const handleSave = async () => {
-    const permissionUpdates = permissions.map(permission => ({
-      permission_id: permission.id,
-      can_access: hasPermission(permission.id)
-    }));
-
     try {
+      console.log('🔄 Saving role permissions for role:', role.id);
+      console.log('📋 Pending changes:', pendingChanges);
+
+      // Construire la liste complète des permissions basée sur APPLICATION_MENUS
+      const permissionUpdates: { permission_id: string; can_access: boolean }[] = [];
+      
+      APPLICATION_MENUS.forEach(menuItem => {
+        menuItem.actions.forEach(action => {
+          const permission = permissions.find(p => 
+            p.menu === menuItem.menu && 
+            p.submenu === menuItem.submenu && 
+            p.action === action
+          );
+          
+          if (permission) {
+            const key = `${menuItem.menu}-${menuItem.submenu || 'null'}-${action}`;
+            const isEnabled = pendingChanges.hasOwnProperty(key) 
+              ? pendingChanges[key] 
+              : hasPermission(menuItem.menu, menuItem.submenu, action);
+            
+            permissionUpdates.push({
+              permission_id: permission.id,
+              can_access: isEnabled
+            });
+          }
+        });
+      });
+
+      console.log('📤 Sending permission updates:', permissionUpdates);
+
       await updateRolePermissions.mutateAsync({
         roleId: role.id,
         permissionUpdates
       });
+
       setPendingChanges({});
+      await refetchRolePermissions();
       setIsOpen(false);
     } catch (error) {
-      console.error('Error updating permissions:', error);
+      console.error('❌ Error updating permissions:', error);
     }
   };
 
@@ -140,49 +332,59 @@ const RolePermissionsDialog = ({ role, children }: RolePermissionsDialogProps) =
             </div>
           ) : (
             <div className="space-y-6">
-              {Object.entries(groupedPermissions).map(([menuName, menuPermissions]) => (
-                <div key={menuName} className="space-y-3">
+              {/* Grouper par menu */}
+              {APPLICATION_MENUS.reduce((acc, menuItem) => {
+                const menuKey = menuItem.menu;
+                if (!acc.find(group => group.menu === menuKey)) {
+                  acc.push({
+                    menu: menuKey,
+                    items: APPLICATION_MENUS.filter(item => item.menu === menuKey)
+                  });
+                }
+                return acc;
+              }, [] as { menu: string; items: typeof APPLICATION_MENUS }[]).map(({ menu, items }) => (
+                <div key={menu} className="space-y-3">
                   <div className="flex items-center justify-between">
-                    <h4 className="font-medium text-lg">{menuName}</h4>
+                    <h4 className="font-medium text-lg">{menu}</h4>
                     <Badge variant="outline">
-                      {menuPermissions.length} permission(s)
+                      {items.length} permission(s)
                     </Badge>
                   </div>
                   
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    {menuPermissions.map((permission) => (
-                      <div key={permission.id} className="flex items-center space-x-3 p-3 border rounded-lg hover:bg-muted/50">
-                        <Checkbox
-                          id={permission.id}
-                          checked={hasPermission(permission.id)}
-                          onCheckedChange={(checked) => 
-                            handlePermissionToggle(permission.id, checked as boolean)
-                          }
-                        />
-                        <div className="flex-1">
-                          <div className="flex items-center space-x-2">
-                            <Badge 
-                              variant="outline" 
-                              className={`${getActionColor(permission.action)} text-xs`}
-                            >
-                              <div className="flex items-center space-x-1">
-                                {getActionIcon(permission.action)}
-                                <span className="capitalize">{permission.action}</span>
-                              </div>
-                            </Badge>
-                            {permission.submenu && (
-                              <span className="text-sm font-medium">
-                                {permission.submenu}
-                              </span>
-                            )}
-                          </div>
-                          {permission.description && (
+                    {items.map((menuItem, index) => (
+                      menuItem.actions.map(action => (
+                        <div key={`${menuItem.menu}-${menuItem.submenu}-${action}-${index}`} className="flex items-center space-x-3 p-3 border rounded-lg hover:bg-muted/50">
+                          <Checkbox
+                            id={`${menuItem.menu}-${menuItem.submenu || 'null'}-${action}`}
+                            checked={hasPermission(menuItem.menu, menuItem.submenu, action)}
+                            onCheckedChange={(checked) => 
+                              handlePermissionToggle(menuItem.menu, menuItem.submenu, action, checked as boolean)
+                            }
+                          />
+                          <div className="flex-1">
+                            <div className="flex items-center space-x-2">
+                              <Badge 
+                                variant="outline" 
+                                className={`${getActionColor(action)} text-xs`}
+                              >
+                                <div className="flex items-center space-x-1">
+                                  {getActionIcon(action)}
+                                  <span className="capitalize">{action}</span>
+                                </div>
+                              </Badge>
+                              {menuItem.submenu && (
+                                <span className="text-sm font-medium">
+                                  {menuItem.submenu}
+                                </span>
+                              )}
+                            </div>
                             <p className="text-xs text-muted-foreground mt-1">
-                              {permission.description}
+                              {menuItem.description}
                             </p>
-                          )}
+                          </div>
                         </div>
-                      </div>
+                      ))
                     ))}
                   </div>
                 </div>
