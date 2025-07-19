@@ -1,8 +1,8 @@
 
-import { useState, useEffect, useMemo } from 'react';
-import { useDebounce } from '@/hooks/useDebounce';
-import { useCatalogueOptimized } from '@/hooks/useCatalogueOptimized';
+import { useState, useEffect } from 'react';
 import { useVenteComptoir } from '@/hooks/useVenteComptoir';
+import { useCatalogue } from '@/hooks/useCatalogue';
+import { useDataProvider } from '@/providers/DataProvider';
 
 export const useVenteComptoirState = () => {
   const [selectedPDV, setSelectedPDV] = useState('');
@@ -12,73 +12,64 @@ export const useVenteComptoirState = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [showPostPaymentActions, setShowPostPaymentActions] = useState(false);
-  const [lastFacture, setLastFacture] = useState<any>(null);
-  const productsPerPage = 20;
+  const [lastFacture, setLastFacture] = useState(null);
 
-  // Debounce pour la recherche
-  const debouncedSearch = useDebounce(searchProduct, 300);
+  const { fetchData, getCachedData } = useDataProvider();
+  
+  // Utiliser les hooks optimisés
+  const venteComptoir = useVenteComptoir();
+  const catalogue = useCatalogue();
 
-  // Hook vente comptoir avec gestion du stock PDV et stock local
-  const venteComptoir = useVenteComptoir(selectedPDV);
-
-  // Hook catalogue optimisé avec pagination
-  const catalogue = useCatalogueOptimized(
-    currentPage, 
-    productsPerPage, 
-    debouncedSearch, 
-    selectedCategory === 'Tous' ? '' : selectedCategory
-  );
-
-  // Éliminer les doublons de catégories basés sur le stock PDV avec les relations correctes
-  const uniqueCategories = useMemo(() => {
-    if (!venteComptoir.stockPDV) return [];
-    
-    console.log('Calculating categories from stockPDV:', venteComptoir.stockPDV);
-    
-    const categorySet = new Set<string>();
-    venteComptoir.stockPDV.forEach(stockItem => {
-      if (stockItem.article?.categorie && stockItem.article.categorie.trim()) {
-        categorySet.add(stockItem.article.categorie);
-        console.log('Added category:', stockItem.article.categorie);
-      }
-    });
-    
-    const categories = Array.from(categorySet).sort();
-    console.log('Final unique categories:', categories);
-    
-    return categories;
-  }, [venteComptoir.stockPDV]);
-
-  // Calculer les totaux du panier
-  const cartTotals = useMemo(() => {
-    const sousTotal = venteComptoir.cart.reduce((sum, item) => {
-      const prixApresRemise = Math.max(0, item.prix_unitaire_brut - (item.remise_unitaire || 0));
-      return sum + (prixApresRemise * item.quantite);
-    }, 0);
-    
-    return {
-      sousTotal,
-      total: sousTotal
-    };
-  }, [venteComptoir.cart]);
-
-  const totalPages = Math.ceil(catalogue.totalCount / productsPerPage);
-
-  // Sélectionner automatiquement le premier PDV disponible
+  // Charger les données critiques en arrière-plan
   useEffect(() => {
-    if (venteComptoir.pointsDeVente && venteComptoir.pointsDeVente.length > 0 && !selectedPDV) {
-      setSelectedPDV(venteComptoir.pointsDeVente[0].nom);
-    }
-  }, [venteComptoir.pointsDeVente, selectedPDV]);
+    const loadCriticalData = async () => {
+      try {
+        await Promise.all([
+          fetchData('points-de-vente', async () => {
+            const { data } = await supabase.from('points_de_vente').select('*').limit(10);
+            return data || [];
+          }),
+          fetchData('clients', async () => {
+            const { data } = await supabase.from('clients').select('id, nom').limit(50);
+            return data || [];
+          })
+        ]);
+      } catch (error) {
+        console.error('Erreur chargement données critiques:', error);
+      }
+    };
 
+    loadCriticalData();
+  }, [fetchData]);
+
+  // Catégories filtrées et optimisées
+  const uniqueCategories = venteComptoir.stockPDV
+    ?.map(item => item.article?.categorie)
+    .filter((cat, index, arr) => cat && arr.indexOf(cat) === index)
+    .sort() || [];
+
+  // Pagination optimisée
+  const itemsPerPage = 20;
+  const totalPages = Math.ceil((venteComptoir.stockPDV?.length || 0) / itemsPerPage);
+  
   const goToPage = (page: number) => {
     if (page >= 1 && page <= totalPages) {
       setCurrentPage(page);
     }
   };
 
+  // Calculs de totaux optimisés
+  const cartTotals = {
+    sousTotal: venteComptoir.cart?.reduce((sum, item) => sum + (item.prix_unitaire_brut * item.quantite), 0) || 0,
+    total: venteComptoir.cart?.reduce((sum, item) => {
+      const sousTotal = item.prix_unitaire_brut * item.quantite;
+      const remise = (sousTotal * (item.remise_unitaire || 0)) / 100;
+      return sum + (sousTotal - remise);
+    }, 0) || 0
+  };
+
   return {
-    // State
+    // États
     selectedPDV,
     setSelectedPDV,
     searchProduct,
@@ -89,6 +80,7 @@ export const useVenteComptoirState = () => {
     setSelectedClient,
     currentPage,
     totalPages,
+    goToPage,
     showPaymentModal,
     setShowPaymentModal,
     showPostPaymentActions,
@@ -96,15 +88,10 @@ export const useVenteComptoirState = () => {
     lastFacture,
     setLastFacture,
     
-    // Computed values
+    // Données optimisées
+    venteComptoir,
+    catalogue,
     uniqueCategories,
     cartTotals,
-    
-    // Functions
-    goToPage,
-    
-    // Hooks data
-    venteComptoir,
-    catalogue
   };
 };

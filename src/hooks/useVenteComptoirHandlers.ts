@@ -1,19 +1,19 @@
 
-import { useState } from 'react';
-import type { CartItem } from '@/hooks/useVenteComptoir/types';
+import { useCallback } from 'react';
+import { useToast } from '@/hooks/use-toast';
 
-interface UseVenteComptoirHandlersProps {
-  selectedClient: any;
-  cart: CartItem[];
-  selectedPDV?: string;
-  cartTotals: any;
+interface VenteComptoirHandlersProps {
+  selectedClient: string;
+  cart: any[];
+  selectedPDV: string;
+  cartTotals: { sousTotal: number; total: number };
   createVente: any;
   setShowPaymentModal: (show: boolean) => void;
   setShowPostPaymentActions: (show: boolean) => void;
-  setSelectedClient: (client: any) => void;
+  setSelectedClient: (client: string) => void;
   setLastFacture: (facture: any) => void;
-  updateQuantity: (id: string, newQuantity: number) => void;
-  updateRemise: (id: string, newRemise: number) => void;
+  updateQuantity: any;
+  updateRemise: any;
 }
 
 export const useVenteComptoirHandlers = ({
@@ -28,102 +28,84 @@ export const useVenteComptoirHandlers = ({
   setLastFacture,
   updateQuantity,
   updateRemise
-}: UseVenteComptoirHandlersProps) => {
-  const [paymentPromiseResolve, setPaymentPromiseResolve] = useState<((paymentData: any) => void) | null>(null);
+}: VenteComptoirHandlersProps) => {
+  const { toast } = useToast();
 
-  const handleQuantityChange = (id: string, newQuantity: string) => {
-    const numericQuantity = parseInt(newQuantity, 10) || 0;
-    updateQuantity(id, numericQuantity);
-  };
-
-  const handleRemiseChange = (id: string, newRemise: string) => {
-    const numericRemise = parseFloat(newRemise) || 0;
-    updateRemise(id, numericRemise);
-  };
-
-  const handlePayment = () => {
+  const handlePayment = useCallback(() => {
     if (!selectedClient) {
-      alert('Veuillez sélectionner un client');
+      toast({
+        title: "Client requis",
+        description: "Veuillez sélectionner un client avant de procéder au paiement",
+        variant: "destructive"
+      });
       return;
     }
 
     if (cart.length === 0) {
-      alert('Le panier est vide');
-      return;
-    }
-
-    if (!selectedPDV) {
-      alert('Veuillez sélectionner un point de vente');
+      toast({
+        title: "Panier vide",
+        description: "Ajoutez des articles avant de procéder au paiement",
+        variant: "destructive"
+      });
       return;
     }
 
     setShowPaymentModal(true);
-  };
+  }, [selectedClient, cart, setShowPaymentModal, toast]);
 
-  const handlePaymentConfirm = async (paymentData: {
-    montant_paye: number;
-    mode_paiement: string;
-    statut_livraison: string;
-    statut_paiement: string;
-    quantite_livree: Record<string, number>;
-    notes?: string;
-  }) => {
-    console.log('📦 Données vente préparées avec statut:', paymentData.statut_livraison);
-    console.log('👤 Client sélectionné:', selectedClient);
-
+  const handlePaymentConfirm = useCallback(async (paymentData: any) => {
     try {
-      // Ensure we have a valid client_id
-      let clientId;
-      if (typeof selectedClient === 'string') {
-        // If selectedClient is just an ID string
-        clientId = selectedClient;
-      } else if (selectedClient && selectedClient.id) {
-        // If selectedClient is an object with id property
-        clientId = selectedClient.id;
-      } else {
-        throw new Error('Client ID invalide');
-      }
+      const result = await createVente.mutateAsync({
+        clientId: selectedClient,
+        articles: cart,
+        pointDeVente: selectedPDV,
+        modesPaiement: paymentData.modesPaiement,
+        totalAmount: cartTotals.total
+      });
 
-      console.log('🔑 Client ID utilisé:', clientId);
-
-      const venteData = {
-        client_id: clientId,
-        cart,
-        montant_ht: cartTotals.sousTotal,
-        tva: cartTotals.tva,
-        montant_ttc: cartTotals.total,
-        mode_paiement: paymentData.mode_paiement,
-        point_vente_id: selectedPDV,
-        payment_data: paymentData
-      };
-
-      console.log('📋 Données de vente finales:', venteData);
-
-      const result = await createVente(venteData);
-      
+      setLastFacture(result);
       setShowPaymentModal(false);
-      setLastFacture(result.facture);
       setShowPostPaymentActions(true);
       
-      // Réinitialiser le client après vente réussie
-      setSelectedClient(null);
-      
+      toast({
+        title: "Vente enregistrée",
+        description: `Facture ${result.numero_facture} créée avec succès`
+      });
     } catch (error) {
-      console.error('Erreur lors de la vente:', error);
-      throw error;
+      console.error('Erreur lors de la création de la vente:', error);
+      toast({
+        title: "Erreur",
+        description: "Impossible de créer la vente",
+        variant: "destructive"
+      });
     }
-  };
+  }, [createVente, selectedClient, cart, selectedPDV, cartTotals.total, setLastFacture, setShowPaymentModal, setShowPostPaymentActions, toast]);
 
-  const handlePostPaymentClose = () => {
+  const handlePostPaymentClose = useCallback(() => {
     setShowPostPaymentActions(false);
+    setSelectedClient('');
     setLastFacture(null);
-  };
+  }, [setShowPostPaymentActions, setSelectedClient, setLastFacture]);
+
+  const handleQuantityChange = useCallback((productId: string, newQuantity: string) => {
+    const quantity = parseInt(newQuantity) || 1;
+    if (quantity > 0 && quantity <= 1000) {
+      updateQuantity(productId, quantity);
+    }
+  }, [updateQuantity]);
+
+  const handleRemiseChange = useCallback((productId: string, newRemise: string) => {
+    const remise = parseFloat(newRemise) || 0;
+    if (remise >= 0 && remise <= 100) {
+      updateRemise(productId, remise);
+    }
+  }, [updateRemise]);
 
   return {
-    handleQuantityChange,
-    handleRemiseChange,
     handlePayment,
     handlePaymentConfirm,
-    handlePostPaymentClose
+    handlePostPaymentClose,
+    handleQuantityChange,
+    handleRemiseChange
   };
 };
