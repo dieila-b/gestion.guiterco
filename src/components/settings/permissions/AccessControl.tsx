@@ -38,7 +38,7 @@ const AccessControl = () => {
       user.nom.toLowerCase().includes(searchTerm.toLowerCase()) ||
       user.email.toLowerCase().includes(searchTerm.toLowerCase());
     
-    const matchesRole = filterRole === 'all' || user.role?.name === filterRole;
+    const matchesRole = filterRole === 'all' || user.role?.nom === filterRole;
     
     return matchesSearch && matchesRole;
   });
@@ -168,11 +168,11 @@ const AccessControl = () => {
             </div>
             <div className="space-y-2">
               <label className="text-sm font-medium text-muted-foreground">Rôle assigné</label>
-              {utilisateurInterne?.role?.name ? (
-                <Badge variant="outline" className={`${getRoleColor(utilisateurInterne.role.name)} capitalize`}>
+              {utilisateurInterne?.role?.nom ? (
+                <Badge variant="outline" className={`${getRoleColor(utilisateurInterne.role.nom)} capitalize`}>
                   <div className="flex items-center space-x-1">
-                    {getRoleIcon(utilisateurInterne.role.name)}
-                    <span>{utilisateurInterne.role.name}</span>
+                    {getRoleIcon(utilisateurInterne.role.nom)}
+                    <span>{utilisateurInterne.role.nom}</span>
                   </div>
                 </Badge>
               ) : (
@@ -233,10 +233,10 @@ const AccessControl = () => {
                 <SelectContent>
                   <SelectItem value="all">Tous les rôles</SelectItem>
                   {roles.map((role) => (
-                    <SelectItem key={role.id} value={role.name}>
+                    <SelectItem key={role.id} value={role.nom}>
                       <div className="flex items-center space-x-2">
-                        {getRoleIcon(role.name)}
-                        <span>{role.name}</span>
+                        {getRoleIcon(role.nom)}
+                        <span>{role.nom}</span>
                       </div>
                     </SelectItem>
                   ))}
@@ -272,10 +272,10 @@ const AccessControl = () => {
                   <TableCell>{user.email}</TableCell>
                   <TableCell>
                     {user.role ? (
-                      <Badge variant="outline" className={`${getRoleColor(user.role.name)} capitalize`}>
+                      <Badge variant="outline" className={`${getRoleColor(user.role.nom)} capitalize`}>
                         <div className="flex items-center space-x-1">
-                          {getRoleIcon(user.role.name)}
-                          <span>{user.role.name}</span>
+                          {getRoleIcon(user.role.nom)}
+                          <span>{user.role.nom}</span>
                         </div>
                       </Badge>
                     ) : (
@@ -297,8 +297,8 @@ const AccessControl = () => {
                         {roles.map((role) => (
                           <SelectItem key={role.id} value={role.id}>
                             <div className="flex items-center space-x-2">
-                              {getRoleIcon(role.name)}
-                              <span>{role.name}</span>
+                              {getRoleIcon(role.nom)}
+                              <span>{role.nom}</span>
                             </div>
                           </SelectItem>
                         ))}
