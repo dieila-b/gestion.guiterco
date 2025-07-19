@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { useVenteComptoir } from '@/hooks/useVenteComptoir';
 import { useCatalogue } from '@/hooks/useCatalogue';
 import { useDataProvider } from '@/providers/DataProvider';
+import { supabase } from '@/integrations/supabase/client';
 
 export const useVenteComptoirState = () => {
   const [selectedPDV, setSelectedPDV] = useState('');
