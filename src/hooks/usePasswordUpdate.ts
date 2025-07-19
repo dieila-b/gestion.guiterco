@@ -35,7 +35,7 @@ export const usePasswordUpdate = () => {
           title: "Succès",
           description: "Le mot de passe a été mis à jour avec succès",
         });
-        return { success: true };
+        return { success: true, requiresManualReset: false };
       }
 
       // Si l'API admin échoue, utiliser une approche alternative
@@ -84,7 +84,7 @@ export const usePasswordUpdate = () => {
         variant: "destructive",
       });
 
-      return { success: false, error: error.message };
+      return { success: false, requiresManualReset: false, error: error.message };
     } finally {
       setIsLoading(false);
     }
