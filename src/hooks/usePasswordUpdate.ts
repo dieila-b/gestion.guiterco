@@ -8,11 +8,17 @@ interface UpdatePasswordData {
   newPassword: string;
 }
 
+interface UpdatePasswordResult {
+  success: boolean;
+  requiresManualReset?: boolean;
+  error?: string;
+}
+
 export const usePasswordUpdate = () => {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
-  const updatePassword = async (data: UpdatePasswordData) => {
+  const updatePassword = async (data: UpdatePasswordData): Promise<UpdatePasswordResult> => {
     setIsLoading(true);
     console.log('🔄 Tentative de mise à jour du mot de passe pour:', data.userId);
 

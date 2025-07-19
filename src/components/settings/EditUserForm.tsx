@@ -14,6 +14,7 @@ import { useRolesForUsers } from '@/hooks/useUtilisateursInternes';
 import { useUserRoleAssignment } from '@/hooks/useUserRoleAssignment';
 import { useUpdateInternalUser } from '@/hooks/useUpdateInternalUser';
 import { usePasswordUpdate } from '@/hooks/usePasswordUpdate';
+import PasswordResetInstructions from './PasswordResetInstructions';
 
 interface EditUserFormProps {
   user: {
@@ -54,6 +55,7 @@ const EditUserForm = ({ user, onSuccess, onCancel }: EditUserFormProps) => {
   const [photoPreview, setPhotoPreview] = useState<string | null>(user.photo_url || null);
   const [updatePassword, setUpdatePassword] = useState(false);
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
+  const [showPasswordInstructions, setShowPasswordInstructions] = useState(false);
   const { toast } = useToast();
   const { data: roles = [] } = useRolesForUsers();
   const { assignRole } = useUserRoleAssignment();
@@ -204,6 +206,11 @@ const EditUserForm = ({ user, onSuccess, onCancel }: EditUserFormProps) => {
           userId: user.user_id,
           newPassword: data.password
         });
+        
+        // Afficher les instructions si nécessaire
+        if (passwordUpdateResult.requiresManualReset) {
+          setShowPasswordInstructions(true);
+        }
       }
 
       // 3. Mettre à jour le rôle si nécessaire
@@ -461,6 +468,8 @@ const EditUserForm = ({ user, onSuccess, onCancel }: EditUserFormProps) => {
           </Label>
         </div>
       </div>
+
+      <PasswordResetInstructions show={showPasswordInstructions} />
 
       <div className="flex justify-end space-x-2 pt-4">
         <Button 
