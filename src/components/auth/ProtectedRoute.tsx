@@ -20,60 +20,52 @@ const ProtectedRoute = ({ children, requireRole }: ProtectedRouteProps) => {
     userEmail: user?.email,
     internalUserRole: utilisateurInterne?.role?.nom,
     requireRole,
-    hostname: window.location.hostname,
-    isProduction: !window.location.hostname.includes('localhost') && 
-                   !window.location.hostname.includes('lovableproject.com') && 
-                   !window.location.hostname.includes('127.0.0.1') &&
-                   !window.location.hostname.includes('.local')
+    hostname: window.location.hostname
   });
 
   // CRITIQUE: Afficher le loader seulement pendant le vrai chargement
   if (loading) {
     console.log('⏳ ProtectedRoute - Affichage du loader de vérification');
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
-          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
+          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-blue-600" />
           <p className="text-gray-600">Vérification des autorisations...</p>
+          <p className="text-sm text-gray-400 mt-2">Chargement en cours...</p>
         </div>
       </div>
     );
   }
 
-  // En production : vérification stricte des utilisateurs internes
+  // Déterminer l'environnement
   const isProduction = !window.location.hostname.includes('localhost') && 
                        !window.location.hostname.includes('lovableproject.com') && 
                        !window.location.hostname.includes('127.0.0.1') &&
                        !window.location.hostname.includes('.local') &&
                        import.meta.env.MODE === 'production';
 
+  console.log('🔍 Environnement détecté:', { isProduction, hostname: window.location.hostname });
+
+  // En production : vérification stricte des utilisateurs internes
   if (isProduction) {
-    // En production, seuls les utilisateurs internes authentifiés peuvent accéder
     if (!user || !isInternalUser) {
       console.log('❌ ProtectedRoute - Accès refusé en production, redirection vers /auth');
       return <Navigate to="/auth" replace />;
     }
   } else {
-    // En développement, l'accès peut être bypassé
-    // Mais si l'authentification est activée, vérifier les permissions
-    if (!user && !loading) {
-      const isDev = window.location.hostname.includes('localhost') || 
-                    window.location.hostname.includes('lovableproject.com') || 
-                    window.location.hostname.includes('127.0.0.1') ||
-                    window.location.hostname.includes('.local') ||
-                    import.meta.env.DEV;
-      
-      if (isDev) {
-        // En mode dev, si pas de session et pas de bypass, rediriger vers login
-        const bypassAuth = localStorage.getItem('dev_bypass_auth') !== 'false';
-        if (!bypassAuth) {
-          console.log('❌ ProtectedRoute - Pas de bypass en dev, redirection vers /auth');
-          return <Navigate to="/auth" replace />;
-        }
-      } else {
-        console.log('❌ ProtectedRoute - Pas d\'utilisateur, redirection vers /auth');
-        return <Navigate to="/auth" replace />;
-      }
+    // En développement : vérifier le bypass
+    const bypassAuth = localStorage.getItem('dev_bypass_auth') !== 'false';
+    
+    console.log('🔍 Mode développement:', { bypassAuth, hasUser: !!user });
+    
+    if (!bypassAuth && !user) {
+      console.log('❌ ProtectedRoute - Pas de bypass et pas d\'utilisateur, redirection vers /auth');
+      return <Navigate to="/auth" replace />;
+    }
+    
+    // Si bypass activé, permettre l'accès même sans utilisateur authentifié
+    if (bypassAuth) {
+      console.log('🚀 ProtectedRoute - Bypass activé, accès autorisé');
     }
   }
 
@@ -88,13 +80,13 @@ const ProtectedRoute = ({ children, requireRole }: ProtectedRouteProps) => {
     
     if (!hasRequiredRole) {
       return (
-        <div className="min-h-screen flex items-center justify-center">
-          <div className="text-center p-8 bg-red-50 rounded-lg">
+        <div className="min-h-screen flex items-center justify-center bg-gray-50">
+          <div className="text-center p-8 bg-red-50 rounded-lg max-w-md">
             <h2 className="text-xl font-semibold text-red-800 mb-2">Accès refusé</h2>
-            <p className="text-red-600">
+            <p className="text-red-600 mb-4">
               Vous n'avez pas les permissions nécessaires pour accéder à cette page.
             </p>
-            <p className="text-sm text-red-500 mt-2">
+            <p className="text-sm text-red-500">
               Rôle requis : {requireRole.join(', ')} | Votre rôle : {utilisateurInterne.role.nom}
             </p>
           </div>
