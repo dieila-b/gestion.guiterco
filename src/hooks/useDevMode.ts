@@ -31,17 +31,13 @@ export const useDevMode = (): DevModeConfig => {
                   import.meta.env.DEV ||
                   import.meta.env.MODE === 'development';
 
-    // En mode développement, activer le bypass par défaut
+    // En mode développement, activer le bypass par défaut et réinitialiser le localStorage
     let bypassEnabled = isDev;
     
     if (isDev) {
-      // Vérifier le localStorage pour le bypass manuel
-      const manualOverride = localStorage.getItem('dev_bypass_auth');
-      
-      // Si explicitement désactivé, respecter ce choix
-      if (manualOverride === 'false') {
-        bypassEnabled = false;
-      }
+      // Forcer l'activation du bypass en mode dev et nettoyer le localStorage
+      localStorage.removeItem('dev_bypass_auth');
+      bypassEnabled = true;
       
       // Vérifier aussi la variable d'environnement
       if (import.meta.env.VITE_DEV_BYPASS_AUTH === 'false') {
@@ -96,15 +92,10 @@ export const useDevMode = (): DevModeConfig => {
     let bypassEnabled = isDev; // Par défaut activé en dev
     
     if (isDev) {
-      const manualOverride = localStorage.getItem('dev_bypass_auth');
-      
-      // Si explicitement désactivé, respecter ce choix
-      if (manualOverride === 'false') {
-        bypassEnabled = false;
-        console.log('🔒 Bypass d\'authentification désactivé manuellement');
-      } else {
-        console.log('🚀 Bypass d\'authentification activé par défaut (mode dev)');
-      }
+      // Forcer l'activation du bypass en mode dev
+      localStorage.removeItem('dev_bypass_auth');
+      bypassEnabled = true;
+      console.log('🚀 Bypass d\'authentification forcé activé (mode dev)');
       
       // Vérifier aussi la variable d'environnement
       if (import.meta.env.VITE_DEV_BYPASS_AUTH === 'false') {
@@ -113,7 +104,6 @@ export const useDevMode = (): DevModeConfig => {
       }
       
       console.log('🔧 Configuration bypass:', { 
-        manualOverride, 
         bypassEnabled,
         envVar: import.meta.env.VITE_DEV_BYPASS_AUTH 
       });

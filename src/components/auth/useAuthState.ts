@@ -21,15 +21,12 @@ export const useAuthState = (bypassAuth: boolean, mockUser: UtilisateurInterne, 
     });
 
     let isMounted = true;
-    let hasInitialized = false;
 
     const initializeAuth = async () => {
-      // Si le bypass est activé en mode développement
-      if (isDevMode && bypassAuth) {
-        console.log('🚀 Mode développement: Bypass d\'authentification activé');
-        
-        if (isMounted && !hasInitialized) {
-          hasInitialized = true;
+      try {
+        // Si le bypass est activé en mode développement
+        if (isDevMode && bypassAuth) {
+          console.log('🚀 Mode développement: Bypass d\'authentification activé');
           
           setUtilisateurInterne(mockUser);
           
@@ -65,14 +62,12 @@ export const useAuthState = (bypassAuth: boolean, mockUser: UtilisateurInterne, 
           setLoading(false);
           
           console.log('✅ Mock session créée et loading terminé');
+          return;
         }
-        return;
-      }
 
-      // Comportement normal en production ou si bypass désactivé
-      console.log('🔐 Mode authentification normale');
-
-      try {
+        // Comportement normal en production ou si bypass désactivé
+        console.log('🔐 Mode authentification normale');
+        
         // 1. Vérifier la session existante
         const { data: { session: initialSession }, error: sessionError } = await supabase.auth.getSession();
         
@@ -80,28 +75,19 @@ export const useAuthState = (bypassAuth: boolean, mockUser: UtilisateurInterne, 
 
         if (sessionError) {
           console.error('❌ Erreur lors de la récupération de la session:', sessionError);
-          if (isMounted && !hasInitialized) {
-            hasInitialized = true;
-            setLoading(false);
-          }
+          setLoading(false);
           return;
         }
 
         console.log('🔍 Session initiale:', { hasSession: !!initialSession, userId: initialSession?.user?.id });
 
         // 2. Traiter la session initiale
-        if (!hasInitialized) {
-          hasInitialized = true;
-          await processSession(initialSession);
-        }
+        await processSession(initialSession);
 
       } catch (error) {
         if (!isMounted) return;
         console.error('❌ Erreur lors de l\'initialisation auth:', error);
-        if (!hasInitialized) {
-          hasInitialized = true;
-          setLoading(false);
-        }
+        setLoading(false);
       }
     };
 
@@ -160,10 +146,7 @@ export const useAuthState = (bypassAuth: boolean, mockUser: UtilisateurInterne, 
       if (!isMounted) return;
       console.log('🔐 Auth state change:', { event, hasSession: !!newSession, userId: newSession?.user?.id });
       
-      // Ne traiter que si ce n'est pas l'initialisation
-      if (hasInitialized) {
-        await processSession(newSession);
-      }
+      await processSession(newSession);
     });
 
     // 4. Initialiser l'authentification
