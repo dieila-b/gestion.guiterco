@@ -2,8 +2,8 @@
 import React, { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import CaissesTab from "./CaissesTab";
-import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import OptimizedCaissesTab from "./OptimizedCaissesTab";
+import { OptimizedLoading } from "@/components/ui/optimized-loading";
 
 interface ExpensesTabProps {
   initialSubTab?: string | null;
@@ -16,8 +16,8 @@ const ExpensesTab: React.FC<ExpensesTabProps> = ({ initialSubTab }) => {
   const handleTabChange = (value: string) => {
     setLoading(true);
     setActiveSubTab(value);
-    // Simuler un petit délai pour le chargement
-    setTimeout(() => setLoading(false), 300);
+    // Délai minimal pour éviter les flashs
+    setTimeout(() => setLoading(false), 100);
   };
 
   return (
@@ -32,22 +32,20 @@ const ExpensesTab: React.FC<ExpensesTabProps> = ({ initialSubTab }) => {
         <TabsContent value="caisses" className="space-y-4">
           {loading ? (
             <Card>
-              <CardContent className="flex items-center justify-center py-8">
-                <LoadingSpinner size="lg" />
-                <span className="ml-2 text-gray-600">Chargement des données de caisse...</span>
+              <CardContent className="py-8">
+                <OptimizedLoading type="spinner" text="Chargement des données de caisse..." />
               </CardContent>
             </Card>
           ) : (
-            <CaissesTab />
+            <OptimizedCaissesTab />
           )}
         </TabsContent>
 
         <TabsContent value="sorties" className="space-y-4">
           {loading ? (
             <Card>
-              <CardContent className="flex items-center justify-center py-8">
-                <LoadingSpinner size="lg" />
-                <span className="ml-2 text-gray-600">Chargement des sorties financières...</span>
+              <CardContent className="py-8">
+                <OptimizedLoading type="spinner" text="Chargement des sorties financières..." />
               </CardContent>
             </Card>
           ) : (
@@ -68,9 +66,8 @@ const ExpensesTab: React.FC<ExpensesTabProps> = ({ initialSubTab }) => {
         <TabsContent value="rapports" className="space-y-4">
           {loading ? (
             <Card>
-              <CardContent className="flex items-center justify-center py-8">
-                <LoadingSpinner size="lg" />
-                <span className="ml-2 text-gray-600">Génération des rapports...</span>
+              <CardContent className="py-8">
+                <OptimizedLoading type="spinner" text="Génération des rapports..." />
               </CardContent>
             </Card>
           ) : (
