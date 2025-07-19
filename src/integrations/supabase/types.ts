@@ -3374,6 +3374,18 @@ export type Database = {
         Args: { p_article_id: string }
         Returns: number
       }
+      get_users_by_role: {
+        Args: { role_uuid: string }
+        Returns: {
+          user_id: string
+          prenom: string
+          nom: string
+          email: string
+          matricule: string
+          statut: string
+          created_at: string
+        }[]
+      }
       rapport_nettoyage_doublons: {
         Args: Record<PropertyKey, never>
         Returns: {
@@ -3427,6 +3439,14 @@ export type Database = {
               action_name?: string
             }
         Returns: boolean
+      }
+      validate_system_sync: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          check_name: string
+          status: string
+          details: string
+        }[]
       }
       verifier_integrite_entrees_stock: {
         Args: Record<PropertyKey, never>

@@ -19,52 +19,26 @@ interface RoleUsersDialogProps {
 const RoleUsersDialog = ({ role, children }: RoleUsersDialogProps) => {
   const [isOpen, setIsOpen] = useState(false);
 
-  // Récupérer les utilisateurs ayant ce rôle via une approche en deux étapes
+  // Récupérer les utilisateurs ayant ce rôle via la fonction PostgreSQL optimisée
   const { data: usersWithRole = [], isLoading } = useQuery({
     queryKey: ['role-users', role.id],
     queryFn: async () => {
       console.log('🔍 Fetching users for role:', role.id, role.name);
       
       try {
-        // Étape 1: Récupérer les user_id qui ont ce rôle
-        const { data: userRoleData, error: userRoleError } = await supabase
-          .from('user_roles')
-          .select('user_id')
-          .eq('role_id', role.id)
-          .eq('is_active', true);
+        // Utiliser la fonction PostgreSQL optimisée
+        const { data, error } = await supabase
+          .rpc('get_users_by_role', { role_uuid: role.id });
 
-        if (userRoleError) {
-          console.error('❌ Error fetching user roles:', userRoleError);
-          throw userRoleError;
+        if (error) {
+          console.error('❌ Error fetching users for role:', error);
+          throw error;
         }
 
-        console.log('📊 User roles data:', userRoleData);
-
-        if (!userRoleData || userRoleData.length === 0) {
-          console.log('ℹ️ No users found for this role');
-          return [];
-        }
-
-        // Extraire les user_id
-        const userIds = userRoleData.map(ur => ur.user_id);
-        console.log('👤 User IDs with role:', userIds);
-
-        // Étape 2: Récupérer les détails des utilisateurs
-        const { data: usersData, error: usersError } = await supabase
-          .from('utilisateurs_internes')
-          .select('user_id, prenom, nom, email, statut, created_at')
-          .in('user_id', userIds)
-          .eq('statut', 'actif');
-
-        if (usersError) {
-          console.error('❌ Error fetching user details:', usersError);
-          throw usersError;
-        }
-
-        console.log('✅ Users details fetched:', usersData?.length || 0);
-        console.log('👥 Users details:', usersData);
+        console.log('✅ Users fetched via PostgreSQL function:', data?.length || 0);
+        console.log('👥 Users details:', data);
         
-        return usersData || [];
+        return data || [];
       } catch (error) {
         console.error('💥 Critical error fetching users for role:', error);
         throw error;
