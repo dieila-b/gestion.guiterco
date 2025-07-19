@@ -19,53 +19,52 @@ interface RoleUsersDialogProps {
 const RoleUsersDialog = ({ role, children }: RoleUsersDialogProps) => {
   const [isOpen, setIsOpen] = useState(false);
 
-  // Récupérer les utilisateurs ayant ce rôle via user_roles
+  // Récupérer les utilisateurs ayant ce rôle via une approche en deux étapes
   const { data: usersWithRole = [], isLoading } = useQuery({
     queryKey: ['role-users', role.id],
     queryFn: async () => {
       console.log('🔍 Fetching users for role:', role.id, role.name);
       
       try {
-        // Récupérer les utilisateurs via la table user_roles et utilisateurs_internes
-        const { data, error } = await supabase
+        // Étape 1: Récupérer les user_id qui ont ce rôle
+        const { data: userRoleData, error: userRoleError } = await supabase
           .from('user_roles')
-          .select(`
-            user_id,
-            is_active,
-            utilisateurs_internes!inner (
-              user_id,
-              prenom,
-              nom,
-              email,
-              statut,
-              created_at
-            )
-          `)
+          .select('user_id')
           .eq('role_id', role.id)
-          .eq('is_active', true)
-          .eq('utilisateurs_internes.statut', 'actif');
+          .eq('is_active', true);
 
-        if (error) {
-          console.error('❌ Error fetching users for role:', error);
-          throw error;
+        if (userRoleError) {
+          console.error('❌ Error fetching user roles:', userRoleError);
+          throw userRoleError;
         }
 
-        console.log('📊 Raw data from query:', data);
+        console.log('📊 User roles data:', userRoleData);
 
-        // Transformer les données pour l'affichage
-        const transformedUsers = data?.map(item => ({
-          user_id: item.user_id,
-          prenom: item.utilisateurs_internes?.prenom || '',
-          nom: item.utilisateurs_internes?.nom || '',
-          email: item.utilisateurs_internes?.email || '',
-          statut: item.utilisateurs_internes?.statut || 'actif',
-          created_at: item.utilisateurs_internes?.created_at || new Date().toISOString()
-        })) || [];
+        if (!userRoleData || userRoleData.length === 0) {
+          console.log('ℹ️ No users found for this role');
+          return [];
+        }
 
-        console.log('✅ Users with role transformed:', transformedUsers.length);
-        console.log('👥 Users details:', transformedUsers);
+        // Extraire les user_id
+        const userIds = userRoleData.map(ur => ur.user_id);
+        console.log('👤 User IDs with role:', userIds);
+
+        // Étape 2: Récupérer les détails des utilisateurs
+        const { data: usersData, error: usersError } = await supabase
+          .from('utilisateurs_internes')
+          .select('user_id, prenom, nom, email, statut, created_at')
+          .in('user_id', userIds)
+          .eq('statut', 'actif');
+
+        if (usersError) {
+          console.error('❌ Error fetching user details:', usersError);
+          throw usersError;
+        }
+
+        console.log('✅ Users details fetched:', usersData?.length || 0);
+        console.log('👥 Users details:', usersData);
         
-        return transformedUsers;
+        return usersData || [];
       } catch (error) {
         console.error('💥 Critical error fetching users for role:', error);
         throw error;
