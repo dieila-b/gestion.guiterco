@@ -21,54 +21,57 @@ export const useAuthState = (bypassAuth: boolean, mockUser: UtilisateurInterne, 
     });
 
     let isMounted = true;
-
-    // Si le bypass est activé en mode développement
-    if (isDevMode && bypassAuth) {
-      console.log('🚀 Mode développement: Bypass d\'authentification activé');
-      
-      if (isMounted) {
-        setUtilisateurInterne(mockUser);
-        
-        // Créer un mock user pour Supabase
-        const mockSupabaseUser = {
-          id: mockUser.id,
-          email: mockUser.email,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-          email_confirmed_at: new Date().toISOString(),
-          user_metadata: {
-            prenom: mockUser.prenom,
-            nom: mockUser.nom
-          },
-          app_metadata: {
-            role: mockUser.role.nom
-          },
-          aud: 'authenticated',
-          role: 'authenticated'
-        } as User;
-        
-        const mockSession = {
-          access_token: 'mock-token-dev',
-          refresh_token: 'mock-refresh-dev',
-          expires_in: 3600,
-          expires_at: Date.now() / 1000 + 3600,
-          token_type: 'bearer',
-          user: mockSupabaseUser
-        } as Session;
-        
-        setUser(mockSupabaseUser);
-        setSession(mockSession);
-        setLoading(false);
-        
-        console.log('✅ Mock session créée et loading terminé');
-      }
-      return;
-    }
-
-    // Comportement normal en production ou si bypass désactivé
-    console.log('🔐 Mode authentification normale');
+    let hasInitialized = false;
 
     const initializeAuth = async () => {
+      // Si le bypass est activé en mode développement
+      if (isDevMode && bypassAuth) {
+        console.log('🚀 Mode développement: Bypass d\'authentification activé');
+        
+        if (isMounted && !hasInitialized) {
+          hasInitialized = true;
+          
+          setUtilisateurInterne(mockUser);
+          
+          // Créer un mock user pour Supabase
+          const mockSupabaseUser = {
+            id: mockUser.id,
+            email: mockUser.email,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+            email_confirmed_at: new Date().toISOString(),
+            user_metadata: {
+              prenom: mockUser.prenom,
+              nom: mockUser.nom
+            },
+            app_metadata: {
+              role: mockUser.role.nom
+            },
+            aud: 'authenticated',
+            role: 'authenticated'
+          } as User;
+          
+          const mockSession = {
+            access_token: 'mock-token-dev',
+            refresh_token: 'mock-refresh-dev',
+            expires_in: 3600,
+            expires_at: Date.now() / 1000 + 3600,
+            token_type: 'bearer',
+            user: mockSupabaseUser
+          } as Session;
+          
+          setUser(mockSupabaseUser);
+          setSession(mockSession);
+          setLoading(false);
+          
+          console.log('✅ Mock session créée et loading terminé');
+        }
+        return;
+      }
+
+      // Comportement normal en production ou si bypass désactivé
+      console.log('🔐 Mode authentification normale');
+
       try {
         // 1. Vérifier la session existante
         const { data: { session: initialSession }, error: sessionError } = await supabase.auth.getSession();
@@ -77,19 +80,28 @@ export const useAuthState = (bypassAuth: boolean, mockUser: UtilisateurInterne, 
 
         if (sessionError) {
           console.error('❌ Erreur lors de la récupération de la session:', sessionError);
-          setLoading(false);
+          if (isMounted && !hasInitialized) {
+            hasInitialized = true;
+            setLoading(false);
+          }
           return;
         }
 
         console.log('🔍 Session initiale:', { hasSession: !!initialSession, userId: initialSession?.user?.id });
 
         // 2. Traiter la session initiale
-        await processSession(initialSession);
+        if (!hasInitialized) {
+          hasInitialized = true;
+          await processSession(initialSession);
+        }
 
       } catch (error) {
         if (!isMounted) return;
         console.error('❌ Erreur lors de l\'initialisation auth:', error);
-        setLoading(false);
+        if (!hasInitialized) {
+          hasInitialized = true;
+          setLoading(false);
+        }
       }
     };
 
@@ -139,7 +151,7 @@ export const useAuthState = (bypassAuth: boolean, mockUser: UtilisateurInterne, 
       // CRITIQUE: Toujours arrêter le loading à la fin
       if (isMounted) {
         setLoading(false);
-        console.log('✅ Loading terminé');
+        console.log('✅ Loading terminé - processSession');
       }
     };
 
@@ -147,7 +159,11 @@ export const useAuthState = (bypassAuth: boolean, mockUser: UtilisateurInterne, 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, newSession) => {
       if (!isMounted) return;
       console.log('🔐 Auth state change:', { event, hasSession: !!newSession, userId: newSession?.user?.id });
-      await processSession(newSession);
+      
+      // Ne traiter que si ce n'est pas l'initialisation
+      if (hasInitialized) {
+        await processSession(newSession);
+      }
     });
 
     // 4. Initialiser l'authentification

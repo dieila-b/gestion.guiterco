@@ -31,20 +31,22 @@ const ProtectedRoute = ({ children, requireRole }: ProtectedRouteProps) => {
         <div className="text-center">
           <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-blue-600" />
           <p className="text-gray-600">Vérification des autorisations...</p>
-          <p className="text-sm text-gray-400 mt-2">Chargement en cours...</p>
+          <p className="text-sm text-gray-400 mt-2">Initialisation en cours...</p>
         </div>
       </div>
     );
   }
 
   // Déterminer l'environnement
-  const isProduction = !window.location.hostname.includes('localhost') && 
-                       !window.location.hostname.includes('lovableproject.com') && 
-                       !window.location.hostname.includes('127.0.0.1') &&
-                       !window.location.hostname.includes('.local') &&
+  const hostname = window.location.hostname;
+  const isProduction = !hostname.includes('localhost') && 
+                       !hostname.includes('lovableproject.com') && 
+                       !hostname.includes('lovable.app') &&
+                       !hostname.includes('127.0.0.1') &&
+                       !hostname.includes('.local') &&
                        import.meta.env.MODE === 'production';
 
-  console.log('🔍 Environnement détecté:', { isProduction, hostname: window.location.hostname });
+  console.log('🔍 Environnement détecté:', { isProduction, hostname });
 
   // En production : vérification stricte des utilisateurs internes
   if (isProduction) {
@@ -58,6 +60,7 @@ const ProtectedRoute = ({ children, requireRole }: ProtectedRouteProps) => {
     
     console.log('🔍 Mode développement:', { bypassAuth, hasUser: !!user });
     
+    // Si pas de bypass et pas d'utilisateur authentifié, rediriger
     if (!bypassAuth && !user) {
       console.log('❌ ProtectedRoute - Pas de bypass et pas d\'utilisateur, redirection vers /auth');
       return <Navigate to="/auth" replace />;

@@ -25,22 +25,21 @@ export const useDevMode = (): DevModeConfig => {
     const hostname = window.location.hostname;
     const isDev = hostname === 'localhost' || 
                   hostname.includes('lovableproject.com') || 
+                  hostname.includes('lovable.app') ||
                   hostname.includes('127.0.0.1') ||
                   hostname.includes('.local') ||
                   import.meta.env.DEV ||
                   import.meta.env.MODE === 'development';
 
-    // En mode développement, vérifier les préférences de bypass
-    let bypassEnabled = false;
+    // En mode développement, activer le bypass par défaut
+    let bypassEnabled = isDev;
     
     if (isDev) {
       // Vérifier le localStorage pour le bypass manuel
       const manualOverride = localStorage.getItem('dev_bypass_auth');
       
-      // Par défaut, activer le bypass en mode dev sauf si explicitement désactivé
-      if (manualOverride === null || manualOverride === 'true') {
-        bypassEnabled = true;
-      } else if (manualOverride === 'false') {
+      // Si explicitement désactivé, respecter ce choix
+      if (manualOverride === 'false') {
         bypassEnabled = false;
       }
       
@@ -81,6 +80,7 @@ export const useDevMode = (): DevModeConfig => {
     const hostname = window.location.hostname;
     const isDev = hostname === 'localhost' || 
                   hostname.includes('lovableproject.com') || 
+                  hostname.includes('lovable.app') ||
                   hostname.includes('127.0.0.1') ||
                   hostname.includes('.local') ||
                   import.meta.env.DEV ||
@@ -93,18 +93,17 @@ export const useDevMode = (): DevModeConfig => {
       dev: import.meta.env.DEV
     });
 
-    let bypassEnabled = false;
+    let bypassEnabled = isDev; // Par défaut activé en dev
     
     if (isDev) {
       const manualOverride = localStorage.getItem('dev_bypass_auth');
       
-      // Par défaut, activer le bypass en mode dev
-      if (manualOverride === null || manualOverride === 'true') {
-        bypassEnabled = true;
-        console.log('🚀 Bypass d\'authentification activé par défaut (mode dev)');
-      } else if (manualOverride === 'false') {
+      // Si explicitement désactivé, respecter ce choix
+      if (manualOverride === 'false') {
         bypassEnabled = false;
         console.log('🔒 Bypass d\'authentification désactivé manuellement');
+      } else {
+        console.log('🚀 Bypass d\'authentification activé par défaut (mode dev)');
       }
       
       // Vérifier aussi la variable d'environnement
