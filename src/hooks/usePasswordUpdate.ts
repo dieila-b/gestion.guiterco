@@ -24,32 +24,36 @@ export const usePasswordUpdate = () => {
       console.log('🔐 Updating password for user:', userId);
       
       try {
-        // Mettre à jour le mot de passe via l'API Admin de Supabase
-        const { error: passwordError } = await supabase.auth.admin.updateUserById(
-          userId,
-          { password: newPassword }
-        );
-
-        if (passwordError) {
-          console.error('❌ Error updating password:', passwordError);
-          throw new Error(`Erreur lors de la mise à jour du mot de passe: ${passwordError.message}`);
+        // Obtenir le token d'authentification actuel
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        
+        if (sessionError || !session) {
+          throw new Error('Session non valide. Veuillez vous reconnecter.');
         }
 
-        // Mettre à jour le flag doit_changer_mot_de_passe dans utilisateurs_internes
-        const { error: userError } = await supabase
-          .from('utilisateurs_internes')
-          .update({ 
-            doit_changer_mot_de_passe: requireChange,
-            updated_at: new Date().toISOString()
-          })
-          .eq('user_id', userId);
+        // Appeler l'Edge Function pour mettre à jour le mot de passe
+        const { data, error } = await supabase.functions.invoke('admin-update-password', {
+          body: {
+            userId,
+            newPassword,
+            requireChange
+          },
+          headers: {
+            Authorization: `Bearer ${session.access_token}`,
+          },
+        });
 
-        if (userError) {
-          console.error('❌ Error updating user flag:', userError);
-          throw new Error(`Erreur lors de la mise à jour du profil utilisateur: ${userError.message}`);
+        if (error) {
+          console.error('❌ Edge function error:', error);
+          throw new Error(`Erreur lors de l'appel à la fonction: ${error.message}`);
         }
 
-        console.log('✅ Password updated successfully');
+        if (!data.success) {
+          console.error('❌ Password update failed:', data.error);
+          throw new Error(data.error || 'Échec de la mise à jour du mot de passe');
+        }
+
+        console.log('✅ Password updated successfully via Edge Function');
         return { 
           success: true, 
           requiresManualReset: requireChange 
@@ -57,7 +61,23 @@ export const usePasswordUpdate = () => {
 
       } catch (error: any) {
         console.error('💥 Critical error in password update:', error);
-        throw error;
+        
+        // Messages d'erreur spécifiques
+        let errorMessage = 'Impossible de mettre à jour le mot de passe.';
+        
+        if (error.message?.includes('Session non valide')) {
+          errorMessage = 'Session expirée. Veuillez vous reconnecter.';
+        } else if (error.message?.includes('Insufficient permissions')) {
+          errorMessage = 'Permissions insuffisantes pour cette opération.';
+        } else if (error.message?.includes('User not found')) {
+          errorMessage = 'Utilisateur non trouvé dans le système.';
+        } else if (error.message?.includes('Missing userId')) {
+          errorMessage = 'Identifiant utilisateur manquant.';
+        } else if (error.message?.includes('Failed to update password')) {
+          errorMessage = error.message;
+        }
+        
+        throw new Error(errorMessage);
       }
     },
     onSuccess: (result: UpdatePasswordResult) => {

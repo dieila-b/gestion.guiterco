@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -15,6 +14,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useRolesForUsers } from '@/hooks/useUtilisateursInternes';
 import { useUserRoleAssignment } from '@/hooks/useUserRoleAssignment';
+import { usePasswordUpdate } from '@/hooks/usePasswordUpdate';
 
 interface EditUserFormProps {
   user: {
@@ -56,6 +56,7 @@ const EditUserForm = ({ user, onSuccess, onCancel }: EditUserFormProps) => {
   const queryClient = useQueryClient();
   const { data: roles = [] } = useRolesForUsers();
   const { assignRole } = useUserRoleAssignment();
+  const { updatePassword, isLoading: isUpdatingPassword } = usePasswordUpdate();
 
   const updateUser = useMutation({
     mutationFn: async (data: typeof formData) => {
@@ -102,31 +103,6 @@ const EditUserForm = ({ user, onSuccess, onCancel }: EditUserFormProps) => {
     }
   });
 
-  const changeUserPassword = useMutation({
-    mutationFn: async (password: string) => {
-      const { error } = await supabase.auth.admin.updateUserById(
-        user.user_id,
-        { password: password }
-      );
-      
-      if (error) throw error;
-      return true;
-    },
-    onSuccess: () => {
-      toast({
-        title: "Mot de passe modifié",
-        description: "Le mot de passe a été mis à jour avec succès",
-      });
-    },
-    onError: (error: any) => {
-      toast({
-        title: "Erreur",
-        description: "Impossible de modifier le mot de passe",
-        variant: "destructive",
-      });
-    }
-  });
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -157,7 +133,12 @@ const EditUserForm = ({ user, onSuccess, onCancel }: EditUserFormProps) => {
       
       // 2. Changer le mot de passe si demandé
       if (changePassword && newPassword) {
-        await changeUserPassword.mutateAsync(newPassword);
+        console.log('🔐 Changing password for user:', user.user_id);
+        await updatePassword({
+          userId: user.user_id,
+          newPassword: newPassword,
+          requireChange: formData.doit_changer_mot_de_passe
+        });
       }
       
       // 3. Mettre à jour le rôle si changé
@@ -205,7 +186,7 @@ const EditUserForm = ({ user, onSuccess, onCancel }: EditUserFormProps) => {
     return `${prenom.charAt(0)}${nom.charAt(0)}`.toUpperCase();
   };
 
-  const isLoading = updateUser.isPending || assignRole.isPending || changeUserPassword.isPending;
+  const isLoading = updateUser.isPending || assignRole.isPending || isUpdatingPassword;
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
