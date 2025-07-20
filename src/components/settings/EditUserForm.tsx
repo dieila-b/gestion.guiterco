@@ -7,13 +7,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useRolesForUsers } from '@/hooks/useUtilisateursInternes';
-import { useSecureUserOperations } from '@/hooks/useSecureUserOperations';
-import { Badge } from '@/components/ui/badge';
-import { RefreshCw, Shield, User, AlertCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { RefreshCw, User, Lock } from 'lucide-react';
 
 interface EditUserFormProps {
   user: {
@@ -49,28 +47,13 @@ const EditUserForm = ({ user, onSuccess, onCancel }: EditUserFormProps) => {
     matricule: user.matricule || '',
     statut: user.statut || 'actif',
     selectedRoleId: user.role?.id || '',
-    doit_changer_mot_de_passe: user.doit_changer_mot_de_passe || false
+    doit_changer_mot_de_passe: user.doit_changer_mot_de_passe || false,
+    nouveauMotDePasse: '',
+    modifierMotDePasse: false
   });
 
-  const { data: roles = [], isLoading: rolesLoading, error: rolesError } = useRolesForUsers();
-  const { 
-    securePasswordUpdate, 
-    secureRoleAssignment, 
-    refreshSession,
-    systemDiagnostic 
-  } = useSecureUserOperations();
-
+  const { data: roles = [], isLoading: rolesLoading } = useRolesForUsers();
   const [isUpdating, setIsUpdating] = useState(false);
-
-  // Afficher les erreurs de chargement
-  if (rolesError) {
-    console.error('Erreur de chargement des rôles:', rolesError);
-    toast({
-      title: "Erreur de chargement",
-      description: "Impossible de charger les rôles disponibles",
-      variant: "destructive",
-    });
-  }
 
   const handleInputChange = (field: string, value: string | boolean) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -81,63 +64,9 @@ const EditUserForm = ({ user, onSuccess, onCancel }: EditUserFormProps) => {
     setIsUpdating(true);
 
     try {
-      console.log('🔄 Starting secure user update process...', {
-        userId: user.id,
-        userAuthId: user.user_id,
-        formData
-      });
+      console.log('🔄 Début de la mise à jour utilisateur:', user.id);
 
-      // 1. Renouveler la session en premier
-      try {
-        await refreshSession.mutateAsync();
-        console.log('✅ Session renewed successfully');
-      } catch (sessionError) {
-        console.warn('⚠️ Session renewal failed, continuing...', sessionError);
-      }
-
-      // 2. Mettre à jour les paramètres de mot de passe si changés
-      if (formData.doit_changer_mot_de_passe !== user.doit_changer_mot_de_passe) {
-        console.log('🔐 Updating password settings...');
-        try {
-          await securePasswordUpdate.mutateAsync({
-            targetUserId: user.user_id,
-            forceChange: formData.doit_changer_mot_de_passe
-          });
-          console.log('✅ Password settings updated');
-        } catch (passwordError) {
-          console.error('❌ Password update failed:', passwordError);
-          toast({
-            title: "Erreur mot de passe",
-            description: "Impossible de mettre à jour les paramètres de mot de passe",
-            variant: "destructive",
-          });
-        }
-      }
-
-      // 3. Assigner le nouveau rôle si changé
-      if (formData.selectedRoleId && formData.selectedRoleId !== user.role?.id) {
-        console.log('👤 Updating user role...', {
-          from: user.role?.id,
-          to: formData.selectedRoleId
-        });
-        try {
-          await secureRoleAssignment.mutateAsync({
-            targetUserId: user.user_id,
-            newRoleId: formData.selectedRoleId
-          });
-          console.log('✅ Role updated successfully');
-        } catch (roleError) {
-          console.error('❌ Role update failed:', roleError);
-          toast({
-            title: "Erreur rôle",
-            description: "Impossible de mettre à jour le rôle utilisateur",
-            variant: "destructive",
-          });
-        }
-      }
-
-      // 4. Mettre à jour les autres informations via l'API standard
-      console.log('📝 Updating user profile...');
+      // 1. Mettre à jour les informations du profil utilisateur
       const { error: profileError } = await supabase
         .from('utilisateurs_internes')
         .update({
@@ -149,29 +78,93 @@ const EditUserForm = ({ user, onSuccess, onCancel }: EditUserFormProps) => {
           photo_url: formData.photo_url || null,
           matricule: formData.matricule || null,
           statut: formData.statut,
+          doit_changer_mot_de_passe: formData.doit_changer_mot_de_passe,
           updated_at: new Date().toISOString()
         })
         .eq('id', user.id);
 
       if (profileError) {
-        console.error('❌ Profile update error:', profileError);
-        toast({
-          title: "Erreur profil",
-          description: "Impossible de mettre à jour le profil utilisateur",
-          variant: "destructive",
-        });
-        throw profileError;
+        console.error('❌ Erreur mise à jour profil:', profileError);
+        throw new Error(`Erreur profil: ${profileError.message}`);
       }
 
-      console.log('✅ User update completed successfully');
+      console.log('✅ Profil utilisateur mis à jour');
+
+      // 2. Gérer le changement de rôle si nécessaire
+      if (formData.selectedRoleId && formData.selectedRoleId !== user.role?.id) {
+        console.log('🔄 Mise à jour du rôle utilisateur...');
+        
+        // Désactiver l'ancien rôle
+        if (user.role?.id) {
+          await supabase
+            .from('user_roles')
+            .update({ is_active: false })
+            .eq('user_id', user.user_id)
+            .eq('role_id', user.role.id);
+        }
+
+        // Assigner le nouveau rôle
+        const { error: roleError } = await supabase
+          .from('user_roles')
+          .upsert({
+            user_id: user.user_id,
+            role_id: formData.selectedRoleId,
+            is_active: true,
+            assigned_at: new Date().toISOString()
+          });
+
+        if (roleError) {
+          console.error('❌ Erreur assignation rôle:', roleError);
+          throw new Error(`Erreur rôle: ${roleError.message}`);
+        }
+
+        console.log('✅ Rôle utilisateur mis à jour');
+      }
+
+      // 3. Gérer le changement de mot de passe si demandé
+      if (formData.modifierMotDePasse && formData.nouveauMotDePasse.trim()) {
+        console.log('🔐 Mise à jour du mot de passe...');
+        
+        const { error: passwordError } = await supabase.auth.admin.updateUserById(
+          user.user_id,
+          { password: formData.nouveauMotDePasse }
+        );
+
+        if (passwordError) {
+          console.error('❌ Erreur mot de passe:', passwordError);
+          throw new Error(`Erreur mot de passe: ${passwordError.message}`);
+        }
+
+        console.log('✅ Mot de passe mis à jour');
+      }
+
+      // 4. Mettre à jour l'email dans auth.users si changé
+      if (formData.email !== user.email) {
+        console.log('📧 Mise à jour email auth...');
+        
+        const { error: emailError } = await supabase.auth.admin.updateUserById(
+          user.user_id,
+          { email: formData.email }
+        );
+
+        if (emailError) {
+          console.error('❌ Erreur email auth:', emailError);
+          // Ne pas bloquer pour cette erreur
+          console.warn('⚠️ Email auth non mis à jour, mais profil sauvegardé');
+        } else {
+          console.log('✅ Email auth mis à jour');
+        }
+      }
+
       toast({
-        title: "Utilisateur modifié",
-        description: "Les informations ont été mises à jour avec succès",
+        title: "Utilisateur modifié avec succès",
+        description: "Toutes les informations ont été mises à jour.",
       });
+
       onSuccess();
 
     } catch (error: any) {
-      console.error('❌ User update failed:', error);
+      console.error('❌ Erreur générale:', error);
       toast({
         title: "Erreur de mise à jour",
         description: error.message || "Une erreur est survenue lors de la mise à jour",
@@ -182,59 +175,30 @@ const EditUserForm = ({ user, onSuccess, onCancel }: EditUserFormProps) => {
     }
   };
 
-  const handleDiagnostic = async () => {
-    try {
-      const results = await systemDiagnostic.mutateAsync();
-      console.log('📊 Diagnostic results:', results);
-      toast({
-        title: "Diagnostic terminé",
-        description: "Résultats disponibles dans la console",
-      });
-    } catch (error) {
-      console.error('❌ Diagnostic failed:', error);
-      toast({
-        title: "Erreur diagnostic",
-        description: "Impossible d'exécuter le diagnostic",
-        variant: "destructive",
-      });
-    }
-  };
-
   return (
-    <div className="space-y-6">
-      {/* En-tête avec informations système */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center space-x-2">
-              <User className="h-5 w-5" />
-              <span>Modification de l'utilisateur</span>
-            </CardTitle>
-            <div className="flex items-center space-x-2">
-              <Badge variant="outline" className="flex items-center space-x-1">
-                <Shield className="h-3 w-3" />
-                <span>Sécurisé</span>
-              </Badge>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={handleDiagnostic}
-                disabled={systemDiagnostic.isPending}
-              >
-                {systemDiagnostic.isPending ? (
-                  <RefreshCw className="h-4 w-4 animate-spin" />
-                ) : (
-                  <AlertCircle className="h-4 w-4" />
-                )}
-                Diagnostic
-              </Button>
-            </div>
-          </div>
-        </CardHeader>
-      </Card>
-
+    <div className="space-y-6 max-w-4xl mx-auto">
       <form onSubmit={handleSubmit} className="space-y-6">
+        {/* En-tête avec photo de profil */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center space-x-4">
+              <Avatar className="h-16 w-16">
+                <AvatarImage src={formData.photo_url} alt={`${formData.prenom} ${formData.nom}`} />
+                <AvatarFallback>
+                  <User className="h-8 w-8" />
+                </AvatarFallback>
+              </Avatar>
+              <div>
+                <CardTitle className="text-xl">
+                  {formData.prenom} {formData.nom}
+                </CardTitle>
+                <p className="text-muted-foreground">{formData.email}</p>
+                <p className="text-sm text-muted-foreground">Matricule: {formData.matricule}</p>
+              </div>
+            </div>
+          </CardHeader>
+        </Card>
+
         {/* Informations personnelles */}
         <Card>
           <CardHeader>
@@ -273,23 +237,22 @@ const EditUserForm = ({ user, onSuccess, onCancel }: EditUserFormProps) => {
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="telephone">Téléphone</Label>
-                <Input
-                  id="telephone"
-                  value={formData.telephone}
-                  onChange={(e) => handleInputChange('telephone', e.target.value)}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="matricule">Matricule</Label>
-                <Input
-                  id="matricule"
-                  value={formData.matricule}
-                  onChange={(e) => handleInputChange('matricule', e.target.value)}
-                />
-              </div>
+            <div className="space-y-2">
+              <Label htmlFor="matricule">Matricule</Label>
+              <Input
+                id="matricule"
+                value={formData.matricule}
+                onChange={(e) => handleInputChange('matricule', e.target.value)}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="telephone">Téléphone</Label>
+              <Input
+                id="telephone"
+                value={formData.telephone}
+                onChange={(e) => handleInputChange('telephone', e.target.value)}
+              />
             </div>
 
             <div className="space-y-2">
@@ -304,13 +267,10 @@ const EditUserForm = ({ user, onSuccess, onCancel }: EditUserFormProps) => {
           </CardContent>
         </Card>
 
-        {/* Rôle et sécurité */}
+        {/* Rôle et statut */}
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center space-x-2">
-              <Shield className="h-5 w-5" />
-              <span>Rôle et sécurité</span>
-            </CardTitle>
+            <CardTitle>Rôle et statut</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
@@ -319,10 +279,6 @@ const EditUserForm = ({ user, onSuccess, onCancel }: EditUserFormProps) => {
                 <div className="flex items-center space-x-2">
                   <RefreshCw className="h-4 w-4 animate-spin" />
                   <span className="text-sm text-muted-foreground">Chargement des rôles...</span>
-                </div>
-              ) : rolesError ? (
-                <div className="text-sm text-destructive">
-                  Erreur lors du chargement des rôles
                 </div>
               ) : (
                 <Select
@@ -333,7 +289,7 @@ const EditUserForm = ({ user, onSuccess, onCancel }: EditUserFormProps) => {
                     <SelectValue placeholder="Sélectionner un rôle" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="none">Aucun rôle</SelectItem>
+                    <SelectItem value="">Aucun rôle</SelectItem>
                     {roles.map((role) => (
                       <SelectItem key={role.id} value={role.id}>
                         {role.name} {role.description && `- ${role.description}`}
@@ -342,20 +298,6 @@ const EditUserForm = ({ user, onSuccess, onCancel }: EditUserFormProps) => {
                   </SelectContent>
                 </Select>
               )}
-            </div>
-
-            <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
-                <Label htmlFor="password-change">Forcer le changement de mot de passe</Label>
-                <p className="text-sm text-muted-foreground">
-                  L'utilisateur devra changer son mot de passe lors de sa prochaine connexion
-                </p>
-              </div>
-              <Switch
-                id="password-change"
-                checked={formData.doit_changer_mot_de_passe}
-                onCheckedChange={(checked) => handleInputChange('doit_changer_mot_de_passe', checked)}
-              />
             </div>
 
             <div className="space-y-2">
@@ -377,10 +319,60 @@ const EditUserForm = ({ user, onSuccess, onCancel }: EditUserFormProps) => {
           </CardContent>
         </Card>
 
-        <Separator />
+        {/* Sécurité et mot de passe */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center space-x-2">
+              <Lock className="h-5 w-5" />
+              <span>Sécurité</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <Label htmlFor="modifier-password">Modifier le mot de passe</Label>
+                <p className="text-sm text-muted-foreground">
+                  Activer pour définir un nouveau mot de passe
+                </p>
+              </div>
+              <Switch
+                id="modifier-password"
+                checked={formData.modifierMotDePasse}
+                onCheckedChange={(checked) => handleInputChange('modifierMotDePasse', checked)}
+              />
+            </div>
+
+            {formData.modifierMotDePasse && (
+              <div className="space-y-2">
+                <Label htmlFor="nouveau-password">Nouveau mot de passe</Label>
+                <Input
+                  id="nouveau-password"
+                  type="password"
+                  value={formData.nouveauMotDePasse}
+                  onChange={(e) => handleInputChange('nouveauMotDePasse', e.target.value)}
+                  placeholder="Entrez le nouveau mot de passe"
+                />
+              </div>
+            )}
+
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <Label htmlFor="force-password-change">Forcer le changement de mot de passe</Label>
+                <p className="text-sm text-muted-foreground">
+                  L'utilisateur devra changer son mot de passe lors de sa prochaine connexion
+                </p>
+              </div>
+              <Switch
+                id="force-password-change"
+                checked={formData.doit_changer_mot_de_passe}
+                onCheckedChange={(checked) => handleInputChange('doit_changer_mot_de_passe', checked)}
+              />
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Actions */}
-        <div className="flex justify-end space-x-2">
+        <div className="flex justify-end space-x-2 pt-4">
           <Button type="button" variant="outline" onClick={onCancel}>
             Annuler
           </Button>
@@ -392,13 +384,10 @@ const EditUserForm = ({ user, onSuccess, onCancel }: EditUserFormProps) => {
             {isUpdating ? (
               <>
                 <RefreshCw className="h-4 w-4 animate-spin" />
-                <span>Mise à jour...</span>
+                <span>Modification en cours...</span>
               </>
             ) : (
-              <>
-                <Shield className="h-4 w-4" />
-                <span>Sauvegarder</span>
-              </>
+              <span>Modifier l'utilisateur</span>
             )}
           </Button>
         </div>
