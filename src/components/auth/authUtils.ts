@@ -52,10 +52,17 @@ export const checkInternalUser = async (userId: string): Promise<UtilisateurInte
       return null;
     }
 
-    // Requête simplifiée pour éviter les erreurs de relation
+    // Requête simplifiée avec gestion d'erreur robuste
     const { data: utilisateur, error: userError } = await supabase
       .from('utilisateurs_internes')
-      .select('*')
+      .select(`
+        *,
+        role:roles(
+          id,
+          name,
+          description
+        )
+      `)
       .eq('user_id', userId)
       .eq('statut', 'actif')
       .eq('type_compte', 'interne')
@@ -78,31 +85,14 @@ export const checkInternalUser = async (userId: string): Promise<UtilisateurInte
       return null;
     }
 
-    // Récupérer le rôle séparément si nécessaire
-    let roleData = null;
-    if (utilisateur.role_id) {
-      const { data: role } = await supabase
-        .from('roles')
-        .select('name as nom, description')
-        .eq('id', utilisateur.role_id)
-        .single();
-      
-      roleData = role;
-    }
-
-    const utilisateurAvecRole = {
-      ...utilisateur,
-      role: roleData || { nom: 'Utilisateur', description: 'Rôle par défaut' }
-    };
-
     console.log('✅ Utilisateur interne trouvé et actif:', {
       id: utilisateur.id,
       email: utilisateur.email,
       nom: utilisateur.nom,
-      role: roleData?.nom
+      role: utilisateur.role?.name
     });
 
-    return utilisateurAvecRole as UtilisateurInterne;
+    return utilisateur as UtilisateurInterne;
 
   } catch (error: any) {
     console.error('💥 Erreur critique lors de la vérification utilisateur interne:', error);

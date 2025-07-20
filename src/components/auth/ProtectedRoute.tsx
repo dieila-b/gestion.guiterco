@@ -18,7 +18,7 @@ const ProtectedRoute = ({ children, requireRole }: ProtectedRouteProps) => {
     hasInternalUser: !!utilisateurInterne,
     isInternalUser,
     userEmail: user?.email,
-    internalUserRole: utilisateurInterne?.role?.nom,
+    internalUserRole: utilisateurInterne?.role?.name,
     requireRole,
     hostname: window.location.hostname,
     isProduction: !window.location.hostname.includes('localhost') && 
@@ -102,10 +102,10 @@ const ProtectedRoute = ({ children, requireRole }: ProtectedRouteProps) => {
 
   // Vérification des rôles spécifiques si requis
   if (requireRole && utilisateurInterne && user) {
-    const hasRequiredRole = requireRole.includes(utilisateurInterne.role.nom);
+    const hasRequiredRole = requireRole.includes(utilisateurInterne.role.name);
     console.log('🔐 ProtectedRoute - Vérification du rôle:', {
       requiredRoles: requireRole,
-      userRole: utilisateurInterne.role.nom,
+      userRole: utilisateurInterne.role.name,
       hasRequiredRole
     });
     
@@ -119,7 +119,7 @@ const ProtectedRoute = ({ children, requireRole }: ProtectedRouteProps) => {
               Vous n'avez pas les permissions nécessaires pour accéder à cette page.
             </p>
             <p className="text-sm text-muted-foreground mt-2">
-              Rôle requis : {requireRole.join(', ')} | Votre rôle : {utilisateurInterne.role.nom}
+              Rôle requis : {requireRole.join(', ')} | Votre rôle : {utilisateurInterne.role.name}
             </p>
           </div>
         </div>

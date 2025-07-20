@@ -24,65 +24,58 @@ export const useUserPermissions = (userId?: string) => {
       
       try {
         // Récupérer les permissions via les rôles de l'utilisateur
-        const { data: userRoles, error: userRolesError } = await supabase
+        const { data: permissions, error } = await supabase
           .from('user_roles')
           .select(`
             role_id,
-            is_active
+            is_active,
+            roles!inner (
+              id,
+              name,
+              role_permissions!inner (
+                can_access,
+                permissions!inner (
+                  id,
+                  menu,
+                  submenu,
+                  action,
+                  description
+                )
+              )
+            )
           `)
           .eq('user_id', userId)
           .eq('is_active', true);
 
-        if (userRolesError) {
-          console.error('❌ Error fetching user roles:', userRolesError);
-          throw new Error(`Erreur lors de la récupération des rôles: ${userRolesError.message}`);
+        if (error) {
+          console.error('❌ Error fetching user permissions:', error);
+          throw new Error(`Erreur lors de la récupération des permissions: ${error.message}`);
         }
 
-        if (!userRoles || userRoles.length === 0) {
+        if (!permissions || permissions.length === 0) {
           console.log('⚠️ No active roles found for user');
           return [];
         }
 
-        // Récupérer toutes les permissions pour les rôles de l'utilisateur
-        const roleIds = userRoles.map(ur => ur.role_id);
-        
-        const { data: rolePermissions, error: permissionsError } = await supabase
-          .from('role_permissions')
-          .select(`
-            can_access,
-            permission_id,
-            permissions!inner (
-              id,
-              menu,
-              submenu,
-              action,
-              description
-            )
-          `)
-          .in('role_id', roleIds)
-          .eq('can_access', true);
-
-        if (permissionsError) {
-          console.error('❌ Error fetching role permissions:', permissionsError);
-          throw new Error(`Erreur lors de la récupération des permissions: ${permissionsError.message}`);
-        }
-
-        if (!rolePermissions) {
-          console.log('⚠️ No permissions found for user roles');
-          return [];
-        }
-
         // Transformer les données pour obtenir une liste plate des permissions
-        const userPermissions: UserPermission[] = rolePermissions
-          .filter(rp => rp.permissions && rp.can_access)
-          .map(rp => ({
-            id: rp.permissions.id,
-            menu: rp.permissions.menu,
-            submenu: rp.permissions.submenu,
-            action: rp.permissions.action,
-            description: rp.permissions.description,
-            can_access: rp.can_access
-          }));
+        const userPermissions: UserPermission[] = [];
+        
+        permissions.forEach(userRole => {
+          if (userRole.roles?.role_permissions) {
+            userRole.roles.role_permissions.forEach(rolePermission => {
+              if (rolePermission.can_access && rolePermission.permissions) {
+                userPermissions.push({
+                  id: rolePermission.permissions.id,
+                  menu: rolePermission.permissions.menu,
+                  submenu: rolePermission.permissions.submenu,
+                  action: rolePermission.permissions.action,
+                  description: rolePermission.permissions.description,
+                  can_access: rolePermission.can_access
+                });
+              }
+            });
+          }
+        });
 
         // Supprimer les doublons (au cas où l'utilisateur aurait plusieurs rôles avec les mêmes permissions)
         const uniquePermissions = userPermissions.filter((permission, index, self) => 
@@ -104,7 +97,5 @@ export const useUserPermissions = (userId?: string) => {
     enabled: !!userId, // Ne pas exécuter la requête si pas d'userId
     retry: 2,
     retryDelay: 1000,
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    cacheTime: 10 * 60 * 1000, // 10 minutes
   });
 };
