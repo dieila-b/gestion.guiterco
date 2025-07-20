@@ -1,164 +1,162 @@
 
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useAuth } from './AuthContext';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Loader2, Lock, Mail, AlertCircle } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
+import { Loader2, Lock, Mail, Shield } from 'lucide-react';
+import { useAuth } from './AuthContext';
 
 const LoginPage = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  
-  const { signIn } = useAuth();
+  const { signIn, user, isInternalUser, loading: authLoading } = useAuth();
   const navigate = useNavigate();
-  const { toast } = useToast();
+
+  // Rediriger si l'utilisateur est déjà connecté et autorisé
+  useEffect(() => {
+    if (!authLoading && user && isInternalUser) {
+      console.log('✅ Utilisateur déjà connecté et autorisé, redirection...');
+      navigate('/');
+    }
+  }, [user, isInternalUser, authLoading, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!email || !password) {
-      setError('Veuillez saisir votre email et mot de passe');
-      return;
-    }
-
+    setError('');
     setLoading(true);
-    setError(null);
-    
+
     try {
-      console.log('🔑 Tentative de connexion...', email);
-      
-      const { error: signInError } = await signIn(email, password);
-      
-      if (signInError) {
-        console.error('❌ Erreur de connexion:', signInError);
+      console.log('🔑 Tentative de connexion depuis LoginPage pour:', email);
+      const { error } = await signIn(email, password);
+
+      if (error) {
+        console.log('❌ Erreur de connexion:', error.message);
         
-        let errorMessage = 'Erreur de connexion';
-        
-        if (signInError.message?.includes('Invalid login credentials')) {
-          errorMessage = 'Email ou mot de passe incorrect';
-        } else if (signInError.message?.includes('Email not confirmed')) {
-          errorMessage = 'Veuillez confirmer votre email avant de vous connecter';
-        } else if (signInError.message?.includes('Too many requests')) {
-          errorMessage = 'Trop de tentatives de connexion. Veuillez patienter quelques minutes.';
-        } else if (signInError.message) {
-          errorMessage = signInError.message;
+        if (error.message.includes('Invalid login credentials')) {
+          setError('Email ou mot de passe incorrect');
+        } else if (error.message.includes('Email not confirmed')) {
+          setError('Votre compte doit être confirmé par email avant la première connexion');
+        } else if (error.message.includes('User not found')) {
+          setError('Aucun compte trouvé avec cet email');
+        } else {
+          setError('Erreur de connexion. Veuillez réessayer.');
         }
-        
-        setError(errorMessage);
-        toast({
-          title: "Erreur de connexion",
-          description: errorMessage,
-          variant: "destructive",
-        });
       } else {
-        console.log('✅ Connexion réussie, redirection...');
-        toast({
-          title: "Connexion réussie",
-          description: "Bienvenue !",
-        });
-        
-        // La redirection sera gérée automatiquement par l'AuthProvider
-        // via l'effet dans Auth.tsx
+        console.log('✅ Connexion réussie depuis LoginPage');
+        // La redirection se fera automatiquement via useEffect quand l'état auth sera mis à jour
       }
-    } catch (error: any) {
-      console.error('💥 Erreur critique lors de la connexion:', error);
-      const errorMessage = 'Une erreur inattendue s\'est produite';
-      setError(errorMessage);
-      toast({
-        title: "Erreur",
-        description: errorMessage,
-        variant: "destructive",
-      });
+    } catch (err) {
+      console.error('❌ Erreur inattendue lors de la connexion:', err);
+      setError('Une erreur est survenue. Veuillez réessayer.');
     } finally {
       setLoading(false);
     }
   };
 
+  // Afficher un loader pendant que l'authentification se charge
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
+          <p className="text-gray-600">Vérification de l'authentification...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="text-center">
-          <CardTitle className="text-2xl font-bold flex items-center justify-center gap-2">
-            <Lock className="h-6 w-6" />
-            Connexion
-          </CardTitle>
-          <CardDescription>
-            Connectez-vous à votre compte pour accéder à l'application
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {error && (
-              <Alert variant="destructive">
-                <AlertCircle className="h-4 w-4" />
-                <AlertDescription>{error}</AlertDescription>
-              </Alert>
-            )}
-            
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-md w-full space-y-8">
+        <div className="text-center">
+          <div className="mx-auto h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center">
+            <Shield className="h-6 w-6 text-primary" />
+          </div>
+          <h1 className="mt-6 text-3xl font-bold text-gray-900">GestCompta</h1>
+          <p className="mt-2 text-sm text-gray-600">
+            Accès réservé aux utilisateurs autorisés
+          </p>
+        </div>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-center">Connexion</CardTitle>
+            <CardDescription className="text-center">
+              Connectez-vous avec votre compte autorisé
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              {error && (
+                <Alert variant="destructive">
+                  <AlertDescription>{error}</AlertDescription>
+                </Alert>
+              )}
+
+              <div className="space-y-2">
+                <Label htmlFor="email" className="flex items-center gap-2">
+                  <Mail className="h-4 w-4" />
+                  Email
+                </Label>
                 <Input
                   id="email"
                   type="email"
-                  placeholder="votre@email.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="pl-10"
-                  disabled={loading}
-                  autoComplete="email"
+                  placeholder="votre.email@entreprise.com"
                   required
+                  disabled={loading}
                 />
               </div>
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="password">Mot de passe</Label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+
+              <div className="space-y-2">
+                <Label htmlFor="password" className="flex items-center gap-2">
+                  <Lock className="h-4 w-4" />
+                  Mot de passe
+                </Label>
                 <Input
                   id="password"
                   type="password"
-                  placeholder="••••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="pl-10"
-                  disabled={loading}
-                  autoComplete="current-password"
+                  placeholder="••••••••"
                   required
+                  disabled={loading}
                 />
               </div>
+
+              <Button
+                type="submit"
+                className="w-full"
+                disabled={loading}
+              >
+                {loading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Connexion en cours...
+                  </>
+                ) : (
+                  'Se connecter'
+                )}
+              </Button>
+            </form>
+
+            <div className="mt-6 pt-4 border-t border-gray-200">
+              <div className="bg-blue-50 rounded-md p-3">
+                <p className="text-xs text-blue-700">
+                  <strong>Accès restreint :</strong> Seuls les utilisateurs internes autorisés peuvent se connecter. 
+                  Contactez votre administrateur si vous rencontrez des difficultés.
+                </p>
+              </div>
             </div>
-            
-            <Button
-              type="submit"
-              className="w-full"
-              disabled={loading || !email || !password}
-            >
-              {loading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Connexion en cours...
-                </>
-              ) : (
-                'Se connecter'
-              )}
-            </Button>
-          </form>
-          
-          <div className="mt-6 text-center text-sm text-muted-foreground">
-            <p>Accès réservé aux utilisateurs internes autorisés</p>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 };
