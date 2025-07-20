@@ -66,12 +66,6 @@ const UserTableRow = ({ utilisateur, onDelete, onUserUpdated, isDeleting }: User
     );
   };
 
-  // Transform role to match EditUserDialog expected format
-  const transformedUser = {
-    ...utilisateur,
-    role: utilisateur.role ? { nom: utilisateur.role.name } : null
-  };
-
   return (
     <TableRow>
       <TableCell>
@@ -108,7 +102,7 @@ const UserTableRow = ({ utilisateur, onDelete, onUserUpdated, isDeleting }: User
       </TableCell>
       <TableCell className="text-right">
         <div className="flex items-center justify-end space-x-2">
-          <EditUserDialog user={transformedUser} onUserUpdated={onUserUpdated} />
+          <EditUserDialog user={utilisateur} onUserUpdated={onUserUpdated} />
           <Button
             variant="outline"
             size="sm"
