@@ -127,14 +127,18 @@ const EditUserForm = ({ user, onSuccess, onCancel }: EditUserFormProps) => {
       }
     }
     
+    console.log('🚀 Starting user update process...');
+    let allOperationsSuccessful = true;
+    const errors: string[] = [];
+    
     try {
-      // 1. Mettre à jour les informations utilisateur
-      console.log('📝 Updating user information...');
+      // 1. Mettre à jour les informations utilisateur (toujours en premier)
+      console.log('📝 Step 1: Updating user information...');
       await updateUser.mutateAsync(formData);
       
-      // 2. Changer le mot de passe si demandé (séparément)
+      // 2. Changer le mot de passe si demandé (indépendamment)
       if (changePassword && newPassword) {
-        console.log('🔐 Changing password...');
+        console.log('🔐 Step 2: Changing password...');
         try {
           await updatePassword({
             userId: user.user_id,
@@ -144,18 +148,14 @@ const EditUserForm = ({ user, onSuccess, onCancel }: EditUserFormProps) => {
           console.log('✅ Password updated successfully');
         } catch (passwordError: any) {
           console.error('❌ Password update failed:', passwordError);
-          // Ne pas empêcher la suite si seul le mot de passe a échoué
-          toast({
-            title: "Attention",
-            description: `Informations mises à jour mais le mot de passe n'a pas pu être changé: ${passwordError.message}`,
-            variant: "destructive",
-          });
+          allOperationsSuccessful = false;
+          errors.push(`Mot de passe: ${passwordError.message}`);
         }
       }
       
-      // 3. Mettre à jour le rôle si changé
+      // 3. Mettre à jour le rôle si changé (indépendamment)
       if (selectedRoleId && selectedRoleId !== user.role?.id) {
-        console.log('🔄 Updating user role...');
+        console.log('🔄 Step 3: Updating user role...');
         try {
           await assignRole.mutateAsync({
             userId: user.user_id,
@@ -164,19 +164,32 @@ const EditUserForm = ({ user, onSuccess, onCancel }: EditUserFormProps) => {
           console.log('✅ Role updated successfully');
         } catch (roleError: any) {
           console.error('❌ Role update failed:', roleError);
-          toast({
-            title: "Attention",
-            description: `Informations mises à jour mais le rôle n'a pas pu être changé: ${roleError.message}`,
-            variant: "destructive",
-          });
+          allOperationsSuccessful = false;
+          errors.push(`Rôle: ${roleError.message}`);
         }
       }
       
-      // Fermer le formulaire si tout s'est bien passé
-      onSuccess();
-    } catch (error) {
-      console.error('❌ Error in handleSubmit:', error);
-      // L'erreur sera gérée par les mutations individuelles
+      // 4. Gérer le résultat final
+      if (allOperationsSuccessful) {
+        console.log('🎉 All operations completed successfully');
+        onSuccess();
+      } else {
+        console.log('⚠️ Some operations failed:', errors);
+        toast({
+          title: "Mise à jour partielle",
+          description: `Informations de base mises à jour. Erreurs: ${errors.join(', ')}`,
+          variant: "destructive",
+        });
+        // Ne pas fermer le formulaire pour permettre de réessayer
+      }
+      
+    } catch (error: any) {
+      console.error('❌ Critical error in handleSubmit:', error);
+      toast({
+        title: "Erreur critique",
+        description: error.message || "Une erreur inattendue s'est produite",
+        variant: "destructive",
+      });
     }
   };
 

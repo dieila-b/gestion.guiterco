@@ -9,30 +9,32 @@ export const useUserRoleAssignment = () => {
 
   const assignRole = useMutation({
     mutationFn: async ({ userId, roleId }: { userId: string; roleId: string }) => {
-      console.log('🔨 Assigning unified role with new structure:', { userId, roleId });
+      console.log('🔨 Assigning unified role with upsert strategy:', { userId, roleId });
       
       try {
         // 1. Obtenir l'utilisateur actuel pour assigned_by
         const { data: { user: currentUser } } = await supabase.auth.getUser();
         
-        // 2. Désactiver tous les rôles existants pour cet utilisateur
+        // 2. Utiliser un upsert pour gérer les rôles existants
+        // D'abord, désactiver TOUS les autres rôles pour cet utilisateur
         const { error: deactivateError } = await supabase
           .from('user_roles')
           .update({ 
             is_active: false, 
             updated_at: new Date().toISOString() 
           })
-          .eq('user_id', userId);
+          .eq('user_id', userId)
+          .neq('role_id', roleId); // Ne pas désactiver le rôle qu'on va assigner
 
         if (deactivateError) {
-          console.error('❌ Error deactivating existing roles:', deactivateError);
-          throw new Error(`Erreur lors de la désactivation des rôles: ${deactivateError.message}`);
+          console.error('❌ Error deactivating other roles:', deactivateError);
+          throw new Error(`Erreur lors de la désactivation des autres rôles: ${deactivateError.message}`);
         }
 
-        // 3. Assigner le nouveau rôle avec la nouvelle structure
+        // 3. Utiliser upsert pour le rôle principal
         const { data, error } = await supabase
           .from('user_roles')
-          .insert({
+          .upsert({
             user_id: userId,
             role_id: roleId,
             is_active: true,
@@ -40,16 +42,19 @@ export const useUserRoleAssignment = () => {
             assigned_by: currentUser?.id || null,
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString()
+          }, {
+            onConflict: 'user_id,role_id', // Spécifier la contrainte sur laquelle faire l'upsert
+            ignoreDuplicates: false // Forcer la mise à jour si existe déjà
           })
           .select()
           .single();
 
         if (error) {
-          console.error('❌ Error assigning new role:', error);
+          console.error('❌ Error upserting role:', error);
           throw new Error(`Erreur lors de l'assignation du rôle: ${error.message}`);
         }
 
-        console.log('✅ Role assigned successfully with new structure:', data);
+        console.log('✅ Role assigned successfully with upsert:', data);
         return data;
 
       } catch (error: any) {
