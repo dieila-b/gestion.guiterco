@@ -14,7 +14,7 @@ export const useAuthState = (bypassAuth: boolean, mockUser: UtilisateurInterne, 
   const { toast } = useToast();
 
   useEffect(() => {
-    console.log('🔍 AuthState - État actuel:', { 
+    console.log('🔍 AuthState - Initialisation:', { 
       isDevMode, 
       bypassAuth, 
       loading,
@@ -57,7 +57,7 @@ export const useAuthState = (bypassAuth: boolean, mockUser: UtilisateurInterne, 
       setSession(mockSession);
       setLoading(false);
       
-      console.log('✅ Mock session créée:', { user: mockSupabaseUser, session: mockSession });
+      console.log('✅ Mock session créée avec succès');
       return;
     }
 
@@ -75,27 +75,71 @@ export const useAuthState = (bypassAuth: boolean, mockUser: UtilisateurInterne, 
     if (!bypassAuth) {
       console.log('🔐 Mode authentification normale');
       
-      // Configurer l'écoute des changements d'état d'authentification
-      const { data: { subscription } } = supabase.auth.onAuthStateChange(
-        async (event, session) => {
-          console.log('🔐 Auth state change:', { event, session: !!session, userId: session?.user?.id });
+      let authSubscription: any = null;
+      
+      const setupAuth = async () => {
+        try {
+          // Vérifier la session existante d'abord
+          console.log('🔍 Vérification de la session existante...');
+          const { data: { session: existingSession }, error: sessionError } = await supabase.auth.getSession();
           
+          if (sessionError) {
+            console.error('❌ Erreur lors de la récupération de la session:', sessionError);
+            setLoading(false);
+            return;
+          }
+
+          console.log('📋 Session existante:', { hasSession: !!existingSession, userId: existingSession?.user?.id });
+          
+          // Traiter la session existante
+          await processSession(existingSession);
+          
+          // Configurer l'écoute des changements d'état d'authentification
+          authSubscription = supabase.auth.onAuthStateChange(async (event, session) => {
+            console.log('🔐 Changement d\'état d\'authentification:', { event, session: !!session, userId: session?.user?.id });
+            await processSession(session);
+          });
+
+        } catch (error: any) {
+          console.error('💥 Erreur lors de l\'initialisation de l\'authentification:', error);
+          setLoading(false);
+          toast({
+            title: "Erreur d'authentification",
+            description: "Impossible d'initialiser le système d'authentification",
+            variant: "destructive",
+          });
+        }
+      };
+
+      const processSession = async (session: Session | null) => {
+        try {
           setSession(session);
           setUser(session?.user ?? null);
 
           if (session?.user) {
+            console.log('👤 Traitement de la session utilisateur:', session.user.email);
+            
+            // Vérifier l'utilisateur interne avec un timeout
+            const timeoutPromise = new Promise((_, reject) => 
+              setTimeout(() => reject(new Error('Timeout lors de la vérification')), 10000)
+            );
+            
+            const checkPromise = checkInternalUser(session.user.id);
+            
             try {
-              console.log('👤 Vérification utilisateur interne pour:', session.user.email);
-              const internalUser = await checkInternalUser(session.user.id);
+              const internalUser = await Promise.race([checkPromise, timeoutPromise]) as UtilisateurInterne | null;
               
-              console.log('🔍 Résultat vérification utilisateur interne:', internalUser);
+              console.log('🔍 Résultat vérification utilisateur interne:', !!internalUser);
               
               if (internalUser && internalUser.statut === 'actif' && internalUser.type_compte === 'interne') {
-                console.log('✅ Utilisateur interne autorisé:', internalUser);
+                console.log('✅ Utilisateur interne autorisé:', {
+                  id: internalUser.id,
+                  email: internalUser.email,
+                  role: internalUser.role?.name
+                });
                 setUtilisateurInterne(internalUser);
               } else {
                 console.log('❌ Utilisateur non autorisé ou inactif');
-                // Ne pas déconnecter automatiquement, laisser l'utilisateur voir l'erreur
                 setUtilisateurInterne(null);
                 toast({
                   title: "Accès refusé",
@@ -103,12 +147,12 @@ export const useAuthState = (bypassAuth: boolean, mockUser: UtilisateurInterne, 
                   variant: "destructive",
                 });
               }
-            } catch (error) {
-              console.error('❌ Erreur lors de la vérification de l\'utilisateur interne:', error);
+            } catch (timeoutError) {
+              console.error('⏰ Timeout lors de la vérification de l\'utilisateur interne');
               setUtilisateurInterne(null);
               toast({
-                title: "Erreur de vérification",
-                description: "Impossible de vérifier vos autorisations",
+                title: "Erreur de connexion",
+                description: "La vérification des autorisations a pris trop de temps. Veuillez réessayer.",
                 variant: "destructive",
               });
             }
@@ -116,43 +160,27 @@ export const useAuthState = (bypassAuth: boolean, mockUser: UtilisateurInterne, 
             setUtilisateurInterne(null);
           }
           
+        } catch (error: any) {
+          console.error('❌ Erreur lors du traitement de la session:', error);
+          setUtilisateurInterne(null);
+          toast({
+            title: "Erreur de vérification",
+            description: "Impossible de vérifier vos autorisations. Veuillez réessayer.",
+            variant: "destructive",
+          });
+        } finally {
           setLoading(false);
         }
-      );
+      };
 
-      // Vérifier la session existante
-      supabase.auth.getSession().then(async ({ data: { session }, error }) => {
-        if (error) {
-          console.error('❌ Erreur lors de la récupération de la session:', error);
-          setLoading(false);
-          return;
+      setupAuth();
+
+      // Cleanup function
+      return () => {
+        if (authSubscription) {
+          authSubscription.data?.subscription?.unsubscribe();
         }
-
-        console.log('🔍 Session existante:', { hasSession: !!session, userId: session?.user?.id });
-        
-        setSession(session);
-        setUser(session?.user ?? null);
-        
-        if (session?.user) {
-          try {
-            const internalUser = await checkInternalUser(session.user.id);
-            console.log('🔍 Utilisateur interne trouvé:', internalUser);
-            
-            if (internalUser && internalUser.statut === 'actif' && internalUser.type_compte === 'interne') {
-              setUtilisateurInterne(internalUser);
-            } else {
-              setUtilisateurInterne(null);
-            }
-          } catch (error) {
-            console.error('❌ Erreur lors de la vérification initiale:', error);
-            setUtilisateurInterne(null);
-          }
-        }
-        
-        setLoading(false);
-      });
-
-      return () => subscription.unsubscribe();
+      };
     } else {
       setLoading(false);
     }
@@ -160,9 +188,15 @@ export const useAuthState = (bypassAuth: boolean, mockUser: UtilisateurInterne, 
 
   const signIn = async (email: string, password: string) => {
     console.log('🔑 Tentative de connexion pour:', email);
-    const result = await authSignIn(email, password);
-    console.log('🔑 Résultat de la connexion:', { hasError: !!result.error });
-    return result;
+    setLoading(true);
+    
+    try {
+      const result = await authSignIn(email, password);
+      console.log('🔑 Résultat de la connexion:', { hasError: !!result.error });
+      return result;
+    } finally {
+      // Le loading sera mis à false par le processSession dans onAuthStateChange
+    }
   };
 
   const signOut = async () => {
@@ -174,7 +208,6 @@ export const useAuthState = (bypassAuth: boolean, mockUser: UtilisateurInterne, 
       setUser(null);
       setSession(null);
       setUtilisateurInterne(null);
-      // Pas de rechargement automatique, laisser l'utilisateur naviguer
       return;
     }
     

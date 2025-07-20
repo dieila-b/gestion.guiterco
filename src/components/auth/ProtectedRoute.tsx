@@ -2,7 +2,7 @@
 import React from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from './AuthContext';
-import { Loader2 } from 'lucide-react';
+import { Loader2, AlertCircle } from 'lucide-react';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -18,7 +18,7 @@ const ProtectedRoute = ({ children, requireRole }: ProtectedRouteProps) => {
     hasInternalUser: !!utilisateurInterne,
     isInternalUser,
     userEmail: user?.email,
-    internalUserRole: utilisateurInterne?.role?.nom,
+    internalUserRole: utilisateurInterne?.role?.name,
     requireRole,
     hostname: window.location.hostname,
     isProduction: !window.location.hostname.includes('localhost') && 
@@ -31,8 +31,11 @@ const ProtectedRoute = ({ children, requireRole }: ProtectedRouteProps) => {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
-          <p className="text-gray-600">Vérification des autorisations...</p>
+          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-primary" />
+          <p className="text-muted-foreground">Vérification des autorisations...</p>
+          <div className="mt-4 text-xs text-muted-foreground">
+            <p>Connexion en cours avec la base de données...</p>
+          </div>
         </div>
       </div>
     );
@@ -75,25 +78,48 @@ const ProtectedRoute = ({ children, requireRole }: ProtectedRouteProps) => {
     }
   }
 
+  // Si l'utilisateur est connecté mais n'est pas un utilisateur interne autorisé
+  if (user && !isInternalUser && !loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center p-8 bg-destructive/10 rounded-lg border border-destructive/20 max-w-md">
+          <AlertCircle className="h-12 w-12 mx-auto mb-4 text-destructive" />
+          <h2 className="text-xl font-semibold text-destructive mb-2">Accès refusé</h2>
+          <p className="text-muted-foreground mb-4">
+            Votre compte n'est pas autorisé à accéder à cette application.
+          </p>
+          <p className="text-sm text-muted-foreground">
+            Veuillez contacter votre administrateur si vous pensez qu'il s'agit d'une erreur.
+          </p>
+          <div className="mt-4 text-xs text-muted-foreground bg-muted p-2 rounded">
+            <p><strong>Email:</strong> {user?.email}</p>
+            <p><strong>Statut:</strong> {utilisateurInterne ? `${utilisateurInterne.statut} (${utilisateurInterne.type_compte})` : 'Non trouvé'}</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   // Vérification des rôles spécifiques si requis
   if (requireRole && utilisateurInterne && user) {
-    const hasRequiredRole = requireRole.includes(utilisateurInterne.role.nom);
+    const hasRequiredRole = requireRole.includes(utilisateurInterne.role.name);
     console.log('🔐 ProtectedRoute - Vérification du rôle:', {
       requiredRoles: requireRole,
-      userRole: utilisateurInterne.role.nom,
+      userRole: utilisateurInterne.role.name,
       hasRequiredRole
     });
     
     if (!hasRequiredRole) {
       return (
         <div className="min-h-screen flex items-center justify-center">
-          <div className="text-center p-8 bg-red-50 rounded-lg">
-            <h2 className="text-xl font-semibold text-red-800 mb-2">Accès refusé</h2>
-            <p className="text-red-600">
+          <div className="text-center p-8 bg-destructive/10 rounded-lg border border-destructive/20">
+            <AlertCircle className="h-12 w-12 mx-auto mb-4 text-destructive" />
+            <h2 className="text-xl font-semibold text-destructive mb-2">Accès refusé</h2>
+            <p className="text-muted-foreground">
               Vous n'avez pas les permissions nécessaires pour accéder à cette page.
             </p>
-            <p className="text-sm text-red-500 mt-2">
-              Rôle requis : {requireRole.join(', ')} | Votre rôle : {utilisateurInterne.role.nom}
+            <p className="text-sm text-muted-foreground mt-2">
+              Rôle requis : {requireRole.join(', ')} | Votre rôle : {utilisateurInterne.role.name}
             </p>
           </div>
         </div>
