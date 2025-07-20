@@ -4,7 +4,7 @@ import { useAuth } from '@/components/auth/AuthContext';
 
 export const usePermissionCheck = () => {
   const { utilisateurInterne } = useAuth();
-  const { data: permissions = [], isLoading } = useUserPermissions(utilisateurInterne?.id);
+  const { data: permissions = [], isLoading } = useUserPermissions(utilisateurInterne?.user_id);
 
   const hasPermission = (menu: string, submenu: string | null = null, action: string = 'read'): boolean => {
     if (isLoading || !permissions) return false;
