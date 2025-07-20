@@ -51,10 +51,9 @@ export const useDevMode = () => {
     setBypassAuth(bypassEnabled);
   }, []);
 
-  // Mock user avec la nouvelle structure
+  // Mock user avec la structure correcte
   const mockUser: UtilisateurInterne = {
     id: 'dev-user-123',
-    user_id: 'dev-user-123',
     email: 'dev@test.local',
     prenom: 'Développeur',
     nom: 'Test',
@@ -66,15 +65,22 @@ export const useDevMode = () => {
     type_compte: 'interne',
     doit_changer_mot_de_passe: false,
     role: {
-      name: 'administrateur',  // Utiliser 'name' au lieu de 'nom'
+      name: 'administrateur',
       description: 'Administrateur système'
     }
+  };
+
+  const toggleBypass = () => {
+    const newValue = !bypassAuth;
+    localStorage.setItem('dev_bypass_auth', newValue.toString());
+    setBypassAuth(newValue);
   };
 
   return {
     isDevMode,
     bypassAuth,
     mockUser,
+    toggleBypass,
     setBypassAuth: (value: boolean) => {
       localStorage.setItem('dev_bypass_auth', value.toString());
       setBypassAuth(value);

@@ -68,7 +68,7 @@ export const checkInternalUser = async (userId: string): Promise<UtilisateurInte
       .eq('type_compte', 'interne')
       .single();
 
-    // Si la jointure échoue, essayer avec l'ancienne structure
+    // Si la jointure unifiée échoue, essayer avec l'ancienne structure
     if (userError && userError.message?.includes('could not find')) {
       console.log('⚠️ Jointure unifiée échouée, tentative avec l\'ancienne structure...');
       
