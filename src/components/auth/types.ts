@@ -9,10 +9,12 @@ export interface UtilisateurInterne {
   telephone?: string;
   adresse?: string;
   photo_url?: string;
+  matricule?: string; // Add matricule as optional
   statut: string;
   type_compte: string;
+  doit_changer_mot_de_passe: boolean;
   role: {
-    name: string;  // Changé de 'nom' à 'name' pour correspondre à la table roles
+    name: string;
     description: string;
   };
 }

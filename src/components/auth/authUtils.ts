@@ -52,96 +52,74 @@ export const checkInternalUser = async (userId: string): Promise<UtilisateurInte
       return null;
     }
 
-    // Première tentative avec la nouvelle structure unifiée
-    let { data: utilisateur, error: userError } = await supabase
+    // Récupérer l'utilisateur interne simple d'abord
+    const { data: utilisateur, error: userError } = await supabase
       .from('utilisateurs_internes')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('statut', 'actif')
+      .eq('type_compte', 'interne')
+      .single();
+
+    if (userError || !utilisateur) {
+      console.error('❌ Utilisateur interne non trouvé:', userError);
+      return null;
+    }
+
+    // Récupérer le rôle séparément via user_roles
+    const { data: userRole, error: roleError } = await supabase
+      .from('user_roles')
       .select(`
-        *,
-        role:roles!role_id_unified(
+        roles (
           id,
           name,
           description
         )
       `)
       .eq('user_id', userId)
-      .eq('statut', 'actif')
-      .eq('type_compte', 'interne')
+      .eq('is_active', true)
       .single();
 
-    // Si la jointure unifiée échoue, essayer avec l'ancienne structure
-    if (userError && userError.message?.includes('could not find')) {
-      console.log('⚠️ Jointure unifiée échouée, tentative avec l\'ancienne structure...');
-      
-      const { data: utilisateurSimple, error: simpleError } = await supabase
-        .from('utilisateurs_internes')
-        .select('*')
-        .eq('user_id', userId)
-        .eq('statut', 'actif')
-        .eq('type_compte', 'interne')
-        .single();
+    let role = {
+      name: 'utilisateur',
+      description: 'Utilisateur standard'
+    };
 
-      if (simpleError || !utilisateurSimple) {
-        console.error('❌ Utilisateur interne non trouvé:', simpleError);
-        return null;
-      }
-
-      // Récupérer le rôle séparément via l'ancienne structure
-      const { data: roleData, error: roleError } = await supabase
-        .from('roles_utilisateurs')
-        .select('nom, description')
-        .eq('id', utilisateurSimple.role_id)
-        .single();
-
-      if (roleError || !roleData) {
-        console.log('⚠️ Rôle non trouvé pour l\'utilisateur');
-        return {
-          ...utilisateurSimple,
-          role: {
-            name: 'utilisateur',
-            description: 'Utilisateur standard'
-          }
-        } as UtilisateurInterne;
-      }
-
-      // Reconstituer l'objet avec la nouvelle structure
-      utilisateur = {
-        ...utilisateurSimple,
-        role: {
-          name: roleData.nom, // Convertir nom -> name
-          description: roleData.description
-        }
+    if (!roleError && userRole && userRole.roles) {
+      role = {
+        name: userRole.roles.name,
+        description: userRole.roles.description || 'Rôle système'
       };
-    } else if (userError) {
-      console.error('❌ Erreur lors de la vérification utilisateur interne:', userError);
-      
-      // Si l'utilisateur n'existe pas, retourner null plutôt que d'échouer
-      if (userError.code === 'PGRST116') {
-        console.log('⚠️ Utilisateur interne non trouvé ou inactif');
-        return null;
-      }
-      
-      throw userError;
+    } else {
+      console.log('⚠️ Rôle non trouvé, utilisation du rôle par défaut');
     }
 
-    if (!utilisateur || !utilisateur.role) {
-      console.log('⚠️ Aucun utilisateur interne actif trouvé ou rôle manquant');
-      return null;
-    }
+    const finalUser: UtilisateurInterne = {
+      id: utilisateur.id,
+      prenom: utilisateur.prenom,
+      nom: utilisateur.nom,
+      email: utilisateur.email,
+      telephone: utilisateur.telephone,
+      adresse: utilisateur.adresse,
+      photo_url: utilisateur.photo_url,
+      matricule: utilisateur.matricule,
+      statut: utilisateur.statut,
+      type_compte: utilisateur.type_compte,
+      doit_changer_mot_de_passe: utilisateur.doit_changer_mot_de_passe,
+      role
+    };
 
     console.log('✅ Utilisateur interne trouvé et actif:', {
-      id: utilisateur.id,
-      email: utilisateur.email,
-      nom: utilisateur.nom,
-      role: utilisateur.role.name
+      id: finalUser.id,
+      email: finalUser.email,
+      nom: finalUser.nom,
+      role: finalUser.role.name
     });
 
-    return utilisateur as UtilisateurInterne;
+    return finalUser;
 
   } catch (error: any) {
     console.error('💥 Erreur critique lors de la vérification utilisateur interne:', error);
-    
-    // Retourner null plutôt que de faire échouer complètement
-    // pour permettre à l'utilisateur de voir l'erreur plutôt que de rester bloqué
     return null;
   }
 };
