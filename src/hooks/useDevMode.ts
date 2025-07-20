@@ -1,160 +1,83 @@
 
 import { useState, useEffect } from 'react';
+import { UtilisateurInterne } from '@/components/auth/types';
 
-export interface DevModeConfig {
-  isDevMode: boolean;
-  bypassAuth: boolean;
-  mockUser: {
-    id: string;
-    email: string;
-    prenom: string;
-    nom: string;
-    role: {
-      nom: string;
-      description: string;
-    };
-    statut: string;
-    type_compte: string;
-  };
-  toggleBypass: () => void;
-}
+export const useDevMode = () => {
+  const [isDevMode, setIsDevMode] = useState(false);
+  const [bypassAuth, setBypassAuth] = useState(false);
 
-export const useDevMode = (): DevModeConfig => {
-  const [config, setConfig] = useState<DevModeConfig>(() => {
-    // Détecter l'environnement de développement
-    const hostname = window.location.hostname;
-    const isDev = hostname === 'localhost' || 
-                  hostname.includes('lovableproject.com') || 
-                  hostname.includes('127.0.0.1') ||
-                  hostname.includes('.local') ||
-                  import.meta.env.DEV ||
-                  import.meta.env.MODE === 'development';
-
-    let bypassEnabled = false;
+  useEffect(() => {
+    const isDev = window.location.hostname.includes('localhost') || 
+                  window.location.hostname.includes('lovableproject.com') || 
+                  window.location.hostname.includes('127.0.0.1') ||
+                  window.location.hostname.includes('.local') ||
+                  import.meta.env.DEV;
     
-    if (isDev) {
-      // En mode développement, activer le bypass par défaut pour faciliter les tests
-      bypassEnabled = true;
-      
-      // Permettre à l'utilisateur de désactiver le bypass manuellement si nécessaire
-      const manualOverride = localStorage.getItem('dev_bypass_auth');
-      if (manualOverride === 'false') {
-        bypassEnabled = false;
-      }
-      
-      // Vérifier aussi la variable d'environnement pour forcer l'activation/désactivation
-      if (import.meta.env.VITE_DEV_BYPASS_AUTH === 'false') {
-        bypassEnabled = false;
-      }
-    }
-
-    return {
-      isDevMode: isDev,
-      bypassAuth: bypassEnabled,
-      mockUser: {
-        id: 'dev-user-123',
-        email: 'dev@test.local',
-        prenom: 'Admin',
-        nom: 'Développement',
-        role: {
-          nom: 'administrateur',
-          description: 'Administrateur développement'
-        },
-        statut: 'actif',
-        type_compte: 'interne'
-      },
-      toggleBypass: () => {}
-    };
-  });
-
-  const updateBypassState = () => {
-    const hostname = window.location.hostname;
-    const isDev = hostname === 'localhost' || 
-                  hostname.includes('lovableproject.com') || 
-                  hostname.includes('127.0.0.1') ||
-                  hostname.includes('.local') ||
-                  import.meta.env.DEV ||
-                  import.meta.env.MODE === 'development';
-
     console.log('🔍 Détection environnement:', {
-      hostname,
+      hostname: window.location.hostname,
       isDev,
       mode: import.meta.env.MODE,
       dev: import.meta.env.DEV
     });
 
-    let bypassEnabled = false;
+    setIsDevMode(isDev);
     
-    if (isDev) {
-      // En mode développement, bypass activé par défaut
-      bypassEnabled = true;
-      
-      const manualOverride = localStorage.getItem('dev_bypass_auth');
-      
-      // L'utilisateur peut désactiver manuellement le bypass
-      if (manualOverride === 'false') {
-        bypassEnabled = false;
-        console.log('🔒 Bypass d\'authentification désactivé manuellement');
-      } else {
-        console.log('🚀 Bypass d\'authentification activé par défaut (mode dev)');
-      }
-      
-      // Vérifier aussi la variable d'environnement
-      if (import.meta.env.VITE_DEV_BYPASS_AUTH === 'false') {
-        bypassEnabled = false;
-      }
-      
-      console.log('🔧 Configuration bypass:', { 
-        manualOverride, 
-        bypassEnabled,
-        envVar: import.meta.env.VITE_DEV_BYPASS_AUTH 
-      });
-    } else {
-      // En production, authentification toujours requise
-      console.log('🏢 Mode production: Authentification obligatoire');
+    // Vérifier le localStorage pour le bypass
+    const manualOverride = localStorage.getItem('dev_bypass_auth');
+    const envVar = import.meta.env.VITE_DEV_BYPASS_AUTH;
+    
+    // Par défaut, activer le bypass en mode dev
+    let bypassEnabled = isDev;
+    
+    // Override manuel via localStorage
+    if (manualOverride !== null) {
+      bypassEnabled = manualOverride === 'true';
     }
-
-    setConfig(prevConfig => ({
-      ...prevConfig,
-      isDevMode: isDev,
-      bypassAuth: bypassEnabled,
-      toggleBypass: () => {
-        if (!isDev) {
-          console.log('❌ Toggle bypass non disponible en production');
-          return;
-        }
-        
-        const current = localStorage.getItem('dev_bypass_auth') !== 'false';
-        const newValue = !current;
-        localStorage.setItem('dev_bypass_auth', newValue.toString());
-        console.log(`🔄 Bypass auth ${newValue ? 'activé' : 'désactivé'}`);
-        
-        // Forcer la mise à jour de l'état
-        updateBypassState();
-        
-        // Recharger la page pour appliquer les changements
-        setTimeout(() => {
-          window.location.reload();
-        }, 100);
-      }
-    }));
-  };
-
-  useEffect(() => {
-    // Mettre à jour immédiatement
-    updateBypassState();
+    // Override via variable d'environnement
+    else if (envVar !== undefined) {
+      bypassEnabled = envVar === 'true';
+    }
     
-    // Écouter les changements du localStorage
-    const handleStorageChange = () => {
-      updateBypassState();
-    };
+    if (isDev && bypassEnabled) {
+      console.log('🚀 Bypass d\'authentification activé par défaut (mode dev)');
+    }
     
-    window.addEventListener('storage', handleStorageChange);
+    console.log('🔧 Configuration bypass:', {
+      manualOverride,
+      bypassEnabled,
+      envVar
+    });
     
-    return () => {
-      window.removeEventListener('storage', handleStorageChange);
-    };
+    setBypassAuth(bypassEnabled);
   }, []);
 
-  return config;
+  // Mock user avec la nouvelle structure
+  const mockUser: UtilisateurInterne = {
+    id: 'dev-user-123',
+    user_id: 'dev-user-123',
+    email: 'dev@test.local',
+    prenom: 'Développeur',
+    nom: 'Test',
+    telephone: '0123456789',
+    adresse: '123 Rue du Dev',
+    photo_url: null,
+    matricule: 'DEV-01',
+    statut: 'actif',
+    type_compte: 'interne',
+    doit_changer_mot_de_passe: false,
+    role: {
+      name: 'administrateur',  // Utiliser 'name' au lieu de 'nom'
+      description: 'Administrateur système'
+    }
+  };
+
+  return {
+    isDevMode,
+    bypassAuth,
+    mockUser,
+    setBypassAuth: (value: boolean) => {
+      localStorage.setItem('dev_bypass_auth', value.toString());
+      setBypassAuth(value);
+    }
+  };
 };

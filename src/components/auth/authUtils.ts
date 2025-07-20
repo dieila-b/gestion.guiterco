@@ -52,8 +52,8 @@ export const checkInternalUser = async (userId: string): Promise<UtilisateurInte
       return null;
     }
 
-    // Utiliser la nouvelle structure unifiée avec jointure vers roles
-    const { data: utilisateur, error: userError } = await supabase
+    // Première tentative avec la nouvelle structure unifiée
+    let { data: utilisateur, error: userError } = await supabase
       .from('utilisateurs_internes')
       .select(`
         *,
@@ -68,7 +68,50 @@ export const checkInternalUser = async (userId: string): Promise<UtilisateurInte
       .eq('type_compte', 'interne')
       .single();
 
-    if (userError) {
+    // Si la jointure échoue, essayer avec l'ancienne structure
+    if (userError && userError.message?.includes('could not find')) {
+      console.log('⚠️ Jointure unifiée échouée, tentative avec l\'ancienne structure...');
+      
+      const { data: utilisateurSimple, error: simpleError } = await supabase
+        .from('utilisateurs_internes')
+        .select('*')
+        .eq('user_id', userId)
+        .eq('statut', 'actif')
+        .eq('type_compte', 'interne')
+        .single();
+
+      if (simpleError || !utilisateurSimple) {
+        console.error('❌ Utilisateur interne non trouvé:', simpleError);
+        return null;
+      }
+
+      // Récupérer le rôle séparément via l'ancienne structure
+      const { data: roleData, error: roleError } = await supabase
+        .from('roles_utilisateurs')
+        .select('nom, description')
+        .eq('id', utilisateurSimple.role_id)
+        .single();
+
+      if (roleError || !roleData) {
+        console.log('⚠️ Rôle non trouvé pour l\'utilisateur');
+        return {
+          ...utilisateurSimple,
+          role: {
+            name: 'utilisateur',
+            description: 'Utilisateur standard'
+          }
+        } as UtilisateurInterne;
+      }
+
+      // Reconstituer l'objet avec la nouvelle structure
+      utilisateur = {
+        ...utilisateurSimple,
+        role: {
+          name: roleData.nom, // Convertir nom -> name
+          description: roleData.description
+        }
+      };
+    } else if (userError) {
       console.error('❌ Erreur lors de la vérification utilisateur interne:', userError);
       
       // Si l'utilisateur n'existe pas, retourner null plutôt que d'échouer
