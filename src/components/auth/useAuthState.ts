@@ -38,7 +38,7 @@ export const useAuthState = (bypassAuth: boolean, mockUser: UtilisateurInterne, 
           nom: mockUser.nom
         },
         app_metadata: {
-          role: mockUser.role.nom
+          role: mockUser.role.name
         },
         aud: 'authenticated',
         role: 'authenticated'

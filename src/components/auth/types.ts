@@ -12,7 +12,7 @@ export interface UtilisateurInterne {
   statut: string;
   type_compte: string;
   role: {
-    nom: string;
+    name: string;  // Changé de 'nom' à 'name' pour correspondre à la table roles
     description: string;
   };
 }

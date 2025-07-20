@@ -52,12 +52,12 @@ export const checkInternalUser = async (userId: string): Promise<UtilisateurInte
       return null;
     }
 
-    // Requête simplifiée avec gestion d'erreur robuste
+    // Utiliser la nouvelle structure unifiée avec jointure vers roles
     const { data: utilisateur, error: userError } = await supabase
       .from('utilisateurs_internes')
       .select(`
         *,
-        role:roles(
+        role:roles!role_id_unified(
           id,
           name,
           description
@@ -80,8 +80,8 @@ export const checkInternalUser = async (userId: string): Promise<UtilisateurInte
       throw userError;
     }
 
-    if (!utilisateur) {
-      console.log('⚠️ Aucun utilisateur interne actif trouvé');
+    if (!utilisateur || !utilisateur.role) {
+      console.log('⚠️ Aucun utilisateur interne actif trouvé ou rôle manquant');
       return null;
     }
 
@@ -89,7 +89,7 @@ export const checkInternalUser = async (userId: string): Promise<UtilisateurInte
       id: utilisateur.id,
       email: utilisateur.email,
       nom: utilisateur.nom,
-      role: utilisateur.role?.name
+      role: utilisateur.role.name
     });
 
     return utilisateur as UtilisateurInterne;
