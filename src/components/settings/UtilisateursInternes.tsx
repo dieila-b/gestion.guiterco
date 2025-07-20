@@ -10,6 +10,7 @@ import UsersHeader from './users/UsersHeader';
 import UsersTable from './users/UsersTable';
 import UsersErrorState from './users/UsersErrorState';
 import UsersLoadingState from './users/UsersLoadingState';
+import UserSystemStatus from './users/UserSystemStatus';
 
 const UtilisateursInternes = () => {
   const { toast } = useToast();
@@ -89,6 +90,9 @@ const UtilisateursInternes = () => {
 
   return (
     <div className="space-y-6">
+      {/* État du système */}
+      <UserSystemStatus />
+      
       <Card>
         <UsersHeader onUserCreated={handleUserCreated} />
         <CardContent>
@@ -97,11 +101,18 @@ const UtilisateursInternes = () => {
           ) : (
             <>
               {utilisateurs && utilisateurs.length > 0 && (
-                <div className="mb-4 text-sm text-muted-foreground">
-                  {utilisateurs.length} utilisateur{utilisateurs.length > 1 ? 's' : ''} trouvé{utilisateurs.length > 1 ? 's' : ''}
-                  <span className="ml-2 px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs">
-                    ✅ Synchronisation temps réel complète activée
+                <div className="mb-4 flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">
+                    {utilisateurs.length} utilisateur{utilisateurs.length > 1 ? 's' : ''} trouvé{utilisateurs.length > 1 ? 's' : ''}
                   </span>
+                  <div className="flex items-center space-x-2">
+                    <span className="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs">
+                      ✅ Système sécurisé actif
+                    </span>
+                    <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs">
+                      🔄 Temps réel activé
+                    </span>
+                  </div>
                 </div>
               )}
               

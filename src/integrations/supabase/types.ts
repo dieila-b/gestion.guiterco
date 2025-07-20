@@ -3237,6 +3237,15 @@ export type Database = {
           details: Json
         }[]
       }
+      diagnostic_user_system_complet: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          composant: string
+          statut: string
+          details: string
+          recommandation: string
+        }[]
+      }
       generate_bon_commande_number: {
         Args: Record<PropertyKey, never>
         Returns: string
@@ -3406,6 +3415,22 @@ export type Database = {
       refresh_marges_view: {
         Args: Record<PropertyKey, never>
         Returns: undefined
+      }
+      refresh_user_session: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
+      }
+      secure_password_update: {
+        Args: {
+          target_user_id: string
+          new_password: string
+          force_change?: boolean
+        }
+        Returns: Json
+      }
+      secure_role_assignment: {
+        Args: { target_user_id: string; new_role_id: string }
+        Returns: Json
       }
       update_stock_pdv: {
         Args: {
