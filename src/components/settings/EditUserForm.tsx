@@ -129,30 +129,54 @@ const EditUserForm = ({ user, onSuccess, onCancel }: EditUserFormProps) => {
     
     try {
       // 1. Mettre à jour les informations utilisateur
+      console.log('📝 Updating user information...');
       await updateUser.mutateAsync(formData);
       
-      // 2. Changer le mot de passe si demandé
+      // 2. Changer le mot de passe si demandé (séparément)
       if (changePassword && newPassword) {
-        console.log('🔐 Changing password for user:', user.user_id);
-        await updatePassword({
-          userId: user.user_id,
-          newPassword: newPassword,
-          requireChange: formData.doit_changer_mot_de_passe
-        });
+        console.log('🔐 Changing password...');
+        try {
+          await updatePassword({
+            userId: user.user_id,
+            newPassword: newPassword,
+            requireChange: formData.doit_changer_mot_de_passe
+          });
+          console.log('✅ Password updated successfully');
+        } catch (passwordError: any) {
+          console.error('❌ Password update failed:', passwordError);
+          // Ne pas empêcher la suite si seul le mot de passe a échoué
+          toast({
+            title: "Attention",
+            description: `Informations mises à jour mais le mot de passe n'a pas pu être changé: ${passwordError.message}`,
+            variant: "destructive",
+          });
+        }
       }
       
       // 3. Mettre à jour le rôle si changé
       if (selectedRoleId && selectedRoleId !== user.role?.id) {
         console.log('🔄 Updating user role...');
-        await assignRole.mutateAsync({
-          userId: user.user_id,
-          roleId: selectedRoleId
-        });
+        try {
+          await assignRole.mutateAsync({
+            userId: user.user_id,
+            roleId: selectedRoleId
+          });
+          console.log('✅ Role updated successfully');
+        } catch (roleError: any) {
+          console.error('❌ Role update failed:', roleError);
+          toast({
+            title: "Attention",
+            description: `Informations mises à jour mais le rôle n'a pas pu être changé: ${roleError.message}`,
+            variant: "destructive",
+          });
+        }
       }
       
+      // Fermer le formulaire si tout s'est bien passé
       onSuccess();
     } catch (error) {
       console.error('❌ Error in handleSubmit:', error);
+      // L'erreur sera gérée par les mutations individuelles
     }
   };
 

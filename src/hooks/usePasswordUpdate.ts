@@ -31,6 +31,8 @@ export const usePasswordUpdate = () => {
           throw new Error('Session non valide. Veuillez vous reconnecter.');
         }
 
+        console.log('🔗 Calling admin-update-password function...');
+
         // Appeler l'Edge Function pour mettre à jour le mot de passe
         const { data, error } = await supabase.functions.invoke('admin-update-password', {
           body: {
@@ -48,9 +50,11 @@ export const usePasswordUpdate = () => {
           throw new Error(`Erreur lors de l'appel à la fonction: ${error.message}`);
         }
 
-        if (!data.success) {
-          console.error('❌ Password update failed:', data.error);
-          throw new Error(data.error || 'Échec de la mise à jour du mot de passe');
+        console.log('📦 Function response:', data);
+
+        if (!data || !data.success) {
+          console.error('❌ Password update failed:', data?.error || 'Unknown error');
+          throw new Error(data?.error || 'Échec de la mise à jour du mot de passe');
         }
 
         console.log('✅ Password updated successfully via Edge Function');
@@ -67,6 +71,8 @@ export const usePasswordUpdate = () => {
         
         if (error.message?.includes('Session non valide')) {
           errorMessage = 'Session expirée. Veuillez vous reconnecter.';
+        } else if (error.message?.includes('Invalid authentication')) {
+          errorMessage = 'Authentification invalide. Veuillez vous reconnecter.';
         } else if (error.message?.includes('Insufficient permissions')) {
           errorMessage = 'Permissions insuffisantes pour cette opération.';
         } else if (error.message?.includes('User not found')) {
@@ -75,12 +81,15 @@ export const usePasswordUpdate = () => {
           errorMessage = 'Identifiant utilisateur manquant.';
         } else if (error.message?.includes('Failed to update password')) {
           errorMessage = error.message;
+        } else if (error.message && error.message !== 'Impossible de mettre à jour le mot de passe.') {
+          errorMessage = error.message;
         }
         
         throw new Error(errorMessage);
       }
     },
     onSuccess: (result: UpdatePasswordResult) => {
+      console.log('🎉 Password update successful:', result);
       toast({
         title: "Mot de passe mis à jour",
         description: result.requiresManualReset 
@@ -89,7 +98,7 @@ export const usePasswordUpdate = () => {
       });
     },
     onError: (error: any) => {
-      console.error('❌ Password update failed:', error);
+      console.error('❌ Password update failed in hook:', error);
       toast({
         title: "Erreur",
         description: error.message || "Impossible de mettre à jour le mot de passe.",

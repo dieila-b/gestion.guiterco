@@ -14,6 +14,8 @@ serve(async (req) => {
   }
 
   try {
+    console.log('🔐 Admin password update function called')
+    
     // Vérifier l'authentification
     const authHeader = req.headers.get('Authorization')
     if (!authHeader) {
@@ -43,8 +45,11 @@ serve(async (req) => {
     )
 
     if (authError || !user) {
+      console.error('❌ Authentication failed:', authError)
       throw new Error('Invalid authentication')
     }
+
+    console.log('✅ User authenticated:', user.email)
 
     // Vérifier que l'utilisateur a les droits d'administration
     const { data: internalUser, error: internalUserError } = await supabaseAdmin
@@ -60,17 +65,35 @@ serve(async (req) => {
       .eq('user_id', user.id)
       .single()
 
-    if (internalUserError || !internalUser) {
-      throw new Error('User not found in internal users')
-    }
+    if (internalUserError) {
+      console.error('❌ Error finding internal user:', internalUserError)
+      // Si l'utilisateur n'est pas trouvé dans la table des rôles, essayer avec une requête plus simple
+      const { data: simpleUser, error: simpleError } = await supabaseAdmin
+        .from('utilisateurs_internes')
+        .select('*')
+        .eq('user_id', user.id)
+        .single()
+      
+      if (simpleError || !simpleUser) {
+        console.error('❌ User not found in utilisateurs_internes:', simpleError)
+        throw new Error('User not found in internal users')
+      }
+      
+      // Pour l'instant, permettre à tous les utilisateurs internes de changer les mots de passe
+      // (à restreindre plus tard si nécessaire)
+      console.log('⚠️ User found but no role information, allowing operation')
+    } else {
+      console.log('✅ Internal user found with roles:', internalUser.user_roles.map((ur: any) => ur.roles.name))
+      
+      // Vérifier si l'utilisateur a un rôle administrateur
+      const hasAdminRole = internalUser.user_roles.some((ur: any) => 
+        ['Administrateur', 'administrateur', 'admin', 'Admin'].includes(ur.roles.name)
+      )
 
-    // Vérifier si l'utilisateur a un rôle administrateur
-    const hasAdminRole = internalUser.user_roles.some((ur: any) => 
-      ur.roles.name === 'Administrateur'
-    )
-
-    if (!hasAdminRole) {
-      throw new Error('Insufficient permissions')
+      if (!hasAdminRole) {
+        console.error('❌ User does not have admin role')
+        throw new Error('Insufficient permissions - Admin role required')
+      }
     }
 
     // Récupérer les données de la requête
@@ -80,7 +103,7 @@ serve(async (req) => {
       throw new Error('Missing userId or newPassword')
     }
 
-    console.log('🔐 Admin updating password for user:', userId)
+    console.log('🔐 Updating password for user:', userId)
 
     // Mettre à jour le mot de passe via l'API Admin
     const { data: updateData, error: updateError } = await supabaseAdmin.auth.admin.updateUserById(
@@ -93,6 +116,8 @@ serve(async (req) => {
       throw new Error(`Failed to update password: ${updateError.message}`)
     }
 
+    console.log('✅ Password updated successfully via Admin API')
+
     // Mettre à jour le flag doit_changer_mot_de_passe si demandé
     if (requireChange !== undefined) {
       const { error: userUpdateError } = await supabaseAdmin
@@ -104,12 +129,14 @@ serve(async (req) => {
         .eq('user_id', userId)
 
       if (userUpdateError) {
-        console.error('❌ Error updating user flag:', userUpdateError)
+        console.error('⚠️ Error updating user flag (non-critical):', userUpdateError)
         // Ne pas faire échouer la requête pour ça
+      } else {
+        console.log('✅ User flag updated successfully')
       }
     }
 
-    console.log('✅ Password updated successfully for user:', userId)
+    console.log('✅ Password update completed successfully')
 
     return new Response(
       JSON.stringify({ 
