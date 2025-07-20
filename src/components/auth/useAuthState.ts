@@ -135,7 +135,7 @@ export const useAuthState = (bypassAuth: boolean, mockUser: UtilisateurInterne, 
                 console.log('✅ Utilisateur interne autorisé:', {
                   id: internalUser.id,
                   email: internalUser.email,
-                  role: internalUser.role?.name
+                  role: internalUser.role?.nom
                 });
                 setUtilisateurInterne(internalUser);
               } else {
