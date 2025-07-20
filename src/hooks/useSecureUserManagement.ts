@@ -62,9 +62,22 @@ export const useSecureUserManagement = () => {
     mutationFn: async ({ userInternalId, userData }: { userInternalId: string; userData: SecureUserUpdateData }) => {
       console.log('🔐 Mise à jour sécurisée utilisateur:', { userInternalId, userData });
       
+      // Convertir les données en format JSON compatible avec Supabase
+      const jsonData = {
+        prenom: userData.prenom,
+        nom: userData.nom,
+        email: userData.email,
+        telephone: userData.telephone || '',
+        adresse: userData.adresse || '',
+        photo_url: userData.photo_url || '',
+        matricule: userData.matricule || '',
+        statut: userData.statut,
+        doit_changer_mot_de_passe: userData.doit_changer_mot_de_passe
+      };
+      
       const { data, error } = await supabase.rpc('update_internal_user_secure', {
         user_internal_id: userInternalId,
-        user_data: userData
+        user_data: jsonData
       });
       
       if (error) {
