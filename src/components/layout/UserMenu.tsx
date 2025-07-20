@@ -54,7 +54,7 @@ const UserMenu = () => {
               {utilisateurInterne.email}
             </p>
             <p className="text-xs leading-none text-blue-600">
-              {getRoleLabel(utilisateurInterne.role.name)}
+              {getRoleLabel(utilisateurInterne.role.nom)}
             </p>
           </div>
         </DropdownMenuLabel>
@@ -65,7 +65,7 @@ const UserMenu = () => {
             <span>Profil</span>
           </Link>
         </DropdownMenuItem>
-        {utilisateurInterne.role.name === 'administrateur' && (
+        {utilisateurInterne.role.nom === 'administrateur' && (
           <DropdownMenuItem asChild>
             <Link to="/settings" className="cursor-pointer">
               <Settings className="mr-2 h-4 w-4" />

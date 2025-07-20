@@ -52,74 +52,53 @@ export const checkInternalUser = async (userId: string): Promise<UtilisateurInte
       return null;
     }
 
-    // Récupérer l'utilisateur interne simple d'abord
+    // Requête simplifiée avec gestion d'erreur robuste
     const { data: utilisateur, error: userError } = await supabase
       .from('utilisateurs_internes')
-      .select('*')
-      .eq('user_id', userId)
-      .eq('statut', 'actif')
-      .eq('type_compte', 'interne')
-      .single();
-
-    if (userError || !utilisateur) {
-      console.error('❌ Utilisateur interne non trouvé:', userError);
-      return null;
-    }
-
-    // Récupérer le rôle séparément via user_roles
-    const { data: userRole, error: roleError } = await supabase
-      .from('user_roles')
       .select(`
-        roles (
+        *,
+        role:roles(
           id,
           name,
           description
         )
       `)
       .eq('user_id', userId)
-      .eq('is_active', true)
+      .eq('statut', 'actif')
+      .eq('type_compte', 'interne')
       .single();
 
-    let role = {
-      name: 'utilisateur',
-      description: 'Utilisateur standard'
-    };
-
-    if (!roleError && userRole && userRole.roles) {
-      role = {
-        name: userRole.roles.name,
-        description: userRole.roles.description || 'Rôle système'
-      };
-    } else {
-      console.log('⚠️ Rôle non trouvé, utilisation du rôle par défaut');
+    if (userError) {
+      console.error('❌ Erreur lors de la vérification utilisateur interne:', userError);
+      
+      // Si l'utilisateur n'existe pas, retourner null plutôt que d'échouer
+      if (userError.code === 'PGRST116') {
+        console.log('⚠️ Utilisateur interne non trouvé ou inactif');
+        return null;
+      }
+      
+      throw userError;
     }
 
-    const finalUser: UtilisateurInterne = {
-      id: utilisateur.id,
-      prenom: utilisateur.prenom,
-      nom: utilisateur.nom,
-      email: utilisateur.email,
-      telephone: utilisateur.telephone,
-      adresse: utilisateur.adresse,
-      photo_url: utilisateur.photo_url,
-      matricule: utilisateur.matricule,
-      statut: utilisateur.statut,
-      type_compte: utilisateur.type_compte,
-      doit_changer_mot_de_passe: utilisateur.doit_changer_mot_de_passe,
-      role
-    };
+    if (!utilisateur) {
+      console.log('⚠️ Aucun utilisateur interne actif trouvé');
+      return null;
+    }
 
     console.log('✅ Utilisateur interne trouvé et actif:', {
-      id: finalUser.id,
-      email: finalUser.email,
-      nom: finalUser.nom,
-      role: finalUser.role.name
+      id: utilisateur.id,
+      email: utilisateur.email,
+      nom: utilisateur.nom,
+      role: utilisateur.role?.name
     });
 
-    return finalUser;
+    return utilisateur as UtilisateurInterne;
 
   } catch (error: any) {
     console.error('💥 Erreur critique lors de la vérification utilisateur interne:', error);
+    
+    // Retourner null plutôt que de faire échouer complètement
+    // pour permettre à l'utilisateur de voir l'erreur plutôt que de rester bloqué
     return null;
   }
 };

@@ -9,20 +9,58 @@ export const useUserRoleAssignment = () => {
 
   const assignRole = useMutation({
     mutationFn: async ({ userId, roleId }: { userId: string; roleId: string }) => {
-      console.log('🔄 Assignation rôle simple depuis useUserRoleAssignment:', { userId, roleId });
+      console.log('🔨 Assigning unified role with upsert strategy:', { userId, roleId });
       
-      const { data, error } = await supabase.rpc('assign_user_role_simple', {
-        p_user_id: userId,
-        p_role_id: roleId === 'no-role' ? null : roleId
-      });
-      
-      if (error) {
-        console.error('❌ Erreur assignation rôle:', error);
+      try {
+        // 1. Obtenir l'utilisateur actuel pour assigned_by
+        const { data: { user: currentUser } } = await supabase.auth.getUser();
+        
+        // 2. Utiliser un upsert pour gérer les rôles existants
+        // D'abord, désactiver TOUS les autres rôles pour cet utilisateur
+        const { error: deactivateError } = await supabase
+          .from('user_roles')
+          .update({ 
+            is_active: false, 
+            updated_at: new Date().toISOString() 
+          })
+          .eq('user_id', userId)
+          .neq('role_id', roleId); // Ne pas désactiver le rôle qu'on va assigner
+
+        if (deactivateError) {
+          console.error('❌ Error deactivating other roles:', deactivateError);
+          throw new Error(`Erreur lors de la désactivation des autres rôles: ${deactivateError.message}`);
+        }
+
+        // 3. Utiliser upsert pour le rôle principal
+        const { data, error } = await supabase
+          .from('user_roles')
+          .upsert({
+            user_id: userId,
+            role_id: roleId,
+            is_active: true,
+            assigned_at: new Date().toISOString(),
+            assigned_by: currentUser?.id || null,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          }, {
+            onConflict: 'user_id,role_id', // Spécifier la contrainte sur laquelle faire l'upsert
+            ignoreDuplicates: false // Forcer la mise à jour si existe déjà
+          })
+          .select()
+          .single();
+
+        if (error) {
+          console.error('❌ Error upserting role:', error);
+          throw new Error(`Erreur lors de l'assignation du rôle: ${error.message}`);
+        }
+
+        console.log('✅ Role assigned successfully with upsert:', data);
+        return data;
+
+      } catch (error: any) {
+        console.error('❌ Critical error in role assignment:', error);
         throw error;
       }
-      
-      console.log('✅ Rôle assigné avec succès depuis useUserRoleAssignment');
-      return data;
     },
     onSuccess: () => {
       // Invalider toutes les requêtes liées aux utilisateurs et rôles
@@ -32,14 +70,14 @@ export const useUserRoleAssignment = () => {
       queryClient.invalidateQueries({ queryKey: ['role-users'] });
       
       toast({
-        title: "Rôle assigné avec succès",
-        description: "Le rôle a été assigné avec succès.",
+        title: "Rôle assigné",
+        description: "Le rôle a été assigné avec succès à l'utilisateur.",
       });
     },
     onError: (error: any) => {
-      console.error('❌ Erreur assignation rôle depuis useUserRoleAssignment:', error);
+      console.error('❌ Error assigning role:', error);
       toast({
-        title: "Erreur d'assignation de rôle",
+        title: "Erreur",
         description: error.message || "Impossible d'assigner le rôle.",
         variant: "destructive",
       });
