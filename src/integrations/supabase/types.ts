@@ -2240,13 +2240,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "role_permissions_permission_id_fkey"
-            columns: ["permission_id"]
-            isOneToOne: false
-            referencedRelation: "vue_permissions_utilisateurs"
-            referencedColumns: ["permission_id"]
-          },
-          {
             foreignKeyName: "role_permissions_role_id_fkey"
             columns: ["role_id"]
             isOneToOne: false
@@ -2734,30 +2727,33 @@ export type Database = {
       }
       user_roles: {
         Row: {
-          assigned_at: string
+          assigned_at: string | null
           assigned_by: string | null
+          created_at: string
           id: string
-          is_active: boolean | null
+          is_active: boolean
           role_id: string
-          updated_at: string | null
+          updated_at: string
           user_id: string
         }
         Insert: {
-          assigned_at?: string
+          assigned_at?: string | null
           assigned_by?: string | null
+          created_at?: string
           id?: string
-          is_active?: boolean | null
+          is_active?: boolean
           role_id: string
-          updated_at?: string | null
+          updated_at?: string
           user_id: string
         }
         Update: {
-          assigned_at?: string
+          assigned_at?: string | null
           assigned_by?: string | null
+          created_at?: string
           id?: string
-          is_active?: boolean | null
+          is_active?: boolean
           role_id?: string
-          updated_at?: string | null
+          updated_at?: string
           user_id?: string
         }
         Relationships: [
@@ -3022,18 +3018,6 @@ export type Database = {
         }
         Relationships: []
       }
-      vue_permissions_utilisateurs: {
-        Row: {
-          action: string | null
-          can_access: boolean | null
-          description: string | null
-          menu: string | null
-          permission_id: string | null
-          submenu: string | null
-          user_id: string | null
-        }
-        Relationships: []
-      }
       vue_precommandes_pretes: {
         Row: {
           acompte_verse: number | null
@@ -3241,6 +3225,16 @@ export type Database = {
           status: string
           count_value: number
           details: string
+        }[]
+      }
+      diagnostic_user_management_system: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          diagnostic_type: string
+          status: string
+          count_result: number
+          message: string
+          details: Json
         }[]
       }
       generate_bon_commande_number: {

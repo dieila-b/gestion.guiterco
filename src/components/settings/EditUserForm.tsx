@@ -7,7 +7,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { User, Save, X, Crown, Briefcase, AlertCircle } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { User, Save, X, Crown, Briefcase, Upload, Key } from 'lucide-react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -40,10 +42,15 @@ const EditUserForm = ({ user, onSuccess, onCancel }: EditUserFormProps) => {
     email: user.email,
     telephone: user.telephone || '',
     adresse: user.adresse || '',
+    matricule: user.matricule || '',
     statut: user.statut,
     doit_changer_mot_de_passe: user.doit_changer_mot_de_passe,
+    photo_url: user.photo_url || '',
   });
   const [selectedRoleId, setSelectedRoleId] = useState(user.role?.id || '');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [changePassword, setChangePassword] = useState(false);
 
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -62,8 +69,10 @@ const EditUserForm = ({ user, onSuccess, onCancel }: EditUserFormProps) => {
           email: data.email,
           telephone: data.telephone || null,
           adresse: data.adresse || null,
+          matricule: data.matricule || null,
           statut: data.statut,
           doit_changer_mot_de_passe: data.doit_changer_mot_de_passe,
+          photo_url: data.photo_url || null,
           updated_at: new Date().toISOString()
         })
         .eq('id', user.id);
@@ -93,14 +102,65 @@ const EditUserForm = ({ user, onSuccess, onCancel }: EditUserFormProps) => {
     }
   });
 
+  const changeUserPassword = useMutation({
+    mutationFn: async (password: string) => {
+      const { error } = await supabase.auth.admin.updateUserById(
+        user.user_id,
+        { password: password }
+      );
+      
+      if (error) throw error;
+      return true;
+    },
+    onSuccess: () => {
+      toast({
+        title: "Mot de passe modifié",
+        description: "Le mot de passe a été mis à jour avec succès",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Erreur",
+        description: "Impossible de modifier le mot de passe",
+        variant: "destructive",
+      });
+    }
+  });
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validation du mot de passe si changement demandé
+    if (changePassword) {
+      if (newPassword.length < 6) {
+        toast({
+          title: "Erreur",
+          description: "Le mot de passe doit contenir au moins 6 caractères",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      if (newPassword !== confirmPassword) {
+        toast({
+          title: "Erreur",
+          description: "Les mots de passe ne correspondent pas",
+          variant: "destructive",
+        });
+        return;
+      }
+    }
     
     try {
       // 1. Mettre à jour les informations utilisateur
       await updateUser.mutateAsync(formData);
       
-      // 2. Mettre à jour le rôle si changé
+      // 2. Changer le mot de passe si demandé
+      if (changePassword && newPassword) {
+        await changeUserPassword.mutateAsync(newPassword);
+      }
+      
+      // 3. Mettre à jour le rôle si changé
       if (selectedRoleId && selectedRoleId !== user.role?.id) {
         console.log('🔄 Updating user role...');
         await assignRole.mutateAsync({
@@ -141,7 +201,11 @@ const EditUserForm = ({ user, onSuccess, onCancel }: EditUserFormProps) => {
     }
   };
 
-  const isLoading = updateUser.isPending || assignRole.isPending;
+  const getInitials = (prenom: string, nom: string) => {
+    return `${prenom.charAt(0)}${nom.charAt(0)}`.toUpperCase();
+  };
+
+  const isLoading = updateUser.isPending || assignRole.isPending || changeUserPassword.isPending;
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
@@ -149,69 +213,181 @@ const EditUserForm = ({ user, onSuccess, onCancel }: EditUserFormProps) => {
         <CardHeader>
           <CardTitle className="flex items-center space-x-2">
             <User className="h-5 w-5" />
-            <span>Informations personnelles</span>
+            <span>Photo de profil et informations de base</span>
           </CardTitle>
         </CardHeader>
-        <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label htmlFor="prenom">Prénom *</Label>
-            <Input
-              id="prenom"
-              value={formData.prenom}
-              onChange={(e) => setFormData({ ...formData, prenom: e.target.value })}
-              required
-            />
+        <CardContent className="space-y-6">
+          {/* Photo de profil */}
+          <div className="flex items-center space-x-4">
+            <Avatar className="h-20 w-20">
+              <AvatarImage src={formData.photo_url} alt={`${formData.prenom} ${formData.nom}`} />
+              <AvatarFallback className="bg-primary/10 text-primary text-lg">
+                {getInitials(formData.prenom, formData.nom)}
+              </AvatarFallback>
+            </Avatar>
+            <div className="space-y-2">
+              <Label htmlFor="photo_url">URL de la photo</Label>
+              <div className="flex items-center space-x-2">
+                <Input
+                  id="photo_url"
+                  value={formData.photo_url}
+                  onChange={(e) => setFormData({ ...formData, photo_url: e.target.value })}
+                  placeholder="https://exemple.com/photo.jpg"
+                  className="w-64"
+                />
+                <Button type="button" variant="outline" size="sm">
+                  <Upload className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="nom">Nom *</Label>
-            <Input
-              id="nom"
-              value={formData.nom}
-              onChange={(e) => setFormData({ ...formData, nom: e.target.value })}
-              required
-            />
-          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="prenom">Prénom *</Label>
+              <Input
+                id="prenom"
+                value={formData.prenom}
+                onChange={(e) => setFormData({ ...formData, prenom: e.target.value })}
+                required
+              />
+            </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="email">Email *</Label>
-            <Input
-              id="email"
-              type="email"
-              value={formData.email}
-              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-              required
-            />
-          </div>
+            <div className="space-y-2">
+              <Label htmlFor="nom">Nom *</Label>
+              <Input
+                id="nom"
+                value={formData.nom}
+                onChange={(e) => setFormData({ ...formData, nom: e.target.value })}
+                required
+              />
+            </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="telephone">Téléphone</Label>
-            <Input
-              id="telephone"
-              value={formData.telephone}
-              onChange={(e) => setFormData({ ...formData, telephone: e.target.value })}
-            />
-          </div>
+            <div className="space-y-2">
+              <Label htmlFor="email">Email *</Label>
+              <Input
+                id="email"
+                type="email"
+                value={formData.email}
+                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                required
+              />
+            </div>
 
-          <div className="space-y-2 md:col-span-2">
-            <Label htmlFor="adresse">Adresse</Label>
-            <Textarea
-              id="adresse"
-              value={formData.adresse}
-              onChange={(e) => setFormData({ ...formData, adresse: e.target.value })}
-              rows={3}
-            />
+            <div className="space-y-2">
+              <Label htmlFor="matricule">Matricule</Label>
+              <Input
+                id="matricule"
+                value={formData.matricule}
+                onChange={(e) => setFormData({ ...formData, matricule: e.target.value })}
+                placeholder="Auto-généré si vide"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="telephone">Téléphone</Label>
+              <Input
+                id="telephone"
+                value={formData.telephone}
+                onChange={(e) => setFormData({ ...formData, telephone: e.target.value })}
+                placeholder="+33 1 23 45 67 89"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="statut">Statut</Label>
+              <Select value={formData.statut} onValueChange={(value) => setFormData({ ...formData, statut: value })}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="actif">
+                    <Badge variant="default" className="bg-green-100 text-green-800">Actif</Badge>
+                  </SelectItem>
+                  <SelectItem value="inactif">
+                    <Badge variant="secondary">Inactif</Badge>
+                  </SelectItem>
+                  <SelectItem value="suspendu">
+                    <Badge variant="destructive">Suspendu</Badge>
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2 md:col-span-2">
+              <Label htmlFor="adresse">Adresse complète</Label>
+              <Textarea
+                id="adresse"
+                value={formData.adresse}
+                onChange={(e) => setFormData({ ...formData, adresse: e.target.value })}
+                rows={3}
+                placeholder="Adresse, ville, code postal, pays..."
+              />
+            </div>
           </div>
         </CardContent>
       </Card>
 
       <Card>
         <CardHeader>
-          <CardTitle>Rôle et Statut</CardTitle>
+          <CardTitle className="flex items-center space-x-2">
+            <Key className="h-5 w-5" />
+            <span>Sécurité et mot de passe</span>
+          </CardTitle>
         </CardHeader>
-        <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <CardContent className="space-y-4">
+          <div className="flex items-center space-x-2">
+            <Switch
+              id="change-password"
+              checked={changePassword}
+              onCheckedChange={setChangePassword}
+            />
+            <Label htmlFor="change-password">Modifier le mot de passe</Label>
+          </div>
+
+          {changePassword && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-muted rounded-lg">
+              <div className="space-y-2">
+                <Label htmlFor="new-password">Nouveau mot de passe</Label>
+                <Input
+                  id="new-password"
+                  type="password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="Minimum 6 caractères"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="confirm-password">Confirmer le mot de passe</Label>
+                <Input
+                  id="confirm-password"
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder="Confirmer le mot de passe"
+                />
+              </div>
+            </div>
+          )}
+
+          <div className="flex items-center space-x-2">
+            <Switch
+              id="force-password-change"
+              checked={formData.doit_changer_mot_de_passe}
+              onCheckedChange={(checked) => setFormData({ ...formData, doit_changer_mot_de_passe: checked })}
+            />
+            <Label htmlFor="force-password-change">Forcer le changement de mot de passe à la prochaine connexion</Label>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Rôle et permissions</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="role">Rôle</Label>
+            <Label htmlFor="role">Rôle attribué</Label>
             <Select value={selectedRoleId} onValueChange={setSelectedRoleId}>
               <SelectTrigger>
                 <SelectValue placeholder="Sélectionner un rôle" />
@@ -227,59 +403,30 @@ const EditUserForm = ({ user, onSuccess, onCancel }: EditUserFormProps) => {
                 ))}
               </SelectContent>
             </Select>
-            {user.role && (
-              <div className="mt-2">
-                <Badge variant="outline" className={getRoleColor(user.role.name)}>
-                  Rôle actuel: {user.role.name}
-                </Badge>
-              </div>
-            )}
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="statut">Statut</Label>
-            <Select 
-              value={formData.statut} 
-              onValueChange={(value) => setFormData({ ...formData, statut: value })}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="actif">Actif</SelectItem>
-                <SelectItem value="inactif">Inactif</SelectItem>
-                <SelectItem value="suspendu">Suspendu</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+          {user.role && (
+            <div className="p-3 bg-muted rounded-lg">
+              <p className="text-sm text-muted-foreground mb-2">Rôle actuel :</p>
+              <Badge variant="outline" className={`${getRoleColor(user.role.name)} capitalize`}>
+                <div className="flex items-center space-x-1">
+                  {getRoleIcon(user.role.name)}
+                  <span>{user.role.name}</span>
+                </div>
+              </Badge>
+            </div>
+          )}
         </CardContent>
       </Card>
 
-      <div className="flex justify-end space-x-4">
-        <Button 
-          type="button" 
-          variant="outline" 
-          onClick={onCancel}
-          disabled={isLoading}
-        >
+      <div className="flex justify-end space-x-3">
+        <Button type="button" variant="outline" onClick={onCancel} disabled={isLoading}>
           <X className="h-4 w-4 mr-2" />
           Annuler
         </Button>
-        <Button 
-          type="submit" 
-          disabled={isLoading}
-        >
-          {isLoading ? (
-            <>
-              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current mr-2"></div>
-              Enregistrement...
-            </>
-          ) : (
-            <>
-              <Save className="h-4 w-4 mr-2" />
-              Enregistrer
-            </>
-          )}
+        <Button type="submit" disabled={isLoading}>
+          <Save className="h-4 w-4 mr-2" />
+          {isLoading ? 'Enregistrement...' : 'Enregistrer les modifications'}
         </Button>
       </div>
     </form>
