@@ -46,7 +46,7 @@ const EditUserForm = ({ user, onSuccess, onCancel }: EditUserFormProps) => {
     photo_url: user.photo_url || '',
     matricule: user.matricule || '',
     statut: user.statut || 'actif',
-    selectedRoleId: user.role?.id || 'no-role',
+    selectedRoleId: user.role?.id || '',
     doit_changer_mot_de_passe: user.doit_changer_mot_de_passe || false,
     nouveauMotDePasse: '',
     modifierMotDePasse: false
@@ -56,7 +56,6 @@ const EditUserForm = ({ user, onSuccess, onCancel }: EditUserFormProps) => {
   const [isUpdating, setIsUpdating] = useState(false);
 
   const handleInputChange = (field: string, value: string | boolean) => {
-    console.log('🔄 Champ modifié:', field, '=', value);
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
@@ -66,7 +65,6 @@ const EditUserForm = ({ user, onSuccess, onCancel }: EditUserFormProps) => {
 
     try {
       console.log('🔄 Début de la mise à jour utilisateur:', user.id);
-      console.log('📊 Données du formulaire:', formData);
 
       // 1. Mettre à jour les informations du profil utilisateur
       const { error: profileError } = await supabase
@@ -93,7 +91,7 @@ const EditUserForm = ({ user, onSuccess, onCancel }: EditUserFormProps) => {
       console.log('✅ Profil utilisateur mis à jour');
 
       // 2. Gérer le changement de rôle si nécessaire
-      if (formData.selectedRoleId && formData.selectedRoleId !== 'no-role' && formData.selectedRoleId !== user.role?.id) {
+      if (formData.selectedRoleId && formData.selectedRoleId !== user.role?.id) {
         console.log('🔄 Mise à jour du rôle utilisateur...');
         
         // Désactiver l'ancien rôle
@@ -121,16 +119,6 @@ const EditUserForm = ({ user, onSuccess, onCancel }: EditUserFormProps) => {
         }
 
         console.log('✅ Rôle utilisateur mis à jour');
-      } else if (formData.selectedRoleId === 'no-role' && user.role?.id) {
-        // Supprimer le rôle existant
-        console.log('🗑️ Suppression du rôle utilisateur...');
-        await supabase
-          .from('user_roles')
-          .update({ is_active: false })
-          .eq('user_id', user.user_id)
-          .eq('role_id', user.role.id);
-        
-        console.log('✅ Rôle utilisateur supprimé');
       }
 
       // 3. Gérer le changement de mot de passe si demandé
@@ -301,7 +289,7 @@ const EditUserForm = ({ user, onSuccess, onCancel }: EditUserFormProps) => {
                     <SelectValue placeholder="Sélectionner un rôle" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="no-role">Aucun rôle</SelectItem>
+                    <SelectItem value="">Aucun rôle</SelectItem>
                     {roles.map((role) => (
                       <SelectItem key={role.id} value={role.id}>
                         {role.name} {role.description && `- ${role.description}`}
