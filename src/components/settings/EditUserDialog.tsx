@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Edit, AlertCircle } from 'lucide-react';
-import EditUserForm from './EditUserForm';
+import EditUserFormComplete from './EditUserFormComplete';
 import { UtilisateurInterneWithRole } from '@/hooks/useUtilisateursInternes';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
@@ -47,7 +47,7 @@ const EditUserDialog = ({ user, onUserUpdated, children }: EditUserDialogProps) 
     );
   }
 
-  // Transformer le user pour correspondre exactement à l'interface attendue par EditUserForm
+  // Transformer le user pour correspondre exactement à l'interface attendue par EditUserFormComplete
   const transformedUser = {
     id: user.id,
     user_id: user.user_id,
@@ -66,7 +66,7 @@ const EditUserDialog = ({ user, onUserUpdated, children }: EditUserDialogProps) 
     doit_changer_mot_de_passe: user.doit_changer_mot_de_passe || false
   };
 
-  console.log('🔍 Données utilisateur transformées pour EditUserForm:', {
+  console.log('🔍 Données utilisateur transformées pour EditUserFormComplete:', {
     id: transformedUser.id,
     user_id: transformedUser.user_id,
     role: transformedUser.role,
@@ -97,7 +97,7 @@ const EditUserDialog = ({ user, onUserUpdated, children }: EditUserDialogProps) 
             </Alert>
           )}
           
-          <EditUserForm 
+          <EditUserFormComplete 
             user={transformedUser} 
             onSuccess={handleSuccess} 
             onCancel={handleCancel} 

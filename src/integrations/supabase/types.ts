@@ -3112,6 +3112,10 @@ export type Database = {
         Args: { target_user_id: string; new_role_id: string }
         Returns: Json
       }
+      assign_user_role_simple: {
+        Args: { p_user_id: string; p_role_id: string }
+        Returns: boolean
+      }
       audit_entrees_stock_propres: {
         Args: Record<PropertyKey, never>
         Returns: {
@@ -3436,6 +3440,14 @@ export type Database = {
         Args: { target_user_id: string; new_role_id: string }
         Returns: Json
       }
+      test_rls_permissions: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          test_name: string
+          result: string
+          details: string
+        }[]
+      }
       update_internal_user_secure: {
         Args: { user_internal_id: string; user_data: Json }
         Returns: Json
@@ -3457,6 +3469,21 @@ export type Database = {
         Returns: undefined
       }
       update_user_profile: {
+        Args: {
+          p_user_id: string
+          p_prenom: string
+          p_nom: string
+          p_email: string
+          p_telephone?: string
+          p_adresse?: string
+          p_photo_url?: string
+          p_matricule?: string
+          p_statut?: string
+          p_doit_changer_mot_de_passe?: boolean
+        }
+        Returns: boolean
+      }
+      update_user_simple: {
         Args: {
           p_user_id: string
           p_prenom: string
