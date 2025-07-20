@@ -51,7 +51,10 @@ export const useUtilisateursInternes = () => {
         console.log('📊 Found utilisateurs internes:', utilisateurs.length);
 
         // Récupérer les rôles unifiés pour chaque utilisateur
-        const userIds = utilisateurs.map(u => u.user_id).filter(Boolean);
+        const userIds = utilisateurs
+          .map(u => u.user_id)
+          .filter(Boolean)
+          .filter(id => id !== null && id !== undefined);
         
         if (userIds.length === 0) {
           console.log('⚠️ No valid user_ids found');
@@ -122,6 +125,8 @@ export const useUtilisateursInternes = () => {
       return failureCount < 2;
     },
     retryDelay: 1000, // Attendre 1 seconde entre les tentatives
+    refetchOnWindowFocus: false, // Éviter les rechargements intempestifs
+    staleTime: 30000, // Considérer les données comme fraîches pendant 30 secondes
   });
 };
 
@@ -152,5 +157,7 @@ export const useRolesForUsers = () => {
     },
     retry: 2,
     retryDelay: 1000,
+    refetchOnWindowFocus: false,
+    staleTime: 60000, // Les rôles changent rarement, cache plus long
   });
 };
