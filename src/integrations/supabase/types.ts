@@ -3440,7 +3440,6 @@ export type Database = {
       }
       user_has_permission: {
         Args:
-          | { p_menu: string; p_submenu?: string; p_action?: string }
           | { user_id: string; permission_name: string }
           | {
               user_uuid: string

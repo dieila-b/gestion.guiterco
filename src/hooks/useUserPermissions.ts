@@ -20,31 +20,6 @@ export const useUserPermissions = (userId?: string) => {
         return [];
       }
 
-      // Vérifier si c'est un UUID valide
-      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-      if (!uuidRegex.test(userId)) {
-        console.log('⚠️ Invalid UUID format, skipping permissions query for:', userId);
-        // En mode dev, retourner toutes les permissions pour éviter les blocages
-        if (userId.includes('dev-user')) {
-          console.log('🔧 Dev mode: returning all permissions for dev user');
-          // Retourner un set de permissions basiques pour le développement
-          return [
-            { id: 'dev-1', menu: 'Dashboard', action: 'read', can_access: true },
-            { id: 'dev-2', menu: 'Catalogue', action: 'read', can_access: true },
-            { id: 'dev-3', menu: 'Catalogue', action: 'write', can_access: true },
-            { id: 'dev-4', menu: 'Stock', submenu: 'Entrepôts', action: 'read', can_access: true },
-            { id: 'dev-5', menu: 'Stock', submenu: 'PDV', action: 'read', can_access: true },
-            { id: 'dev-6', menu: 'Ventes', submenu: 'Factures', action: 'read', can_access: true },
-            { id: 'dev-7', menu: 'Ventes', submenu: 'Factures', action: 'write', can_access: true },
-            { id: 'dev-8', menu: 'Clients', action: 'read', can_access: true },
-            { id: 'dev-9', menu: 'Clients', action: 'write', can_access: true },
-            { id: 'dev-10', menu: 'Paramètres', submenu: 'Utilisateurs', action: 'read', can_access: true },
-            { id: 'dev-11', menu: 'Paramètres', submenu: 'Permissions', action: 'read', can_access: true },
-          ];
-        }
-        return [];
-      }
-
       console.log('🔍 Fetching user permissions for:', userId);
       
       try {
@@ -130,6 +105,6 @@ export const useUserPermissions = (userId?: string) => {
     retry: 2,
     retryDelay: 1000,
     staleTime: 5 * 60 * 1000, // 5 minutes
-    gcTime: 10 * 60 * 1000, // 10 minutes (remplace cacheTime)
+    cacheTime: 10 * 60 * 1000, // 10 minutes
   });
 };

@@ -11,71 +11,22 @@ import {
   TrendingUp,
   CreditCard
 } from 'lucide-react';
-import ProtectedMenuItem from './ProtectedMenuItem';
-import { useRealTimePermissions } from '@/hooks/useRealTimePermissions';
+import { useLocation, Link } from 'react-router-dom';
+import { cn } from '@/lib/utils';
 
 const AppSidebar = () => {
-  // Activer la surveillance temps réel des permissions
-  useRealTimePermissions();
+  const location = useLocation();
 
   const menuItems = [
-    { 
-      icon: Home, 
-      label: 'Tableau de bord', 
-      href: '/', 
-      menu: 'Dashboard'
-    },
-    { 
-      icon: ShoppingCart, 
-      label: 'Ventes', 
-      href: '/sales', 
-      menu: 'Ventes',
-      submenu: 'Factures'
-    },
-    { 
-      icon: Package, 
-      label: 'Stocks', 
-      href: '/stocks', 
-      menu: 'Stock',
-      submenu: 'Entrepôts'
-    },
-    { 
-      icon: CreditCard, 
-      label: 'Achats', 
-      href: '/purchases', 
-      menu: 'Achats',
-      submenu: 'Bons de commande'
-    },
-    { 
-      icon: Users, 
-      label: 'Clients', 
-      href: '/clients', 
-      menu: 'Clients'
-    },
-    { 
-      icon: DollarSign, 
-      label: 'Caisse', 
-      href: '/cash-registers', 
-      menu: 'Caisse'
-    },
-    { 
-      icon: TrendingUp, 
-      label: 'Marges', 
-      href: '/margins', 
-      menu: 'Marges'
-    },
-    { 
-      icon: FileText, 
-      label: 'Rapports', 
-      href: '/reports', 
-      menu: 'Rapports'
-    },
-    { 
-      icon: Settings, 
-      label: 'Paramètres', 
-      href: '/settings', 
-      menu: 'Paramètres'
-    },
+    { icon: Home, label: 'Tableau de bord', href: '/' },
+    { icon: ShoppingCart, label: 'Ventes', href: '/sales' },
+    { icon: Package, label: 'Stocks', href: '/stocks' },
+    { icon: CreditCard, label: 'Achats', href: '/purchases' },
+    { icon: Users, label: 'Clients', href: '/clients' },
+    { icon: DollarSign, label: 'Caisse', href: '/cash-registers' },
+    { icon: TrendingUp, label: 'Marges', href: '/margins' },
+    { icon: FileText, label: 'Rapports', href: '/reports' },
+    { icon: Settings, label: 'Paramètres', href: '/settings' },
   ];
 
   return (
@@ -89,16 +40,25 @@ const AppSidebar = () => {
           <p className="text-slate-400 text-sm mb-3">Menu principal</p>
         </div>
         <ul className="space-y-2">
-          {menuItems.map((item) => (
-            <ProtectedMenuItem
-              key={item.href}
-              icon={item.icon}
-              label={item.label}
-              href={item.href}
-              menu={item.menu}
-              submenu={item.submenu}
-            />
-          ))}
+          {menuItems.map((item) => {
+            const isActive = location.pathname === item.href;
+            return (
+              <li key={item.href}>
+                <Link
+                  to={item.href}
+                  className={cn(
+                    "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
+                    isActive
+                      ? "bg-slate-700 text-white"
+                      : "text-slate-300 hover:bg-slate-700 hover:text-white"
+                  )}
+                >
+                  <item.icon className="h-5 w-5" />
+                  {item.label}
+                </Link>
+              </li>
+            );
+          })}
         </ul>
       </nav>
     </aside>
