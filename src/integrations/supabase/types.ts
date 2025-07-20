@@ -3108,6 +3108,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
+      assign_user_role_secure: {
+        Args: { target_user_id: string; new_role_id: string }
+        Returns: Json
+      }
       audit_entrees_stock_propres: {
         Args: Record<PropertyKey, never>
         Returns: {
@@ -3430,6 +3434,10 @@ export type Database = {
       }
       secure_role_assignment: {
         Args: { target_user_id: string; new_role_id: string }
+        Returns: Json
+      }
+      update_internal_user_secure: {
+        Args: { user_internal_id: string; user_data: Json }
         Returns: Json
       }
       update_stock_pdv: {

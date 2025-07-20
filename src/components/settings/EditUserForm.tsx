@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -9,9 +9,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useRolesForUsers } from '@/hooks/useUtilisateursInternes';
-import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
-import { RefreshCw, User, Lock } from 'lucide-react';
+import { useSecureUserManagement } from '@/hooks/useSecureUserManagement';
+import { RefreshCw, User, Lock, Mail, Phone, MapPin, CreditCard } from 'lucide-react';
 
 interface EditUserFormProps {
   user: {
@@ -36,7 +35,9 @@ interface EditUserFormProps {
 }
 
 const EditUserForm = ({ user, onSuccess, onCancel }: EditUserFormProps) => {
-  const { toast } = useToast();
+  const { data: roles = [], isLoading: rolesLoading } = useRolesForUsers();
+  const { assignRoleSecure, updateUserSecure, updatePasswordSecure, updateEmailSecure } = useSecureUserManagement();
+  
   const [formData, setFormData] = useState({
     prenom: user.prenom || '',
     nom: user.nom || '',
@@ -46,13 +47,12 @@ const EditUserForm = ({ user, onSuccess, onCancel }: EditUserFormProps) => {
     photo_url: user.photo_url || '',
     matricule: user.matricule || '',
     statut: user.statut || 'actif',
-    selectedRoleId: user.role?.id || '',
+    selectedRoleId: user.role?.id || 'no-role',
     doit_changer_mot_de_passe: user.doit_changer_mot_de_passe || false,
     nouveauMotDePasse: '',
     modifierMotDePasse: false
   });
 
-  const { data: roles = [], isLoading: rolesLoading } = useRolesForUsers();
   const [isUpdating, setIsUpdating] = useState(false);
 
   const handleInputChange = (field: string, value: string | boolean) => {
@@ -64,116 +64,77 @@ const EditUserForm = ({ user, onSuccess, onCancel }: EditUserFormProps) => {
     setIsUpdating(true);
 
     try {
-      console.log('🔄 Début de la mise à jour utilisateur:', user.id);
+      console.log('🔄 Début de la mise à jour sécurisée utilisateur:', user.id);
 
-      // 1. Mettre à jour les informations du profil utilisateur
-      const { error: profileError } = await supabase
-        .from('utilisateurs_internes')
-        .update({
+      // 1. Mettre à jour les informations du profil utilisateur avec la fonction sécurisée
+      await updateUserSecure.mutateAsync({
+        userInternalId: user.id,
+        userData: {
           prenom: formData.prenom,
           nom: formData.nom,
           email: formData.email,
-          telephone: formData.telephone || null,
-          adresse: formData.adresse || null,
-          photo_url: formData.photo_url || null,
-          matricule: formData.matricule || null,
+          telephone: formData.telephone || '',
+          adresse: formData.adresse || '',
+          photo_url: formData.photo_url || '',
+          matricule: formData.matricule || '',
           statut: formData.statut,
-          doit_changer_mot_de_passe: formData.doit_changer_mot_de_passe,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', user.id);
+          doit_changer_mot_de_passe: formData.doit_changer_mot_de_passe
+        }
+      });
 
-      if (profileError) {
-        console.error('❌ Erreur mise à jour profil:', profileError);
-        throw new Error(`Erreur profil: ${profileError.message}`);
-      }
-
-      console.log('✅ Profil utilisateur mis à jour');
+      console.log('✅ Profil utilisateur mis à jour avec fonction sécurisée');
 
       // 2. Gérer le changement de rôle si nécessaire
-      if (formData.selectedRoleId && formData.selectedRoleId !== user.role?.id) {
-        console.log('🔄 Mise à jour du rôle utilisateur...');
+      if (formData.selectedRoleId !== user.role?.id) {
+        console.log('🔄 Assignation sécurisée du rôle utilisateur...');
         
-        // Désactiver l'ancien rôle
-        if (user.role?.id) {
-          await supabase
-            .from('user_roles')
-            .update({ is_active: false })
-            .eq('user_id', user.user_id)
-            .eq('role_id', user.role.id);
-        }
+        await assignRoleSecure.mutateAsync({
+          userId: user.user_id,
+          roleId: formData.selectedRoleId
+        });
 
-        // Assigner le nouveau rôle
-        const { error: roleError } = await supabase
-          .from('user_roles')
-          .upsert({
-            user_id: user.user_id,
-            role_id: formData.selectedRoleId,
-            is_active: true,
-            assigned_at: new Date().toISOString()
-          });
-
-        if (roleError) {
-          console.error('❌ Erreur assignation rôle:', roleError);
-          throw new Error(`Erreur rôle: ${roleError.message}`);
-        }
-
-        console.log('✅ Rôle utilisateur mis à jour');
+        console.log('✅ Rôle utilisateur assigné avec fonction sécurisée');
       }
 
       // 3. Gérer le changement de mot de passe si demandé
       if (formData.modifierMotDePasse && formData.nouveauMotDePasse.trim()) {
-        console.log('🔐 Mise à jour du mot de passe...');
+        console.log('🔐 Mise à jour sécurisée du mot de passe...');
         
-        const { error: passwordError } = await supabase.auth.admin.updateUserById(
-          user.user_id,
-          { password: formData.nouveauMotDePasse }
-        );
+        await updatePasswordSecure.mutateAsync({
+          authUserId: user.user_id,
+          newPassword: formData.nouveauMotDePasse
+        });
 
-        if (passwordError) {
-          console.error('❌ Erreur mot de passe:', passwordError);
-          throw new Error(`Erreur mot de passe: ${passwordError.message}`);
-        }
-
-        console.log('✅ Mot de passe mis à jour');
+        console.log('✅ Mot de passe mis à jour avec fonction sécurisée');
       }
 
       // 4. Mettre à jour l'email dans auth.users si changé
       if (formData.email !== user.email) {
-        console.log('📧 Mise à jour email auth...');
+        console.log('📧 Mise à jour sécurisée email auth...');
         
-        const { error: emailError } = await supabase.auth.admin.updateUserById(
-          user.user_id,
-          { email: formData.email }
-        );
+        try {
+          await updateEmailSecure.mutateAsync({
+            authUserId: user.user_id,
+            newEmail: formData.email
+          });
 
-        if (emailError) {
-          console.error('❌ Erreur email auth:', emailError);
-          // Ne pas bloquer pour cette erreur
-          console.warn('⚠️ Email auth non mis à jour, mais profil sauvegardé');
-        } else {
-          console.log('✅ Email auth mis à jour');
+          console.log('✅ Email auth mis à jour avec fonction sécurisée');
+        } catch (emailError) {
+          console.warn('⚠️ Email auth non mis à jour, mais profil sauvegardé:', emailError);
         }
       }
 
-      toast({
-        title: "Utilisateur modifié avec succès",
-        description: "Toutes les informations ont été mises à jour.",
-      });
-
+      console.log('🎉 TOUS LES CHANGEMENTS APPLIQUÉS AVEC SUCCÈS');
       onSuccess();
 
     } catch (error: any) {
-      console.error('❌ Erreur générale:', error);
-      toast({
-        title: "Erreur de mise à jour",
-        description: error.message || "Une erreur est survenue lors de la mise à jour",
-        variant: "destructive",
-      });
+      console.error('❌ Erreur générale lors de la mise à jour sécurisée:', error);
     } finally {
       setIsUpdating(false);
     }
   };
+
+  const isLoading = isUpdating || assignRoleSecure.isPending || updateUserSecure.isPending || updatePasswordSecure.isPending || updateEmailSecure.isPending;
 
   return (
     <div className="space-y-6 max-w-4xl mx-auto">
@@ -182,18 +143,24 @@ const EditUserForm = ({ user, onSuccess, onCancel }: EditUserFormProps) => {
         <Card>
           <CardHeader>
             <div className="flex items-center space-x-4">
-              <Avatar className="h-16 w-16">
+              <Avatar className="h-20 w-20">
                 <AvatarImage src={formData.photo_url} alt={`${formData.prenom} ${formData.nom}`} />
-                <AvatarFallback>
-                  <User className="h-8 w-8" />
+                <AvatarFallback className="bg-primary/10">
+                  <User className="h-10 w-10" />
                 </AvatarFallback>
               </Avatar>
-              <div>
-                <CardTitle className="text-xl">
+              <div className="flex-1">
+                <CardTitle className="text-2xl">
                   {formData.prenom} {formData.nom}
                 </CardTitle>
-                <p className="text-muted-foreground">{formData.email}</p>
-                <p className="text-sm text-muted-foreground">Matricule: {formData.matricule}</p>
+                <p className="text-muted-foreground flex items-center space-x-2 mt-1">
+                  <Mail className="h-4 w-4" />
+                  <span>{formData.email}</span>
+                </p>
+                <p className="text-sm text-muted-foreground flex items-center space-x-2 mt-1">
+                  <CreditCard className="h-4 w-4" />
+                  <span>Matricule: {formData.matricule}</span>
+                </p>
               </div>
             </div>
           </CardHeader>
@@ -202,7 +169,10 @@ const EditUserForm = ({ user, onSuccess, onCancel }: EditUserFormProps) => {
         {/* Informations personnelles */}
         <Card>
           <CardHeader>
-            <CardTitle>Informations personnelles</CardTitle>
+            <CardTitle className="flex items-center space-x-2">
+              <User className="h-5 w-5" />
+              <span>Informations personnelles</span>
+            </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
@@ -213,6 +183,7 @@ const EditUserForm = ({ user, onSuccess, onCancel }: EditUserFormProps) => {
                   value={formData.prenom}
                   onChange={(e) => handleInputChange('prenom', e.target.value)}
                   required
+                  className="h-11"
                 />
               </div>
               <div className="space-y-2">
@@ -222,47 +193,76 @@ const EditUserForm = ({ user, onSuccess, onCancel }: EditUserFormProps) => {
                   value={formData.nom}
                   onChange={(e) => handleInputChange('nom', e.target.value)}
                   required
+                  className="h-11"
                 />
               </div>
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="email">Email *</Label>
-              <Input
-                id="email"
-                type="email"
-                value={formData.email}
-                onChange={(e) => handleInputChange('email', e.target.value)}
-                required
-              />
+              <div className="relative">
+                <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  id="email"
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) => handleInputChange('email', e.target.value)}
+                  required
+                  className="pl-10 h-11"
+                />
+              </div>
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="matricule">Matricule</Label>
-              <Input
-                id="matricule"
-                value={formData.matricule}
-                onChange={(e) => handleInputChange('matricule', e.target.value)}
-              />
+              <div className="relative">
+                <CreditCard className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  id="matricule"
+                  value={formData.matricule}
+                  onChange={(e) => handleInputChange('matricule', e.target.value)}
+                  className="pl-10 h-11"
+                />
+              </div>
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="telephone">Téléphone</Label>
+              <div className="relative">
+                <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  id="telephone"
+                  value={formData.telephone}
+                  onChange={(e) => handleInputChange('telephone', e.target.value)}
+                  className="pl-10 h-11"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="photo_url">Photo de profil (URL)</Label>
               <Input
-                id="telephone"
-                value={formData.telephone}
-                onChange={(e) => handleInputChange('telephone', e.target.value)}
+                id="photo_url"
+                type="url"
+                value={formData.photo_url}
+                onChange={(e) => handleInputChange('photo_url', e.target.value)}
+                placeholder="https://example.com/photo.jpg"
+                className="h-11"
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="adresse">Adresse</Label>
-              <Textarea
-                id="adresse"
-                value={formData.adresse}
-                onChange={(e) => handleInputChange('adresse', e.target.value)}
-                rows={3}
-              />
+              <Label htmlFor="adresse">Adresse complète</Label>
+              <div className="relative">
+                <MapPin className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                <Textarea
+                  id="adresse"
+                  value={formData.adresse}
+                  onChange={(e) => handleInputChange('adresse', e.target.value)}
+                  rows={3}
+                  className="pl-10"
+                />
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -285,7 +285,7 @@ const EditUserForm = ({ user, onSuccess, onCancel }: EditUserFormProps) => {
                   value={formData.selectedRoleId}
                   onValueChange={(value) => handleInputChange('selectedRoleId', value)}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className="h-11">
                     <SelectValue placeholder="Sélectionner un rôle" />
                   </SelectTrigger>
                   <SelectContent>
@@ -306,7 +306,7 @@ const EditUserForm = ({ user, onSuccess, onCancel }: EditUserFormProps) => {
                 value={formData.statut}
                 onValueChange={(value) => handleInputChange('statut', value)}
               >
-                <SelectTrigger>
+                <SelectTrigger className="h-11">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -327,10 +327,10 @@ const EditUserForm = ({ user, onSuccess, onCancel }: EditUserFormProps) => {
               <span>Sécurité</span>
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
-                <Label htmlFor="modifier-password">Modifier le mot de passe</Label>
+          <CardContent className="space-y-6">
+            <div className="flex items-center justify-between p-4 border rounded-lg">
+              <div className="space-y-1">
+                <Label htmlFor="modifier-password" className="text-base font-medium">Modifier le mot de passe</Label>
                 <p className="text-sm text-muted-foreground">
                   Activer pour définir un nouveau mot de passe
                 </p>
@@ -345,19 +345,23 @@ const EditUserForm = ({ user, onSuccess, onCancel }: EditUserFormProps) => {
             {formData.modifierMotDePasse && (
               <div className="space-y-2">
                 <Label htmlFor="nouveau-password">Nouveau mot de passe</Label>
-                <Input
-                  id="nouveau-password"
-                  type="password"
-                  value={formData.nouveauMotDePasse}
-                  onChange={(e) => handleInputChange('nouveauMotDePasse', e.target.value)}
-                  placeholder="Entrez le nouveau mot de passe"
-                />
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="nouveau-password"
+                    type="password"
+                    value={formData.nouveauMotDePasse}
+                    onChange={(e) => handleInputChange('nouveauMotDePasse', e.target.value)}
+                    placeholder="Entrez le nouveau mot de passe"
+                    className="pl-10 h-11"
+                  />
+                </div>
               </div>
             )}
 
-            <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
-                <Label htmlFor="force-password-change">Forcer le changement de mot de passe</Label>
+            <div className="flex items-center justify-between p-4 border rounded-lg">
+              <div className="space-y-1">
+                <Label htmlFor="force-password-change" className="text-base font-medium">Forcer le changement de mot de passe</Label>
                 <p className="text-sm text-muted-foreground">
                   L'utilisateur devra changer son mot de passe lors de sa prochaine connexion
                 </p>
@@ -372,16 +376,16 @@ const EditUserForm = ({ user, onSuccess, onCancel }: EditUserFormProps) => {
         </Card>
 
         {/* Actions */}
-        <div className="flex justify-end space-x-2 pt-4">
-          <Button type="button" variant="outline" onClick={onCancel}>
+        <div className="flex justify-end space-x-3 pt-6 border-t">
+          <Button type="button" variant="outline" onClick={onCancel} className="px-6">
             Annuler
           </Button>
           <Button 
             type="submit" 
-            disabled={isUpdating}
-            className="flex items-center space-x-2"
+            disabled={isLoading}
+            className="px-6 flex items-center space-x-2"
           >
-            {isUpdating ? (
+            {isLoading ? (
               <>
                 <RefreshCw className="h-4 w-4 animate-spin" />
                 <span>Modification en cours...</span>
