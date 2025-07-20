@@ -1,7 +1,8 @@
 
 import React, { useState } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
-import ProtectedContent from '@/components/auth/ProtectedContent';
+import StrictProtectedRoute from '@/components/auth/StrictProtectedRoute';
+import ConditionalRender from '@/components/auth/ConditionalRender';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
@@ -90,110 +91,126 @@ const settingsCards = [
 const Settings = () => {
   const [activeTab, setActiveTab] = useState("overview");
 
-  return (
-    <AppLayout title="Paramètres">
-      <ProtectedContent menu="Paramètres">
-        <div className="space-y-6">
+  const renderSettingsCard = (card: typeof settingsCards[0]) => (
+    <ConditionalRender
+      key={card.id}
+      menu={card.menu}
+      submenu={card.submenu}
+      action="read"
+      hide={true}
+    >
+      <Card 
+        className={`cursor-pointer transition-all duration-200 ${card.color}`}
+        onClick={() => setActiveTab(card.id)}
+      >
+        <CardHeader className="flex flex-row items-center space-y-0 pb-2">
           <div className="flex items-center space-x-2">
-            <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
-              <div className="w-4 h-4 rounded bg-primary" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold">Paramètres</h1>
-              <p className="text-muted-foreground">Espace administrateur</p>
-            </div>
+            <card.icon className="h-5 w-5" />
+            <CardTitle className="text-base">{card.title}</CardTitle>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <CardDescription className="text-sm">
+            {card.description}
+          </CardDescription>
+        </CardContent>
+      </Card>
+    </ConditionalRender>
+  );
+
+  return (
+    <StrictProtectedRoute menu="Paramètres" action="read" showDetailedError>
+      <AppLayout>
+        <div className="container mx-auto p-6 space-y-6">
+          <div>
+            <h1 className="text-3xl font-bold">Paramètres</h1>
+            <p className="text-muted-foreground mt-2">
+              Configurez et gérez les paramètres de votre application
+            </p>
           </div>
 
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid grid-cols-8 w-full">
+          <Tabs value="overview" className="w-full">
+            <TabsList>
               <TabsTrigger value="overview">Vue d'ensemble</TabsTrigger>
-              <TabsTrigger value="zone-geo">Zone Géo</TabsTrigger>
-              
-              <ProtectedContent menu="Paramètres" submenu="Fournisseurs" fallback={null}>
-                <TabsTrigger value="fournisseurs">Fournisseurs</TabsTrigger>
-              </ProtectedContent>
-              
-              <TabsTrigger value="depots-stockage">Dépôts Stock</TabsTrigger>
-              <TabsTrigger value="depots-pdv">Dépôts PDV</TabsTrigger>
-              <TabsTrigger value="clients">Clients</TabsTrigger>
-              
-              <ProtectedContent menu="Paramètres" submenu="Utilisateurs" fallback={null}>
-                <TabsTrigger value="utilisateurs-internes">Utilisateurs</TabsTrigger>
-              </ProtectedContent>
-              
-              <ProtectedContent menu="Paramètres" submenu="Permissions" fallback={null}>
-                <TabsTrigger value="acces-permissions">Permissions</TabsTrigger>
-              </ProtectedContent>
             </TabsList>
-
-            <TabsContent value="overview" className="mt-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {settingsCards.map((card) => {
-                  const IconComponent = card.icon;
-                  return (
-                    <ProtectedContent 
-                      key={card.id}
-                      menu={card.menu} 
-                      submenu={card.submenu}
-                      fallback={null}
-                    >
-                      <Card 
-                        className={`cursor-pointer transition-all duration-200 ${card.color}`}
-                        onClick={() => setActiveTab(card.id)}
-                      >
-                        <CardHeader className="flex flex-row items-center space-y-0 pb-2">
-                          <IconComponent className="h-6 w-6 mr-3" />
-                          <div className="flex-1">
-                            <CardTitle className="text-lg">{card.title}</CardTitle>
-                            <CardDescription className="mt-1">
-                              {card.description}
-                            </CardDescription>
-                          </div>
-                        </CardHeader>
-                      </Card>
-                    </ProtectedContent>
-                  );
-                })}
+            
+            <TabsContent value="overview" className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {settingsCards.map(renderSettingsCard)}
               </div>
             </TabsContent>
+          </Tabs>
 
-            <TabsContent value="zone-geo" className="mt-6">
-              <ZoneGeographique />
-            </TabsContent>
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+            <TabsList className="grid w-full grid-cols-7">
+              <ConditionalRender menu="Paramètres" action="read" hide>
+                <TabsTrigger value="zone-geo">Zones</TabsTrigger>
+              </ConditionalRender>
+              <ConditionalRender menu="Paramètres" submenu="Fournisseurs" action="read" hide>
+                <TabsTrigger value="fournisseurs">Fournisseurs</TabsTrigger>
+              </ConditionalRender>
+              <ConditionalRender menu="Paramètres" action="read" hide>
+                <TabsTrigger value="depots-stockage">Entrepôts</TabsTrigger>
+              </ConditionalRender>
+              <ConditionalRender menu="Paramètres" action="read" hide>
+                <TabsTrigger value="depots-pdv">PDV</TabsTrigger>
+              </ConditionalRender>
+              <ConditionalRender menu="Clients" action="read" hide>
+                <TabsTrigger value="clients">Clients</TabsTrigger>
+              </ConditionalRender>
+              <ConditionalRender menu="Paramètres" submenu="Utilisateurs" action="read" hide>
+                <TabsTrigger value="utilisateurs-internes">Utilisateurs</TabsTrigger>
+              </ConditionalRender>
+              <ConditionalRender menu="Paramètres" submenu="Permissions" action="read" hide>
+                <TabsTrigger value="acces-permissions">Permissions</TabsTrigger>
+              </ConditionalRender>
+            </TabsList>
 
-            <ProtectedContent menu="Paramètres" submenu="Fournisseurs">
-              <TabsContent value="fournisseurs" className="mt-6">
+            <StrictProtectedRoute menu="Paramètres" action="read">
+              <TabsContent value="zone-geo">
+                <ZoneGeographique />
+              </TabsContent>
+            </StrictProtectedRoute>
+
+            <StrictProtectedRoute menu="Paramètres" submenu="Fournisseurs" action="read">
+              <TabsContent value="fournisseurs">
                 <Fournisseurs />
               </TabsContent>
-            </ProtectedContent>
+            </StrictProtectedRoute>
 
-            <TabsContent value="depots-stockage" className="mt-6">
-              <DepotsStockage />
-            </TabsContent>
+            <StrictProtectedRoute menu="Paramètres" action="read">
+              <TabsContent value="depots-stockage">
+                <DepotsStockage />
+              </TabsContent>
+            </StrictProtectedRoute>
 
-            <TabsContent value="depots-pdv" className="mt-6">
-              <DepotsPDV />
-            </TabsContent>
+            <StrictProtectedRoute menu="Paramètres" action="read">
+              <TabsContent value="depots-pdv">
+                <DepotsPDV />
+              </TabsContent>
+            </StrictProtectedRoute>
 
-            <TabsContent value="clients" className="mt-6">
-              <ClientsSettings />
-            </TabsContent>
+            <StrictProtectedRoute menu="Clients" action="read">
+              <TabsContent value="clients">
+                <ClientsSettings />
+              </TabsContent>
+            </StrictProtectedRoute>
 
-            <ProtectedContent menu="Paramètres" submenu="Utilisateurs">
-              <TabsContent value="utilisateurs-internes" className="mt-6">
+            <StrictProtectedRoute menu="Paramètres" submenu="Utilisateurs" action="read">
+              <TabsContent value="utilisateurs-internes">
                 <UtilisateursInternes />
               </TabsContent>
-            </ProtectedContent>
+            </StrictProtectedRoute>
 
-            <ProtectedContent menu="Paramètres" submenu="Permissions">
-              <TabsContent value="acces-permissions" className="mt-6">
+            <StrictProtectedRoute menu="Paramètres" submenu="Permissions" action="read">
+              <TabsContent value="acces-permissions">
                 <AccesPermissions />
               </TabsContent>
-            </ProtectedContent>
+            </StrictProtectedRoute>
           </Tabs>
         </div>
-      </ProtectedContent>
-    </AppLayout>
+      </AppLayout>
+    </StrictProtectedRoute>
   );
 };
 
