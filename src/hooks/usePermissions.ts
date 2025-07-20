@@ -1,3 +1,4 @@
+
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -129,37 +130,7 @@ export const useRolePermissions = (roleId?: string) => {
   });
 };
 
-// Hook pour récupérer les permissions d'un utilisateur
-export const useUserPermissions = (userId?: string) => {
-  return useQuery({
-    queryKey: ['user-permissions', userId],
-    queryFn: async () => {
-      if (!userId || !isValidUUID(userId)) {
-        console.log('⚠️ Invalid or missing user ID for permissions:', userId);
-        return [];
-      }
-      
-      console.log('🔍 Fetching permissions for user:', userId);
-      
-      // Utiliser la vue optimisée vue_permissions_utilisateurs
-      const { data, error } = await supabase
-        .from('vue_permissions_utilisateurs')
-        .select('*')
-        .eq('user_id', userId);
-
-      if (error) {
-        console.error('❌ Error fetching user permissions:', error);
-        throw error;
-      }
-
-      console.log('✅ User permissions fetched:', data?.length || 0);
-      return data || [];
-    },
-    enabled: !!userId && isValidUUID(userId)
-  });
-};
-
-// Hook pour récupérer les utilisateurs avec leurs rôles - VERSION CORRIGÉE
+// Hook pour récupérer les utilisateurs avec leurs rôles
 export const useUsersWithRoles = () => {
   return useQuery({
     queryKey: ['users-with-roles'],
@@ -271,7 +242,7 @@ export const useCreateRole = () => {
   });
 };
 
-// Hook pour assigner un rôle à un utilisateur - VERSION CORRIGÉE
+// Hook pour assigner un rôle à un utilisateur
 export const useAssignUserRole = () => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -349,7 +320,7 @@ export const useAssignUserRole = () => {
   });
 };
 
-// Hook pour mettre à jour les permissions d'un rôle - VERSION OPTIMISÉE
+// Hook pour mettre à jour les permissions d'un rôle
 export const useUpdateRolePermissions = () => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
