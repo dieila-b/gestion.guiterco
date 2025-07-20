@@ -289,7 +289,7 @@ const EditUserForm = ({ user, onSuccess, onCancel }: EditUserFormProps) => {
                     <SelectValue placeholder="Sélectionner un rôle" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Aucun rôle</SelectItem>
+                    <SelectItem value="no-role">Aucun rôle</SelectItem>
                     {roles.map((role) => (
                       <SelectItem key={role.id} value={role.id}>
                         {role.name} {role.description && `- ${role.description}`}
@@ -319,7 +319,7 @@ const EditUserForm = ({ user, onSuccess, onCancel }: EditUserFormProps) => {
           </CardContent>
         </Card>
 
-        {/* Sécurité et mot de passe */}
+        {/* Sécurité */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center space-x-2">
