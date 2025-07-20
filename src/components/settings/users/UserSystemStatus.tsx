@@ -116,7 +116,7 @@ const UserSystemStatus = () => {
             <div className="flex items-center space-x-2">
               <CheckCircle className="h-4 w-4 text-green-500" />
               <span className="text-sm text-green-700">
-                Session renouvelée avec succès - {new Date(refreshSession.data.timestamp).toLocaleTimeString()}
+                Session renouvelée avec succès - {new Date().toLocaleTimeString()}
               </span>
             </div>
           </div>

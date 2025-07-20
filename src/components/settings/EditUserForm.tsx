@@ -12,6 +12,7 @@ import { useRolesForUsers } from '@/hooks/useUtilisateursInternes';
 import { useSecureUserOperations } from '@/hooks/useSecureUserOperations';
 import { Badge } from '@/components/ui/badge';
 import { RefreshCw, Shield, User, AlertCircle } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 
 interface EditUserFormProps {
   user: {
