@@ -1,14 +1,18 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Shield, Users, Key, Grid } from 'lucide-react';
+import { Shield, Users, Settings, Matrix } from 'lucide-react';
+import AccessControl from './permissions/AccessControl';
 import RolesManagement from './permissions/RolesManagement';
 import PermissionsManagement from './permissions/PermissionsManagement';
 import PermissionsMatrix from './permissions/PermissionsMatrix';
-import AccessControl from './permissions/AccessControl';
+import { useRealTimeRoles } from '@/hooks/useRealTimeRoles';
 
 const AccesPermissions = () => {
+  // Activer la synchronisation temps réel
+  useRealTimeRoles();
+
   return (
     <div className="space-y-6">
       <Card>
@@ -16,9 +20,9 @@ const AccesPermissions = () => {
           <div className="flex items-center space-x-2">
             <Shield className="h-5 w-5" />
             <div>
-              <CardTitle>Gestion des Accès et Permissions</CardTitle>
+              <CardTitle>Accès & Permissions</CardTitle>
               <CardDescription>
-                Configurez les rôles utilisateurs et leurs permissions d'accès aux modules
+                Gérez les rôles, permissions et contrôles d'accès du système
               </CardDescription>
             </div>
           </div>
@@ -30,17 +34,17 @@ const AccesPermissions = () => {
                 <Users className="h-4 w-4" />
                 <span>Rôles</span>
               </TabsTrigger>
-              <TabsTrigger value="permissions" className="flex items-center space-x-2">
-                <Key className="h-4 w-4" />
-                <span>Permissions</span>
-              </TabsTrigger>
               <TabsTrigger value="matrix" className="flex items-center space-x-2">
-                <Grid className="h-4 w-4" />
+                <Matrix className="h-4 w-4" />
                 <span>Matrice</span>
               </TabsTrigger>
-              <TabsTrigger value="access" className="flex items-center space-x-2">
+              <TabsTrigger value="permissions" className="flex items-center space-x-2">
+                <Settings className="h-4 w-4" />
+                <span>Permissions</span>
+              </TabsTrigger>
+              <TabsTrigger value="access-control" className="flex items-center space-x-2">
                 <Shield className="h-4 w-4" />
-                <span>Contrôle d'accès</span>
+                <span>Contrôle d'Accès</span>
               </TabsTrigger>
             </TabsList>
 
@@ -48,15 +52,15 @@ const AccesPermissions = () => {
               <RolesManagement />
             </TabsContent>
 
-            <TabsContent value="permissions" className="mt-6">
-              <PermissionsManagement />
-            </TabsContent>
-
             <TabsContent value="matrix" className="mt-6">
               <PermissionsMatrix />
             </TabsContent>
 
-            <TabsContent value="access" className="mt-6">
+            <TabsContent value="permissions" className="mt-6">
+              <PermissionsManagement />
+            </TabsContent>
+
+            <TabsContent value="access-control" className="mt-6">
               <AccessControl />
             </TabsContent>
           </Tabs>
