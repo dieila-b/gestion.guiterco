@@ -1,123 +1,131 @@
 
-import React, { useState, useEffect } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { usePermissions } from '@/hooks/usePermissions';
+import React, { useState } from 'react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { Plus } from 'lucide-react';
 
 interface CreateRoleDialogProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  editingRoleId?: string | null;
-  onEditComplete?: () => void;
+  children?: React.ReactNode;
 }
 
-export function CreateRoleDialog({ open, onOpenChange, editingRoleId, onEditComplete }: CreateRoleDialogProps) {
-  const [name, setName] = useState('');
-  const [description, setDescription] = useState('');
-  const [loading, setLoading] = useState(false);
-  const { roles, createRole, updateRole } = usePermissions();
+const CreateRoleDialog = ({ children }: CreateRoleDialogProps) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [formData, setFormData] = useState({
+    nom: '',
+    description: ''
+  });
+  
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
-  const isEditing = Boolean(editingRoleId);
-  const editingRole = roles.find(r => r.id === editingRoleId);
+  const createRole = useMutation({
+    mutationFn: async (data: { nom: string; description: string }) => {
+      const { data: role, error } = await supabase
+        .from('roles_utilisateurs')
+        .insert({
+          nom: data.nom.toLowerCase().replace(/\s+/g, '_'),
+          description: data.description
+        })
+        .select()
+        .single();
 
-  useEffect(() => {
-    if (isEditing && editingRole) {
-      setName(editingRole.name);
-      setDescription(editingRole.description || '');
-    } else {
-      setName('');
-      setDescription('');
-    }
-  }, [isEditing, editingRole]);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!name.trim()) return;
-
-    setLoading(true);
-    try {
-      let result;
-      if (isEditing && editingRoleId) {
-        result = await updateRole(editingRoleId, name.trim(), description.trim());
-      } else {
-        result = await createRole(name.trim(), description.trim());
-      }
-
-      if (result.success) {
-        toast({
-          title: isEditing ? "Rôle modifié" : "Rôle créé",
-          description: `Le rôle "${name}" a été ${isEditing ? 'modifié' : 'créé'} avec succès.`,
-        });
-        onOpenChange(false);
-        if (onEditComplete) onEditComplete();
-      } else {
-        toast({
-          title: "Erreur",
-          description: result.error || `Erreur lors de la ${isEditing ? 'modification' : 'création'} du rôle.`,
-          variant: "destructive",
-        });
-      }
-    } catch (error) {
+      if (error) throw error;
+      return role;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['roles-utilisateurs'] });
+      toast({
+        title: "Rôle créé",
+        description: "Le nouveau rôle a été créé avec succès.",
+      });
+      setFormData({ nom: '', description: '' });
+      setIsOpen(false);
+    },
+    onError: (error: any) => {
       toast({
         title: "Erreur",
-        description: "Une erreur inattendue s'est produite.",
+        description: error.message || "Impossible de créer le rôle",
         variant: "destructive",
       });
-    } finally {
-      setLoading(false);
     }
-  };
+  });
 
-  const handleClose = () => {
-    onOpenChange(false);
-    if (onEditComplete) onEditComplete();
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formData.nom.trim()) {
+      toast({
+        title: "Erreur",
+        description: "Le nom du rôle est requis",
+        variant: "destructive",
+      });
+      return;
+    }
+    createRole.mutate(formData);
   };
 
   return (
-    <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent>
+    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+      <DialogTrigger asChild>
+        {children || (
+          <Button>
+            <Plus className="h-4 w-4 mr-2" />
+            Nouveau rôle
+          </Button>
+        )}
+      </DialogTrigger>
+      <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>{isEditing ? 'Modifier le rôle' : 'Créer un nouveau rôle'}</DialogTitle>
+          <DialogTitle>Créer un nouveau rôle</DialogTitle>
         </DialogHeader>
         
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="name">Nom du rôle</Label>
+            <Label htmlFor="nom">Nom du rôle *</Label>
             <Input
-              id="name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Ex: Gestionnaire de stock"
+              id="nom"
+              value={formData.nom}
+              onChange={(e) => setFormData(prev => ({ ...prev, nom: e.target.value }))}
+              placeholder="Ex: Super Admin, Gestionnaire Stock..."
               required
             />
           </div>
-          
+
           <div className="space-y-2">
             <Label htmlFor="description">Description</Label>
             <Textarea
               id="description"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="Description du rôle et de ses responsabilités..."
+              value={formData.description}
+              onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+              placeholder="Description des responsabilités de ce rôle..."
               rows={3}
             />
           </div>
 
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={handleClose}>
+          <div className="flex justify-end space-x-2 pt-4">
+            <Button 
+              type="button" 
+              variant="outline" 
+              onClick={() => setIsOpen(false)}
+            >
               Annuler
             </Button>
-            <Button type="submit" disabled={loading || !name.trim()}>
-              {loading ? 'Traitement...' : (isEditing ? 'Modifier' : 'Créer')}
+            <Button 
+              type="submit"
+              disabled={createRole.isPending}
+            >
+              {createRole.isPending ? 'Création...' : 'Créer le rôle'}
             </Button>
-          </DialogFooter>
+          </div>
         </form>
       </DialogContent>
     </Dialog>
   );
-}
+};
+
+export default CreateRoleDialog;

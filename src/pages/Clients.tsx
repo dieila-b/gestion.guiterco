@@ -1,45 +1,36 @@
 
 import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Users, Plus } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { AppLayout } from '@/components/layout/AppLayout';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import ClientsList from '@/components/clients/ClientsList';
+import MeilleursClients from '@/components/clients/MeilleursClients';
+import ClientsEndettes from '@/components/clients/ClientsEndettes';
 
 const Clients = () => {
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">Clients</h1>
-          <p className="text-muted-foreground">Gestion de votre base clients</p>
-        </div>
-        <Button className="flex items-center gap-2">
-          <Plus className="h-4 w-4" />
-          Nouveau client
-        </Button>
+    <AppLayout title="Gestion des Clients">
+      <div className="space-y-6">
+        <Tabs defaultValue="liste" className="w-full">
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="liste">Clients</TabsTrigger>
+            <TabsTrigger value="meilleurs">Meilleurs Clients</TabsTrigger>
+            <TabsTrigger value="endettes">Clients Endettés</TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="liste" className="space-y-4">
+            <ClientsList />
+          </TabsContent>
+          
+          <TabsContent value="meilleurs" className="space-y-4">
+            <MeilleursClients />
+          </TabsContent>
+          
+          <TabsContent value="endettes" className="space-y-4">
+            <ClientsEndettes />
+          </TabsContent>
+        </Tabs>
       </div>
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Users className="h-5 w-5" />
-            Base clients
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="text-center py-8">
-            <Users className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-            <h3 className="text-lg font-medium mb-2">Aucun client</h3>
-            <p className="text-muted-foreground mb-4">
-              Commencez par ajouter vos premiers clients
-            </p>
-            <Button>
-              <Plus className="h-4 w-4 mr-2" />
-              Ajouter un client
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
+    </AppLayout>
   );
 };
 

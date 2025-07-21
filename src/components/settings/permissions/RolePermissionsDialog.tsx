@@ -1,187 +1,404 @@
 
-import React, { useState, useEffect } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { usePermissions, RolePermission } from '@/hooks/usePermissions';
-import { useToast } from '@/hooks/use-toast';
+import React, { useState } from 'react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
+import { useRolePermissions, usePermissions, useUpdateRolePermissions } from '@/hooks/usePermissions';
+import { Settings, Eye, Edit, Trash2, Save } from 'lucide-react';
+
+// STRUCTURE SYNCHRONISÉE AVEC PermissionsMatrix et PermissionsManagement
+const APPLICATION_MENUS = [
+  {
+    menu: 'Dashboard',
+    submenu: null,
+    actions: ['read'],
+    description: 'Tableau de bord principal'
+  },
+  {
+    menu: 'Catalogue',
+    submenu: null,
+    actions: ['read', 'write', 'delete'],
+    description: 'Gestion du catalogue produits'
+  },
+  {
+    menu: 'Stock',
+    submenu: 'Entrepôts',
+    actions: ['read', 'write'],
+    description: 'Gestion des stocks entrepôts'
+  },
+  {
+    menu: 'Stock',
+    submenu: 'PDV',
+    actions: ['read', 'write'],
+    description: 'Gestion des stocks points de vente'
+  },
+  {
+    menu: 'Stock',
+    submenu: 'Transferts',
+    actions: ['read', 'write'],
+    description: 'Gestion des transferts de stock'
+  },
+  {
+    menu: 'Stock',
+    submenu: 'Entrées',
+    actions: ['read', 'write'],
+    description: 'Gestion des entrées de stock'
+  },
+  {
+    menu: 'Stock',
+    submenu: 'Sorties',
+    actions: ['read', 'write'],
+    description: 'Gestion des sorties de stock'
+  },
+  {
+    menu: 'Achats',
+    submenu: 'Bons de commande',
+    actions: ['read', 'write'],
+    description: 'Gestion des bons de commande'
+  },
+  {
+    menu: 'Achats',
+    submenu: 'Bons de livraison',
+    actions: ['read', 'write'],
+    description: 'Gestion des bons de livraison'
+  },
+  {
+    menu: 'Achats',
+    submenu: 'Factures',
+    actions: ['read', 'write'],
+    description: 'Gestion des factures d\'achat'
+  },
+  {
+    menu: 'Ventes',
+    submenu: 'Factures',
+    actions: ['read', 'write'],
+    description: 'Gestion des factures de vente'
+  },
+  {
+    menu: 'Ventes',
+    submenu: 'Précommandes',
+    actions: ['read', 'write'],
+    description: 'Gestion des précommandes'
+  },
+  {
+    menu: 'Ventes',
+    submenu: 'Devis',
+    actions: ['read', 'write'],
+    description: 'Gestion des devis'
+  },
+  {
+    menu: 'Ventes',
+    submenu: 'Vente au Comptoir',
+    actions: ['read', 'write'],
+    description: 'Gestion des ventes au comptoir'
+  },
+  {
+    menu: 'Ventes',
+    submenu: 'Factures impayées',
+    actions: ['read', 'write'],
+    description: 'Gestion des factures impayées'
+  },
+  {
+    menu: 'Ventes',
+    submenu: 'Retours Clients',
+    actions: ['read', 'write'],
+    description: 'Gestion des retours clients'
+  },
+  {
+    menu: 'Clients',
+    submenu: null,
+    actions: ['read', 'write'],
+    description: 'Gestion des clients'
+  },
+  {
+    menu: 'Clients',
+    submenu: 'Clients',
+    actions: ['read', 'write'],
+    description: 'Gestion détaillée des clients'
+  },
+  {
+    menu: 'Caisse',
+    submenu: null,
+    actions: ['read', 'write'],
+    description: 'Gestion de la caisse'
+  },
+  {
+    menu: 'Caisse',
+    submenu: 'Dépenses',
+    actions: ['read', 'write'],
+    description: 'Gestion des dépenses de caisse'
+  },
+  {
+    menu: 'Caisse',
+    submenu: 'Aperçu du jour',
+    actions: ['read'],
+    description: 'Consultation de l\'aperçu journalier'
+  },
+  {
+    menu: 'Marges',
+    submenu: null,
+    actions: ['read'],
+    description: 'Consultation des marges'
+  },
+  {
+    menu: 'Rapports',
+    submenu: null,
+    actions: ['read', 'write'],
+    description: 'Génération de rapports'
+  },
+  {
+    menu: 'Paramètres',
+    submenu: null,
+    actions: ['read', 'write'],
+    description: 'Accès aux paramètres généraux'
+  },
+  {
+    menu: 'Paramètres',
+    submenu: 'Utilisateurs',
+    actions: ['read', 'write'],
+    description: 'Gestion des utilisateurs'
+  },
+  {
+    menu: 'Paramètres',
+    submenu: 'Permissions',
+    actions: ['read', 'write'],
+    description: 'Gestion des permissions'
+  },
+  {
+    menu: 'Paramètres',
+    submenu: 'Fournisseurs',
+    actions: ['read', 'write'],
+    description: 'Gestion des fournisseurs'
+  }
+];
 
 interface RolePermissionsDialogProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  roleId: string | null;
+  role: {
+    id: string;
+    name: string;
+    description?: string;
+    is_system?: boolean;
+  };
+  children: React.ReactNode;
 }
 
-export function RolePermissionsDialog({ open, onOpenChange, roleId }: RolePermissionsDialogProps) {
-  const [rolePermissions, setRolePermissions] = useState<RolePermission[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const { roles, permissions, fetchRolePermissions, updateRolePermission } = usePermissions();
-  const { toast } = useToast();
+const RolePermissionsDialog = ({ role, children }: RolePermissionsDialogProps) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [pendingChanges, setPendingChanges] = useState<Record<string, boolean>>({});
 
-  const selectedRole = roles.find(r => r.id === roleId);
+  const { data: permissions = [], isLoading: permissionsLoading } = usePermissions();
+  const { data: rolePermissions = [], isLoading: rolePermissionsLoading, refetch: refetchRolePermissions } = useRolePermissions(role.id);
+  const updateRolePermissions = useUpdateRolePermissions();
 
-  useEffect(() => {
-    if (roleId && open) {
-      loadRolePermissions();
+  const hasPermission = (menu: string, submenu: string | null, action: string) => {
+    const key = `${menu}-${submenu || 'null'}-${action}`;
+    if (key in pendingChanges) {
+      return pendingChanges[key];
     }
-  }, [roleId, open]);
-
-  const loadRolePermissions = async () => {
-    if (!roleId) return;
     
-    setLoading(true);
-    try {
-      const data = await fetchRolePermissions(roleId);
-      setRolePermissions(data);
-    } catch (error) {
-      console.error('Error loading role permissions:', error);
-    } finally {
-      setLoading(false);
-    }
+    // Chercher dans les permissions actuelles du rôle - corriger l'accès à la propriété
+    return rolePermissions.some(rp => {
+      const permission = rp.permissions; // Utiliser 'permissions' au lieu de 'permission'
+      return permission && 
+             permission.menu === menu &&
+             permission.submenu === submenu &&
+             permission.action === action &&
+             rp.can_access;
+    });
   };
 
-  const handlePermissionToggle = async (permissionId: string, canAccess: boolean) => {
-    if (!roleId) return;
+  const handlePermissionToggle = (menu: string, submenu: string | null, action: string, enabled: boolean) => {
+    const key = `${menu}-${submenu || 'null'}-${action}`;
+    setPendingChanges(prev => ({
+      ...prev,
+      [key]: enabled
+    }));
+  };
 
-    setSaving(true);
+  const handleSave = async () => {
     try {
-      const result = await updateRolePermission(roleId, permissionId, canAccess);
-      if (result.success) {
-        // Update local state
-        setRolePermissions(prev => {
-          const existing = prev.find(rp => rp.permission_id === permissionId);
-          if (existing) {
-            return prev.map(rp => 
-              rp.permission_id === permissionId 
-                ? { ...rp, can_access: canAccess }
-                : rp
-            );
-          } else {
-            // Add new permission
-            const permission = permissions.find(p => p.id === permissionId);
-            if (permission) {
-              return [...prev, {
-                id: `temp-${Date.now()}`,
-                role_id: roleId,
-                permission_id: permissionId,
-                can_access: canAccess,
-                permissions: permission
-              }];
-            }
-            return prev;
-          }
-        });
+      console.log('🔄 Saving role permissions for role:', role.id);
+      console.log('📋 Pending changes:', pendingChanges);
+
+      // Traiter chaque changement en attente individuellement
+      for (const [key, canAccess] of Object.entries(pendingChanges)) {
+        const [menu, submenu, action] = key.split('-');
+        const actualSubmenu = submenu === 'null' ? null : submenu;
         
-        toast({
-          title: "Permission mise à jour",
-          description: "La permission a été mise à jour avec succès.",
-        });
-      } else {
-        toast({
-          title: "Erreur",
-          description: result.error || "Erreur lors de la mise à jour de la permission.",
-          variant: "destructive",
-        });
+        const permission = permissions.find(p => 
+          p.menu === menu && 
+          p.submenu === actualSubmenu && 
+          p.action === action
+        );
+        
+        if (permission) {
+          await updateRolePermissions.mutateAsync({
+            roleId: role.id,
+            permissionId: permission.id,
+            canAccess
+          });
+        }
       }
+
+      setPendingChanges({});
+      await refetchRolePermissions();
+      setIsOpen(false);
     } catch (error) {
-      toast({
-        title: "Erreur",
-        description: "Une erreur inattendue s'est produite.",
-        variant: "destructive",
-      });
-    } finally {
-      setSaving(false);
+      console.error('❌ Error updating permissions:', error);
     }
   };
 
-  const getPermissionState = (permissionId: string): boolean => {
-    const rolePermission = rolePermissions.find(rp => rp.permission_id === permissionId);
-    return rolePermission?.can_access || false;
+  const getActionIcon = (action: string) => {
+    switch (action) {
+      case 'read':
+        return <Eye className="h-3 w-3" />;
+      case 'write':
+        return <Edit className="h-3 w-3" />;
+      case 'delete':
+        return <Trash2 className="h-3 w-3" />;
+      default:
+        return <Settings className="h-3 w-3" />;
+    }
   };
 
   const getActionColor = (action: string) => {
     switch (action) {
       case 'read':
-        return 'bg-blue-100 text-blue-800';
+        return 'text-green-600 bg-green-50 border-green-200';
       case 'write':
-        return 'bg-green-100 text-green-800';
+        return 'text-blue-600 bg-blue-50 border-blue-200';
       case 'delete':
-        return 'bg-red-100 text-red-800';
+        return 'text-red-600 bg-red-50 border-red-200';
       default:
-        return 'bg-gray-100 text-gray-800';
+        return 'text-gray-600 bg-gray-50 border-gray-200';
     }
   };
 
-  // Group permissions by menu
-  const groupedPermissions = permissions.reduce((acc, permission) => {
-    const key = permission.menu;
-    if (!acc[key]) {
-      acc[key] = [];
-    }
-    acc[key].push(permission);
-    return acc;
-  }, {} as Record<string, typeof permissions>);
+  const isLoading = permissionsLoading || rolePermissionsLoading;
+  const hasPendingChanges = Object.keys(pendingChanges).length > 0;
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+      <DialogTrigger asChild>
+        {children}
+      </DialogTrigger>
       <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>
-            Permissions pour le rôle : {selectedRole?.name}
-          </DialogTitle>
+          <div className="flex items-center justify-between">
+            <DialogTitle className="flex items-center space-x-2">
+              <Settings className="h-5 w-5" />
+              <span>Permissions du rôle "{role.name}"</span>
+            </DialogTitle>
+            {hasPendingChanges && (
+              <Badge variant="outline" className="bg-orange-50 text-orange-700 border-orange-200">
+                Modifications en attente
+              </Badge>
+            )}
+          </div>
         </DialogHeader>
         
-        {loading ? (
-          <div className="flex items-center justify-center h-32">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {Object.entries(groupedPermissions).map(([menu, menuPermissions]) => (
-              <Card key={menu}>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-base">{menu}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    {menuPermissions.map((permission) => (
-                      <div key={permission.id} className="flex items-center justify-between py-2 border-b last:border-b-0">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2">
-                            <Label htmlFor={`permission-${permission.id}`} className="font-medium">
-                              {permission.submenu ? `${permission.submenu}` : 'Général'}
-                            </Label>
-                            <Badge variant="outline" className={getActionColor(permission.action)}>
-                              {permission.action}
-                            </Badge>
+        <div className="space-y-6">
+          {role.description && (
+            <div className="p-3 bg-muted rounded-lg">
+              <p className="text-sm text-muted-foreground">{role.description}</p>
+            </div>
+          )}
+
+          {role.is_system && (
+            <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
+              <p className="text-sm text-amber-700">
+                ⚠️ Ce rôle système ne peut pas être supprimé, mais ses permissions peuvent être modifiées.
+              </p>
+            </div>
+          )}
+
+          {isLoading ? (
+            <div className="flex items-center justify-center p-8">
+              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
+              <span className="ml-2">Chargement des permissions...</span>
+            </div>
+          ) : (
+            <div className="space-y-6">
+              {/* Grouper par menu */}
+              {APPLICATION_MENUS.reduce((acc, menuItem) => {
+                const menuKey = menuItem.menu;
+                if (!acc.find(group => group.menu === menuKey)) {
+                  acc.push({
+                    menu: menuKey,
+                    items: APPLICATION_MENUS.filter(item => item.menu === menuKey)
+                  });
+                }
+                return acc;
+              }, [] as { menu: string; items: typeof APPLICATION_MENUS }[]).map(({ menu, items }) => (
+                <div key={menu} className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h4 className="font-medium text-lg">{menu}</h4>
+                    <Badge variant="outline">
+                      {items.length} permission(s)
+                    </Badge>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {items.map((menuItem, index) => (
+                      menuItem.actions.map(action => (
+                        <div key={`${menuItem.menu}-${menuItem.submenu}-${action}-${index}`} className="flex items-center space-x-3 p-3 border rounded-lg hover:bg-muted/50">
+                          <Checkbox
+                            id={`${menuItem.menu}-${menuItem.submenu || 'null'}-${action}`}
+                            checked={hasPermission(menuItem.menu, menuItem.submenu, action)}
+                            onCheckedChange={(checked) => 
+                              handlePermissionToggle(menuItem.menu, menuItem.submenu, action, checked as boolean)
+                            }
+                          />
+                          <div className="flex-1">
+                            <div className="flex items-center space-x-2">
+                              <Badge 
+                                variant="outline" 
+                                className={`${getActionColor(action)} text-xs`}
+                              >
+                                <div className="flex items-center space-x-1">
+                                  {getActionIcon(action)}
+                                  <span className="capitalize">{action}</span>
+                                </div>
+                              </Badge>
+                              {menuItem.submenu && (
+                                <span className="text-sm font-medium">
+                                  {menuItem.submenu}
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              {menuItem.description}
+                            </p>
                           </div>
-                          <p className="text-sm text-muted-foreground">{permission.description}</p>
                         </div>
-                        <Switch
-                          id={`permission-${permission.id}`}
-                          checked={getPermissionState(permission.id)}
-                          onCheckedChange={(checked) => handlePermissionToggle(permission.id, checked)}
-                          disabled={saving}
-                        />
-                      </div>
+                      ))
                     ))}
                   </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
 
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Fermer
+        <div className="flex justify-between pt-4 border-t">
+          <Button variant="outline" onClick={() => setIsOpen(false)}>
+            Annuler
           </Button>
-        </DialogFooter>
+          <Button 
+            onClick={handleSave}
+            disabled={updateRolePermissions.isPending}
+            className="flex items-center space-x-2"
+          >
+            <Save className="h-4 w-4" />
+            <span>
+              {updateRolePermissions.isPending ? 'Sauvegarde...' : 'Sauvegarder'}
+            </span>
+          </Button>
+        </div>
       </DialogContent>
     </Dialog>
   );
-}
+};
+
+export default RolePermissionsDialog;

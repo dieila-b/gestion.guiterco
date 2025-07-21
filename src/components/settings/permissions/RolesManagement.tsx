@@ -1,140 +1,234 @@
 
-import React, { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Plus, Edit2, Trash2, Settings } from 'lucide-react';
-import { usePermissions } from '@/hooks/usePermissions';
-import { CreateRoleDialog } from './CreateRoleDialog';
-import { RolePermissionsDialog } from './RolePermissionsDialog';
-import { useToast } from '@/hooks/use-toast';
+import { useState } from 'react'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { Badge } from '@/components/ui/badge'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
+import { Textarea } from '@/components/ui/textarea'
+import { Plus, Edit, Trash2, Shield, Users } from 'lucide-react'
+import { useRoles, useCreateRole, useUpdateRole, useDeleteRole } from '@/hooks/usePermissions'
+import { toast } from 'sonner'
 
-interface RolesManagementProps {
-  canManage: boolean;
-}
+export default function RolesManagement() {
+  const [isCreateOpen, setIsCreateOpen] = useState(false)
+  const [isEditOpen, setIsEditOpen] = useState(false)
+  const [selectedRole, setSelectedRole] = useState<any>(null)
+  const [formData, setFormData] = useState({
+    name: '',
+    description: '',
+    is_system: false
+  })
 
-export function RolesManagement({ canManage }: RolesManagementProps) {
-  const { roles, loading, deleteRole } = usePermissions();
-  const [showCreateDialog, setShowCreateDialog] = useState(false);
-  const [editingRole, setEditingRole] = useState<string | null>(null);
-  const [showPermissionsDialog, setShowPermissionsDialog] = useState(false);
-  const [selectedRoleId, setSelectedRoleId] = useState<string | null>(null);
-  const { toast } = useToast();
+  const { data: roles = [], isLoading } = useRoles()
+  const createRole = useCreateRole()
+  const updateRole = useUpdateRole()
+  const deleteRole = useDeleteRole()
 
-  const handleDeleteRole = async (roleId: string, roleName: string) => {
-    if (!window.confirm(`Êtes-vous sûr de vouloir supprimer le rôle "${roleName}" ?`)) {
-      return;
+  const handleCreate = async () => {
+    if (!formData.name.trim()) {
+      toast.error('Le nom du rôle est requis')
+      return
     }
 
-    const result = await deleteRole(roleId);
-    if (result.success) {
-      toast({
-        title: "Rôle supprimé",
-        description: `Le rôle "${roleName}" a été supprimé avec succès.`,
-      });
-    } else {
-      toast({
-        title: "Erreur",
-        description: result.error || "Erreur lors de la suppression du rôle.",
-        variant: "destructive",
-      });
+    try {
+      await createRole.mutateAsync(formData)
+      setIsCreateOpen(false)
+      setFormData({ name: '', description: '', is_system: false })
+    } catch (error) {
+      // L'erreur est déjà gérée par le hook
     }
-  };
+  }
 
-  const handleManagePermissions = (roleId: string) => {
-    setSelectedRoleId(roleId);
-    setShowPermissionsDialog(true);
-  };
+  const handleEdit = (role: any) => {
+    setSelectedRole(role)
+    setFormData({
+      name: role.name,
+      description: role.description || '',
+      is_system: role.is_system
+    })
+    setIsEditOpen(true)
+  }
 
-  if (loading) {
+  const handleUpdate = async () => {
+    if (!selectedRole || !formData.name.trim()) {
+      toast.error('Le nom du rôle est requis')
+      return
+    }
+
+    try {
+      await updateRole.mutateAsync({
+        id: selectedRole.id,
+        ...formData
+      })
+      setIsEditOpen(false)
+      setSelectedRole(null)
+      setFormData({ name: '', description: '', is_system: false })
+    } catch (error) {
+      // L'erreur est déjà gérée par le hook
+    }
+  }
+
+  const handleDelete = async (roleId: string, roleName: string) => {
+    if (confirm(`Êtes-vous sûr de vouloir supprimer le rôle "${roleName}" ?`)) {
+      try {
+        await deleteRole.mutateAsync(roleId)
+      } catch (error) {
+        // L'erreur est déjà gérée par le hook
+      }
+    }
+  }
+
+  if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-32">
+      <div className="flex items-center justify-center h-64">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
       </div>
-    );
+    )
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex justify-between items-center">
-        <h3 className="text-lg font-medium">Rôles système</h3>
-        {canManage && (
-          <Button onClick={() => setShowCreateDialog(true)} className="flex items-center gap-2">
-            <Plus className="h-4 w-4" />
-            Nouveau rôle
-          </Button>
-        )}
-      </div>
+    <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <div className="flex justify-between items-center">
+            <CardTitle className="flex items-center gap-2">
+              <Users className="w-5 h-5" />
+              Gestion des Rôles
+            </CardTitle>
+            <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
+              <DialogTrigger asChild>
+                <Button>
+                  <Plus className="w-4 h-4 mr-2" />
+                  Nouveau Rôle
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Créer un nouveau rôle</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <div>
+                    <Label htmlFor="name">Nom du rôle</Label>
+                    <Input
+                      id="name"
+                      value={formData.name}
+                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                      placeholder="Ex: Gestionnaire de stock"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="description">Description</Label>
+                    <Textarea
+                      id="description"
+                      value={formData.description}
+                      onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                      placeholder="Description du rôle et de ses responsabilités"
+                    />
+                  </div>
+                  <div className="flex justify-end gap-2">
+                    <Button variant="outline" onClick={() => setIsCreateOpen(false)}>
+                      Annuler
+                    </Button>
+                    <Button onClick={handleCreate} disabled={createRole.isPending}>
+                      {createRole.isPending ? 'Création...' : 'Créer'}
+                    </Button>
+                  </div>
+                </div>
+              </DialogContent>
+            </Dialog>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Nom</TableHead>
+                <TableHead>Description</TableHead>
+                <TableHead>Type</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {roles.map((role) => (
+                <TableRow key={role.id}>
+                  <TableCell className="font-medium">
+                    <div className="flex items-center gap-2">
+                      {role.is_system && <Shield className="w-4 h-4 text-amber-500" />}
+                      {role.name}
+                    </div>
+                  </TableCell>
+                  <TableCell>{role.description || 'Aucune description'}</TableCell>
+                  <TableCell>
+                    <Badge variant={role.is_system ? 'default' : 'secondary'}>
+                      {role.is_system ? 'Système' : 'Personnalisé'}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex justify-end gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleEdit(role)}
+                        disabled={role.is_system}
+                      >
+                        <Edit className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleDelete(role.id, role.name)}
+                        disabled={role.is_system}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
 
-      <div className="space-y-2">
-        {roles.map((role) => (
-          <div key={role.id} className="flex items-center justify-between p-3 border rounded-lg">
-            <div className="flex-1">
-              <div className="flex items-center gap-2">
-                <h4 className="font-medium">{role.name}</h4>
-                {role.is_system && (
-                  <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
-                    Système
-                  </span>
-                )}
-              </div>
-              <p className="text-sm text-muted-foreground">{role.description}</p>
+      {/* Dialog d'édition */}
+      <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Modifier le rôle</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="edit-name">Nom du rôle</Label>
+              <Input
+                id="edit-name"
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                placeholder="Ex: Gestionnaire de stock"
+              />
             </div>
-            
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => handleManagePermissions(role.id)}
-                className="flex items-center gap-1"
-              >
-                <Settings className="h-4 w-4" />
-                Permissions
+            <div>
+              <Label htmlFor="edit-description">Description</Label>
+              <Textarea
+                id="edit-description"
+                value={formData.description}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                placeholder="Description du rôle et de ses responsabilités"
+              />
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setIsEditOpen(false)}>
+                Annuler
               </Button>
-              
-              {canManage && !role.is_system && (
-                <>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setEditingRole(role.id)}
-                    className="flex items-center gap-1"
-                  >
-                    <Edit2 className="h-4 w-4" />
-                    Modifier
-                  </Button>
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    onClick={() => handleDeleteRole(role.id, role.name)}
-                    className="flex items-center gap-1"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                    Supprimer
-                  </Button>
-                </>
-              )}
+              <Button onClick={handleUpdate} disabled={updateRole.isPending}>
+                {updateRole.isPending ? 'Mise à jour...' : 'Mettre à jour'}
+              </Button>
             </div>
           </div>
-        ))}
-      </div>
-
-      {roles.length === 0 && (
-        <div className="text-center py-8 text-muted-foreground">
-          Aucun rôle défini
-        </div>
-      )}
-
-      <CreateRoleDialog
-        open={showCreateDialog}
-        onOpenChange={setShowCreateDialog}
-        editingRoleId={editingRole}
-        onEditComplete={() => setEditingRole(null)}
-      />
-
-      <RolePermissionsDialog
-        open={showPermissionsDialog}
-        onOpenChange={setShowPermissionsDialog}
-        roleId={selectedRoleId}
-      />
+        </DialogContent>
+      </Dialog>
     </div>
-  );
+  )
 }

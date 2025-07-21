@@ -19,9 +19,9 @@ const Auth = () => {
       return;
     }
 
-    // En mode dev avec bypass activé, rediriger directement et automatiquement
+    // En mode dev avec bypass activé, rediriger directement
     if (isDevMode && bypassAuth && !loading) {
-      console.log('🚀 Mode dev avec bypass activé, redirection automatique vers /');
+      console.log('🚀 Mode dev avec bypass activé, redirection vers /');
       navigate('/', { replace: true });
       return;
     }
@@ -44,16 +44,9 @@ const Auth = () => {
     return null;
   }
 
-  // En mode dev avec bypass, ne pas afficher le formulaire et rediriger automatiquement
+  // En mode dev avec bypass, ne pas afficher le formulaire
   if (isDevMode && bypassAuth) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
-          <p className="text-gray-600">Mode développement - Connexion automatique...</p>
-        </div>
-      </div>
-    );
+    return null;
   }
 
   return <LoginPage />;

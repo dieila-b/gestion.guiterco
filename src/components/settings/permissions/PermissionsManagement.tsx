@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Key, Eye, Edit, Trash2, AlertCircle } from 'lucide-react';
 import { usePermissions } from '@/hooks/usePermissions';
 
+// Utiliser exactement la même structure que dans PermissionsMatrix
 const APPLICATION_MENUS = [
   {
     menu: 'Dashboard',
@@ -31,16 +32,124 @@ const APPLICATION_MENUS = [
     description: 'Gestion des stocks points de vente'
   },
   {
+    menu: 'Stock',
+    submenu: 'Transferts',
+    actions: ['read', 'write'],
+    description: 'Gestion des transferts de stock'
+  },
+  {
+    menu: 'Stock',
+    submenu: 'Entrées',
+    actions: ['read', 'write'],
+    description: 'Gestion des entrées de stock'
+  },
+  {
+    menu: 'Stock',
+    submenu: 'Sorties',
+    actions: ['read', 'write'],
+    description: 'Gestion des sorties de stock'
+  },
+  {
+    menu: 'Achats',
+    submenu: 'Bons de commande',
+    actions: ['read', 'write'],
+    description: 'Gestion des bons de commande'
+  },
+  {
+    menu: 'Achats',
+    submenu: 'Bons de livraison',
+    actions: ['read', 'write'],
+    description: 'Gestion des bons de livraison'
+  },
+  {
+    menu: 'Achats',
+    submenu: 'Factures',
+    actions: ['read', 'write'],
+    description: 'Gestion des factures d\'achat'
+  },
+  {
     menu: 'Ventes',
     submenu: 'Factures',
     actions: ['read', 'write'],
     description: 'Gestion des factures de vente'
   },
   {
+    menu: 'Ventes',
+    submenu: 'Précommandes',
+    actions: ['read', 'write'],
+    description: 'Gestion des précommandes'
+  },
+  {
+    menu: 'Ventes',
+    submenu: 'Devis',
+    actions: ['read', 'write'],
+    description: 'Gestion des devis'
+  },
+  {
+    menu: 'Ventes',
+    submenu: 'Vente au Comptoir',
+    actions: ['read', 'write'],
+    description: 'Gestion des ventes au comptoir'
+  },
+  {
+    menu: 'Ventes',
+    submenu: 'Factures impayées',
+    actions: ['read', 'write'],
+    description: 'Gestion des factures impayées'
+  },
+  {
+    menu: 'Ventes',
+    submenu: 'Retours Clients',
+    actions: ['read', 'write'],
+    description: 'Gestion des retours clients'
+  },
+  {
     menu: 'Clients',
     submenu: null,
     actions: ['read', 'write'],
     description: 'Gestion des clients'
+  },
+  {
+    menu: 'Clients',
+    submenu: 'Clients',
+    actions: ['read', 'write'],
+    description: 'Gestion détaillée des clients'
+  },
+  {
+    menu: 'Caisse',
+    submenu: null,
+    actions: ['read', 'write'],
+    description: 'Gestion de la caisse'
+  },
+  {
+    menu: 'Caisse',
+    submenu: 'Dépenses',
+    actions: ['read', 'write'],
+    description: 'Gestion des dépenses de caisse'
+  },
+  {
+    menu: 'Caisse',
+    submenu: 'Aperçu du jour',
+    actions: ['read'],
+    description: 'Consultation de l\'aperçu journalier'
+  },
+  {
+    menu: 'Marges',
+    submenu: null,
+    actions: ['read'],
+    description: 'Consultation des marges'
+  },
+  {
+    menu: 'Rapports',
+    submenu: null,
+    actions: ['read', 'write'],
+    description: 'Génération de rapports'
+  },
+  {
+    menu: 'Paramètres',
+    submenu: null,
+    actions: ['read', 'write'],
+    description: 'Accès aux paramètres généraux'
   },
   {
     menu: 'Paramètres',
@@ -53,11 +162,17 @@ const APPLICATION_MENUS = [
     submenu: 'Permissions',
     actions: ['read', 'write'],
     description: 'Gestion des permissions'
+  },
+  {
+    menu: 'Paramètres',
+    submenu: 'Fournisseurs',
+    actions: ['read', 'write'],
+    description: 'Gestion des fournisseurs'
   }
 ];
 
-export const PermissionsManagement = () => {
-  const { permissions, roles, loading, error } = usePermissions();
+const PermissionsManagement = () => {
+  const { data: permissions, isLoading, error } = usePermissions();
 
   const getActionBadgeVariant = (action: string) => {
     switch (action) {
@@ -98,7 +213,7 @@ export const PermissionsManagement = () => {
     }
   };
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center p-8">
         <div className="text-center">
@@ -116,14 +231,14 @@ export const PermissionsManagement = () => {
           <AlertCircle className="h-12 w-12 text-destructive mx-auto mb-4" />
           <h3 className="text-lg font-medium mb-2">Erreur de chargement</h3>
           <p className="text-muted-foreground mb-4">
-            Impossible de charger les permissions : {error}
+            Impossible de charger les permissions : {error.message}
           </p>
         </div>
       </div>
     );
   }
 
-  // Grouper les permissions par menu
+  // Grouper les permissions par menu (utiliser APPLICATION_MENUS comme référence)
   const groupedMenus = APPLICATION_MENUS.reduce((acc, menuItem) => {
     const menuKey = menuItem.menu;
     if (!acc[menuKey]) {
@@ -137,7 +252,7 @@ export const PermissionsManagement = () => {
         submenu: menuItem.submenu,
         action: action,
         description: menuItem.description,
-        id: `${menuItem.menu}-${menuItem.submenu}-${action}`
+        id: `${menuItem.menu}-${menuItem.submenu}-${action}` // ID fictif pour l'affichage
       });
     });
     
@@ -149,7 +264,7 @@ export const PermissionsManagement = () => {
       <div>
         <h3 className="text-lg font-medium">Gestion des Permissions</h3>
         <p className="text-sm text-muted-foreground">
-          Liste détaillée des permissions par menu et sous-menu
+          Liste détaillée des permissions par menu et sous-menu (synchronisée avec la Matrice)
         </p>
       </div>
 
@@ -208,3 +323,5 @@ export const PermissionsManagement = () => {
     </div>
   );
 };
+
+export default PermissionsManagement;

@@ -1,97 +1,144 @@
 
-import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { usePermissions } from '@/hooks/usePermissions';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { Switch } from '@/components/ui/switch'
+import { Badge } from '@/components/ui/badge'
+import { Grid3x3, Settings, Shield, Users } from 'lucide-react'
+import { usePermissions, useRoles, useRolePermissions, useUpdateRolePermissions } from '@/hooks/usePermissions'
+import { useState } from 'react'
 
-interface PermissionsMatrixProps {
-  canManage: boolean;
-}
+export default function PermissionsMatrix() {
+  const { data: permissions = [], isLoading: permissionsLoading } = usePermissions()
+  const { data: roles = [], isLoading: rolesLoading } = useRoles()
+  const [selectedRole, setSelectedRole] = useState<string>('')
+  const { data: rolePermissions = [] } = useRolePermissions(selectedRole)
+  const updateRolePermissions = useUpdateRolePermissions()
 
-export function PermissionsMatrix({ canManage }: PermissionsMatrixProps) {
-  const { permissions, roles, loading } = usePermissions();
-  const [groupedPermissions, setGroupedPermissions] = useState<Record<string, any[]>>({});
+  const isLoading = permissionsLoading || rolesLoading
 
-  useEffect(() => {
-    // Group permissions by menu
-    const grouped = permissions.reduce((acc, permission) => {
-      const key = permission.menu;
-      if (!acc[key]) {
-        acc[key] = [];
-      }
-      acc[key].push(permission);
-      return acc;
-    }, {} as Record<string, any[]>);
-
-    setGroupedPermissions(grouped);
-  }, [permissions]);
-
-  if (loading) {
+  if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-32">
+      <div className="flex items-center justify-center h-64">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
       </div>
-    );
+    )
   }
 
-  const getActionColor = (action: string) => {
-    switch (action) {
-      case 'read':
-        return 'bg-blue-100 text-blue-800';
-      case 'write':
-        return 'bg-green-100 text-green-800';
-      case 'delete':
-        return 'bg-red-100 text-red-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
-  };
+  // Organiser les permissions par menu et sous-menu
+  const groupedPermissions = permissions.reduce((acc, permission) => {
+    const key = permission.menu
+    if (!acc[key]) acc[key] = {}
+    
+    const subkey = permission.submenu || 'default'
+    if (!acc[key][subkey]) acc[key][subkey] = []
+    
+    acc[key][subkey].push(permission)
+    return acc
+  }, {} as Record<string, Record<string, typeof permissions>>)
+
+  const handlePermissionToggle = (permissionId: string, canAccess: boolean) => {
+    if (!selectedRole) return
+    
+    updateRolePermissions.mutate({
+      roleId: selectedRole,
+      permissionId,
+      canAccess
+    })
+  }
+
+  const hasPermission = (permissionId: string) => {
+    return rolePermissions.some(rp => rp.permission_id === permissionId && rp.can_access)
+  }
 
   return (
-    <div className="space-y-4">
-      <div className="flex justify-between items-center">
-        <h3 className="text-lg font-medium">Matrice des Permissions</h3>
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <span>Total: {permissions.length} permissions</span>
-          <span>•</span>
-          <span>{roles.length} rôles</span>
-        </div>
-      </div>
+    <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Grid3x3 className="w-5 h-5" />
+            Matrice des Permissions
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            {/* Sélection du rôle */}
+            <div className="flex gap-2 flex-wrap">
+              <Badge variant="outline" className="text-sm">
+                <Users className="w-4 h-4 mr-1" />
+                Sélectionner un rôle:
+              </Badge>
+              {roles.map(role => (
+                <Badge
+                  key={role.id}
+                  variant={selectedRole === role.id ? 'default' : 'outline'}
+                  className="cursor-pointer hover:bg-accent"
+                  onClick={() => setSelectedRole(role.id)}
+                >
+                  {role.name}
+                  {role.is_system && <Shield className="w-3 h-3 ml-1" />}
+                </Badge>
+              ))}
+            </div>
 
-      <div className="grid gap-4">
-        {Object.entries(groupedPermissions).map(([menu, menuPermissions]) => (
-          <Card key={menu}>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base">{menu}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                {menuPermissions.map((permission) => (
-                  <div key={permission.id} className="flex items-center justify-between py-2 border-b last:border-b-0">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium">
-                          {permission.submenu ? `${permission.submenu}` : 'Général'}
-                        </span>
-                        <Badge variant="outline" className={getActionColor(permission.action)}>
-                          {permission.action}
-                        </Badge>
-                      </div>
-                      <p className="text-sm text-muted-foreground">{permission.description}</p>
-                    </div>
-                  </div>
-                ))}
+            {selectedRole && (
+              <div className="border rounded-lg">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-1/3">Module</TableHead>
+                      <TableHead className="w-1/3">Sous-module</TableHead>
+                      <TableHead className="w-1/6">Action</TableHead>
+                      <TableHead className="w-1/6 text-center">Accès</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {Object.entries(groupedPermissions).map(([menu, submenus]) => (
+                      Object.entries(submenus).map(([submenu, perms]) => (
+                        perms.map((permission, index) => (
+                          <TableRow key={permission.id}>
+                            <TableCell className="font-medium">
+                              {index === 0 ? (
+                                <div className="flex items-center gap-2">
+                                  <Settings className="w-4 h-4" />
+                                  {menu}
+                                </div>
+                              ) : ''}
+                            </TableCell>
+                            <TableCell>
+                              {submenu !== 'default' ? submenu : ''}
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant="outline" className="text-xs">
+                                {permission.action}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="text-center">
+                              <Switch
+                                checked={hasPermission(permission.id)}
+                                onCheckedChange={(checked) => 
+                                  handlePermissionToggle(permission.id, checked)
+                                }
+                                disabled={updateRolePermissions.isPending}
+                              />
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      ))
+                    ))}
+                  </TableBody>
+                </Table>
               </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+            )}
 
-      {permissions.length === 0 && (
-        <div className="text-center py-8 text-muted-foreground">
-          Aucune permission définie
-        </div>
-      )}
+            {!selectedRole && (
+              <div className="text-center text-muted-foreground py-8">
+                <Users className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                <p>Sélectionnez un rôle pour voir et modifier ses permissions</p>
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
     </div>
-  );
+  )
 }

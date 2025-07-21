@@ -1,53 +1,51 @@
 
-import React from 'react';
-import { Routes, Route } from 'react-router-dom';
-import { AuthGuard } from '@/components/AuthGuard';
-import { AuthPage } from '@/pages/auth/AuthPage';
-import { DevModeToggle } from '@/components/auth/DevModeToggle';
-import { Sidebar } from '@/components/Sidebar';
-import { Dashboard } from '@/pages/Dashboard';
-import Settings from '@/pages/Settings';
-import { Catalogue } from '@/pages/Catalogue';
-import Clients from '@/pages/Clients';
-import { Ventes } from '@/pages/Ventes';
-import { Stock } from '@/pages/Stock';
-import { Achats } from '@/pages/Achats';
-import { Caisse } from '@/pages/Caisse';
-import { Marges } from '@/pages/Marges';
-import { Rapports } from '@/pages/Rapports';
+import { Toaster } from "@/components/ui/toaster";
+import { Toaster as Sonner } from "@/components/ui/sonner";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { AuthProvider } from "@/components/auth/AuthProvider";
+import { DevModeToggle } from "@/components/auth/DevModeToggle";
+import ProtectedRoute from "@/components/auth/ProtectedRoute";
+import Index from "./pages/Index";
+import Auth from "./pages/Auth";
+import Sales from "./pages/Sales";
+import Stocks from "./pages/Stocks";
+import Purchases from "./pages/Purchases";
+import Clients from "./pages/Clients";
+import CashRegisters from "./pages/CashRegisters";
+import Margins from "./pages/Margins";
+import Reports from "./pages/Reports";
+import Settings from "./pages/Settings";
+import NotFound from "./pages/NotFound";
 
-function App() {
-  return (
-    <div className="min-h-screen bg-background">
-      <Routes>
-        <Route path="/auth" element={<AuthPage />} />
-        <Route path="/*" element={
-          <AuthGuard>
-            <div className="flex h-screen">
-              <Sidebar />
-              <main className="flex-1 overflow-auto">
-                <div className="p-6">
-                  <Routes>
-                    <Route path="/" element={<Dashboard />} />
-                    <Route path="/catalogue" element={<Catalogue />} />
-                    <Route path="/clients" element={<Clients />} />
-                    <Route path="/ventes" element={<Ventes />} />
-                    <Route path="/stock" element={<Stock />} />
-                    <Route path="/achats" element={<Achats />} />
-                    <Route path="/caisse" element={<Caisse />} />
-                    <Route path="/marges" element={<Marges />} />
-                    <Route path="/rapports" element={<Rapports />} />
-                    <Route path="/settings" element={<Settings />} />
-                  </Routes>
-                </div>
-              </main>
-            </div>
-          </AuthGuard>
-        } />
-      </Routes>
-      <DevModeToggle />
-    </div>
-  );
-}
+const queryClient = new QueryClient();
+
+const App = () => (
+  <QueryClientProvider client={queryClient}>
+    <TooltipProvider>
+      <Toaster />
+      <Sonner />
+      <BrowserRouter>
+        <AuthProvider>
+          <Routes>
+            <Route path="/auth" element={<Auth />} />
+            <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
+            <Route path="/sales" element={<ProtectedRoute><Sales /></ProtectedRoute>} />
+            <Route path="/stocks" element={<ProtectedRoute><Stocks /></ProtectedRoute>} />
+            <Route path="/purchases" element={<ProtectedRoute><Purchases /></ProtectedRoute>} />
+            <Route path="/clients" element={<ProtectedRoute><Clients /></ProtectedRoute>} />
+            <Route path="/cash-registers" element={<ProtectedRoute><CashRegisters /></ProtectedRoute>} />
+            <Route path="/margins" element={<ProtectedRoute><Margins /></ProtectedRoute>} />
+            <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
+            <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+          <DevModeToggle />
+        </AuthProvider>
+      </BrowserRouter>
+    </TooltipProvider>
+  </QueryClientProvider>
+);
 
 export default App;
