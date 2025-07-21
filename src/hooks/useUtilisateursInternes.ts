@@ -83,31 +83,35 @@ export const useUtilisateursInternes = () => {
       if (error) throw error;
       
       // Transform the data to match the expected interface
-      const transformedData = data?.map(user => ({
-        id: user.id,
-        user_id: user.user_id,
-        matricule: user.matricule,
-        nom: user.nom,
-        prenom: user.prenom,
-        email: user.email,
-        telephone: user.telephone,
-        poste: user.poste,
-        statut: user.statut,
-        date_embauche: user.date_embauche,
-        adresse: user.adresse,
-        photo_url: user.photo_url,
-        doit_changer_mot_de_passe: user.doit_changer_mot_de_passe,
-        created_at: user.created_at,
-        updated_at: user.updated_at,
-        role: user.user_roles && user.user_roles.length > 0 && user.user_roles[0].roles 
-          ? {
-              id: user.user_roles[0].roles.id,
-              name: user.user_roles[0].roles.name,
-              description: user.user_roles[0].roles.description,
-              is_system: user.user_roles[0].roles.is_system
-            }
-          : undefined
-      })) || [];
+      const transformedData = data?.map(user => {
+        // Get the first active role
+        const userRole = user.user_roles && user.user_roles.length > 0 ? user.user_roles[0] : null;
+        const roleData = userRole?.roles;
+        
+        return {
+          id: user.id,
+          user_id: user.user_id,
+          matricule: user.matricule,
+          nom: user.nom,
+          prenom: user.prenom,
+          email: user.email,
+          telephone: user.telephone,
+          poste: user.poste,
+          statut: user.statut,
+          date_embauche: user.date_embauche,
+          adresse: user.adresse,
+          photo_url: user.photo_url,
+          doit_changer_mot_de_passe: user.doit_changer_mot_de_passe,
+          created_at: user.created_at,
+          updated_at: user.updated_at,
+          role: roleData ? {
+            id: roleData.id,
+            name: roleData.name,
+            description: roleData.description,
+            is_system: roleData.is_system
+          } : undefined
+        };
+      }) || [];
       
       return transformedData as UtilisateurInterne[];
     }
