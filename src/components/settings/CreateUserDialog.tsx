@@ -6,11 +6,17 @@ import { Plus } from 'lucide-react';
 import CreateUserForm from './CreateUserForm';
 
 interface CreateUserDialogProps {
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
   onUserCreated?: () => void;
+  children?: React.ReactNode;
 }
 
-const CreateUserDialog = ({ onUserCreated }: CreateUserDialogProps) => {
-  const [isOpen, setIsOpen] = useState(false);
+const CreateUserDialog = ({ open, onOpenChange, onUserCreated, children }: CreateUserDialogProps) => {
+  const [internalOpen, setInternalOpen] = useState(false);
+  
+  const isOpen = open !== undefined ? open : internalOpen;
+  const setIsOpen = onOpenChange || setInternalOpen;
 
   const handleSuccess = () => {
     setIsOpen(false);
@@ -24,10 +30,12 @@ const CreateUserDialog = ({ onUserCreated }: CreateUserDialogProps) => {
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
-        <Button>
-          <Plus className="h-4 w-4 mr-2" />
-          Ajouter un utilisateur
-        </Button>
+        {children || (
+          <Button>
+            <Plus className="h-4 w-4 mr-2" />
+            Ajouter un utilisateur
+          </Button>
+        )}
       </DialogTrigger>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>

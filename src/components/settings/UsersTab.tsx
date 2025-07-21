@@ -63,7 +63,8 @@ const UsersTab = () => {
 
       <CreateUserDialog 
         open={isCreateDialogOpen} 
-        onOpenChange={setIsCreateDialogOpen} 
+        onOpenChange={setIsCreateDialogOpen}
+        onUserCreated={() => setIsCreateDialogOpen(false)}
       />
     </div>
   );

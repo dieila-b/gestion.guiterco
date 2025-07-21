@@ -21,6 +21,19 @@ export interface UtilisateurInterne {
   role_name?: string;
 }
 
+export interface UtilisateurInterneWithRole extends UtilisateurInterne {
+  role: {
+    id: string;
+    name: string;
+  } | null;
+}
+
+export interface Role {
+  id: string;
+  name: string;
+  description?: string;
+}
+
 export const useUtilisateursInternes = () => {
   return useQuery({
     queryKey: ['utilisateurs-internes'],
@@ -35,10 +48,42 @@ export const useUtilisateursInternes = () => {
       }
 
       console.log('✅ Internal users fetched:', data?.length || 0, 'users');
-      return data as UtilisateurInterne[];
+      
+      // Transformer les données pour inclure le rôle
+      const usersWithRoles: UtilisateurInterneWithRole[] = (data || []).map(user => ({
+        ...user,
+        role: user.role_name ? {
+          id: user.role_id,
+          name: user.role_name
+        } : null
+      }));
+
+      return usersWithRoles;
     },
     retry: 3,
     retryDelay: 1000,
+  });
+};
+
+export const useRolesForUsers = () => {
+  return useQuery({
+    queryKey: ['roles-for-users'],
+    queryFn: async () => {
+      console.log('🔍 Fetching roles for users...');
+      
+      const { data, error } = await supabase
+        .from('roles')
+        .select('id, name, description')
+        .order('name');
+
+      if (error) {
+        console.error('❌ Error fetching roles:', error);
+        throw error;
+      }
+
+      console.log('✅ Roles fetched:', data?.length || 0, 'roles');
+      return data as Role[];
+    }
   });
 };
 
