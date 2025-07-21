@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { TableCell, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
@@ -88,7 +89,7 @@ const UserTableRow = ({ utilisateur, onDelete, onUserUpdated, isDeleting }: User
       <TableCell>{getRoleBadge(utilisateur.role)}</TableCell>
       <TableCell>{getStatusBadge(utilisateur.statut)}</TableCell>
       <TableCell>
-        {utilisateur.doit_changer_mot_de-passe ? (
+        {utilisateur.doit_changer_mot_de_passe ? (
           <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">
             <AlertCircle className="h-3 w-3 mr-1" />
             Oui

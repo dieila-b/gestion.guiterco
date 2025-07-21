@@ -197,9 +197,9 @@ const RolePermissionsDialog = ({ role, children }: RolePermissionsDialogProps) =
       return pendingChanges[key];
     }
     
-    // Chercher dans les permissions actuelles du rôle - corriger l'accès à la propriété
+    // Corriger l'accès à la permission via l'ID
     return rolePermissions.some(rp => {
-      const permission = rp.permissions; // Utiliser 'permissions' au lieu de 'permission'
+      const permission = permissions.find(p => p.id === rp.permission_id);
       return permission && 
              permission.menu === menu &&
              permission.submenu === submenu &&
