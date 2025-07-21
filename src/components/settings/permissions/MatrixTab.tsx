@@ -1,93 +1,80 @@
 
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Switch } from '@/components/ui/switch';
+import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Grid3x3, Save, RefreshCw } from 'lucide-react';
-import { useRoles } from '@/hooks/usePermissions';
-
-// Même structure que dans PermissionsTab pour la cohérence
-const MATRIX_STRUCTURE = [
-  { menu: 'Dashboard', submenu: null, actions: ['read'] },
-  { menu: 'Ventes', submenu: 'Vente au Comptoir', actions: ['read', 'write'] },
-  { menu: 'Ventes', submenu: 'Factures', actions: ['read', 'write'] },
-  { menu: 'Ventes', submenu: 'Précommandes', actions: ['read', 'write'] },
-  { menu: 'Ventes', submenu: 'Devis', actions: ['read', 'write'] },
-  { menu: 'Ventes', submenu: 'Factures impayées', actions: ['read', 'write'] },
-  { menu: 'Ventes', submenu: 'Retours Clients', actions: ['read', 'write'] },
-  { menu: 'Stock', submenu: 'Entrepôts', actions: ['read', 'write'] },
-  { menu: 'Stock', submenu: 'PDV', actions: ['read', 'write'] },
-  { menu: 'Stock', submenu: 'Transferts', actions: ['read', 'write'] },
-  { menu: 'Stock', submenu: 'Entrées', actions: ['read', 'write'] },
-  { menu: 'Stock', submenu: 'Sorties', actions: ['read', 'write'] },
-  { menu: 'Achats', submenu: 'Bons de commande', actions: ['read', 'write'] },
-  { menu: 'Achats', submenu: 'Bons de livraison', actions: ['read', 'write'] },
-  { menu: 'Achats', submenu: 'Factures', actions: ['read', 'write'] },
-  { menu: 'Clients', submenu: null, actions: ['read', 'write', 'delete'] },
-  { menu: 'Caisse', submenu: null, actions: ['read', 'write'] },
-  { menu: 'Caisse', submenu: 'Dépenses', actions: ['read', 'write'] },
-  { menu: 'Caisse', submenu: 'Aperçu du jour', actions: ['read'] },
-  { menu: 'Marges', submenu: null, actions: ['read'] },
-  { menu: 'Rapports', submenu: null, actions: ['read', 'write'] },
-  { menu: 'Paramètres', submenu: 'Zone Géographique', actions: ['read', 'write'] },
-  { menu: 'Paramètres', submenu: 'Fournisseurs', actions: ['read', 'write'] },
-  { menu: 'Paramètres', submenu: 'Dépôts Stock', actions: ['read', 'write'] },
-  { menu: 'Paramètres', submenu: 'Dépôts PDV', actions: ['read', 'write'] },
-  { menu: 'Paramètres', submenu: 'Utilisateurs', actions: ['read', 'write'] },
-  { menu: 'Paramètres', submenu: 'Permissions', actions: ['read', 'write'] }
-];
+import { useRoles, usePermissions, useRolePermissions, useUpdateRolePermissions } from '@/hooks/usePermissionsSystem';
+import { toast } from 'sonner';
 
 export default function MatrixTab() {
-  const { data: roles = [], isLoading } = useRoles();
-  const [selectedRole, setSelectedRole] = useState<string>('');
-  const [permissions, setPermissions] = useState<Record<string, boolean>>({});
-  const [hasChanges, setHasChanges] = useState(false);
+  const [selectedRoleId, setSelectedRoleId] = useState<string>('');
+  const [pendingChanges, setPendingChanges] = useState<Record<string, boolean>>({});
+  
+  const { data: roles = [] } = useRoles();
+  const { data: permissions = [] } = usePermissions();
+  const { data: rolePermissions = [] } = useRolePermissions(selectedRoleId);
+  const updateRolePermissions = useUpdateRolePermissions();
 
-  // Créer une structure plate pour la matrice
-  const matrixItems = MATRIX_STRUCTURE.flatMap(item => 
-    item.actions.map(action => ({
-      key: `${item.menu}-${item.submenu || 'null'}-${action}`,
-      menu: item.menu,
-      submenu: item.submenu,
-      action: action,
-      label: item.submenu ? `${item.submenu} (${action})` : `${item.menu} (${action})`
-    }))
-  );
+  const selectedRole = roles.find(r => r.id === selectedRoleId);
 
-  const handlePermissionChange = (key: string, checked: boolean) => {
-    setPermissions(prev => ({
-      ...prev,
-      [key]: checked
-    }));
-    setHasChanges(true);
+  const hasPermission = (permissionId: string) => {
+    const key = `${selectedRoleId}-${permissionId}`;
+    if (key in pendingChanges) {
+      return pendingChanges[key];
+    }
+    return rolePermissions.some(rp => rp.permission_id === permissionId && rp.can_access);
   };
 
-  const handleSave = async () => {
-    if (!selectedRole) return;
-    
+  const togglePermission = (permissionId: string) => {
+    const key = `${selectedRoleId}-${permissionId}`;
+    const currentValue = hasPermission(permissionId);
+    setPendingChanges(prev => ({
+      ...prev,
+      [key]: !currentValue
+    }));
+  };
+
+  const saveChanges = async () => {
+    if (!selectedRoleId) return;
+
     try {
-      // TODO: Implémenter la sauvegarde en base
-      console.log('Saving permissions for role:', selectedRole, permissions);
-      setHasChanges(false);
+      const promises = Object.entries(pendingChanges).map(([key, canAccess]) => {
+        const [roleId, permissionId] = key.split('-');
+        return updateRolePermissions.mutateAsync({
+          roleId,
+          permissionId,
+          canAccess
+        });
+      });
+
+      await Promise.all(promises);
+      setPendingChanges({});
+      toast.success('Permissions mises à jour avec succès');
     } catch (error) {
-      console.error('Error saving permissions:', error);
+      console.error('Erreur lors de la sauvegarde:', error);
+      toast.error('Erreur lors de la sauvegarde des permissions');
     }
   };
 
-  const handleReset = () => {
-    setPermissions({});
-    setHasChanges(false);
+  const discardChanges = () => {
+    setPendingChanges({});
+    toast.info('Modifications annulées');
   };
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-      </div>
-    );
-  }
+  const groupedPermissions = permissions.reduce((acc, permission) => {
+    const key = permission.submenu ? `${permission.menu} > ${permission.submenu}` : permission.menu;
+    if (!acc[key]) {
+      acc[key] = [];
+    }
+    acc[key].push(permission);
+    return acc;
+  }, {} as Record<string, typeof permissions>);
+
+  const hasPendingChanges = Object.keys(pendingChanges).length > 0;
 
   return (
     <div className="space-y-6">
@@ -99,15 +86,15 @@ export default function MatrixTab() {
               Matrice des Permissions
             </CardTitle>
             <div className="flex gap-2">
-              {hasChanges && (
+              {hasPendingChanges && (
                 <>
-                  <Button variant="outline" onClick={handleReset}>
+                  <Button variant="outline" onClick={discardChanges}>
                     <RefreshCw className="w-4 h-4 mr-2" />
-                    Réinitialiser
+                    Annuler
                   </Button>
-                  <Button onClick={handleSave}>
+                  <Button onClick={saveChanges} disabled={updateRolePermissions.isPending}>
                     <Save className="w-4 h-4 mr-2" />
-                    Sauvegarder
+                    Enregistrer
                   </Button>
                 </>
               )}
@@ -116,97 +103,90 @@ export default function MatrixTab() {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {/* Sélection du rôle */}
-            <div className="flex gap-2 flex-wrap">
-              <span className="text-sm font-medium">Sélectionner un rôle:</span>
-              {roles.map(role => (
-                <Badge
-                  key={role.id}
-                  variant={selectedRole === role.id ? 'default' : 'outline'}
-                  className="cursor-pointer hover:bg-accent"
-                  onClick={() => {
-                    setSelectedRole(role.id);
-                    setHasChanges(false);
-                  }}
-                >
-                  {role.name}
-                </Badge>
-              ))}
+            <div className="flex items-center gap-4">
+              <div className="min-w-0 flex-1">
+                <label className="text-sm font-medium">Sélectionner un rôle :</label>
+                <Select value={selectedRoleId} onValueChange={setSelectedRoleId}>
+                  <SelectTrigger className="mt-1">
+                    <SelectValue placeholder="Choisir un rôle" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {roles.map((role) => (
+                      <SelectItem key={role.id} value={role.id}>
+                        {role.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              {selectedRole && (
+                <div className="flex items-center gap-2">
+                  <Badge variant={selectedRole.is_system ? 'default' : 'secondary'}>
+                    {selectedRole.is_system ? 'Système' : 'Personnalisé'}
+                  </Badge>
+                  {hasPendingChanges && (
+                    <Badge variant="outline">
+                      {Object.keys(pendingChanges).length} modification(s) en attente
+                    </Badge>
+                  )}
+                </div>
+              )}
             </div>
 
-            {selectedRole && (
+            {selectedRoleId && (
               <div className="border rounded-lg overflow-hidden">
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead className="w-1/3">Menu / Sous-menu</TableHead>
-                      <TableHead className="w-1/6">Action</TableHead>
-                      <TableHead className="w-1/6 text-center">Lecture</TableHead>
-                      <TableHead className="w-1/6 text-center">Écriture</TableHead>
-                      <TableHead className="w-1/6 text-center">Suppression</TableHead>
+                      <TableHead>Module / Fonctionnalité</TableHead>
+                      <TableHead>Action</TableHead>
+                      <TableHead>Description</TableHead>
+                      <TableHead className="text-center">Autorisé</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {MATRIX_STRUCTURE.map((item, index) => (
-                      <TableRow key={index}>
-                        <TableCell className="font-medium">
-                          {item.menu}
-                          {item.submenu && (
-                            <div className="text-sm text-muted-foreground ml-4">
-                              └─ {item.submenu}
-                            </div>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          <div className="space-y-1">
-                            {item.actions.map(action => (
-                              <Badge key={action} variant="outline" className="text-xs">
-                                {action}
+                    {Object.entries(groupedPermissions).map(([module, modulePermissions]) => (
+                      <React.Fragment key={module}>
+                        <TableRow className="bg-muted/50">
+                          <TableCell colSpan={4} className="font-semibold">
+                            {module}
+                          </TableCell>
+                        </TableRow>
+                        {modulePermissions.map((permission) => (
+                          <TableRow key={permission.id}>
+                            <TableCell className="pl-6">
+                              {permission.submenu || permission.menu}
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant="outline">
+                                {permission.action === 'read' ? 'Lecture' : 
+                                 permission.action === 'write' ? 'Écriture' : 
+                                 permission.action === 'delete' ? 'Suppression' : 'Administration'}
                               </Badge>
-                            ))}
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-center">
-                          {item.actions.includes('read') && (
-                            <Checkbox
-                              checked={permissions[`${item.menu}-${item.submenu || 'null'}-read`] || false}
-                              onCheckedChange={(checked) => 
-                                handlePermissionChange(`${item.menu}-${item.submenu || 'null'}-read`, checked as boolean)
-                              }
-                            />
-                          )}
-                        </TableCell>
-                        <TableCell className="text-center">
-                          {item.actions.includes('write') && (
-                            <Checkbox
-                              checked={permissions[`${item.menu}-${item.submenu || 'null'}-write`] || false}
-                              onCheckedChange={(checked) => 
-                                handlePermissionChange(`${item.menu}-${item.submenu || 'null'}-write`, checked as boolean)
-                              }
-                            />
-                          )}
-                        </TableCell>
-                        <TableCell className="text-center">
-                          {item.actions.includes('delete') && (
-                            <Checkbox
-                              checked={permissions[`${item.menu}-${item.submenu || 'null'}-delete`] || false}
-                              onCheckedChange={(checked) => 
-                                handlePermissionChange(`${item.menu}-${item.submenu || 'null'}-delete`, checked as boolean)
-                              }
-                            />
-                          )}
-                        </TableCell>
-                      </TableRow>
+                            </TableCell>
+                            <TableCell className="text-sm text-muted-foreground">
+                              {permission.description || '-'}
+                            </TableCell>
+                            <TableCell className="text-center">
+                              <Switch
+                                checked={hasPermission(permission.id)}
+                                onCheckedChange={() => togglePermission(permission.id)}
+                                disabled={updateRolePermissions.isPending}
+                              />
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </React.Fragment>
                     ))}
                   </TableBody>
                 </Table>
               </div>
             )}
 
-            {!selectedRole && (
-              <div className="text-center text-muted-foreground py-8">
-                <Grid3x3 className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                <p>Sélectionnez un rôle pour voir et modifier sa matrice de permissions</p>
+            {!selectedRoleId && (
+              <div className="text-center py-8 text-muted-foreground">
+                Sélectionnez un rôle pour voir et modifier ses permissions
               </div>
             )}
           </div>

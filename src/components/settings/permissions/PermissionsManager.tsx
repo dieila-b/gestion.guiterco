@@ -3,10 +3,10 @@ import React from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Shield, Users, Grid3x3, Settings, Lock } from 'lucide-react';
-import RolesManager from './RolesManager';
-import PermissionsConfig from './PermissionsConfig';
-import PermissionsMatrix from './PermissionsMatrix';
-import AccessControl from './AccessControl';
+import RolesTab from './RolesTab';
+import PermissionsTab from './PermissionsTab';
+import MatrixTab from './MatrixTab';
+import AccessControlTab from './AccessControlTab';
 
 export default function PermissionsManager() {
   return (
@@ -40,19 +40,19 @@ export default function PermissionsManager() {
             </TabsList>
             
             <TabsContent value="roles" className="mt-6">
-              <RolesManager />
+              <RolesTab />
             </TabsContent>
             
             <TabsContent value="permissions" className="mt-6">
-              <PermissionsConfig />
+              <PermissionsTab />
             </TabsContent>
             
             <TabsContent value="matrix" className="mt-6">
-              <PermissionsMatrix />
+              <MatrixTab />
             </TabsContent>
             
             <TabsContent value="access" className="mt-6">
-              <AccessControl />
+              <AccessControlTab />
             </TabsContent>
           </Tabs>
         </CardContent>

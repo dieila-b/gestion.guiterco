@@ -385,3 +385,28 @@ export const useAssignUserRole = () => {
     }
   });
 };
+
+// Hook pour révoquer un rôle d'un utilisateur
+export const useRevokeUserRole = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async ({ userId, roleId }: { userId: string; roleId: string }) => {
+      const { error } = await supabase
+        .from('user_roles')
+        .update({ is_active: false })
+        .eq('user_id', userId)
+        .eq('role_id', roleId);
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['user-roles'] });
+      queryClient.invalidateQueries({ queryKey: ['utilisateurs-internes'] });
+      toast.success('Rôle révoqué avec succès');
+    },
+    onError: (error: any) => {
+      toast.error('Erreur lors de la révocation du rôle: ' + error.message);
+    }
+  });
+};
