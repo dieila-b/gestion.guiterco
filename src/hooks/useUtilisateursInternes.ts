@@ -85,7 +85,9 @@ export const useUtilisateursInternes = () => {
         doit_changer_mot_de_passe: user.doit_changer_mot_de_passe,
         created_at: user.created_at,
         updated_at: user.updated_at,
-        role: user.user_roles?.[0]?.roles || null
+        role: user.user_roles && user.user_roles.length > 0 && user.user_roles[0].roles 
+          ? user.user_roles[0].roles 
+          : null
       })) || [];
       
       return transformedData as UtilisateurInterne[];
