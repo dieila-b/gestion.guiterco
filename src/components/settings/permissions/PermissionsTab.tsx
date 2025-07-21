@@ -9,8 +9,8 @@ import { usePermissions, useCreatePermission, useUpdatePermission, useDeletePerm
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 
@@ -20,27 +20,6 @@ interface PermissionFormData {
   action: string;
   description?: string;
 }
-
-const MENU_OPTIONS = [
-  'Dashboard',
-  'Ventes',
-  'Achats',
-  'Stock',
-  'Clients',
-  'Fournisseurs',
-  'Catalogue',
-  'Rapports',
-  'Paramètres'
-];
-
-const SUBMENU_OPTIONS: Record<string, string[]> = {
-  'Ventes': ['Factures', 'Devis', 'Commandes', 'Précommandes'],
-  'Achats': ['Bons de commande', 'Bons de livraison', 'Factures achat'],
-  'Stock': ['Entrepôts', 'PDV', 'Mouvements', 'Inventaire'],
-  'Paramètres': ['Utilisateurs', 'Permissions', 'Configuration']
-};
-
-const ACTION_OPTIONS = ['read', 'write', 'delete', 'admin'];
 
 const PermissionForm = ({ permission, onSuccess }: { permission?: any; onSuccess: () => void }) => {
   const { register, handleSubmit, setValue, watch, formState: { errors } } = useForm<PermissionFormData>({
@@ -59,23 +38,21 @@ const PermissionForm = ({ permission, onSuccess }: { permission?: any; onSuccess
 
   const createPermission = useCreatePermission();
   const updatePermission = useUpdatePermission();
-  const selectedMenu = watch('menu');
-  const selectedSubmenu = watch('submenu');
   const selectedAction = watch('action');
 
   const onSubmit = async (data: PermissionFormData) => {
     try {
-      const permissionData = {
-        menu: data.menu,
-        submenu: data.submenu || null,
-        action: data.action,
-        description: data.description || null
-      };
-
       if (permission) {
-        await updatePermission.mutateAsync({ id: permission.id, ...permissionData });
+        await updatePermission.mutateAsync({ 
+          id: permission.id, 
+          ...data,
+          submenu: data.submenu || null
+        });
       } else {
-        await createPermission.mutateAsync(permissionData);
+        await createPermission.mutateAsync({
+          ...data,
+          submenu: data.submenu || null
+        });
       }
       onSuccess();
     } catch (error) {
@@ -83,16 +60,30 @@ const PermissionForm = ({ permission, onSuccess }: { permission?: any; onSuccess
     }
   };
 
+  const menuOptions = [
+    'Dashboard', 'Catalogue', 'Stock', 'Achats', 'Ventes', 'Clients', 
+    'Fournisseurs', 'Comptabilité', 'Rapports', 'Paramètres'
+  ];
+
+  const submenuOptions = {
+    'Stock': ['Entrepôts', 'PDV', 'Mouvements', 'Inventaire'],
+    'Achats': ['Bons de commande', 'Factures', 'Fournisseurs'],
+    'Ventes': ['Factures', 'Précommandes', 'Clients'],
+    'Paramètres': ['Utilisateurs', 'Rôles', 'Permissions']
+  };
+
+  const actionOptions = ['read', 'write', 'delete', 'export', 'import'];
+
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
       <div className="space-y-2">
         <Label htmlFor="menu">Menu *</Label>
-        <Select value={selectedMenu} onValueChange={(value) => setValue('menu', value)}>
+        <Select value={watch('menu')} onValueChange={value => setValue('menu', value)}>
           <SelectTrigger>
             <SelectValue placeholder="Sélectionner un menu" />
           </SelectTrigger>
           <SelectContent>
-            {MENU_OPTIONS.map((menu) => (
+            {menuOptions.map((menu) => (
               <SelectItem key={menu} value={menu}>
                 {menu}
               </SelectItem>
@@ -100,19 +91,19 @@ const PermissionForm = ({ permission, onSuccess }: { permission?: any; onSuccess
           </SelectContent>
         </Select>
         {errors.menu && (
-          <p className="text-sm text-destructive">Le menu est requis</p>
+          <p className="text-sm text-destructive">{errors.menu.message}</p>
         )}
       </div>
 
       <div className="space-y-2">
         <Label htmlFor="submenu">Sous-menu</Label>
-        <Select value={selectedSubmenu} onValueChange={(value) => setValue('submenu', value)}>
+        <Select value={watch('submenu')} onValueChange={value => setValue('submenu', value)}>
           <SelectTrigger>
             <SelectValue placeholder="Sélectionner un sous-menu (optionnel)" />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="">Aucun</SelectItem>
-            {selectedMenu && SUBMENU_OPTIONS[selectedMenu]?.map((submenu) => (
+            {(submenuOptions[watch('menu') as keyof typeof submenuOptions] || []).map((submenu) => (
               <SelectItem key={submenu} value={submenu}>
                 {submenu}
               </SelectItem>
@@ -123,22 +114,23 @@ const PermissionForm = ({ permission, onSuccess }: { permission?: any; onSuccess
 
       <div className="space-y-2">
         <Label htmlFor="action">Action *</Label>
-        <Select value={selectedAction} onValueChange={(value) => setValue('action', value)}>
+        <Select value={selectedAction} onValueChange={value => setValue('action', value)}>
           <SelectTrigger>
             <SelectValue placeholder="Sélectionner une action" />
           </SelectTrigger>
           <SelectContent>
-            {ACTION_OPTIONS.map((action) => (
+            {actionOptions.map((action) => (
               <SelectItem key={action} value={action}>
                 {action === 'read' ? 'Lecture' : 
                  action === 'write' ? 'Écriture' : 
-                 action === 'delete' ? 'Suppression' : 'Administration'}
+                 action === 'delete' ? 'Suppression' : 
+                 action === 'export' ? 'Export' : 'Import'}
               </SelectItem>
             ))}
           </SelectContent>
         </Select>
         {errors.action && (
-          <p className="text-sm text-destructive">L'action est requise</p>
+          <p className="text-sm text-destructive">{errors.action.message}</p>
         )}
       </div>
 
@@ -170,7 +162,7 @@ export default function PermissionsTab() {
   const deletePermission = useDeletePermission();
 
   const handleDelete = async (permission: any) => {
-    if (window.confirm(`Êtes-vous sûr de vouloir supprimer cette permission ?`)) {
+    if (window.confirm(`Êtes-vous sûr de vouloir supprimer la permission "${permission.menu} - ${permission.action}" ?`)) {
       try {
         await deletePermission.mutateAsync(permission.id);
       } catch (error) {
@@ -188,25 +180,6 @@ export default function PermissionsTab() {
     setShowCreateDialog(false);
     setShowEditDialog(false);
     setSelectedPermission(null);
-  };
-
-  const getActionBadge = (action: string) => {
-    const variants: Record<string, "default" | "destructive" | "outline" | "secondary"> = {
-      read: 'secondary',
-      write: 'default',
-      delete: 'destructive',
-      admin: 'outline'
-    };
-    
-    const variant = variants[action] || 'secondary';
-    
-    return (
-      <Badge variant={variant}>
-        {action === 'read' ? 'Lecture' : 
-         action === 'write' ? 'Écriture' : 
-         action === 'delete' ? 'Suppression' : 'Administration'}
-      </Badge>
-    );
   };
 
   if (isLoading) {
@@ -258,7 +231,15 @@ export default function PermissionsTab() {
                 <TableRow key={permission.id}>
                   <TableCell className="font-medium">{permission.menu}</TableCell>
                   <TableCell>{permission.submenu || '-'}</TableCell>
-                  <TableCell>{getActionBadge(permission.action)}</TableCell>
+                  <TableCell>
+                    <Badge variant="outline">
+                      {permission.action === 'read' ? 'Lecture' : 
+                       permission.action === 'write' ? 'Écriture' : 
+                       permission.action === 'delete' ? 'Suppression' : 
+                       permission.action === 'export' ? 'Export' : 
+                       permission.action === 'import' ? 'Import' : permission.action}
+                    </Badge>
+                  </TableCell>
                   <TableCell>{permission.description || '-'}</TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">

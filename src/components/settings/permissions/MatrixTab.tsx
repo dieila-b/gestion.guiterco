@@ -1,68 +1,67 @@
 
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Switch } from '@/components/ui/switch';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Grid3x3, Save, RefreshCw } from 'lucide-react';
+import { Grid3x3, Save } from 'lucide-react';
 import { useRoles, usePermissions, useRolePermissions, useUpdateRolePermissions } from '@/hooks/usePermissionsSystem';
+import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 
 export default function MatrixTab() {
-  const [selectedRoleId, setSelectedRoleId] = useState<string>('');
-  const [pendingChanges, setPendingChanges] = useState<Record<string, boolean>>({});
+  const [selectedRole, setSelectedRole] = useState<string>('');
+  const [pendingChanges, setPendingChanges] = useState<{[key: string]: boolean}>({});
   
-  const { data: roles = [] } = useRoles();
-  const { data: permissions = [] } = usePermissions();
-  const { data: rolePermissions = [] } = useRolePermissions(selectedRoleId);
+  const { data: roles = [], isLoading: rolesLoading } = useRoles();
+  const { data: permissions = [], isLoading: permissionsLoading } = usePermissions();
+  const { data: rolePermissions = [], isLoading: rolePermissionsLoading } = useRolePermissions();
   const updateRolePermissions = useUpdateRolePermissions();
 
-  const selectedRole = roles.find(r => r.id === selectedRoleId);
+  const isLoading = rolesLoading || permissionsLoading || rolePermissionsLoading;
 
-  const hasPermission = (permissionId: string) => {
-    const key = `${selectedRoleId}-${permissionId}`;
+  const handlePermissionChange = async (roleId: string, permissionId: string, canAccess: boolean) => {
+    const key = `${roleId}-${permissionId}`;
+    setPendingChanges(prev => ({ ...prev, [key]: canAccess }));
+    
+    try {
+      await updateRolePermissions.mutateAsync({
+        roleId,
+        permissionId,
+        canAccess
+      });
+      
+      // Retirer du pending après succès
+      setPendingChanges(prev => {
+        const newPending = { ...prev };
+        delete newPending[key];
+        return newPending;
+      });
+      
+      toast.success('Permission mise à jour');
+    } catch (error) {
+      console.error('Erreur lors de la mise à jour:', error);
+      toast.error('Erreur lors de la mise à jour');
+      
+      // Retirer du pending en cas d'erreur
+      setPendingChanges(prev => {
+        const newPending = { ...prev };
+        delete newPending[key];
+        return newPending;
+      });
+    }
+  };
+
+  const hasPermission = (roleId: string, permissionId: string) => {
+    const key = `${roleId}-${permissionId}`;
     if (key in pendingChanges) {
       return pendingChanges[key];
     }
-    return rolePermissions.some(rp => rp.permission_id === permissionId && rp.can_access);
-  };
-
-  const togglePermission = (permissionId: string) => {
-    const key = `${selectedRoleId}-${permissionId}`;
-    const currentValue = hasPermission(permissionId);
-    setPendingChanges(prev => ({
-      ...prev,
-      [key]: !currentValue
-    }));
-  };
-
-  const saveChanges = async () => {
-    if (!selectedRoleId) return;
-
-    try {
-      const promises = Object.entries(pendingChanges).map(([key, canAccess]) => {
-        const [roleId, permissionId] = key.split('-');
-        return updateRolePermissions.mutateAsync({
-          roleId,
-          permissionId,
-          canAccess
-        });
-      });
-
-      await Promise.all(promises);
-      setPendingChanges({});
-      toast.success('Permissions mises à jour avec succès');
-    } catch (error) {
-      console.error('Erreur lors de la sauvegarde:', error);
-      toast.error('Erreur lors de la sauvegarde des permissions');
-    }
-  };
-
-  const discardChanges = () => {
-    setPendingChanges({});
-    toast.info('Modifications annulées');
+    
+    const rolePermission = rolePermissions.find(
+      rp => rp.role_id === roleId && rp.permission_id === permissionId
+    );
+    return rolePermission?.can_access || false;
   };
 
   const groupedPermissions = permissions.reduce((acc, permission) => {
@@ -72,123 +71,83 @@ export default function MatrixTab() {
     }
     acc[key].push(permission);
     return acc;
-  }, {} as Record<string, typeof permissions>);
+  }, {} as {[key: string]: typeof permissions});
 
-  const hasPendingChanges = Object.keys(pendingChanges).length > 0;
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <div className="flex justify-between items-center">
-            <CardTitle className="flex items-center gap-2">
-              <Grid3x3 className="w-5 h-5" />
-              Matrice des Permissions
-            </CardTitle>
-            <div className="flex gap-2">
-              {hasPendingChanges && (
-                <>
-                  <Button variant="outline" onClick={discardChanges}>
-                    <RefreshCw className="w-4 h-4 mr-2" />
-                    Annuler
-                  </Button>
-                  <Button onClick={saveChanges} disabled={updateRolePermissions.isPending}>
-                    <Save className="w-4 h-4 mr-2" />
-                    Enregistrer
-                  </Button>
-                </>
-              )}
-            </div>
-          </div>
+          <CardTitle className="flex items-center gap-2">
+            <Grid3x3 className="w-5 h-5" />
+            Matrice des Permissions
+          </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
-            <div className="flex items-center gap-4">
-              <div className="min-w-0 flex-1">
-                <label className="text-sm font-medium">Sélectionner un rôle :</label>
-                <Select value={selectedRoleId} onValueChange={setSelectedRoleId}>
-                  <SelectTrigger className="mt-1">
-                    <SelectValue placeholder="Choisir un rôle" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {roles.map((role) => (
-                      <SelectItem key={role.id} value={role.id}>
-                        {role.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              {selectedRole && (
-                <div className="flex items-center gap-2">
-                  <Badge variant={selectedRole.is_system ? 'default' : 'secondary'}>
-                    {selectedRole.is_system ? 'Système' : 'Personnalisé'}
-                  </Badge>
-                  {hasPendingChanges && (
-                    <Badge variant="outline">
-                      {Object.keys(pendingChanges).length} modification(s) en attente
-                    </Badge>
-                  )}
-                </div>
-              )}
-            </div>
-
-            {selectedRoleId && (
-              <div className="border rounded-lg overflow-hidden">
-                <Table>
-                  <TableHeader>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-64">Fonctionnalité</TableHead>
+                  <TableHead className="w-32">Action</TableHead>
+                  {roles.map((role) => (
+                    <TableHead key={role.id} className="text-center min-w-24">
+                      <div className="flex flex-col items-center gap-1">
+                        <span className="font-medium">{role.name}</span>
+                        {role.is_system && (
+                          <Badge variant="secondary" className="text-xs">Système</Badge>
+                        )}
+                      </div>
+                    </TableHead>
+                  ))}
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {Object.entries(groupedPermissions).map(([groupName, groupPermissions]) => (
+                  <React.Fragment key={groupName}>
                     <TableRow>
-                      <TableHead>Module / Fonctionnalité</TableHead>
-                      <TableHead>Action</TableHead>
-                      <TableHead>Description</TableHead>
-                      <TableHead className="text-center">Autorisé</TableHead>
+                      <TableCell colSpan={2 + roles.length} className="bg-muted/50 font-medium">
+                        {groupName}
+                      </TableCell>
                     </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {Object.entries(groupedPermissions).map(([module, modulePermissions]) => (
-                      <React.Fragment key={module}>
-                        <TableRow className="bg-muted/50">
-                          <TableCell colSpan={4} className="font-semibold">
-                            {module}
+                    {groupPermissions.map((permission) => (
+                      <TableRow key={permission.id}>
+                        <TableCell className="pl-8">
+                          {permission.description || `${permission.menu}${permission.submenu ? ` > ${permission.submenu}` : ''}`}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline">
+                            {permission.action === 'read' ? 'Lecture' : 
+                             permission.action === 'write' ? 'Écriture' : 
+                             permission.action === 'delete' ? 'Suppression' : 
+                             permission.action === 'export' ? 'Export' : 
+                             permission.action === 'import' ? 'Import' : permission.action}
+                          </Badge>
+                        </TableCell>
+                        {roles.map((role) => (
+                          <TableCell key={role.id} className="text-center">
+                            <Checkbox
+                              checked={hasPermission(role.id, permission.id)}
+                              onCheckedChange={(checked) => 
+                                handlePermissionChange(role.id, permission.id, checked as boolean)
+                              }
+                              disabled={updateRolePermissions.isPending}
+                            />
                           </TableCell>
-                        </TableRow>
-                        {modulePermissions.map((permission) => (
-                          <TableRow key={permission.id}>
-                            <TableCell className="pl-6">
-                              {permission.submenu || permission.menu}
-                            </TableCell>
-                            <TableCell>
-                              <Badge variant="outline">
-                                {permission.action === 'read' ? 'Lecture' : 
-                                 permission.action === 'write' ? 'Écriture' : 
-                                 permission.action === 'delete' ? 'Suppression' : 'Administration'}
-                              </Badge>
-                            </TableCell>
-                            <TableCell className="text-sm text-muted-foreground">
-                              {permission.description || '-'}
-                            </TableCell>
-                            <TableCell className="text-center">
-                              <Switch
-                                checked={hasPermission(permission.id)}
-                                onCheckedChange={() => togglePermission(permission.id)}
-                                disabled={updateRolePermissions.isPending}
-                              />
-                            </TableCell>
-                          </TableRow>
                         ))}
-                      </React.Fragment>
+                      </TableRow>
                     ))}
-                  </TableBody>
-                </Table>
-              </div>
-            )}
-
-            {!selectedRoleId && (
-              <div className="text-center py-8 text-muted-foreground">
-                Sélectionnez un rôle pour voir et modifier ses permissions
-              </div>
-            )}
+                  </React.Fragment>
+                ))}
+              </TableBody>
+            </Table>
           </div>
         </CardContent>
       </Card>

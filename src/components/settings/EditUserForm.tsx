@@ -1,68 +1,66 @@
+
 import React, { useState } from 'react';
+import { useForm } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { User, Save, X, Crown, Briefcase, Upload, Key } from 'lucide-react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { Upload, User } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 import { useRolesForUsers } from '@/hooks/useUtilisateursInternes';
-import { useUserRoleAssignment } from '@/hooks/useUserRoleAssignment';
-import { usePasswordUpdate } from '@/hooks/usePasswordUpdate';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 interface EditUserFormProps {
-  user: {
-    id: string;
-    user_id: string;
-    prenom: string;
-    nom: string;
-    email: string;
-    telephone?: string;
-    adresse?: string;
-    photo_url?: string;
-    role: { id: string; name: string } | null;
-    matricule?: string;
-    statut: string;
-    doit_changer_mot_de_passe: boolean;
-  };
+  user: any;
   onSuccess: () => void;
   onCancel: () => void;
 }
 
+interface EditUserFormData {
+  prenom: string;
+  nom: string;
+  email: string;
+  telephone?: string;
+  adresse?: string;
+  role_id: string;
+  statut: string;
+  doit_changer_mot_de_passe: boolean;
+  photo_url?: string;
+}
+
 const EditUserForm = ({ user, onSuccess, onCancel }: EditUserFormProps) => {
-  const [formData, setFormData] = useState({
-    prenom: user.prenom,
-    nom: user.nom,
-    email: user.email,
-    telephone: user.telephone || '',
-    adresse: user.adresse || '',
-    matricule: user.matricule || '',
-    statut: user.statut,
-    doit_changer_mot_de_passe: user.doit_changer_mot_de_passe,
-    photo_url: user.photo_url || '',
-  });
-  const [selectedRoleId, setSelectedRoleId] = useState(user.role?.id || '');
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [changePassword, setChangePassword] = useState(false);
-
+  const [photoPreview, setPhotoPreview] = useState<string | null>(user.photo_url);
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
   const { toast } = useToast();
-  const queryClient = useQueryClient();
   const { data: roles = [] } = useRolesForUsers();
-  const { assignRole } = useUserRoleAssignment();
-  const { updatePassword, isLoading: isUpdatingPassword } = usePasswordUpdate();
+  const queryClient = useQueryClient();
+  
+  const { register, handleSubmit, setValue, watch, formState: { errors } } = useForm<EditUserFormData>({
+    defaultValues: {
+      prenom: user.prenom,
+      nom: user.nom,
+      email: user.email,
+      telephone: user.telephone || '',
+      adresse: user.adresse || '',
+      role_id: user.role?.id || '',
+      statut: user.statut,
+      doit_changer_mot_de_passe: user.doit_changer_mot_de_passe || false,
+      photo_url: user.photo_url
+    }
+  });
 
-  const updateUser = useMutation({
-    mutationFn: async (data: typeof formData) => {
-      console.log('🔨 Updating user:', user.id, data);
-      
-      const { error } = await supabase
+  const selectedRoleId = watch('role_id');
+  const selectedStatut = watch('statut');
+  const doitChangerMotDePasse = watch('doit_changer_mot_de_passe');
+
+  const updateUserMutation = useMutation({
+    mutationFn: async (data: EditUserFormData) => {
+      // Mettre à jour les données utilisateur
+      const { error: userError } = await supabase
         .from('utilisateurs_internes')
         .update({
           prenom: data.prenom,
@@ -70,31 +68,45 @@ const EditUserForm = ({ user, onSuccess, onCancel }: EditUserFormProps) => {
           email: data.email,
           telephone: data.telephone || null,
           adresse: data.adresse || null,
-          matricule: data.matricule || null,
-          statut: data.statut,
-          doit_changer_mot_de_passe: data.doit_changer_mot_de_passe,
           photo_url: data.photo_url || null,
-          updated_at: new Date().toISOString()
+          role_id: data.role_id,
+          statut: data.statut,
+          doit_changer_mot_de_passe: data.doit_changer_mot_de_passe
         })
         .eq('id', user.id);
 
-      if (error) {
-        console.error('❌ Error updating user:', error);
-        throw error;
+      if (userError) throw userError;
+
+      // Mettre à jour le rôle dans user_roles si nécessaire
+      if (data.role_id !== user.role?.id) {
+        // Désactiver l'ancien rôle
+        await supabase
+          .from('user_roles')
+          .update({ is_active: false })
+          .eq('user_id', user.user_id);
+
+        // Activer le nouveau rôle
+        await supabase
+          .from('user_roles')
+          .upsert({
+            user_id: user.user_id,
+            role_id: data.role_id,
+            is_active: true
+          });
       }
 
-      console.log('✅ User updated successfully');
-      return true;
+      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['utilisateurs-internes'] });
       toast({
         title: "Utilisateur modifié",
-        description: "Les informations ont été mises à jour avec succès",
+        description: "L'utilisateur a été modifié avec succès",
       });
+      onSuccess();
     },
     onError: (error: any) => {
-      console.error('❌ Error in updateUser:', error);
+      console.error('Erreur lors de la modification:', error);
       toast({
         title: "Erreur",
         description: error.message || "Impossible de modifier l'utilisateur",
@@ -103,348 +115,255 @@ const EditUserForm = ({ user, onSuccess, onCancel }: EditUserFormProps) => {
     }
   });
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    // Validation du mot de passe si changement demandé
-    if (changePassword) {
-      if (newPassword.length < 6) {
-        toast({
-          title: "Erreur",
-          description: "Le mot de passe doit contenir au moins 6 caractères",
-          variant: "destructive",
-        });
-        return;
-      }
-      
-      if (newPassword !== confirmPassword) {
-        toast({
-          title: "Erreur",
-          description: "Les mots de passe ne correspondent pas",
-          variant: "destructive",
-        });
-        return;
-      }
-    }
-    
-    console.log('🚀 Starting user update process...');
-    let allOperationsSuccessful = true;
-    const errors: string[] = [];
-    
-    try {
-      // 1. Mettre à jour les informations utilisateur (toujours en premier)
-      console.log('📝 Step 1: Updating user information...');
-      await updateUser.mutateAsync(formData);
-      
-      // 2. Changer le mot de passe si demandé (indépendamment)
-      if (changePassword && newPassword) {
-        console.log('🔐 Step 2: Changing password...');
-        try {
-          await updatePassword({
-            userId: user.user_id,
-            newPassword: newPassword,
-            requireChange: formData.doit_changer_mot_de_passe
-          });
-          console.log('✅ Password updated successfully');
-        } catch (passwordError: any) {
-          console.error('❌ Password update failed:', passwordError);
-          allOperationsSuccessful = false;
-          errors.push(`Mot de passe: ${passwordError.message}`);
-        }
-      }
-      
-      // 3. Mettre à jour le rôle si changé (indépendamment)
-      if (selectedRoleId && selectedRoleId !== user.role?.id) {
-        console.log('🔄 Step 3: Updating user role...');
-        try {
-          await assignRole.mutateAsync({
-            userId: user.user_id,
-            roleId: selectedRoleId
-          });
-          console.log('✅ Role updated successfully');
-        } catch (roleError: any) {
-          console.error('❌ Role update failed:', roleError);
-          allOperationsSuccessful = false;
-          errors.push(`Rôle: ${roleError.message}`);
-        }
-      }
-      
-      // 4. Gérer le résultat final
-      if (allOperationsSuccessful) {
-        console.log('🎉 All operations completed successfully');
-        onSuccess();
-      } else {
-        console.log('⚠️ Some operations failed:', errors);
-        toast({
-          title: "Mise à jour partielle",
-          description: `Informations de base mises à jour. Erreurs: ${errors.join(', ')}`,
-          variant: "destructive",
-        });
-        // Ne pas fermer le formulaire pour permettre de réessayer
-      }
-      
-    } catch (error: any) {
-      console.error('❌ Critical error in handleSubmit:', error);
+  // Handle photo upload
+  const handlePhotoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Vérifications du fichier
+    if (!file.type.startsWith('image/')) {
       toast({
-        title: "Erreur critique",
-        description: error.message || "Une erreur inattendue s'est produite",
+        title: "Erreur",
+        description: "Veuillez sélectionner un fichier image valide (PNG, JPG, GIF).",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) { // 5MB max
+      toast({
+        title: "Erreur",
+        description: "Le fichier est trop volumineux. Taille maximum: 5MB.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsUploadingPhoto(true);
+
+    try {
+      // Créer un nom de fichier unique
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
+
+      // Upload vers Supabase Storage
+      const { data, error } = await supabase.storage
+        .from('avatars')
+        .upload(fileName, file, {
+          cacheControl: '3600',
+          upsert: false
+        });
+
+      if (error) {
+        throw new Error(`Erreur d'upload: ${error.message}`);
+      }
+
+      // Obtenir l'URL publique
+      const { data: { publicUrl } } = supabase.storage
+        .from('avatars')
+        .getPublicUrl(data.path);
+
+      setPhotoPreview(publicUrl);
+      setValue('photo_url', publicUrl);
+      
+      toast({
+        title: "Succès",
+        description: "Photo téléchargée avec succès.",
+      });
+    } catch (error: any) {
+      console.error('Erreur lors de l\'upload:', error);
+      toast({
+        title: "Erreur d'upload",
+        description: error.message || "Impossible de télécharger la photo.",
         variant: "destructive",
       });
+    } finally {
+      setIsUploadingPhoto(false);
     }
   };
 
-  const getRoleIcon = (roleName: string) => {
-    switch (roleName.toLowerCase()) {
-      case 'administrateur':
-        return <Crown className="h-4 w-4" />;
-      case 'manager':
-        return <Briefcase className="h-4 w-4" />;
-      default:
-        return <User className="h-4 w-4" />;
+  const onSubmit = async (data: EditUserFormData) => {
+    if (!selectedRoleId) {
+      toast({
+        title: "Erreur",
+        description: "Veuillez sélectionner un rôle",
+        variant: "destructive",
+      });
+      return;
     }
-  };
 
-  const getRoleColor = (roleName: string) => {
-    switch (roleName.toLowerCase()) {
-      case 'administrateur':
-        return 'bg-red-50 text-red-700 border-red-200';
-      case 'manager':
-        return 'bg-blue-50 text-blue-700 border-blue-200';
-      case 'vendeur':
-        return 'bg-green-50 text-green-700 border-green-200';
-      case 'caissier':
-        return 'bg-purple-50 text-purple-700 border-purple-200';
-      default:
-        return 'bg-gray-50 text-gray-700 border-gray-200';
-    }
+    updateUserMutation.mutate(data);
   };
-
-  const getInitials = (prenom: string, nom: string) => {
-    return `${prenom.charAt(0)}${nom.charAt(0)}`.toUpperCase();
-  };
-
-  const isLoading = updateUser.isPending || assignRole.isPending || isUpdatingPassword;
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center space-x-2">
-            <User className="h-5 w-5" />
-            <span>Photo de profil et informations de base</span>
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          {/* Photo de profil */}
-          <div className="flex items-center space-x-4">
-            <Avatar className="h-20 w-20">
-              <AvatarImage src={formData.photo_url} alt={`${formData.prenom} ${formData.nom}`} />
-              <AvatarFallback className="bg-primary/10 text-primary text-lg">
-                {getInitials(formData.prenom, formData.nom)}
-              </AvatarFallback>
-            </Avatar>
-            <div className="space-y-2">
-              <Label htmlFor="photo_url">URL de la photo</Label>
-              <div className="flex items-center space-x-2">
-                <Input
-                  id="photo_url"
-                  value={formData.photo_url}
-                  onChange={(e) => setFormData({ ...formData, photo_url: e.target.value })}
-                  placeholder="https://exemple.com/photo.jpg"
-                  className="w-64"
-                />
-                <Button type="button" variant="outline" size="sm">
-                  <Upload className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-          </div>
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+      {/* Photo de profil */}
+      <div className="flex flex-col items-center space-y-4">
+        <div className="relative">
+          <Avatar className="h-24 w-24">
+            <AvatarImage src={photoPreview || undefined} />
+            <AvatarFallback className="bg-muted">
+              <User className="h-12 w-12 text-muted-foreground" />
+            </AvatarFallback>
+          </Avatar>
+          <label
+            htmlFor="photo-upload"
+            className={`absolute -bottom-2 -right-2 bg-primary text-primary-foreground rounded-full p-2 cursor-pointer hover:bg-primary/90 transition-colors ${
+              isUploadingPhoto ? 'opacity-50 cursor-not-allowed' : ''
+            }`}
+          >
+            <Upload className="h-4 w-4" />
+          </label>
+          <input
+            id="photo-upload"
+            type="file"
+            accept="image/*"
+            onChange={handlePhotoUpload}
+            disabled={isUploadingPhoto}
+            className="hidden"
+          />
+        </div>
+        <Label className="text-sm text-muted-foreground">
+          {isUploadingPhoto ? 'Upload en cours...' : 'Photo de profil'}
+        </Label>
+      </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="prenom">Prénom *</Label>
-              <Input
-                id="prenom"
-                value={formData.prenom}
-                onChange={(e) => setFormData({ ...formData, prenom: e.target.value })}
-                required
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="nom">Nom *</Label>
-              <Input
-                id="nom"
-                value={formData.nom}
-                onChange={(e) => setFormData({ ...formData, nom: e.target.value })}
-                required
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="email">Email *</Label>
-              <Input
-                id="email"
-                type="email"
-                value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                required
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="matricule">Matricule</Label>
-              <Input
-                id="matricule"
-                value={formData.matricule}
-                onChange={(e) => setFormData({ ...formData, matricule: e.target.value })}
-                placeholder="Auto-généré si vide"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="telephone">Téléphone</Label>
-              <Input
-                id="telephone"
-                value={formData.telephone}
-                onChange={(e) => setFormData({ ...formData, telephone: e.target.value })}
-                placeholder="+33 1 23 45 67 89"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="statut">Statut</Label>
-              <Select value={formData.statut} onValueChange={(value) => setFormData({ ...formData, statut: value })}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="actif">
-                    <Badge variant="default" className="bg-green-100 text-green-800">Actif</Badge>
-                  </SelectItem>
-                  <SelectItem value="inactif">
-                    <Badge variant="secondary">Inactif</Badge>
-                  </SelectItem>
-                  <SelectItem value="suspendu">
-                    <Badge variant="destructive">Suspendu</Badge>
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2 md:col-span-2">
-              <Label htmlFor="adresse">Adresse complète</Label>
-              <Textarea
-                id="adresse"
-                value={formData.adresse}
-                onChange={(e) => setFormData({ ...formData, adresse: e.target.value })}
-                rows={3}
-                placeholder="Adresse, ville, code postal, pays..."
-              />
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center space-x-2">
-            <Key className="h-5 w-5" />
-            <span>Sécurité et mot de passe</span>
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center space-x-2">
-            <Switch
-              id="change-password"
-              checked={changePassword}
-              onCheckedChange={setChangePassword}
-            />
-            <Label htmlFor="change-password">Modifier le mot de passe</Label>
-          </div>
-
-          {changePassword && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-muted rounded-lg">
-              <div className="space-y-2">
-                <Label htmlFor="new-password">Nouveau mot de passe</Label>
-                <Input
-                  id="new-password"
-                  type="password"
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  placeholder="Minimum 6 caractères"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="confirm-password">Confirmer le mot de passe</Label>
-                <Input
-                  id="confirm-password"
-                  type="password"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  placeholder="Confirmer le mot de passe"
-                />
-              </div>
-            </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label htmlFor="prenom">Prénom *</Label>
+          <Input
+            id="prenom"
+            {...register("prenom", { required: "Le prénom est requis" })}
+            disabled={updateUserMutation.isPending}
+          />
+          {errors.prenom && (
+            <p className="text-sm text-destructive">{errors.prenom.message}</p>
           )}
+        </div>
 
-          <div className="flex items-center space-x-2">
-            <Switch
-              id="force-password-change"
-              checked={formData.doit_changer_mot_de_passe}
-              onCheckedChange={(checked) => setFormData({ ...formData, doit_changer_mot_de_passe: checked })}
-            />
-            <Label htmlFor="force-password-change">Forcer le changement de mot de passe à la prochaine connexion</Label>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Rôle et permissions</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="role">Rôle attribué</Label>
-            <Select value={selectedRoleId} onValueChange={setSelectedRoleId}>
-              <SelectTrigger>
-                <SelectValue placeholder="Sélectionner un rôle" />
-              </SelectTrigger>
-              <SelectContent>
-                {roles.map((role) => (
-                  <SelectItem key={role.id} value={role.id}>
-                    <div className="flex items-center space-x-2">
-                      {getRoleIcon(role.name)}
-                      <span>{role.name}</span>
-                    </div>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {user.role && (
-            <div className="p-3 bg-muted rounded-lg">
-              <p className="text-sm text-muted-foreground mb-2">Rôle actuel :</p>
-              <Badge variant="outline" className={`${getRoleColor(user.role.name)} capitalize`}>
-                <div className="flex items-center space-x-1">
-                  {getRoleIcon(user.role.name)}
-                  <span>{user.role.name}</span>
-                </div>
-              </Badge>
-            </div>
+        <div className="space-y-2">
+          <Label htmlFor="nom">Nom *</Label>
+          <Input
+            id="nom"
+            {...register("nom", { required: "Le nom est requis" })}
+            disabled={updateUserMutation.isPending}
+          />
+          {errors.nom && (
+            <p className="text-sm text-destructive">{errors.nom.message}</p>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
-      <div className="flex justify-end space-x-3">
-        <Button type="button" variant="outline" onClick={onCancel} disabled={isLoading}>
-          <X className="h-4 w-4 mr-2" />
+      <div className="space-y-2">
+        <Label htmlFor="email">Email *</Label>
+        <Input
+          id="email"
+          type="email"
+          {...register("email", { 
+            required: "L'email est requis",
+            pattern: {
+              value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
+              message: "Email invalide"
+            }
+          })}
+          disabled={updateUserMutation.isPending}
+        />
+        {errors.email && (
+          <p className="text-sm text-destructive">{errors.email.message}</p>
+        )}
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="telephone">Téléphone</Label>
+        <Input
+          id="telephone"
+          {...register("telephone")}
+          disabled={updateUserMutation.isPending}
+        />
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="role">Rôle *</Label>
+        <Select 
+          value={selectedRoleId} 
+          onValueChange={value => setValue('role_id', value)}
+          disabled={updateUserMutation.isPending}
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="Sélectionner un rôle" />
+          </SelectTrigger>
+          <SelectContent>
+            {roles.map((role) => (
+              <SelectItem key={role.id} value={role.id}>
+                {role.name}
+                {role.description && (
+                  <span className="text-muted-foreground ml-2">
+                    - {role.description}
+                  </span>
+                )}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        {!selectedRoleId && (
+          <p className="text-sm text-destructive">Le rôle est requis</p>
+        )}
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="adresse">Adresse complète</Label>
+        <Textarea
+          id="adresse"
+          {...register("adresse")}
+          rows={3}
+          disabled={updateUserMutation.isPending}
+        />
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="statut">Statut *</Label>
+        <Select 
+          value={selectedStatut} 
+          onValueChange={value => setValue('statut', value)}
+          disabled={updateUserMutation.isPending}
+        >
+          <SelectTrigger>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="actif">Actif</SelectItem>
+            <SelectItem value="inactif">Inactif</SelectItem>
+            <SelectItem value="suspendu">Suspendu</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="flex items-center space-x-2">
+        <Switch
+          id="doit_changer_mot_de_passe"
+          checked={doitChangerMotDePasse}
+          onCheckedChange={value => setValue('doit_changer_mot_de_passe', value)}
+          disabled={updateUserMutation.isPending}
+        />
+        <Label htmlFor="doit_changer_mot_de_passe">
+          Forcer le changement de mot de passe à la prochaine connexion
+        </Label>
+      </div>
+
+      <div className="flex justify-end space-x-2 pt-4">
+        <Button 
+          type="button" 
+          variant="outline" 
+          onClick={onCancel}
+          disabled={updateUserMutation.isPending}
+        >
           Annuler
         </Button>
-        <Button type="submit" disabled={isLoading}>
-          <Save className="h-4 w-4 mr-2" />
-          {isLoading ? 'Enregistrement...' : 'Enregistrer les modifications'}
+        <Button 
+          type="submit" 
+          disabled={updateUserMutation.isPending || !selectedRoleId || isUploadingPhoto}
+        >
+          {updateUserMutation.isPending ? 'Modification...' : 'Modifier l\'utilisateur'}
         </Button>
       </div>
     </form>
