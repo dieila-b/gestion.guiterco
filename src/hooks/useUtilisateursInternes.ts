@@ -100,8 +100,13 @@ export const useUtilisateursInternes = () => {
         created_at: user.created_at,
         updated_at: user.updated_at,
         role: user.user_roles && user.user_roles.length > 0 && user.user_roles[0].roles 
-          ? user.user_roles[0].roles 
-          : null
+          ? {
+              id: user.user_roles[0].roles.id,
+              name: user.user_roles[0].roles.name,
+              description: user.user_roles[0].roles.description,
+              is_system: user.user_roles[0].roles.is_system
+            }
+          : undefined
       })) || [];
       
       return transformedData as UtilisateurInterne[];
