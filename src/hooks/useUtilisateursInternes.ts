@@ -26,6 +26,34 @@ export interface UtilisateurInterne {
   updated_at: string;
 }
 
+// Type for raw Supabase response
+interface UtilisateurInterneRaw {
+  id: string;
+  user_id: string;
+  prenom: string;
+  nom: string;
+  email: string;
+  telephone?: string;
+  adresse?: string;
+  photo_url?: string;
+  matricule?: string;
+  poste?: string;
+  statut: string;
+  type_compte: string;
+  date_embauche?: string;
+  doit_changer_mot_de_passe: boolean;
+  created_at: string;
+  updated_at: string;
+  user_roles?: {
+    role_id: string;
+    is_active: boolean;
+    roles: {
+      id: string;
+      name: string;
+    };
+  }[];
+}
+
 export const useUtilisateursInternes = () => {
   return useQuery({
     queryKey: ['utilisateurs-internes'],
@@ -50,8 +78,8 @@ export const useUtilisateursInternes = () => {
         throw error;
       }
       
-      // Transformer les données pour correspondre à l'interface
-      const transformedData: UtilisateurInterne[] = (data || []).map(user => ({
+      // Transform the data to match the interface
+      const transformedData: UtilisateurInterne[] = (data as UtilisateurInterneRaw[] || []).map(user => ({
         id: user.id,
         user_id: user.user_id,
         prenom: user.prenom,
