@@ -134,7 +134,7 @@ export const useUserRoles = (userId: string) => {
   })
 }
 
-// Hook pour vérifier les permissions de l'utilisateur actuel
+// Hook pour vérifier les permissions de l'utilisateur actuel - CORRECTION DE LA REQUÊTE
 export const useUserPermissions = () => {
   return useQuery({
     queryKey: ['user-permissions'],
@@ -142,39 +142,40 @@ export const useUserPermissions = () => {
       const { data: user } = await supabase.auth.getUser()
       if (!user.user) return []
 
+      // Correction: Utiliser une requête plus simple pour éviter les erreurs de relation
       const { data, error } = await supabase
-        .from('utilisateurs_internes')
+        .from('user_roles')
         .select(`
-          user_id,
-          user_roles!inner (
-            role_id,
-            is_active,
-            roles!inner (
-              name,
-              role_permissions!inner (
-                can_access,
-                permissions!inner (
-                  menu,
-                  submenu,
-                  action
-                )
+          role_id,
+          is_active,
+          roles!inner (
+            name,
+            role_permissions!inner (
+              can_access,
+              permissions!inner (
+                menu,
+                submenu,
+                action
               )
             )
           )
         `)
         .eq('user_id', user.user.id)
-        .eq('statut', 'actif')
+        .eq('is_active', true)
       
-      if (error) throw error
+      if (error) {
+        console.error('Error fetching user permissions:', error)
+        return []
+      }
       
       const permissions: UserPermission[] = []
-      data?.forEach(userInternal => {
-        userInternal.user_roles?.forEach(userRole => {
-          if (userRole.is_active && userRole.roles?.role_permissions) {
+      if (data) {
+        data.forEach(userRole => {
+          if (userRole.roles?.role_permissions) {
             userRole.roles.role_permissions.forEach(rolePermission => {
               if (rolePermission.can_access && rolePermission.permissions) {
                 permissions.push({
-                  user_id: userInternal.user_id,
+                  user_id: user.user.id,
                   menu: rolePermission.permissions.menu,
                   submenu: rolePermission.permissions.submenu,
                   action: rolePermission.permissions.action,
@@ -185,7 +186,7 @@ export const useUserPermissions = () => {
             })
           }
         })
-      })
+      }
       
       return permissions
     }
