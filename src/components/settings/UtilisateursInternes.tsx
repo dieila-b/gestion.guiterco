@@ -1,200 +1,44 @@
-import { useState } from 'react'
+
+import React from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { Plus, Edit, Trash2, Users, Mail, Phone, UserCheck, UserX } from 'lucide-react'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { Users, Mail, Phone, Edit, UserCheck, UserX } from 'lucide-react'
+import { useUtilisateursInternes } from '@/hooks/useUtilisateursInternes'
+import { useRealTimeUserManagement } from '@/hooks/useRealTimeUserManagement'
+import CreateUserDialog from './CreateUserDialog'
+import EditUserDialog from './EditUserDialog'
+import { Button } from '@/components/ui/button'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/integrations/supabase/client'
 import { toast } from 'sonner'
-import { useRoles, useAssignUserRole, useRevokeUserRole } from '@/hooks/usePermissions'
-
-interface UtilisateurInterne {
-  id: string
-  user_id: string
-  prenom: string
-  nom: string
-  email: string
-  telephone: string | null
-  matricule: string | null
-  statut: string
-  photo_url: string | null
-  role_id: string | null
-  created_at: string
-  updated_at: string
-}
 
 export default function UtilisateursInternes() {
-  const [isCreateOpen, setIsCreateOpen] = useState(false)
-  const [isEditOpen, setIsEditOpen] = useState(false)
-  const [selectedUser, setSelectedUser] = useState<UtilisateurInterne | null>(null)
-  const [formData, setFormData] = useState({
-    prenom: '',
-    nom: '',
-    email: '',
-    telephone: '',
-    statut: 'actif',
-    role_id: ''
-  })
-
+  const { data: users = [], isLoading } = useUtilisateursInternes()
   const queryClient = useQueryClient()
-  const { data: roles = [] } = useRoles()
-  const assignUserRole = useAssignUserRole()
-  const revokeUserRole = useRevokeUserRole()
+  
+  // Activer la synchronisation en temps réel
+  useRealTimeUserManagement()
 
-  // Récupération des utilisateurs internes
-  const { data: users = [], isLoading } = useQuery({
-    queryKey: ['utilisateurs-internes'],
-    queryFn: async () => {
-      const { data, error } = await supabase
+  // Mutation pour mettre à jour le statut d'un utilisateur
+  const updateUserStatus = useMutation({
+    mutationFn: async ({ userId, newStatus }: { userId: string; newStatus: string }) => {
+      const { error } = await supabase
         .from('utilisateurs_internes')
-        .select(`
-          *,
-          user_roles!inner (
-            id,
-            role_id,
-            is_active,
-            roles!inner (
-              id,
-              name
-            )
-          )
-        `)
-        .order('nom')
+        .update({ statut: newStatus })
+        .eq('id', userId)
       
       if (error) throw error
-      return data as any[]
-    }
-  })
-
-  // Mutation pour créer un utilisateur
-  const createUser = useMutation({
-    mutationFn: async (userData: any) => {
-      // Créer l'utilisateur dans Auth
-      const { data: authData, error: authError } = await supabase.auth.admin.createUser({
-        email: userData.email,
-        password: 'TempPassword123!', // Mot de passe temporaire
-        email_confirm: true
-      })
-
-      if (authError) throw authError
-
-      // Créer le profil utilisateur interne
-      const { data, error } = await supabase
-        .from('utilisateurs_internes')
-        .insert([{
-          user_id: authData.user.id,
-          prenom: userData.prenom,
-          nom: userData.nom,
-          email: userData.email,
-          telephone: userData.telephone,
-          statut: userData.statut,
-          doit_changer_mot_de_passe: true
-        }])
-        .select()
-        .single()
-
-      if (error) throw error
-
-      // Attribuer le rôle si spécifié
-      if (userData.role_id) {
-        await supabase
-          .from('user_roles')
-          .insert([{
-            user_id: authData.user.id,
-            role_id: userData.role_id,
-            is_active: true
-          }])
-      }
-
-      return data
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['utilisateurs-internes'] })
-      toast.success('Utilisateur créé avec succès')
-      setIsCreateOpen(false)
-      setFormData({
-        prenom: '',
-        nom: '',
-        email: '',
-        telephone: '',
-        statut: 'actif',
-        role_id: ''
-      })
-    },
-    onError: (error: any) => {
-      toast.error('Erreur lors de la création: ' + error.message)
-    }
-  })
-
-  // Mutation pour mettre à jour un utilisateur
-  const updateUser = useMutation({
-    mutationFn: async (userData: any) => {
-      const { data, error } = await supabase
-        .from('utilisateurs_internes')
-        .update({
-          prenom: userData.prenom,
-          nom: userData.nom,
-          email: userData.email,
-          telephone: userData.telephone,
-          statut: userData.statut
-        })
-        .eq('id', userData.id)
-        .select()
-        .single()
-
-      if (error) throw error
-      return data
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['utilisateurs-internes'] })
-      toast.success('Utilisateur mis à jour avec succès')
-      setIsEditOpen(false)
-      setSelectedUser(null)
+      toast.success('Statut utilisateur mis à jour')
     },
     onError: (error: any) => {
       toast.error('Erreur lors de la mise à jour: ' + error.message)
     }
   })
-
-  const handleCreate = async () => {
-    if (!formData.prenom.trim() || !formData.nom.trim() || !formData.email.trim()) {
-      toast.error('Les champs prénom, nom et email sont requis')
-      return
-    }
-
-    await createUser.mutateAsync(formData)
-  }
-
-  const handleEdit = (user: UtilisateurInterne) => {
-    setSelectedUser(user)
-    setFormData({
-      prenom: user.prenom,
-      nom: user.nom,
-      email: user.email,
-      telephone: user.telephone || '',
-      statut: user.statut,
-      role_id: user.role_id || ''
-    })
-    setIsEditOpen(true)
-  }
-
-  const handleUpdate = async () => {
-    if (!selectedUser || !formData.prenom.trim() || !formData.nom.trim() || !formData.email.trim()) {
-      toast.error('Les champs prénom, nom et email sont requis')
-      return
-    }
-
-    await updateUser.mutateAsync({
-      id: selectedUser.id,
-      ...formData
-    })
-  }
 
   const getInitials = (prenom: string, nom: string) => {
     return `${prenom.charAt(0)}${nom.charAt(0)}`.toUpperCase()
@@ -211,6 +55,11 @@ export default function UtilisateursInternes() {
       default:
         return <Badge variant="outline">{statut}</Badge>
     }
+  }
+
+  const handleToggleStatus = (user: any) => {
+    const newStatus = user.statut === 'actif' ? 'suspendu' : 'actif'
+    updateUserStatus.mutate({ userId: user.id, newStatus })
   }
 
   if (isLoading) {
@@ -230,79 +79,9 @@ export default function UtilisateursInternes() {
               <Users className="w-5 h-5" />
               Utilisateurs Internes
             </CardTitle>
-            <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-              <DialogTrigger asChild>
-                <Button>
-                  <Plus className="w-4 h-4 mr-2" />
-                  Nouvel Utilisateur
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-md">
-                <DialogHeader>
-                  <DialogTitle>Créer un nouvel utilisateur</DialogTitle>
-                </DialogHeader>
-                <div className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label htmlFor="prenom">Prénom</Label>
-                      <Input
-                        id="prenom"
-                        value={formData.prenom}
-                        onChange={(e) => setFormData({ ...formData, prenom: e.target.value })}
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="nom">Nom</Label>
-                      <Input
-                        id="nom"
-                        value={formData.nom}
-                        onChange={(e) => setFormData({ ...formData, nom: e.target.value })}
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <Label htmlFor="email">Email</Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      value={formData.email}
-                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="telephone">Téléphone</Label>
-                    <Input
-                      id="telephone"
-                      value={formData.telephone}
-                      onChange={(e) => setFormData({ ...formData, telephone: e.target.value })}
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="role">Rôle</Label>
-                    <Select value={formData.role_id} onValueChange={(value) => setFormData({ ...formData, role_id: value })}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Sélectionner un rôle" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {roles.map(role => (
-                          <SelectItem key={role.id} value={role.id}>
-                            {role.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="flex justify-end gap-2">
-                    <Button variant="outline" onClick={() => setIsCreateOpen(false)}>
-                      Annuler
-                    </Button>
-                    <Button onClick={handleCreate} disabled={createUser.isPending}>
-                      {createUser.isPending ? 'Création...' : 'Créer'}
-                    </Button>
-                  </div>
-                </div>
-              </DialogContent>
-            </Dialog>
+            <CreateUserDialog onUserCreated={() => {
+              queryClient.invalidateQueries({ queryKey: ['utilisateurs-internes'] })
+            }} />
           </div>
         </CardHeader>
         <CardContent>
@@ -350,9 +129,9 @@ export default function UtilisateursInternes() {
                     </div>
                   </TableCell>
                   <TableCell>
-                    {user.user_roles?.[0]?.roles?.name && (
+                    {user.role?.name && (
                       <Badge variant="outline">
-                        {user.user_roles[0].roles.name}
+                        {user.role.name}
                       </Badge>
                     )}
                   </TableCell>
@@ -361,31 +140,18 @@ export default function UtilisateursInternes() {
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">
+                      <EditUserDialog user={user} onUserUpdated={() => {
+                        queryClient.invalidateQueries({ queryKey: ['utilisateurs-internes'] })
+                      }}>
+                        <Button variant="outline" size="sm">
+                          <Edit className="w-4 h-4" />
+                        </Button>
+                      </EditUserDialog>
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => handleEdit(user)}
-                      >
-                        <Edit className="w-4 h-4" />
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          if (user.statut === 'actif') {
-                            updateUser.mutate({
-                              id: user.id,
-                              ...user,
-                              statut: 'suspendu'
-                            })
-                          } else {
-                            updateUser.mutate({
-                              id: user.id,
-                              ...user,
-                              statut: 'actif'
-                            })
-                          }
-                        }}
+                        onClick={() => handleToggleStatus(user)}
+                        disabled={updateUserStatus.isPending}
                       >
                         {user.statut === 'actif' ? <UserX className="w-4 h-4" /> : <UserCheck className="w-4 h-4" />}
                       </Button>
@@ -397,73 +163,6 @@ export default function UtilisateursInternes() {
           </Table>
         </CardContent>
       </Card>
-
-      {/* Dialog d'édition */}
-      <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Modifier l'utilisateur</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="edit-prenom">Prénom</Label>
-                <Input
-                  id="edit-prenom"
-                  value={formData.prenom}
-                  onChange={(e) => setFormData({ ...formData, prenom: e.target.value })}
-                />
-              </div>
-              <div>
-                <Label htmlFor="edit-nom">Nom</Label>
-                <Input
-                  id="edit-nom"
-                  value={formData.nom}
-                  onChange={(e) => setFormData({ ...formData, nom: e.target.value })}
-                />
-              </div>
-            </div>
-            <div>
-              <Label htmlFor="edit-email">Email</Label>
-              <Input
-                id="edit-email"
-                type="email"
-                value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-              />
-            </div>
-            <div>
-              <Label htmlFor="edit-telephone">Téléphone</Label>
-              <Input
-                id="edit-telephone"
-                value={formData.telephone}
-                onChange={(e) => setFormData({ ...formData, telephone: e.target.value })}
-              />
-            </div>
-            <div>
-              <Label htmlFor="edit-statut">Statut</Label>
-              <Select value={formData.statut} onValueChange={(value) => setFormData({ ...formData, statut: value })}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="actif">Actif</SelectItem>
-                  <SelectItem value="inactif">Inactif</SelectItem>
-                  <SelectItem value="suspendu">Suspendu</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={() => setIsEditOpen(false)}>
-                Annuler
-              </Button>
-              <Button onClick={handleUpdate} disabled={updateUser.isPending}>
-                {updateUser.isPending ? 'Mise à jour...' : 'Mettre à jour'}
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   )
 }

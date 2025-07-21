@@ -30,9 +30,22 @@ export const useRealTimeUserManagement = () => {
       )
       .subscribe();
 
+    // Synchronisation pour les rôles
+    const rolesChannel = supabase
+      .channel('roles-changes')
+      .on('postgres_changes', 
+        { event: '*', schema: 'public', table: 'roles' },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ['roles'] });
+          queryClient.invalidateQueries({ queryKey: ['roles-for-users'] });
+        }
+      )
+      .subscribe();
+
     return () => {
       supabase.removeChannel(utilisateursChannel);
       supabase.removeChannel(userRolesChannel);
+      supabase.removeChannel(rolesChannel);
     };
   }, [queryClient]);
 };

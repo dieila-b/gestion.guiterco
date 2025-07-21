@@ -12,7 +12,6 @@ import { Upload, User } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useRolesForUsers } from '@/hooks/useUtilisateursInternes';
-import { useCreateInternalUser } from '@/hooks/useCreateInternalUser';
 
 interface CreateUserFormProps {
   onSuccess: () => void;
@@ -36,9 +35,9 @@ interface CreateUserFormData {
 const CreateUserForm = ({ onSuccess, onCancel }: CreateUserFormProps) => {
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
+  const [isCreating, setIsCreating] = useState(false);
   const { toast } = useToast();
   const { data: roles = [] } = useRolesForUsers();
-  const createUser = useCreateInternalUser();
   
   const { register, handleSubmit, setValue, watch, formState: { errors } } = useForm<CreateUserFormData>({
     defaultValues: {
@@ -50,6 +49,7 @@ const CreateUserForm = ({ onSuccess, onCancel }: CreateUserFormProps) => {
   const selectedRoleId = watch('role_id');
   const selectedStatut = watch('statut');
   const password = watch('password');
+  const doitChangerMotDePasse = watch('doit_changer_mot_de_passe');
 
   // Handle photo upload
   const handlePhotoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -78,13 +78,9 @@ const CreateUserForm = ({ onSuccess, onCancel }: CreateUserFormProps) => {
     setIsUploadingPhoto(true);
 
     try {
-      console.log('🔄 Début de l\'upload de la photo...');
-      
       // Créer un nom de fichier unique
       const fileExt = file.name.split('.').pop();
       const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
-
-      console.log('📁 Upload vers le bucket avatars:', fileName);
 
       // Upload vers Supabase Storage
       const { data, error } = await supabase.storage
@@ -95,18 +91,13 @@ const CreateUserForm = ({ onSuccess, onCancel }: CreateUserFormProps) => {
         });
 
       if (error) {
-        console.error('❌ Erreur upload:', error);
         throw new Error(`Erreur d'upload: ${error.message}`);
       }
-
-      console.log('✅ Upload réussi:', data);
 
       // Obtenir l'URL publique
       const { data: { publicUrl } } = supabase.storage
         .from('avatars')
         .getPublicUrl(data.path);
-
-      console.log('🔗 URL publique générée:', publicUrl);
 
       setPhotoPreview(publicUrl);
       setValue('photo_url', publicUrl);
@@ -116,10 +107,10 @@ const CreateUserForm = ({ onSuccess, onCancel }: CreateUserFormProps) => {
         description: "Photo téléchargée avec succès.",
       });
     } catch (error: any) {
-      console.error('💥 Erreur complète lors de l\'upload:', error);
+      console.error('Erreur lors de l\'upload:', error);
       toast({
         title: "Erreur d'upload",
-        description: error.message || "Impossible de télécharger la photo. Vérifiez votre connexion.",
+        description: error.message || "Impossible de télécharger la photo.",
         variant: "destructive",
       });
     } finally {
@@ -127,7 +118,7 @@ const CreateUserForm = ({ onSuccess, onCancel }: CreateUserFormProps) => {
     }
   };
 
-  const onSubmit = (data: CreateUserFormData) => {
+  const onSubmit = async (data: CreateUserFormData) => {
     if (!selectedRoleId) {
       toast({
         title: "Erreur",
@@ -145,24 +136,74 @@ const CreateUserForm = ({ onSuccess, onCancel }: CreateUserFormProps) => {
       });
       return;
     }
-    
-    // Utiliser le hook qui appelle l'Edge Function
-    createUser.mutate({
-      prenom: data.prenom,
-      nom: data.nom,
-      email: data.email,
-      password: data.password,
-      telephone: data.telephone,
-      adresse: data.adresse,
-      photo_url: data.photo_url,
-      role_id: data.role_id,
-      doit_changer_mot_de_passe: data.doit_changer_mot_de_passe,
-      statut: data.statut
-    }, {
-      onSuccess: () => {
-        onSuccess();
+
+    setIsCreating(true);
+
+    try {
+      // Créer l'utilisateur dans Supabase Auth
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: data.email,
+        password: data.password,
+        options: {
+          data: {
+            first_name: data.prenom,
+            last_name: data.nom,
+          }
+        }
+      });
+
+      if (authError) throw authError;
+
+      if (!authData.user) {
+        throw new Error('Erreur lors de la création de l\'utilisateur');
       }
-    });
+
+      // Créer l'entrée dans la table utilisateurs_internes
+      const { error: profileError } = await supabase
+        .from('utilisateurs_internes')
+        .insert({
+          user_id: authData.user.id,
+          prenom: data.prenom,
+          nom: data.nom,
+          email: data.email,
+          telephone: data.telephone,
+          adresse: data.adresse,
+          photo_url: data.photo_url,
+          role_id: data.role_id,
+          doit_changer_mot_de_passe: data.doit_changer_mot_de_passe,
+          statut: data.statut,
+          type_compte: 'interne'
+        });
+
+      if (profileError) throw profileError;
+
+      toast({
+        title: "Utilisateur créé",
+        description: "Le nouvel utilisateur interne a été créé avec succès",
+      });
+
+      onSuccess();
+    } catch (error: any) {
+      console.error('Erreur lors de la création:', error);
+      
+      let errorMessage = "Impossible de créer l'utilisateur";
+      
+      if (error.message?.includes('User already registered')) {
+        errorMessage = "Un utilisateur avec cette adresse email existe déjà";
+      } else if (error.message?.includes('Email already registered')) {
+        errorMessage = "Cette adresse email est déjà utilisée";
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      toast({
+        title: "Erreur",
+        description: errorMessage,
+        variant: "destructive",
+      });
+    } finally {
+      setIsCreating(false);
+    }
   };
 
   return (
@@ -204,7 +245,7 @@ const CreateUserForm = ({ onSuccess, onCancel }: CreateUserFormProps) => {
           <Input
             id="prenom"
             {...register("prenom", { required: "Le prénom est requis" })}
-            disabled={createUser.isPending}
+            disabled={isCreating}
           />
           {errors.prenom && (
             <p className="text-sm text-destructive">{errors.prenom.message}</p>
@@ -216,7 +257,7 @@ const CreateUserForm = ({ onSuccess, onCancel }: CreateUserFormProps) => {
           <Input
             id="nom"
             {...register("nom", { required: "Le nom est requis" })}
-            disabled={createUser.isPending}
+            disabled={isCreating}
           />
           {errors.nom && (
             <p className="text-sm text-destructive">{errors.nom.message}</p>
@@ -236,7 +277,7 @@ const CreateUserForm = ({ onSuccess, onCancel }: CreateUserFormProps) => {
               message: "Email invalide"
             }
           })}
-          disabled={createUser.isPending}
+          disabled={isCreating}
         />
         {errors.email && (
           <p className="text-sm text-destructive">{errors.email.message}</p>
@@ -256,7 +297,7 @@ const CreateUserForm = ({ onSuccess, onCancel }: CreateUserFormProps) => {
                 message: "Le mot de passe doit contenir au moins 6 caractères"
               }
             })}
-            disabled={createUser.isPending}
+            disabled={isCreating}
           />
           {errors.password && (
             <p className="text-sm text-destructive">{errors.password.message}</p>
@@ -272,7 +313,7 @@ const CreateUserForm = ({ onSuccess, onCancel }: CreateUserFormProps) => {
               required: "La confirmation du mot de passe est requise",
               validate: value => value === password || "Les mots de passe ne correspondent pas"
             })}
-            disabled={createUser.isPending}
+            disabled={isCreating}
           />
           {errors.confirmPassword && (
             <p className="text-sm text-destructive">{errors.confirmPassword.message}</p>
@@ -280,85 +321,81 @@ const CreateUserForm = ({ onSuccess, onCancel }: CreateUserFormProps) => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label htmlFor="telephone">Téléphone</Label>
-          <Input
-            id="telephone"
-            {...register("telephone")}
-            disabled={createUser.isPending}
-          />
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="role">Rôle *</Label>
-          <Select 
-            value={selectedRoleId} 
-            onValueChange={value => setValue('role_id', value)}
-            disabled={createUser.isPending}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Sélectionner un rôle" />
-            </SelectTrigger>
-            <SelectContent>
-              {roles.map((role) => (
-                <SelectItem key={role.id} value={role.id}>
-                  {role.name}
-                  {role.description && (
-                    <span className="text-muted-foreground ml-2">
-                      - {role.description}
-                    </span>
-                  )}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          {!selectedRoleId && (
-            <p className="text-sm text-destructive">Le rôle est requis</p>
-          )}
-        </div>
+      <div className="space-y-2">
+        <Label htmlFor="telephone">Téléphone</Label>
+        <Input
+          id="telephone"
+          {...register("telephone")}
+          disabled={isCreating}
+        />
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="adresse">Adresse</Label>
+        <Label htmlFor="role">Rôle *</Label>
+        <Select 
+          value={selectedRoleId} 
+          onValueChange={value => setValue('role_id', value)}
+          disabled={isCreating}
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="Sélectionner un rôle" />
+          </SelectTrigger>
+          <SelectContent>
+            {roles.map((role) => (
+              <SelectItem key={role.id} value={role.id}>
+                {role.name}
+                {role.description && (
+                  <span className="text-muted-foreground ml-2">
+                    - {role.description}
+                  </span>
+                )}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        {!selectedRoleId && (
+          <p className="text-sm text-destructive">Le rôle est requis</p>
+        )}
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="adresse">Adresse complète</Label>
         <Textarea
           id="adresse"
           {...register("adresse")}
           rows={3}
-          disabled={createUser.isPending}
+          disabled={isCreating}
         />
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label htmlFor="statut">Statut *</Label>
-          <Select 
-            value={selectedStatut} 
-            onValueChange={value => setValue('statut', value)}
-            disabled={createUser.isPending}
-          >
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="actif">Actif</SelectItem>
-              <SelectItem value="inactif">Inactif</SelectItem>
-              <SelectItem value="suspendu">Suspendu</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+      <div className="space-y-2">
+        <Label htmlFor="statut">Statut *</Label>
+        <Select 
+          value={selectedStatut} 
+          onValueChange={value => setValue('statut', value)}
+          disabled={isCreating}
+        >
+          <SelectTrigger>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="actif">Actif</SelectItem>
+            <SelectItem value="inactif">Inactif</SelectItem>
+            <SelectItem value="suspendu">Suspendu</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
 
-        <div className="flex items-center space-x-2">
-          <Switch
-            id="doit_changer_mot_de_passe"
-            checked={watch('doit_changer_mot_de_passe')}
-            onCheckedChange={value => setValue('doit_changer_mot_de_passe', value)}
-            disabled={createUser.isPending}
-          />
-          <Label htmlFor="doit_changer_mot_de_passe">
-            Forcer le changement de mot de passe à la première connexion
-          </Label>
-        </div>
+      <div className="flex items-center space-x-2">
+        <Switch
+          id="doit_changer_mot_de_passe"
+          checked={doitChangerMotDePasse}
+          onCheckedChange={value => setValue('doit_changer_mot_de_passe', value)}
+          disabled={isCreating}
+        />
+        <Label htmlFor="doit_changer_mot_de_passe">
+          Forcer le changement de mot de passe à la première connexion
+        </Label>
       </div>
 
       <div className="flex justify-end space-x-2 pt-4">
@@ -366,15 +403,15 @@ const CreateUserForm = ({ onSuccess, onCancel }: CreateUserFormProps) => {
           type="button" 
           variant="outline" 
           onClick={onCancel}
-          disabled={createUser.isPending}
+          disabled={isCreating}
         >
           Annuler
         </Button>
         <Button 
           type="submit" 
-          disabled={createUser.isPending || !selectedRoleId || isUploadingPhoto}
+          disabled={isCreating || !selectedRoleId || isUploadingPhoto}
         >
-          {createUser.isPending ? 'Création...' : 'Créer l\'utilisateur'}
+          {isCreating ? 'Création...' : 'Créer l\'utilisateur'}
         </Button>
       </div>
     </form>
