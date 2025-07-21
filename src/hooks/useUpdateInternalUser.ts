@@ -2,7 +2,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { useSecureUserOperations } from './useSecureUserOperations';
 
 interface UpdateUserData {
   id: string;
@@ -20,60 +19,32 @@ interface UpdateUserData {
 export const useUpdateInternalUser = () => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
-  const { refreshSession, securePasswordUpdate } = useSecureUserOperations();
 
   return useMutation({
     mutationFn: async (userData: UpdateUserData) => {
-      console.log('🔄 Updating internal user with secure methods:', userData.id);
+      console.log('🔄 Updating internal user:', userData.id);
       
-      try {
-        // 1. Renouveler la session avant toute opération
-        await refreshSession.mutateAsync();
-        
-        // 2. Mettre à jour les paramètres de mot de passe de façon sécurisée si nécessaire
-        const { data: currentUser } = await supabase
-          .from('utilisateurs_internes')
-          .select('doit_changer_mot_de_passe, user_id')
-          .eq('id', userData.id)
-          .single();
-        
-        if (currentUser && currentUser.doit_changer_mot_de_passe !== userData.doit_changer_mot_de_passe) {
-          await securePasswordUpdate.mutateAsync({
-            targetUserId: currentUser.user_id,
-            forceChange: userData.doit_changer_mot_de_passe
-          });
-        }
-        
-        // 3. Mettre à jour les autres informations du profil
-        const { data, error } = await supabase
-          .from('utilisateurs_internes')
-          .update({
-            prenom: userData.prenom,
-            nom: userData.nom,
-            email: userData.email,
-            telephone: userData.telephone,
-            adresse: userData.adresse,
-            photo_url: userData.photo_url,
-            matricule: userData.matricule,
-            statut: userData.statut,
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', userData.id)
-          .select()
-          .single();
+      // Utiliser la fonction SQL sécurisée pour la mise à jour
+      const { data, error } = await supabase.rpc('update_user_profile', {
+        p_user_id: userData.id,
+        p_prenom: userData.prenom,
+        p_nom: userData.nom,
+        p_email: userData.email,
+        p_telephone: userData.telephone,
+        p_adresse: userData.adresse,
+        p_photo_url: userData.photo_url,
+        p_matricule: userData.matricule,
+        p_statut: userData.statut,
+        p_doit_changer_mot_de_passe: userData.doit_changer_mot_de_passe
+      });
 
-        if (error) {
-          console.error('❌ Error updating user profile:', error);
-          throw error;
-        }
-
-        console.log('✅ User updated successfully with secure methods');
-        return data;
-        
-      } catch (error: any) {
-        console.error('❌ Secure user update failed:', error);
+      if (error) {
+        console.error('❌ Error updating user:', error);
         throw error;
       }
+
+      console.log('✅ User updated successfully');
+      return data;
     },
     onSuccess: () => {
       // Invalider toutes les requêtes liées aux utilisateurs
@@ -82,7 +53,7 @@ export const useUpdateInternalUser = () => {
       
       toast({
         title: "Utilisateur modifié",
-        description: "Les informations de l'utilisateur ont été mises à jour de manière sécurisée.",
+        description: "Les informations de l'utilisateur ont été mises à jour avec succès.",
       });
     },
     onError: (error: any) => {
@@ -90,10 +61,10 @@ export const useUpdateInternalUser = () => {
       
       let errorMessage = "Impossible de modifier l'utilisateur";
       
-      if (error.message?.includes('session')) {
-        errorMessage = "Session expirée. Veuillez vous reconnecter.";
-      } else if (error.message?.includes('row-level security')) {
-        errorMessage = "Permissions insuffisantes pour cette opération";
+      if (error.message?.includes('Permission denied')) {
+        errorMessage = "Vous n'avez pas les droits nécessaires pour modifier cet utilisateur";
+      } else if (error.message?.includes('insufficient privileges')) {
+        errorMessage = "Privilèges insuffisants pour cette opération";
       } else if (error.message) {
         errorMessage = error.message;
       }
