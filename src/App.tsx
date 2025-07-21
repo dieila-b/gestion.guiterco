@@ -5,22 +5,17 @@ import { AuthGuard } from '@/components/AuthGuard';
 import { AuthPage } from '@/pages/auth/AuthPage';
 import { Sidebar } from '@/components/Sidebar';
 import { Dashboard } from '@/pages/Dashboard';
-import { Settings } from '@/pages/Settings';
+import Settings from '@/pages/Settings';
 import { Catalogue } from '@/pages/Catalogue';
-import { Clients } from '@/pages/Clients';
+import Clients from '@/pages/Clients';
 import { Ventes } from '@/pages/Ventes';
 import { Stock } from '@/pages/Stock';
 import { Achats } from '@/pages/Achats';
 import { Caisse } from '@/pages/Caisse';
 import { Marges } from '@/pages/Marges';
 import { Rapports } from '@/pages/Rapports';
-import { Button } from '@/components/ui/button';
-import { useAuthContext } from '@/components/AuthProvider';
-import { LogOut } from 'lucide-react';
 
 function App() {
-  const { user } = useAuthContext();
-
   return (
     <div className="min-h-screen bg-background">
       <Routes>

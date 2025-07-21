@@ -1,40 +1,40 @@
 
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Users, Plus } from 'lucide-react';
+import { FileText, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
-const Clients = () => {
+export const Rapports = () => {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Clients</h1>
-          <p className="text-muted-foreground">Gestion de votre base clients</p>
+          <h1 className="text-2xl font-bold">Rapports</h1>
+          <p className="text-muted-foreground">Génération de rapports et analyses</p>
         </div>
         <Button className="flex items-center gap-2">
-          <Plus className="h-4 w-4" />
-          Nouveau client
+          <Download className="h-4 w-4" />
+          Générer rapport
         </Button>
       </div>
 
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Users className="h-5 w-5" />
-            Base clients
+            <FileText className="h-5 w-5" />
+            Rapports disponibles
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="text-center py-8">
-            <Users className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-            <h3 className="text-lg font-medium mb-2">Aucun client</h3>
+            <FileText className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+            <h3 className="text-lg font-medium mb-2">Aucun rapport</h3>
             <p className="text-muted-foreground mb-4">
-              Commencez par ajouter vos premiers clients
+              Générez vos premiers rapports d'activité
             </p>
             <Button>
-              <Plus className="h-4 w-4 mr-2" />
-              Ajouter un client
+              <Download className="h-4 w-4 mr-2" />
+              Générer rapport
             </Button>
           </div>
         </CardContent>
@@ -42,5 +42,3 @@ const Clients = () => {
     </div>
   );
 };
-
-export default Clients;

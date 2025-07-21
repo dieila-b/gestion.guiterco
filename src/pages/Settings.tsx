@@ -1,6 +1,5 @@
 
 import React, { useState } from 'react';
-import { AppLayout } from '@/components/layout/AppLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
@@ -17,8 +16,8 @@ import Fournisseurs from '@/components/settings/Fournisseurs';
 import DepotsStockage from '@/components/settings/DepotsStockage';
 import DepotsPDV from '@/components/settings/DepotsPDV';
 import ClientsSettings from '@/components/settings/ClientsSettings';
-import UtilisateursInternes from '@/components/settings/UtilisateursInternes';
-import AccesPermissions from '@/components/settings/AccesPermissions';
+import { UtilisateursInternes } from '@/components/settings/UtilisateursInternes';
+import { AccesPermissions } from '@/components/settings/AccesPermissions';
 
 const settingsCards = [
   {
@@ -76,85 +75,83 @@ const Settings = () => {
   const [activeTab, setActiveTab] = useState("overview");
 
   return (
-    <AppLayout title="Paramètres">
-      <div className="space-y-6">
-        <div className="flex items-center space-x-2">
-          <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
-            <div className="w-4 h-4 rounded bg-primary" />
-          </div>
-          <div>
-            <h1 className="text-2xl font-bold">Paramètres</h1>
-            <p className="text-muted-foreground">Espace administrateur</p>
-          </div>
+    <div className="space-y-6">
+      <div className="flex items-center space-x-2">
+        <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+          <div className="w-4 h-4 rounded bg-primary" />
         </div>
-
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid grid-cols-8 w-full">
-            <TabsTrigger value="overview">Vue d'ensemble</TabsTrigger>
-            <TabsTrigger value="zone-geo">Zone Géo</TabsTrigger>
-            <TabsTrigger value="fournisseurs">Fournisseurs</TabsTrigger>
-            <TabsTrigger value="depots-stockage">Dépôts Stock</TabsTrigger>
-            <TabsTrigger value="depots-pdv">Dépôts PDV</TabsTrigger>
-            <TabsTrigger value="clients">Clients</TabsTrigger>
-            <TabsTrigger value="utilisateurs-internes">Utilisateurs</TabsTrigger>
-            <TabsTrigger value="acces-permissions">Permissions</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="overview" className="mt-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {settingsCards.map((card) => {
-                const IconComponent = card.icon;
-                return (
-                  <Card 
-                    key={card.id}
-                    className={`cursor-pointer transition-all duration-200 ${card.color}`}
-                    onClick={() => setActiveTab(card.id)}
-                  >
-                    <CardHeader className="flex flex-row items-center space-y-0 pb-2">
-                      <IconComponent className="h-6 w-6 mr-3" />
-                      <div className="flex-1">
-                        <CardTitle className="text-lg">{card.title}</CardTitle>
-                        <CardDescription className="mt-1">
-                          {card.description}
-                        </CardDescription>
-                      </div>
-                    </CardHeader>
-                  </Card>
-                );
-              })}
-            </div>
-          </TabsContent>
-
-          <TabsContent value="zone-geo" className="mt-6">
-            <ZoneGeographique />
-          </TabsContent>
-
-          <TabsContent value="fournisseurs" className="mt-6">
-            <Fournisseurs />
-          </TabsContent>
-
-          <TabsContent value="depots-stockage" className="mt-6">
-            <DepotsStockage />
-          </TabsContent>
-
-          <TabsContent value="depots-pdv" className="mt-6">
-            <DepotsPDV />
-          </TabsContent>
-
-          <TabsContent value="clients" className="mt-6">
-            <ClientsSettings />
-          </TabsContent>
-
-          <TabsContent value="utilisateurs-internes" className="mt-6">
-            <UtilisateursInternes />
-          </TabsContent>
-
-          <TabsContent value="acces-permissions" className="mt-6">
-            <AccesPermissions />
-          </TabsContent>
-        </Tabs>
+        <div>
+          <h1 className="text-2xl font-bold">Paramètres</h1>
+          <p className="text-muted-foreground">Espace administrateur</p>
+        </div>
       </div>
-    </AppLayout>
+
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="grid grid-cols-8 w-full">
+          <TabsTrigger value="overview">Vue d'ensemble</TabsTrigger>
+          <TabsTrigger value="zone-geo">Zone Géo</TabsTrigger>
+          <TabsTrigger value="fournisseurs">Fournisseurs</TabsTrigger>
+          <TabsTrigger value="depots-stockage">Dépôts Stock</TabsTrigger>
+          <TabsTrigger value="depots-pdv">Dépôts PDV</TabsTrigger>
+          <TabsTrigger value="clients">Clients</TabsTrigger>
+          <TabsTrigger value="utilisateurs-internes">Utilisateurs</TabsTrigger>
+          <TabsTrigger value="acces-permissions">Permissions</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="overview" className="mt-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {settingsCards.map((card) => {
+              const IconComponent = card.icon;
+              return (
+                <Card 
+                  key={card.id}
+                  className={`cursor-pointer transition-all duration-200 ${card.color}`}
+                  onClick={() => setActiveTab(card.id)}
+                >
+                  <CardHeader className="flex flex-row items-center space-y-0 pb-2">
+                    <IconComponent className="h-6 w-6 mr-3" />
+                    <div className="flex-1">
+                      <CardTitle className="text-lg">{card.title}</CardTitle>
+                      <CardDescription className="mt-1">
+                        {card.description}
+                      </CardDescription>
+                    </div>
+                  </CardHeader>
+                </Card>
+              );
+            })}
+          </div>
+        </TabsContent>
+
+        <TabsContent value="zone-geo" className="mt-6">
+          <ZoneGeographique />
+        </TabsContent>
+
+        <TabsContent value="fournisseurs" className="mt-6">
+          <Fournisseurs />
+        </TabsContent>
+
+        <TabsContent value="depots-stockage" className="mt-6">
+          <DepotsStockage />
+        </TabsContent>
+
+        <TabsContent value="depots-pdv" className="mt-6">
+          <DepotsPDV />
+        </TabsContent>
+
+        <TabsContent value="clients" className="mt-6">
+          <ClientsSettings />
+        </TabsContent>
+
+        <TabsContent value="utilisateurs-internes" className="mt-6">
+          <UtilisateursInternes />
+        </TabsContent>
+
+        <TabsContent value="acces-permissions" className="mt-6">
+          <AccesPermissions />
+        </TabsContent>
+      </Tabs>
+    </div>
   );
 };
 
