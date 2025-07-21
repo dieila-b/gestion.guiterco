@@ -22,35 +22,21 @@ serve(async (req) => {
 
     console.log('🚀 Début création utilisateur:', { email, prenom, nom, role_id })
 
-    // Étape 1: Vérifier que le rôle existe
-    const { data: roleData, error: roleError } = await supabaseClient
-      .from('roles')
-      .select('id, name')
-      .eq('id', role_id)
-      .single()
-
-    if (roleError || !roleData) {
-      console.error('❌ Rôle introuvable:', roleError)
-      throw new Error(`Rôle introuvable: ${roleError?.message || 'Rôle non trouvé'}`)
-    }
-
-    console.log('✅ Rôle validé:', roleData.name)
-
-    // Étape 2: Vérifier si l'utilisateur existe déjà dans auth.users
-    const { data: existingAuthUsers, error: authCheckError } = await supabaseClient.auth.admin.listUsers()
+    // Vérifier si l'utilisateur existe déjà dans auth.users
+    const { data: existingAuthUser, error: authCheckError } = await supabaseClient.auth.admin.listUsers()
     
     if (authCheckError) {
       console.error('❌ Erreur lors de la vérification auth:', authCheckError)
       throw new Error(`Erreur de vérification auth: ${authCheckError.message}`)
     }
 
-    const userExists = existingAuthUsers.users.find(u => u.email === email)
+    const userExists = existingAuthUser.users.find(u => u.email === email)
     if (userExists) {
       console.log('⚠️ Utilisateur auth existant trouvé:', userExists.id)
-      throw new Error('Un utilisateur avec cette adresse email existe déjà')
+      throw new Error('Un utilisateur avec cette adresse email existe déjà dans le système d\'authentification')
     }
 
-    // Étape 3: Vérifier si l'utilisateur existe déjà dans utilisateurs_internes
+    // Vérifier si l'utilisateur existe déjà dans utilisateurs_internes
     const { data: existingInternalUser, error: internalCheckError } = await supabaseClient
       .from('utilisateurs_internes')
       .select('id, email')
@@ -67,7 +53,21 @@ serve(async (req) => {
       throw new Error('Un utilisateur avec cette adresse email existe déjà dans les utilisateurs internes')
     }
 
-    // Étape 4: Créer l'utilisateur dans Supabase Auth
+    // Vérifier que le rôle existe
+    const { data: roleData, error: roleError } = await supabaseClient
+      .from('roles')
+      .select('id, name')
+      .eq('id', role_id)
+      .single()
+
+    if (roleError) {
+      console.error('❌ Erreur lors de la vérification du rôle:', roleError)
+      throw new Error(`Rôle introuvable: ${roleError.message}`)
+    }
+
+    console.log('✅ Rôle validé:', roleData.name)
+
+    // Créer l'utilisateur dans Supabase Auth
     const { data: authData, error: authError } = await supabaseClient.auth.admin.createUser({
       email,
       password,
@@ -80,14 +80,18 @@ serve(async (req) => {
       }
     })
 
-    if (authError || !authData.user) {
+    if (authError) {
       console.error('❌ Erreur création Auth:', authError)
-      throw new Error(`Erreur lors de la création du compte: ${authError?.message || 'Aucune donnée utilisateur retournée'}`)
+      throw new Error(`Erreur lors de la création du compte: ${authError.message}`)
+    }
+
+    if (!authData.user) {
+      throw new Error('Erreur lors de la création de l\'utilisateur - aucune donnée retournée')
     }
 
     console.log('✅ Utilisateur Auth créé:', authData.user.id)
 
-    // Étape 5: Créer l'entrée dans utilisateurs_internes
+    // Créer l'entrée dans la table utilisateurs_internes
     const { data: userData, error: userError } = await supabaseClient
       .from('utilisateurs_internes')
       .insert({
@@ -110,12 +114,12 @@ serve(async (req) => {
       console.error('❌ Erreur utilisateur interne:', userError)
       console.log('🔄 Tentative de suppression de l\'utilisateur Auth créé...')
       
-      // Nettoyer l'utilisateur Auth créé en cas d'erreur
+      // Supprimer l'utilisateur Auth créé en cas d'erreur
       try {
         await supabaseClient.auth.admin.deleteUser(authData.user.id)
         console.log('✅ Utilisateur Auth supprimé après erreur')
       } catch (cleanupError) {
-        console.error('❌ Erreur lors du nettoyage Auth:', cleanupError)
+        console.error('❌ Erreur lors du nettoyage:', cleanupError)
       }
       
       throw new Error(`Erreur lors de la création du profil utilisateur: ${userError.message}`)
@@ -123,11 +127,11 @@ serve(async (req) => {
 
     console.log('✅ Utilisateur interne créé:', userData.id)
 
-    // Étape 6: Créer l'entrée dans user_roles
+    // Créer l'entrée dans user_roles
     const { data: roleAssignmentData, error: roleAssignmentError } = await supabaseClient
       .from('user_roles')
       .insert({
-        user_id: authData.user.id, // Utiliser l'ID de auth.users
+        user_id: authData.user.id,
         role_id,
         is_active: true
       })
@@ -136,13 +140,13 @@ serve(async (req) => {
 
     if (roleAssignmentError) {
       console.error('❌ Erreur assignation rôle:', roleAssignmentError)
-      console.log('🔄 Tentative de nettoyage complet après erreur de rôle...')
+      console.log('🔄 Tentative de nettoyage après erreur de rôle...')
       
-      // Nettoyer tout en cas d'erreur
+      // Nettoyer en cas d'erreur
       try {
         await supabaseClient.from('utilisateurs_internes').delete().eq('id', userData.id)
         await supabaseClient.auth.admin.deleteUser(authData.user.id)
-        console.log('✅ Nettoyage complet effectué après erreur de rôle')
+        console.log('✅ Nettoyage effectué après erreur de rôle')
       } catch (cleanupError) {
         console.error('❌ Erreur lors du nettoyage complet:', cleanupError)
       }
@@ -152,7 +156,7 @@ serve(async (req) => {
 
     console.log('✅ Rôle assigné avec succès:', roleAssignmentData.id)
 
-    // Étape 7: Retourner la réponse de succès
+    // Retourner la réponse de succès
     const response = {
       success: true,
       user: {
