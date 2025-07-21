@@ -69,10 +69,24 @@ export const useUtilisateursInternes = () => {
       if (error) throw error;
       
       // Transformer les données pour avoir un format plus simple
-      const transformedData = data.map(user => ({
-        ...user,
+      const transformedData = data?.map(user => ({
+        id: user.id,
+        user_id: user.user_id,
+        matricule: user.matricule,
+        nom: user.nom,
+        prenom: user.prenom,
+        email: user.email,
+        telephone: user.telephone,
+        poste: user.poste,
+        statut: user.statut,
+        date_embauche: user.date_embauche,
+        adresse: user.adresse,
+        photo_url: user.photo_url,
+        doit_changer_mot_de_passe: user.doit_changer_mot_de_passe,
+        created_at: user.created_at,
+        updated_at: user.updated_at,
         role: user.user_roles?.[0]?.roles || null
-      }));
+      })) || [];
       
       return transformedData as UtilisateurInterne[];
     }
