@@ -1,11 +1,10 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { Grid3x3, Save } from 'lucide-react';
-import { useRoles, usePermissions, useRolePermissions, useUpdateRolePermissions } from '@/hooks/usePermissionsSystem';
+import { useRoles, usePermissions, useRolePermissions, useUpdateRolePermission } from '@/hooks/usePermissionsSystem';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 
@@ -16,7 +15,7 @@ export default function MatrixTab() {
   const { data: roles = [], isLoading: rolesLoading } = useRoles();
   const { data: permissions = [], isLoading: permissionsLoading } = usePermissions();
   const { data: rolePermissions = [], isLoading: rolePermissionsLoading } = useRolePermissions();
-  const updateRolePermissions = useUpdateRolePermissions();
+  const updateRolePermission = useUpdateRolePermission();
 
   const isLoading = rolesLoading || permissionsLoading || rolePermissionsLoading;
 
@@ -25,7 +24,7 @@ export default function MatrixTab() {
     setPendingChanges(prev => ({ ...prev, [key]: canAccess }));
     
     try {
-      await updateRolePermissions.mutateAsync({
+      await updateRolePermission.mutateAsync({
         roleId,
         permissionId,
         canAccess
@@ -138,7 +137,7 @@ export default function MatrixTab() {
                               onCheckedChange={(checked) => 
                                 handlePermissionChange(role.id, permission.id, checked as boolean)
                               }
-                              disabled={updateRolePermissions.isPending}
+                              disabled={updateRolePermission.isPending}
                             />
                           </TableCell>
                         ))}

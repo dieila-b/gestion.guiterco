@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -6,7 +5,7 @@ import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { Grid3x3, Save, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useRoles, usePermissions, useRolePermissions, useUpdateRolePermissions } from '@/hooks/usePermissionsSystem';
+import { useRoles, usePermissions, useRolePermissions, useUpdateRolePermission } from '@/hooks/usePermissionsSystem';
 import { toast } from 'sonner';
 
 export default function PermissionsMatrix() {
@@ -14,7 +13,7 @@ export default function PermissionsMatrix() {
   const { data: roles = [] } = useRoles();
   const { data: permissions = [] } = usePermissions();
   const { data: rolePermissions = [] } = useRolePermissions();
-  const updateRolePermission = useUpdateRolePermissions();
+  const updateRolePermission = useUpdateRolePermission();
 
   // Organiser les permissions par menu et sous-menu
   const organizedPermissions = permissions.reduce((acc: any, permission) => {

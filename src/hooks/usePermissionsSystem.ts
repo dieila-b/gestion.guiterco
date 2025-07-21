@@ -172,6 +172,101 @@ export const useDeleteRole = () => {
   });
 };
 
+export const useCreatePermission = () => {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async (permissionData: Omit<Permission, 'id'>) => {
+      const { data, error } = await supabase
+        .from('permissions')
+        .insert(permissionData)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['permissions'] });
+      toast({
+        title: "Permission créée",
+        description: "La nouvelle permission a été créée avec succès",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Erreur",
+        description: error.message || "Impossible de créer la permission",
+        variant: "destructive",
+      });
+    }
+  });
+};
+
+export const useUpdatePermission = () => {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async ({ id, ...permissionData }: Partial<Permission> & { id: string }) => {
+      const { data, error } = await supabase
+        .from('permissions')
+        .update(permissionData)
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['permissions'] });
+      toast({
+        title: "Permission modifiée",
+        description: "La permission a été modifiée avec succès",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Erreur",
+        description: error.message || "Impossible de modifier la permission",
+        variant: "destructive",
+      });
+    }
+  });
+};
+
+export const useDeletePermission = () => {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async (permissionId: string) => {
+      const { error } = await supabase
+        .from('permissions')
+        .delete()
+        .eq('id', permissionId);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['permissions'] });
+      toast({
+        title: "Permission supprimée",
+        description: "La permission a été supprimée avec succès",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Erreur",
+        description: error.message || "Impossible de supprimer la permission",
+        variant: "destructive",
+      });
+    }
+  });
+};
+
 export const useAssignUserRole = () => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
