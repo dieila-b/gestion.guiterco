@@ -37,7 +37,7 @@ const EditUserDialog = ({ user, onUserUpdated, children }: EditUserDialogProps) 
 
   // Vérification des données utilisateur
   if (!user || !user.id || !user.user_id) {
-    console.error('❌ Données utilisateur invalides pour EditUserDialog:', user);
+    console.error('❌ Invalid user data for EditUserDialog:', user);
     return (
       <Button variant="outline" size="sm" disabled>
         <AlertCircle className="h-4 w-4 text-red-500" />
@@ -73,7 +73,7 @@ const EditUserDialog = ({ user, onUserUpdated, children }: EditUserDialogProps) 
           </Button>
         )}
       </DialogTrigger>
-      <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
             Modifier l'utilisateur - {transformedUser.prenom} {transformedUser.nom}
