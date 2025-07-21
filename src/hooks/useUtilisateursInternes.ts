@@ -51,7 +51,21 @@ export const useUtilisateursInternes = () => {
       const { data, error } = await supabase
         .from('utilisateurs_internes')
         .select(`
-          *,
+          id,
+          user_id,
+          matricule,
+          nom,
+          prenom,
+          email,
+          telephone,
+          poste,
+          statut,
+          date_embauche,
+          adresse,
+          photo_url,
+          doit_changer_mot_de_passe,
+          created_at,
+          updated_at,
           user_roles!inner (
             role_id,
             is_active,
