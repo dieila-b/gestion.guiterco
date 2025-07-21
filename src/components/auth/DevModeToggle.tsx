@@ -2,7 +2,7 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Shield, ShieldOff, Info, Lock } from 'lucide-react';
+import { Shield, ShieldOff, Info, Lock, Zap } from 'lucide-react';
 import { useDevMode } from '@/hooks/useDevMode';
 
 export const DevModeToggle = () => {
@@ -19,6 +19,12 @@ export const DevModeToggle = () => {
           <Badge variant="outline" className="bg-yellow-100 text-yellow-800">
             {isProduction ? 'PRODUCTION' : 'DÉVELOPPEMENT'}
           </Badge>
+          {bypassAuth && (
+            <Badge variant="outline" className="bg-green-100 text-green-800">
+              <Zap className="w-3 h-3 mr-1" />
+              AUTO
+            </Badge>
+          )}
         </div>
         
         <div className="flex items-start gap-2 mb-3 text-xs text-yellow-700">
@@ -55,9 +61,15 @@ export const DevModeToggle = () => {
             </Button>
             
             {bypassAuth && (
-              <p className="text-xs text-green-700 mt-2">
-                ✅ Accès libre activé pour les tests
-              </p>
+              <div className="text-xs text-green-700 mt-2">
+                <div className="flex items-center gap-1">
+                  <Zap className="w-3 h-3" />
+                  <span className="font-semibold">Mode automatique activé</span>
+                </div>
+                <p className="mt-1">
+                  ✅ Connexion automatique en tant que dev@test.local (Administrateur)
+                </p>
+              </div>
             )}
             
             {!bypassAuth && (

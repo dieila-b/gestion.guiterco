@@ -33,16 +33,16 @@ export const useDevMode = (): DevModeConfig => {
     let bypassEnabled = false;
     
     if (isDev) {
-      // En mode développement, activer le bypass par défaut pour faciliter les tests
+      // En mode développement, activer le bypass par défaut AUTOMATIQUEMENT
       bypassEnabled = true;
       
-      // Permettre à l'utilisateur de désactiver le bypass manuellement si nécessaire
+      // Vérifier si l'utilisateur a explicitement désactivé le bypass
       const manualOverride = localStorage.getItem('dev_bypass_auth');
       if (manualOverride === 'false') {
         bypassEnabled = false;
       }
       
-      // Vérifier aussi la variable d'environnement pour forcer l'activation/désactivation
+      // Vérifier la variable d'environnement pour forcer l'activation/désactivation
       if (import.meta.env.VITE_DEV_BYPASS_AUTH === 'false') {
         bypassEnabled = false;
       }
@@ -86,7 +86,7 @@ export const useDevMode = (): DevModeConfig => {
     let bypassEnabled = false;
     
     if (isDev) {
-      // En mode développement, bypass activé par défaut
+      // En mode développement, bypass activé par défaut AUTOMATIQUEMENT
       bypassEnabled = true;
       
       const manualOverride = localStorage.getItem('dev_bypass_auth');
@@ -96,10 +96,10 @@ export const useDevMode = (): DevModeConfig => {
         bypassEnabled = false;
         console.log('🔒 Bypass d\'authentification désactivé manuellement');
       } else {
-        console.log('🚀 Bypass d\'authentification activé par défaut (mode dev)');
+        console.log('🚀 Bypass d\'authentification activé automatiquement (mode dev)');
       }
       
-      // Vérifier aussi la variable d'environnement
+      // Vérifier la variable d'environnement
       if (import.meta.env.VITE_DEV_BYPASS_AUTH === 'false') {
         bypassEnabled = false;
       }

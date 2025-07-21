@@ -3,6 +3,7 @@ import React from 'react';
 import { Routes, Route } from 'react-router-dom';
 import { AuthGuard } from '@/components/AuthGuard';
 import { AuthPage } from '@/pages/auth/AuthPage';
+import { DevModeToggle } from '@/components/auth/DevModeToggle';
 import { Sidebar } from '@/components/Sidebar';
 import { Dashboard } from '@/pages/Dashboard';
 import Settings from '@/pages/Settings';
@@ -44,6 +45,7 @@ function App() {
           </AuthGuard>
         } />
       </Routes>
+      <DevModeToggle />
     </div>
   );
 }

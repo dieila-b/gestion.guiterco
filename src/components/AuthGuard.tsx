@@ -2,6 +2,7 @@
 import React from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuthContext } from './AuthProvider';
+import { useDevMode } from '@/hooks/useDevMode';
 
 interface AuthGuardProps {
   children: React.ReactNode;
@@ -9,6 +10,7 @@ interface AuthGuardProps {
 
 export function AuthGuard({ children }: AuthGuardProps) {
   const { user, loading } = useAuthContext();
+  const { isDevMode, bypassAuth } = useDevMode();
 
   if (loading) {
     return (
@@ -21,7 +23,15 @@ export function AuthGuard({ children }: AuthGuardProps) {
     );
   }
 
+  // En mode développement avec bypass activé, autoriser l'accès
+  if (isDevMode && bypassAuth) {
+    console.log('🚀 AuthGuard: Bypass activé en mode dev, accès autorisé');
+    return <>{children}</>;
+  }
+
+  // Sinon, vérifier l'authentification normale
   if (!user) {
+    console.log('❌ AuthGuard: Utilisateur non connecté, redirection vers /auth');
     return <Navigate to="/auth" replace />;
   }
 
