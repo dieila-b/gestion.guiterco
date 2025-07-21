@@ -1,6 +1,7 @@
 
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
 export interface Permission {
   id: string;
@@ -97,6 +98,96 @@ export const useRolePermissions = () => {
 
       console.log('✅ Role permissions fetched:', data?.length || 0);
       return data as RolePermission[];
+    }
+  });
+};
+
+export const useCreateRole = () => {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async (roleData: { name: string; description?: string }) => {
+      console.log('🔄 Creating new role:', roleData.name);
+
+      const { data, error } = await supabase
+        .from('roles')
+        .insert({
+          name: roleData.name,
+          description: roleData.description,
+          is_system: false
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      console.log('✅ Role created successfully');
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['roles'] });
+      toast({
+        title: "Rôle créé",
+        description: "Le nouveau rôle a été créé avec succès",
+      });
+    },
+    onError: (error: any) => {
+      console.error('❌ Error creating role:', error);
+      toast({
+        title: "Erreur",
+        description: error.message || "Impossible de créer le rôle",
+        variant: "destructive",
+      });
+    }
+  });
+};
+
+export const useUpdateRolePermissions = () => {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async (updates: { roleId: string; permissions: { permissionId: string; canAccess: boolean }[] }) => {
+      console.log('🔄 Updating role permissions for role:', updates.roleId);
+
+      const { error } = await supabase
+        .from('role_permissions')
+        .delete()
+        .eq('role_id', updates.roleId);
+
+      if (error) throw error;
+
+      if (updates.permissions.length > 0) {
+        const { error: insertError } = await supabase
+          .from('role_permissions')
+          .insert(
+            updates.permissions.map(p => ({
+              role_id: updates.roleId,
+              permission_id: p.permissionId,
+              can_access: p.canAccess
+            }))
+          );
+
+        if (insertError) throw insertError;
+      }
+
+      console.log('✅ Role permissions updated successfully');
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['role-permissions'] });
+      toast({
+        title: "Permissions mises à jour",
+        description: "Les permissions du rôle ont été modifiées avec succès",
+      });
+    },
+    onError: (error: any) => {
+      console.error('❌ Error updating role permissions:', error);
+      toast({
+        title: "Erreur",
+        description: error.message || "Impossible de mettre à jour les permissions",
+        variant: "destructive",
+      });
     }
   });
 };

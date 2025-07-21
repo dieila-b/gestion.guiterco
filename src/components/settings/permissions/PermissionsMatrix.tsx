@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -7,7 +6,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { Matrix, Save, RotateCcw } from 'lucide-react';
+import { Grid3x3, Save, RotateCcw } from 'lucide-react';
 import { useRoles, usePermissions, useRolePermissions } from '@/hooks/usePermissions';
 
 const PermissionsMatrix = () => {
@@ -103,7 +102,7 @@ const PermissionsMatrix = () => {
       <div className="flex items-center justify-between">
         <div>
           <h3 className="text-lg font-medium flex items-center space-x-2">
-            <Matrix className="h-5 w-5" />
+            <Grid3x3 className="h-5 w-5" />
             <span>Matrice des Permissions</span>
           </h3>
           <p className="text-sm text-muted-foreground">

@@ -1,8 +1,7 @@
-
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Shield, Users, Settings, Matrix } from 'lucide-react';
+import { Shield, Users, Settings, Grid3x3 } from 'lucide-react';
 import AccessControl from './permissions/AccessControl';
 import RolesManagement from './permissions/RolesManagement';
 import PermissionsManagement from './permissions/PermissionsManagement';
@@ -35,7 +34,7 @@ const AccesPermissions = () => {
                 <span>Rôles</span>
               </TabsTrigger>
               <TabsTrigger value="matrix" className="flex items-center space-x-2">
-                <Matrix className="h-4 w-4" />
+                <Grid3x3 className="h-4 w-4" />
                 <span>Matrice</span>
               </TabsTrigger>
               <TabsTrigger value="permissions" className="flex items-center space-x-2">
