@@ -22,6 +22,20 @@ serve(async (req) => {
 
     console.log('🚀 Début création utilisateur:', { email, prenom, nom, role_id })
 
+    // Vérifier si l'utilisateur existe déjà dans auth.users
+    const { data: existingAuthUser, error: authCheckError } = await supabaseClient.auth.admin.listUsers()
+    
+    if (authCheckError) {
+      console.error('❌ Erreur lors de la vérification auth:', authCheckError)
+      throw new Error(`Erreur de vérification auth: ${authCheckError.message}`)
+    }
+
+    const userExists = existingAuthUser.users.find(u => u.email === email)
+    if (userExists) {
+      console.log('⚠️ Utilisateur auth existant trouvé:', userExists.id)
+      throw new Error('Un utilisateur avec cette adresse email existe déjà dans le système d\'authentification')
+    }
+
     // Vérifier si l'utilisateur existe déjà dans utilisateurs_internes
     const { data: existingInternalUser, error: internalCheckError } = await supabaseClient
       .from('utilisateurs_internes')
@@ -53,7 +67,7 @@ serve(async (req) => {
 
     console.log('✅ Rôle validé:', roleData.name)
 
-    // Créer l'utilisateur dans Supabase Auth en utilisant la méthode admin correcte
+    // Créer l'utilisateur dans Supabase Auth
     const { data: authData, error: authError } = await supabaseClient.auth.admin.createUser({
       email,
       password,

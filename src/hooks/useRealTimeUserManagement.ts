@@ -7,15 +7,20 @@ export const useRealTimeUserManagement = () => {
   const queryClient = useQueryClient();
 
   useEffect(() => {
-    console.log('🔄 Activation de la synchronisation temps réel pour la gestion des utilisateurs');
+    console.log('🔄 Setting up real-time subscriptions for user management...');
 
     // Écouter les changements sur utilisateurs_internes
     const utilisateursChannel = supabase
-      .channel('utilisateurs-internes-changes')
-      .on('postgres_changes', 
-        { event: '*', schema: 'public', table: 'utilisateurs_internes' },
+      .channel('utilisateurs_internes_changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'utilisateurs_internes'
+        },
         (payload) => {
-          console.log('📡 Changement détecté sur utilisateurs_internes:', payload.eventType);
+          console.log('📡 Changement détecté sur utilisateurs_internes:', payload);
           queryClient.invalidateQueries({ queryKey: ['utilisateurs-internes'] });
         }
       )
@@ -23,62 +28,45 @@ export const useRealTimeUserManagement = () => {
 
     // Écouter les changements sur user_roles
     const userRolesChannel = supabase
-      .channel('user-roles-changes')
-      .on('postgres_changes', 
-        { event: '*', schema: 'public', table: 'user_roles' },
+      .channel('user_roles_changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'user_roles'
+        },
         (payload) => {
-          console.log('📡 Changement détecté sur user_roles:', payload.eventType);
-          queryClient.invalidateQueries({ queryKey: ['user-roles'] });
+          console.log('📡 Changement détecté sur user_roles:', payload);
           queryClient.invalidateQueries({ queryKey: ['utilisateurs-internes'] });
+          queryClient.invalidateQueries({ queryKey: ['users-with-roles'] });
         }
       )
       .subscribe();
 
     // Écouter les changements sur roles
     const rolesChannel = supabase
-      .channel('roles-changes')
-      .on('postgres_changes', 
-        { event: '*', schema: 'public', table: 'roles' },
+      .channel('roles_changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'roles'
+        },
         (payload) => {
-          console.log('📡 Changement détecté sur roles:', payload.eventType);
-          queryClient.invalidateQueries({ queryKey: ['roles'] });
+          console.log('📡 Changement détecté sur roles:', payload);
           queryClient.invalidateQueries({ queryKey: ['roles-for-users'] });
           queryClient.invalidateQueries({ queryKey: ['utilisateurs-internes'] });
         }
       )
       .subscribe();
 
-    // Écouter les changements sur permissions et role_permissions
-    const permissionsChannel = supabase
-      .channel('permissions-changes')
-      .on('postgres_changes', 
-        { event: '*', schema: 'public', table: 'permissions' },
-        (payload) => {
-          console.log('📡 Changement détecté sur permissions:', payload.eventType);
-          queryClient.invalidateQueries({ queryKey: ['permissions'] });
-        }
-      )
-      .subscribe();
-
-    const rolePermissionsChannel = supabase
-      .channel('role-permissions-changes')
-      .on('postgres_changes', 
-        { event: '*', schema: 'public', table: 'role_permissions' },
-        (payload) => {
-          console.log('📡 Changement détecté sur role_permissions:', payload.eventType);
-          queryClient.invalidateQueries({ queryKey: ['role-permissions'] });
-        }
-      )
-      .subscribe();
-
-    // Nettoyage lors du démontage
     return () => {
-      console.log('🛑 Désactivation de la synchronisation temps réel');
+      console.log('🔄 Cleaning up real-time subscriptions...');
       supabase.removeChannel(utilisateursChannel);
       supabase.removeChannel(userRolesChannel);
       supabase.removeChannel(rolesChannel);
-      supabase.removeChannel(permissionsChannel);
-      supabase.removeChannel(rolePermissionsChannel);
     };
   }, [queryClient]);
 };
