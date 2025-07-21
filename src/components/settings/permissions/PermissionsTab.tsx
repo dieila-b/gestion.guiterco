@@ -191,14 +191,17 @@ export default function PermissionsTab() {
   };
 
   const getActionBadge = (action: string) => {
-    const variants = {
+    const variants: Record<string, "default" | "destructive" | "outline" | "secondary"> = {
       read: 'secondary',
       write: 'default',
       delete: 'destructive',
       admin: 'outline'
     };
+    
+    const variant = variants[action] || 'secondary';
+    
     return (
-      <Badge variant={variants[action as keyof typeof variants] || 'secondary'}>
+      <Badge variant={variant}>
         {action === 'read' ? 'Lecture' : 
          action === 'write' ? 'Écriture' : 
          action === 'delete' ? 'Suppression' : 'Administration'}
