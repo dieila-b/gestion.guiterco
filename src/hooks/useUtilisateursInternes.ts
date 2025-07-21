@@ -44,6 +44,35 @@ export interface Role {
   updated_at: string;
 }
 
+// Type for the raw Supabase response
+interface SupabaseUserResponse {
+  id: string;
+  user_id: string;
+  matricule: string;
+  nom: string;
+  prenom: string;
+  email: string;
+  telephone: string | null;
+  poste: string | null;
+  statut: string;
+  date_embauche: string | null;
+  adresse: string | null;
+  photo_url: string | null;
+  doit_changer_mot_de_passe: boolean;
+  created_at: string;
+  updated_at: string;
+  user_roles: Array<{
+    role_id: string;
+    is_active: boolean;
+    roles: {
+      id: string;
+      name: string;
+      description: string | null;
+      is_system: boolean;
+    } | null;
+  }> | null;
+}
+
 export const useUtilisateursInternes = () => {
   return useQuery({
     queryKey: ['utilisateurs-internes'],
@@ -83,7 +112,7 @@ export const useUtilisateursInternes = () => {
       if (error) throw error;
       
       // Transform the data to match the expected interface
-      const transformedData = data?.map(user => {
+      const transformedData = (data as SupabaseUserResponse[])?.map(user => {
         // Get the first active role
         const userRole = user.user_roles && user.user_roles.length > 0 ? user.user_roles[0] : null;
         const roleData = userRole?.roles;
