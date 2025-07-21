@@ -142,7 +142,7 @@ const CreateUserForm = ({ onSuccess, onCancel }: CreateUserFormProps) => {
     try {
       console.log('🚀 Début de la création d\'utilisateur via Edge Function...');
       
-      // Utiliser l'Edge Function pour éviter les limitations de rate limiting
+      // Utiliser l'Edge Function pour créer l'utilisateur
       const { data: result, error } = await supabase.functions.invoke('create-internal-user', {
         body: {
           prenom: data.prenom,
@@ -164,15 +164,15 @@ const CreateUserForm = ({ onSuccess, onCancel }: CreateUserFormProps) => {
       }
 
       if (!result?.success) {
-        console.error('❌ Erreur lors de la création:', result?.error);
-        throw new Error(result?.error || 'Erreur inconnue');
+        console.error('❌ Erreur lors de la création:', result);
+        throw new Error(result?.error || 'Erreur inconnue lors de la création');
       }
 
-      console.log('✅ Utilisateur créé avec succès via Edge Function');
+      console.log('✅ Utilisateur créé avec succès via Edge Function:', result.user);
 
       toast({
         title: "Utilisateur créé",
-        description: "Le nouvel utilisateur interne a été créé avec succès",
+        description: `L'utilisateur ${result.user.prenom} ${result.user.nom} a été créé avec succès`,
       });
 
       onSuccess();
@@ -181,15 +181,16 @@ const CreateUserForm = ({ onSuccess, onCancel }: CreateUserFormProps) => {
       
       let errorMessage = "Impossible de créer l'utilisateur";
       
-      if (error.message?.includes('User already registered') || 
-          error.message?.includes('utilisateur avec cette adresse email existe déjà')) {
+      if (error.message?.includes('utilisateur avec cette adresse email existe déjà')) {
         errorMessage = "Un utilisateur avec cette adresse email existe déjà";
-      } else if (error.message?.includes('Email already registered')) {
+      } else if (error.message?.includes('User already registered')) {
         errorMessage = "Cette adresse email est déjà utilisée";
-      } else if (error.message?.includes('over_email_send_rate_limit')) {
-        errorMessage = "Trop de tentatives de création. Veuillez attendre 45 secondes avant de réessayer.";
       } else if (error.message?.includes('FunctionsHttpError')) {
-        errorMessage = "Erreur du serveur lors de la création. Veuillez réessayer.";
+        errorMessage = "Erreur du serveur lors de la création. Veuillez réessayer dans quelques instants.";
+      } else if (error.message?.includes('FunctionsRelayError')) {
+        errorMessage = "Erreur de communication avec le serveur. Vérifiez votre connexion.";
+      } else if (error.message?.includes('over_email_send_rate_limit')) {
+        errorMessage = "Trop de tentatives de création. Veuillez attendre quelques instants avant de réessayer.";
       } else if (error.message) {
         errorMessage = error.message;
       }
