@@ -30,6 +30,8 @@ export const useUtilisateursInternes = () => {
   return useQuery({
     queryKey: ['utilisateurs-internes'],
     queryFn: async () => {
+      console.log('🔍 Fetching utilisateurs internes...');
+      
       const { data, error } = await supabase
         .from('utilisateurs_internes')
         .select(`
@@ -46,9 +48,11 @@ export const useUtilisateursInternes = () => {
         .order('nom', { ascending: true });
       
       if (error) {
-        console.error('Error fetching utilisateurs internes:', error);
+        console.error('❌ Error fetching utilisateurs internes:', error);
         throw error;
       }
+      
+      console.log('✅ Utilisateurs internes fetched:', data?.length || 0);
       
       // Transform the data to match the interface
       const transformedData: UtilisateurInterne[] = (data || []).map((user: any) => {
@@ -88,16 +92,19 @@ export const useRolesForUsers = () => {
   return useQuery({
     queryKey: ['roles-for-users'],
     queryFn: async () => {
+      console.log('🔍 Fetching roles for users...');
+      
       const { data, error } = await supabase
         .from('roles')
         .select('id, name, description')
         .order('name');
 
       if (error) {
-        console.error('Error fetching roles:', error);
+        console.error('❌ Error fetching roles:', error);
         throw error;
       }
       
+      console.log('✅ Roles fetched:', data?.length || 0);
       return data as { id: string; name: string; description?: string }[];
     }
   });

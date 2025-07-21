@@ -140,6 +140,8 @@ const CreateUserForm = ({ onSuccess, onCancel }: CreateUserFormProps) => {
     setIsCreating(true);
 
     try {
+      console.log('🚀 Début de la création d\'utilisateur...');
+      
       // Créer l'utilisateur dans Supabase Auth
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: data.email,
@@ -152,30 +154,46 @@ const CreateUserForm = ({ onSuccess, onCancel }: CreateUserFormProps) => {
         }
       });
 
-      if (authError) throw authError;
+      if (authError) {
+        console.error('❌ Erreur Auth:', authError);
+        throw authError;
+      }
 
       if (!authData.user) {
         throw new Error('Erreur lors de la création de l\'utilisateur');
       }
 
+      console.log('✅ Utilisateur Auth créé:', authData.user.id);
+
       // Créer l'entrée dans la table utilisateurs_internes
+      const userData = {
+        user_id: authData.user.id,
+        prenom: data.prenom,
+        nom: data.nom,
+        email: data.email,
+        telephone: data.telephone || null,
+        adresse: data.adresse || null,
+        photo_url: data.photo_url || null,
+        role_id: data.role_id,
+        doit_changer_mot_de_passe: data.doit_changer_mot_de_passe,
+        statut: data.statut,
+        type_compte: 'interne',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+
+      console.log('📝 Données à insérer:', userData);
+
       const { error: profileError } = await supabase
         .from('utilisateurs_internes')
-        .insert({
-          user_id: authData.user.id,
-          prenom: data.prenom,
-          nom: data.nom,
-          email: data.email,
-          telephone: data.telephone,
-          adresse: data.adresse,
-          photo_url: data.photo_url,
-          role_id: data.role_id,
-          doit_changer_mot_de_passe: data.doit_changer_mot_de_passe,
-          statut: data.statut,
-          type_compte: 'interne'
-        });
+        .insert(userData);
 
-      if (profileError) throw profileError;
+      if (profileError) {
+        console.error('❌ Erreur lors de l\'insertion dans utilisateurs_internes:', profileError);
+        throw profileError;
+      }
+
+      console.log('✅ Utilisateur interne créé avec succès');
 
       toast({
         title: "Utilisateur créé",
@@ -184,7 +202,7 @@ const CreateUserForm = ({ onSuccess, onCancel }: CreateUserFormProps) => {
 
       onSuccess();
     } catch (error: any) {
-      console.error('Erreur lors de la création:', error);
+      console.error('❌ Erreur lors de la création:', error);
       
       let errorMessage = "Impossible de créer l'utilisateur";
       
