@@ -32,31 +32,49 @@ export const useUtilisateursInternes = () => {
     queryFn: async () => {
       console.log('🔍 Fetching utilisateurs internes...');
       
-      const { data, error } = await supabase
+      // Première requête : récupérer tous les utilisateurs internes
+      const { data: utilisateurs, error: userError } = await supabase
         .from('utilisateurs_internes')
-        .select(`
-          *,
-          user_roles (
-            role_id,
-            is_active,
-            roles (
-              id,
-              name
-            )
-          )
-        `)
+        .select('*')
         .order('nom', { ascending: true });
       
-      if (error) {
-        console.error('❌ Error fetching utilisateurs internes:', error);
-        throw error;
+      if (userError) {
+        console.error('❌ Error fetching utilisateurs internes:', userError);
+        throw userError;
       }
       
-      console.log('✅ Utilisateurs internes fetched:', data?.length || 0);
+      console.log('✅ Utilisateurs internes fetched:', utilisateurs?.length || 0);
       
-      // Transform the data to match the interface
-      const transformedData: UtilisateurInterne[] = (data || []).map((user: any) => {
-        const activeRole = user.user_roles?.find((ur: any) => ur.is_active);
+      if (!utilisateurs || utilisateurs.length === 0) {
+        return [];
+      }
+      
+      // Deuxième requête : récupérer les rôles actifs pour chaque utilisateur
+      const userIds = utilisateurs.map(u => u.user_id);
+      
+      const { data: userRoles, error: rolesError } = await supabase
+        .from('user_roles')
+        .select(`
+          user_id,
+          role_id,
+          is_active,
+          roles (
+            id,
+            name
+          )
+        `)
+        .in('user_id', userIds)
+        .eq('is_active', true);
+      
+      if (rolesError) {
+        console.error('❌ Error fetching user roles:', rolesError);
+        // Ne pas faire échouer la requête si les rôles ne sont pas disponibles
+        console.log('⚠️ Continuing without roles data');
+      }
+      
+      // Combiner les données
+      const transformedData: UtilisateurInterne[] = utilisateurs.map((user: any) => {
+        const activeRole = userRoles?.find((ur: any) => ur.user_id === user.user_id && ur.is_active);
         
         return {
           id: user.id,
@@ -69,7 +87,7 @@ export const useUtilisateursInternes = () => {
           photo_url: user.photo_url,
           matricule: user.matricule,
           poste: user.poste,
-          role_id: activeRole?.role_id || null,
+          role_id: activeRole?.role_id || user.role_id || null,
           role: activeRole?.roles ? {
             id: activeRole.roles.id,
             name: activeRole.roles.name
@@ -83,6 +101,7 @@ export const useUtilisateursInternes = () => {
         };
       });
       
+      console.log('✅ Final transformed data:', transformedData.length);
       return transformedData;
     }
   });

@@ -20,6 +20,21 @@ serve(async (req) => {
 
     const { prenom, nom, email, password, telephone, adresse, photo_url, role_id, doit_changer_mot_de_passe, statut } = await req.json()
 
+    console.log('🚀 Début création utilisateur:', { email, prenom, nom })
+
+    // Vérifier d'abord si l'utilisateur existe déjà
+    const { data: existingUser, error: checkError } = await supabaseClient.auth.admin.getUserByEmail(email)
+    
+    if (checkError && checkError.status !== 404) {
+      console.error('❌ Erreur lors de la vérification:', checkError)
+      throw checkError
+    }
+
+    if (existingUser.user) {
+      console.log('⚠️ Utilisateur existant trouvé:', existingUser.user.id)
+      throw new Error('Un utilisateur avec cette adresse email existe déjà')
+    }
+
     // Créer l'utilisateur dans Supabase Auth
     const { data: authData, error: authError } = await supabaseClient.auth.admin.createUser({
       email,
@@ -32,12 +47,15 @@ serve(async (req) => {
     })
 
     if (authError) {
+      console.error('❌ Erreur Auth:', authError)
       throw authError
     }
 
     if (!authData.user) {
       throw new Error('Erreur lors de la création de l\'utilisateur')
     }
+
+    console.log('✅ Utilisateur Auth créé:', authData.user.id)
 
     // Créer l'entrée dans la table utilisateurs_internes
     const { data: userData, error: userError } = await supabaseClient
@@ -59,8 +77,13 @@ serve(async (req) => {
       .single()
 
     if (userError) {
+      console.error('❌ Erreur utilisateur interne:', userError)
+      // Supprimer l'utilisateur Auth créé en cas d'erreur
+      await supabaseClient.auth.admin.deleteUser(authData.user.id)
       throw userError
     }
+
+    console.log('✅ Utilisateur interne créé:', userData.id)
 
     // Créer l'entrée dans user_roles
     const { error: roleError } = await supabaseClient
@@ -72,8 +95,11 @@ serve(async (req) => {
       })
 
     if (roleError) {
-      console.error('Erreur lors de l\'assignation du rôle:', roleError)
+      console.error('❌ Erreur assignation rôle:', roleError)
       // Ne pas faire échouer la création si seul le rôle pose problème
+      console.log('⚠️ Rôle non assigné, mais utilisateur créé')
+    } else {
+      console.log('✅ Rôle assigné avec succès')
     }
 
     return new Response(
@@ -82,9 +108,12 @@ serve(async (req) => {
     )
 
   } catch (error) {
-    console.error('Erreur:', error)
+    console.error('❌ Erreur globale:', error)
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ 
+        success: false, 
+        error: error.message || 'Erreur inconnue lors de la création'
+      }),
       { 
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' } 

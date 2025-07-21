@@ -181,12 +181,15 @@ const CreateUserForm = ({ onSuccess, onCancel }: CreateUserFormProps) => {
       
       let errorMessage = "Impossible de créer l'utilisateur";
       
-      if (error.message?.includes('User already registered')) {
+      if (error.message?.includes('User already registered') || 
+          error.message?.includes('utilisateur avec cette adresse email existe déjà')) {
         errorMessage = "Un utilisateur avec cette adresse email existe déjà";
       } else if (error.message?.includes('Email already registered')) {
         errorMessage = "Cette adresse email est déjà utilisée";
       } else if (error.message?.includes('over_email_send_rate_limit')) {
         errorMessage = "Trop de tentatives de création. Veuillez attendre 45 secondes avant de réessayer.";
+      } else if (error.message?.includes('FunctionsHttpError')) {
+        errorMessage = "Erreur du serveur lors de la création. Veuillez réessayer.";
       } else if (error.message) {
         errorMessage = error.message;
       }
