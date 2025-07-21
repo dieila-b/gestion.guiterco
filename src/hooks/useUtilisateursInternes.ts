@@ -26,34 +26,6 @@ export interface UtilisateurInterne {
   updated_at: string;
 }
 
-// Type for raw Supabase response
-interface UtilisateurInterneRaw {
-  id: string;
-  user_id: string;
-  prenom: string;
-  nom: string;
-  email: string;
-  telephone?: string;
-  adresse?: string;
-  photo_url?: string;
-  matricule?: string;
-  poste?: string;
-  statut: string;
-  type_compte: string;
-  date_embauche?: string;
-  doit_changer_mot_de_passe: boolean;
-  created_at: string;
-  updated_at: string;
-  user_roles?: {
-    role_id: string;
-    is_active: boolean;
-    roles: {
-      id: string;
-      name: string;
-    };
-  }[];
-}
-
 export const useUtilisateursInternes = () => {
   return useQuery({
     queryKey: ['utilisateurs-internes'],
@@ -62,10 +34,10 @@ export const useUtilisateursInternes = () => {
         .from('utilisateurs_internes')
         .select(`
           *,
-          user_roles!inner (
+          user_roles (
             role_id,
             is_active,
-            roles!inner (
+            roles (
               id,
               name
             )
@@ -79,29 +51,33 @@ export const useUtilisateursInternes = () => {
       }
       
       // Transform the data to match the interface
-      const transformedData: UtilisateurInterne[] = (data as UtilisateurInterneRaw[] || []).map(user => ({
-        id: user.id,
-        user_id: user.user_id,
-        prenom: user.prenom,
-        nom: user.nom,
-        email: user.email,
-        telephone: user.telephone,
-        adresse: user.adresse,
-        photo_url: user.photo_url,
-        matricule: user.matricule,
-        poste: user.poste,
-        role_id: user.user_roles?.[0]?.role_id,
-        role: user.user_roles?.[0]?.roles ? {
-          id: user.user_roles[0].roles.id,
-          name: user.user_roles[0].roles.name
-        } : null,
-        statut: user.statut,
-        type_compte: user.type_compte,
-        date_embauche: user.date_embauche,
-        doit_changer_mot_de_passe: user.doit_changer_mot_de_passe,
-        created_at: user.created_at,
-        updated_at: user.updated_at
-      }));
+      const transformedData: UtilisateurInterne[] = (data || []).map((user: any) => {
+        const activeRole = user.user_roles?.find((ur: any) => ur.is_active);
+        
+        return {
+          id: user.id,
+          user_id: user.user_id,
+          prenom: user.prenom,
+          nom: user.nom,
+          email: user.email,
+          telephone: user.telephone,
+          adresse: user.adresse,
+          photo_url: user.photo_url,
+          matricule: user.matricule,
+          poste: user.poste,
+          role_id: activeRole?.role_id || null,
+          role: activeRole?.roles ? {
+            id: activeRole.roles.id,
+            name: activeRole.roles.name
+          } : null,
+          statut: user.statut,
+          type_compte: user.type_compte,
+          date_embauche: user.date_embauche,
+          doit_changer_mot_de_passe: user.doit_changer_mot_de_passe,
+          created_at: user.created_at,
+          updated_at: user.updated_at
+        };
+      });
       
       return transformedData;
     }
