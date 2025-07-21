@@ -3108,6 +3108,18 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
+      assign_user_role_admin: {
+        Args: { p_user_id: string; p_role_id: string }
+        Returns: boolean
+      }
+      assign_user_role_secure: {
+        Args: { target_user_id: string; new_role_id: string }
+        Returns: Json
+      }
+      assign_user_role_simple: {
+        Args: { p_user_id: string; p_role_id: string }
+        Returns: boolean
+      }
       audit_entrees_stock_propres: {
         Args: Record<PropertyKey, never>
         Returns: {
@@ -3237,6 +3249,15 @@ export type Database = {
           details: Json
         }[]
       }
+      diagnostic_user_system_complet: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          composant: string
+          statut: string
+          details: string
+          recommandation: string
+        }[]
+      }
       generate_bon_commande_number: {
         Args: Record<PropertyKey, never>
         Returns: string
@@ -3268,6 +3289,26 @@ export type Database = {
       generer_bon_livraison_precommande: {
         Args: { precommande_uuid: string }
         Returns: string
+      }
+      get_all_internal_users: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          id: string
+          user_id: string
+          prenom: string
+          nom: string
+          email: string
+          telephone: string
+          adresse: string
+          photo_url: string
+          matricule: string
+          statut: string
+          doit_changer_mot_de_passe: boolean
+          created_at: string
+          updated_at: string
+          role_id: string
+          role_name: string
+        }[]
       }
       get_client_statistics: {
         Args: Record<PropertyKey, never>
@@ -3407,6 +3448,34 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
+      refresh_user_session: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
+      }
+      secure_password_update: {
+        Args: {
+          target_user_id: string
+          new_password: string
+          force_change?: boolean
+        }
+        Returns: Json
+      }
+      secure_role_assignment: {
+        Args: { target_user_id: string; new_role_id: string }
+        Returns: Json
+      }
+      test_rls_permissions: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          test_name: string
+          result: string
+          details: string
+        }[]
+      }
+      update_internal_user_secure: {
+        Args: { user_internal_id: string; user_data: Json }
+        Returns: Json
+      }
       update_stock_pdv: {
         Args: {
           p_article_id: string
@@ -3438,8 +3507,24 @@ export type Database = {
         }
         Returns: boolean
       }
+      update_user_simple: {
+        Args: {
+          p_user_id: string
+          p_prenom: string
+          p_nom: string
+          p_email: string
+          p_telephone?: string
+          p_adresse?: string
+          p_photo_url?: string
+          p_matricule?: string
+          p_statut?: string
+          p_doit_changer_mot_de_passe?: boolean
+        }
+        Returns: boolean
+      }
       user_has_permission: {
         Args:
+          | { p_menu: string; p_submenu?: string; p_action?: string }
           | { user_id: string; permission_name: string }
           | {
               user_uuid: string
@@ -3448,6 +3533,15 @@ export type Database = {
               action_name?: string
             }
         Returns: boolean
+      }
+      validate_admin_system: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          check_name: string
+          status: string
+          count_result: number
+          message: string
+        }[]
       }
       validate_system_sync: {
         Args: Record<PropertyKey, never>
