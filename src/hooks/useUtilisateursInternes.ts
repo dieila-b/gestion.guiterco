@@ -1,9 +1,8 @@
 
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
 
-export interface UtilisateurInterne {
+export interface UtilisateurInterneWithRole {
   id: string;
   user_id: string;
   prenom: string;
@@ -12,271 +11,153 @@ export interface UtilisateurInterne {
   telephone?: string;
   adresse?: string;
   photo_url?: string;
+  role_id: string;
   matricule?: string;
   statut: string;
+  type_compte: string;
   doit_changer_mot_de_passe: boolean;
   created_at: string;
   updated_at: string;
-  role_id?: string;
-  role_name?: string;
-}
-
-export interface UtilisateurInterneWithRole extends UtilisateurInterne {
   role: {
     id: string;
     name: string;
+    description?: string;
   } | null;
-}
-
-export interface Role {
-  id: string;
-  name: string;
-  description?: string;
 }
 
 export const useUtilisateursInternes = () => {
   return useQuery({
     queryKey: ['utilisateurs-internes'],
     queryFn: async () => {
-      console.log('🔍 Fetching utilisateurs internes...');
+      console.log('🔍 Fetching utilisateurs internes with unified roles...');
       
-      const { data, error } = await supabase.rpc('get_all_internal_users');
-      
-      if (error) {
-        console.error('❌ Error fetching internal users:', error);
-        throw error;
+      try {
+        // Récupérer tous les utilisateurs internes
+        const { data: utilisateurs, error: utilisateursError } = await supabase
+          .from('utilisateurs_internes')
+          .select('*')
+          .order('created_at', { ascending: false });
+
+        if (utilisateursError) {
+          console.error('❌ Error fetching utilisateurs internes:', utilisateursError);
+          throw new Error(`Erreur lors de la récupération des utilisateurs: ${utilisateursError.message}`);
+        }
+
+        if (!utilisateurs || utilisateurs.length === 0) {
+          console.log('✅ No utilisateurs internes found');
+          return [];
+        }
+
+        console.log('📊 Found utilisateurs internes:', utilisateurs.length);
+
+        // Récupérer les rôles unifiés pour chaque utilisateur
+        const userIds = utilisateurs
+          .map(u => u.user_id)
+          .filter(Boolean)
+          .filter(id => id !== null && id !== undefined);
+        
+        if (userIds.length === 0) {
+          console.log('⚠️ No valid user_ids found');
+          return utilisateurs.map(user => ({ ...user, role: null }));
+        }
+
+        // Récupérer tous les rôles actifs pour ces utilisateurs
+        const { data: userRoles, error: rolesError } = await supabase
+          .from('user_roles')
+          .select(`
+            user_id,
+            role_id,
+            is_active,
+            roles!inner (
+              id,
+              name,
+              description
+            )
+          `)
+          .in('user_id', userIds)
+          .eq('is_active', true);
+
+        if (rolesError) {
+          console.error('❌ Error fetching user roles:', rolesError);
+          // Continuer sans les rôles plutôt que de faire échouer
+          console.log('⚠️ Continuing without roles due to error');
+        }
+
+        console.log('📊 Found user roles:', userRoles?.length || 0);
+
+        // Transformer les données pour inclure les rôles
+        const transformedData = utilisateurs.map(user => {
+          // Trouver le rôle actif pour cet utilisateur
+          const userRole = userRoles?.find(ur => ur.user_id === user.user_id);
+          
+          return {
+            ...user,
+            role: userRole?.roles ? {
+              id: userRole.roles.id,
+              name: userRole.roles.name,
+              description: userRole.roles.description
+            } : null
+          };
+        });
+
+        console.log('✅ Utilisateurs internes with roles processed:', transformedData.length);
+        return transformedData as UtilisateurInterneWithRole[];
+
+      } catch (error: any) {
+        console.error('💥 Critical error in useUtilisateursInternes:', error);
+        
+        // Fournir un message d'erreur plus clair pour l'utilisateur
+        if (error.message?.includes('infinite recursion')) {
+          throw new Error('Erreur de configuration RLS détectée. Veuillez contacter l\'administrateur.');
+        } else if (error.message?.includes('relation') && error.message?.includes('does not exist')) {
+          throw new Error('Table manquante dans la base de données. Veuillez vérifier la configuration.');
+        } else {
+          throw new Error(`Erreur lors du chargement des utilisateurs: ${error.message || 'Erreur inconnue'}`);
+        }
       }
-
-      console.log('✅ Internal users fetched:', data?.length || 0, 'users');
-      
-      // Transformer les données pour inclure le rôle
-      const usersWithRoles: UtilisateurInterneWithRole[] = (data || []).map(user => ({
-        ...user,
-        role: user.role_name ? {
-          id: user.role_id,
-          name: user.role_name
-        } : null
-      }));
-
-      return usersWithRoles;
     },
-    retry: 3,
-    retryDelay: 1000,
+    retry: (failureCount, error: any) => {
+      // Ne pas réessayer si c'est une erreur de récursion RLS
+      if (error?.message?.includes('infinite recursion')) {
+        return false;
+      }
+      // Réessayer jusqu'à 2 fois pour les autres erreurs
+      return failureCount < 2;
+    },
+    retryDelay: 1000, // Attendre 1 seconde entre les tentatives
+    refetchOnWindowFocus: false, // Éviter les rechargements intempestifs
+    staleTime: 30000, // Considérer les données comme fraîches pendant 30 secondes
   });
 };
 
+// Hook pour récupérer tous les rôles disponibles (unifié)
 export const useRolesForUsers = () => {
   return useQuery({
     queryKey: ['roles-for-users'],
     queryFn: async () => {
-      console.log('🔍 Fetching roles for users...');
+      console.log('🔍 Fetching unified roles for user assignment...');
       
-      const { data, error } = await supabase
-        .from('roles')
-        .select('id, name, description')
-        .order('name');
+      try {
+        const { data, error } = await supabase
+          .from('roles')
+          .select('*')
+          .order('name');
 
-      if (error) {
-        console.error('❌ Error fetching roles:', error);
-        throw error;
-      }
-
-      console.log('✅ Roles fetched:', data?.length || 0, 'roles');
-      return data as Role[];
-    }
-  });
-};
-
-export const useCreateUtilisateurInterne = () => {
-  const queryClient = useQueryClient();
-  const { toast } = useToast();
-
-  return useMutation({
-    mutationFn: async (userData: {
-      prenom: string;
-      nom: string;
-      email: string;
-      password: string;
-      telephone?: string;
-      adresse?: string;
-      photo_url?: string;
-      role_id?: string;
-      doit_changer_mot_de_passe: boolean;
-    }) => {
-      console.log('🔄 Creating new internal user:', userData.email);
-
-      // 1. Créer l'utilisateur dans Supabase Auth
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: userData.email,
-        password: userData.password,
-        options: {
-          data: {
-            first_name: userData.prenom,
-            last_name: userData.nom,
-          }
+        if (error) {
+          console.error('❌ Error fetching roles:', error);
+          throw new Error(`Erreur lors de la récupération des rôles: ${error.message}`);
         }
-      });
 
-      if (authError) throw authError;
-      if (!authData.user) throw new Error('Erreur lors de la création de l\'utilisateur');
-
-      // 2. Créer l'entrée dans utilisateurs_internes
-      const { data: userData_, error: userError } = await supabase
-        .from('utilisateurs_internes')
-        .insert({
-          user_id: authData.user.id,
-          prenom: userData.prenom,
-          nom: userData.nom,
-          email: userData.email,
-          telephone: userData.telephone,
-          adresse: userData.adresse,
-          photo_url: userData.photo_url,
-          statut: 'actif',
-          doit_changer_mot_de_passe: userData.doit_changer_mot_de_passe,
-        })
-        .select()
-        .single();
-
-      if (userError) throw userError;
-
-      // 3. Assigner le rôle si spécifié
-      if (userData.role_id && userData.role_id !== 'no-role') {
-        const { error: roleError } = await supabase.rpc('assign_user_role_admin', {
-          p_user_id: authData.user.id,
-          p_role_id: userData.role_id
-        });
-        
-        if (roleError) {
-          console.warn('⚠️ Role assignment warning:', roleError);
-        }
+        console.log('✅ Unified roles fetched:', data?.length || 0);
+        return data || [];
+      } catch (error: any) {
+        console.error('💥 Critical error in useRolesForUsers:', error);
+        throw new Error(`Erreur lors du chargement des rôles: ${error.message || 'Erreur inconnue'}`);
       }
-
-      console.log('✅ Internal user created successfully');
-      return userData_;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['utilisateurs-internes'] });
-      toast({
-        title: "Utilisateur créé",
-        description: "Le nouvel utilisateur interne a été créé avec succès",
-      });
-    },
-    onError: (error: any) => {
-      console.error('❌ Error creating internal user:', error);
-      toast({
-        title: "Erreur",
-        description: error.message || "Impossible de créer l'utilisateur",
-        variant: "destructive",
-      });
-    }
-  });
-};
-
-export const useUpdateUtilisateurInterne = () => {
-  const queryClient = useQueryClient();
-  const { toast } = useToast();
-
-  return useMutation({
-    mutationFn: async (userData: {
-      user_id: string;
-      prenom: string;
-      nom: string;
-      email: string;
-      telephone?: string;
-      adresse?: string;
-      photo_url?: string;
-      matricule?: string;
-      statut: string;
-      doit_changer_mot_de_passe: boolean;
-      role_id?: string;
-    }) => {
-      console.log('🔄 Updating internal user:', userData.user_id);
-
-      // 1. Mettre à jour les données utilisateur
-      const { data, error } = await supabase
-        .from('utilisateurs_internes')
-        .update({
-          prenom: userData.prenom,
-          nom: userData.nom,
-          email: userData.email,
-          telephone: userData.telephone,
-          adresse: userData.adresse,
-          photo_url: userData.photo_url,
-          matricule: userData.matricule,
-          statut: userData.statut,
-          doit_changer_mot_de_passe: userData.doit_changer_mot_de_passe,
-          updated_at: new Date().toISOString()
-        })
-        .eq('user_id', userData.user_id)
-        .select()
-        .single();
-
-      if (error) throw error;
-
-      // 2. Mettre à jour le rôle si spécifié
-      if (userData.role_id) {
-        const { error: roleError } = await supabase.rpc('assign_user_role_admin', {
-          p_user_id: userData.user_id,
-          p_role_id: userData.role_id === 'no-role' ? null : userData.role_id
-        });
-        
-        if (roleError) {
-          console.warn('⚠️ Role update warning:', roleError);
-        }
-      }
-
-      console.log('✅ Internal user updated successfully');
-      return data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['utilisateurs-internes'] });
-      toast({
-        title: "Utilisateur modifié",
-        description: "Les modifications ont été enregistrées avec succès",
-      });
-    },
-    onError: (error: any) => {
-      console.error('❌ Error updating internal user:', error);
-      toast({
-        title: "Erreur",
-        description: error.message || "Impossible de modifier l'utilisateur",
-        variant: "destructive",
-      });
-    }
-  });
-};
-
-export const useDeleteUtilisateurInterne = () => {
-  const queryClient = useQueryClient();
-  const { toast } = useToast();
-
-  return useMutation({
-    mutationFn: async (userId: string) => {
-      console.log('🗑️ Deleting internal user:', userId);
-
-      const { error } = await supabase
-        .from('utilisateurs_internes')
-        .delete()
-        .eq('user_id', userId);
-
-      if (error) throw error;
-
-      console.log('✅ Internal user deleted successfully');
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['utilisateurs-internes'] });
-      toast({
-        title: "Utilisateur supprimé",
-        description: "L'utilisateur a été supprimé avec succès",
-      });
-    },
-    onError: (error: any) => {
-      console.error('❌ Error deleting internal user:', error);
-      toast({
-        title: "Erreur",
-        description: error.message || "Impossible de supprimer l'utilisateur",
-        variant: "destructive",
-      });
-    }
+    retry: 2,
+    retryDelay: 1000,
+    refetchOnWindowFocus: false,
+    staleTime: 60000, // Les rôles changent rarement, cache plus long
   });
 };
