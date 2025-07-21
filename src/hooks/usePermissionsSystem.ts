@@ -229,6 +229,90 @@ export const useDeleteRole = () => {
   });
 };
 
+// Hook pour créer une permission
+export const useCreatePermission = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async (permissionData: { menu: string; submenu?: string | null; action: string; description?: string }) => {
+      const { data, error } = await supabase
+        .from('permissions')
+        .insert([{
+          menu: permissionData.menu,
+          submenu: permissionData.submenu || null,
+          action: permissionData.action,
+          description: permissionData.description || null
+        }])
+        .select()
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['permissions'] });
+      toast.success('Permission créée avec succès');
+    },
+    onError: (error: any) => {
+      toast.error('Erreur lors de la création de la permission: ' + error.message);
+    }
+  });
+};
+
+// Hook pour mettre à jour une permission
+export const useUpdatePermission = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async ({ id, ...permissionData }: { id: string; menu: string; submenu?: string | null; action: string; description?: string }) => {
+      const { data, error } = await supabase
+        .from('permissions')
+        .update({
+          menu: permissionData.menu,
+          submenu: permissionData.submenu || null,
+          action: permissionData.action,
+          description: permissionData.description || null
+        })
+        .eq('id', id)
+        .select()
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['permissions'] });
+      toast.success('Permission mise à jour avec succès');
+    },
+    onError: (error: any) => {
+      toast.error('Erreur lors de la mise à jour de la permission: ' + error.message);
+    }
+  });
+};
+
+// Hook pour supprimer une permission
+export const useDeletePermission = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async (permissionId: string) => {
+      const { error } = await supabase
+        .from('permissions')
+        .delete()
+        .eq('id', permissionId);
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['permissions'] });
+      toast.success('Permission supprimée avec succès');
+    },
+    onError: (error: any) => {
+      toast.error('Erreur lors de la suppression de la permission: ' + error.message);
+    }
+  });
+};
+
 // Hook pour mettre à jour les permissions d'un rôle
 export const useUpdateRolePermissions = () => {
   const queryClient = useQueryClient();
