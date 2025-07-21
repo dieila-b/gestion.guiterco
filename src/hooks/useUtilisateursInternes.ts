@@ -13,6 +13,9 @@ export interface UtilisateurInterne {
   poste: string | null;
   statut: string;
   date_embauche: string | null;
+  adresse: string | null;
+  photo_url: string | null;
+  doit_changer_mot_de_passe: boolean;
   created_at: string;
   updated_at: string;
   role?: {
@@ -21,6 +24,24 @@ export interface UtilisateurInterne {
     description: string | null;
     is_system: boolean;
   };
+}
+
+export interface UtilisateurInterneWithRole extends UtilisateurInterne {
+  role: {
+    id: string;
+    name: string;
+    description: string | null;
+    is_system: boolean;
+  };
+}
+
+export interface Role {
+  id: string;
+  name: string;
+  description: string | null;
+  is_system: boolean;
+  created_at: string;
+  updated_at: string;
 }
 
 export const useUtilisateursInternes = () => {
@@ -54,6 +75,21 @@ export const useUtilisateursInternes = () => {
       }));
       
       return transformedData as UtilisateurInterne[];
+    }
+  });
+};
+
+export const useRolesForUsers = () => {
+  return useQuery({
+    queryKey: ['roles-for-users'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('roles')
+        .select('*')
+        .order('name');
+      
+      if (error) throw error;
+      return data as Role[];
     }
   });
 };

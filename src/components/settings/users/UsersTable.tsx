@@ -6,10 +6,10 @@ import { Badge } from "@/components/ui/badge";
 import { Edit, Trash2, Eye, User, Crown, Briefcase, AlertCircle } from 'lucide-react';
 import EditUserDialog from '../EditUserDialog';
 import UserDetailedView from '../permissions/UserDetailedView';
-import { UtilisateurInterneWithRole } from '@/hooks/useUtilisateursInternes';
+import { UtilisateurInterne } from '@/hooks/useUtilisateursInternes';
 
 interface UsersTableProps {
-  utilisateurs?: UtilisateurInterneWithRole[];
+  utilisateurs?: UtilisateurInterne[];
   onDelete: (id: string) => void;
   onUserUpdated: () => void;
   isDeleting: boolean;

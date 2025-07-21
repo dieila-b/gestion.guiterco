@@ -1,4 +1,3 @@
-
 import { useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -13,7 +12,7 @@ import { Plus, Edit, Trash2, Users, Mail, Phone, UserCheck, UserX } from 'lucide
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/integrations/supabase/client'
 import { toast } from 'sonner'
-import { useRoles, useUserRoles, useAssignUserRole, useRevokeUserRole } from '@/hooks/usePermissions'
+import { useRoles, useAssignUserRole, useRevokeUserRole } from '@/hooks/usePermissions'
 
 interface UtilisateurInterne {
   id: string

@@ -4,10 +4,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Button } from '@/components/ui/button';
 import { Edit } from 'lucide-react';
 import EditUserForm from './EditUserForm';
-import { UtilisateurInterneWithRole } from '@/hooks/useUtilisateursInternes';
+import { UtilisateurInterne } from '@/hooks/useUtilisateursInternes';
 
 interface EditUserDialogProps {
-  user: UtilisateurInterneWithRole;
+  user: UtilisateurInterne;
   onUserUpdated?: () => void;
   children?: React.ReactNode;
 }

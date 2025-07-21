@@ -3,7 +3,6 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
-// Types pour les permissions
 export interface Permission {
   id: string;
   menu: string;
@@ -28,6 +27,7 @@ export interface RolePermission {
   permission_id: string;
   can_access: boolean;
   created_at: string;
+  updated_at: string;
 }
 
 export interface UserRole {
@@ -35,27 +35,9 @@ export interface UserRole {
   user_id: string;
   role_id: string;
   is_active: boolean;
-  assigned_at: string;
-  assigned_by: string | null;
   created_at: string;
   updated_at: string;
 }
-
-// Hook pour récupérer tous les rôles
-export const useRoles = () => {
-  return useQuery({
-    queryKey: ['roles'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('roles')
-        .select('*')
-        .order('name');
-      
-      if (error) throw error;
-      return data as Role[];
-    }
-  });
-};
 
 // Hook pour récupérer toutes les permissions
 export const usePermissions = () => {
@@ -73,29 +55,58 @@ export const usePermissions = () => {
   });
 };
 
+// Hook pour récupérer tous les rôles
+export const useRoles = () => {
+  return useQuery({
+    queryKey: ['roles'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('roles')
+        .select('*')
+        .order('name');
+      
+      if (error) throw error;
+      return data as Role[];
+    }
+  });
+};
+
 // Hook pour récupérer les permissions d'un rôle
 export const useRolePermissions = (roleId: string) => {
   return useQuery({
     queryKey: ['role-permissions', roleId],
     queryFn: async () => {
+      if (!roleId) return [];
+      
       const { data, error } = await supabase
         .from('role_permissions')
-        .select(`
-          *,
-          permissions:permission_id (
-            id,
-            menu,
-            submenu,
-            action,
-            description
-          )
-        `)
+        .select('*')
         .eq('role_id', roleId);
       
       if (error) throw error;
-      return data;
+      return data as RolePermission[];
     },
     enabled: !!roleId
+  });
+};
+
+// Hook pour récupérer les rôles d'un utilisateur
+export const useUserRoles = (userId: string) => {
+  return useQuery({
+    queryKey: ['user-roles', userId],
+    queryFn: async () => {
+      if (!userId) return [];
+      
+      const { data, error } = await supabase
+        .from('user_roles')
+        .select('*')
+        .eq('user_id', userId)
+        .eq('is_active', true);
+      
+      if (error) throw error;
+      return data as UserRole[];
+    },
+    enabled: !!userId
   });
 };
 
@@ -104,7 +115,7 @@ export const useCreateRole = () => {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: async (roleData: Omit<Role, 'id' | 'created_at' | 'updated_at'>) => {
+    mutationFn: async (roleData: { name: string; description: string; is_system: boolean }) => {
       const { data, error } = await supabase
         .from('roles')
         .insert([roleData])
@@ -129,11 +140,15 @@ export const useUpdateRole = () => {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: async ({ id, ...roleData }: Partial<Role> & { id: string }) => {
+    mutationFn: async (roleData: { id: string; name: string; description: string; is_system: boolean }) => {
       const { data, error } = await supabase
         .from('roles')
-        .update(roleData)
-        .eq('id', id)
+        .update({
+          name: roleData.name,
+          description: roleData.description,
+          is_system: roleData.is_system
+        })
+        .eq('id', roleData.id)
         .select()
         .single();
       
@@ -173,24 +188,18 @@ export const useDeleteRole = () => {
   });
 };
 
-// Hook pour modifier les permissions d'un rôle
+// Hook pour mettre à jour les permissions d'un rôle
 export const useUpdateRolePermissions = () => {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: async ({ roleId, permissionId, canAccess }: { 
-      roleId: string; 
-      permissionId: string; 
-      canAccess: boolean 
-    }) => {
+    mutationFn: async ({ roleId, permissionId, canAccess }: { roleId: string; permissionId: string; canAccess: boolean }) => {
       const { data, error } = await supabase
         .from('role_permissions')
-        .upsert([{
+        .upsert({
           role_id: roleId,
           permission_id: permissionId,
           can_access: canAccess
-        }], {
-          onConflict: 'role_id,permission_id'
         })
         .select()
         .single();
@@ -204,6 +213,68 @@ export const useUpdateRolePermissions = () => {
     },
     onError: (error: any) => {
       toast.error('Erreur lors de la mise à jour des permissions: ' + error.message);
+    }
+  });
+};
+
+// Hook pour assigner un rôle à un utilisateur
+export const useAssignUserRole = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async ({ userId, roleId }: { userId: string; roleId: string }) => {
+      // D'abord, désactiver tous les rôles actuels de l'utilisateur
+      await supabase
+        .from('user_roles')
+        .update({ is_active: false })
+        .eq('user_id', userId);
+      
+      // Puis assigner le nouveau rôle
+      const { data, error } = await supabase
+        .from('user_roles')
+        .upsert({
+          user_id: userId,
+          role_id: roleId,
+          is_active: true
+        })
+        .select()
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['user-roles'] });
+      queryClient.invalidateQueries({ queryKey: ['utilisateurs-internes'] });
+      toast.success('Rôle assigné avec succès');
+    },
+    onError: (error: any) => {
+      toast.error('Erreur lors de l\'assignation du rôle: ' + error.message);
+    }
+  });
+};
+
+// Hook pour révoquer un rôle d'un utilisateur
+export const useRevokeUserRole = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async ({ userId, roleId }: { userId: string; roleId: string }) => {
+      const { error } = await supabase
+        .from('user_roles')
+        .update({ is_active: false })
+        .eq('user_id', userId)
+        .eq('role_id', roleId);
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['user-roles'] });
+      queryClient.invalidateQueries({ queryKey: ['utilisateurs-internes'] });
+      toast.success('Rôle révoqué avec succès');
+    },
+    onError: (error: any) => {
+      toast.error('Erreur lors de la révocation du rôle: ' + error.message);
     }
   });
 };
