@@ -2770,12 +2770,14 @@ export type Database = {
         Row: {
           adresse: string | null
           created_at: string | null
+          date_embauche: string | null
           doit_changer_mot_de_passe: boolean | null
           email: string
           id: string
           matricule: string | null
           nom: string
           photo_url: string | null
+          poste: string | null
           prenom: string
           role_id: string | null
           statut: string | null
@@ -2787,12 +2789,14 @@ export type Database = {
         Insert: {
           adresse?: string | null
           created_at?: string | null
+          date_embauche?: string | null
           doit_changer_mot_de_passe?: boolean | null
           email: string
           id?: string
           matricule?: string | null
           nom: string
           photo_url?: string | null
+          poste?: string | null
           prenom: string
           role_id?: string | null
           statut?: string | null
@@ -2804,12 +2808,14 @@ export type Database = {
         Update: {
           adresse?: string | null
           created_at?: string | null
+          date_embauche?: string | null
           doit_changer_mot_de_passe?: boolean | null
           email?: string
           id?: string
           matricule?: string | null
           nom?: string
           photo_url?: string | null
+          poste?: string | null
           prenom?: string
           role_id?: string | null
           statut?: string | null
