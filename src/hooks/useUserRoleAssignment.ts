@@ -1,48 +1,56 @@
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
+import { useToast } from '@/hooks/use-toast';
 
 export const useUserRoleAssignment = () => {
   const queryClient = useQueryClient();
+  const { toast } = useToast();
 
   const assignRole = useMutation({
     mutationFn: async ({ userId, roleId }: { userId: string; roleId: string }) => {
-      console.log('🔄 Assigning role:', { userId, roleId });
-      
-      // D'abord, désactiver tous les rôles actuels de l'utilisateur
-      await supabase
-        .from('user_roles')
-        .update({ is_active: false })
+      // Mettre à jour le rôle dans la table utilisateurs_internes
+      const { error: updateError } = await supabase
+        .from('utilisateurs_internes')
+        .update({ role_id: roleId })
         .eq('user_id', userId);
-      
-      // Puis assigner le nouveau rôle
-      const { data, error } = await supabase
+
+      if (updateError) throw updateError;
+
+      // Gérer la table user_roles
+      const { error: deleteError } = await supabase
         .from('user_roles')
-        .upsert({
+        .delete()
+        .eq('user_id', userId);
+
+      if (deleteError) throw deleteError;
+
+      const { error: insertError } = await supabase
+        .from('user_roles')
+        .insert({
           user_id: userId,
           role_id: roleId,
           is_active: true
-        })
-        .select()
-        .single();
-      
-      if (error) {
-        console.error('❌ Error assigning role:', error);
-        throw error;
-      }
-      
-      console.log('✅ Role assigned successfully:', data);
-      return data;
+        });
+
+      if (insertError) throw insertError;
+
+      return { userId, roleId };
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['user-roles'] });
       queryClient.invalidateQueries({ queryKey: ['utilisateurs-internes'] });
-      toast.success('Rôle assigné avec succès');
+      toast({
+        title: "Rôle assigné",
+        description: "Le rôle a été assigné avec succès",
+      });
     },
     onError: (error: any) => {
-      console.error('💥 Critical error in useUserRoleAssignment:', error);
-      toast.error('Erreur lors de l\'assignation du rôle: ' + error.message);
+      console.error('Erreur lors de l\'assignation du rôle:', error);
+      toast({
+        title: "Erreur",
+        description: error.message || "Impossible d'assigner le rôle",
+        variant: "destructive",
+      });
     }
   });
 
