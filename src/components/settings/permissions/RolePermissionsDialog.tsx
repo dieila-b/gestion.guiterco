@@ -197,9 +197,9 @@ const RolePermissionsDialog = ({ role, children }: RolePermissionsDialogProps) =
       return pendingChanges[key];
     }
     
-    // Chercher dans les permissions actuelles du rôle - corriger l'accès à la propriété
+    // Chercher dans les permissions actuelles du rôle
     return rolePermissions.some(rp => {
-      const permission = rp.permissions; // Utiliser 'permissions' au lieu de 'permission'
+      const permission = rp.permission;
       return permission && 
              permission.menu === menu &&
              permission.submenu === submenu &&
@@ -221,25 +221,37 @@ const RolePermissionsDialog = ({ role, children }: RolePermissionsDialogProps) =
       console.log('🔄 Saving role permissions for role:', role.id);
       console.log('📋 Pending changes:', pendingChanges);
 
-      // Traiter chaque changement en attente individuellement
-      for (const [key, canAccess] of Object.entries(pendingChanges)) {
-        const [menu, submenu, action] = key.split('-');
-        const actualSubmenu = submenu === 'null' ? null : submenu;
-        
-        const permission = permissions.find(p => 
-          p.menu === menu && 
-          p.submenu === actualSubmenu && 
-          p.action === action
-        );
-        
-        if (permission) {
-          await updateRolePermissions.mutateAsync({
-            roleId: role.id,
-            permissionId: permission.id,
-            canAccess
-          });
-        }
-      }
+      // Construire la liste complète des permissions basée sur APPLICATION_MENUS
+      const permissionUpdates: { permission_id: string; can_access: boolean }[] = [];
+      
+      APPLICATION_MENUS.forEach(menuItem => {
+        menuItem.actions.forEach(action => {
+          const permission = permissions.find(p => 
+            p.menu === menuItem.menu && 
+            p.submenu === menuItem.submenu && 
+            p.action === action
+          );
+          
+          if (permission) {
+            const key = `${menuItem.menu}-${menuItem.submenu || 'null'}-${action}`;
+            const isEnabled = pendingChanges.hasOwnProperty(key) 
+              ? pendingChanges[key] 
+              : hasPermission(menuItem.menu, menuItem.submenu, action);
+            
+            permissionUpdates.push({
+              permission_id: permission.id,
+              can_access: isEnabled
+            });
+          }
+        });
+      });
+
+      console.log('📤 Sending permission updates:', permissionUpdates);
+
+      await updateRolePermissions.mutateAsync({
+        roleId: role.id,
+        permissionUpdates
+      });
 
       setPendingChanges({});
       await refetchRolePermissions();
