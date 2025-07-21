@@ -1,122 +1,259 @@
 
-import React from 'react';
-import { Card, CardContent } from "@/components/ui/card";
-import { useToast } from "@/hooks/use-toast";
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import React, { useState, useEffect } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
+import { Plus, Edit2, Trash2, Search, User } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { useUtilisateursInternes } from '@/hooks/useUtilisateursInternes';
-import { useRealTimeUserManagement } from '@/hooks/useRealTimeUserManagement';
-import UsersHeader from './users/UsersHeader';
-import UsersTable from './users/UsersTable';
-import UsersErrorState from './users/UsersErrorState';
-import UsersLoadingState from './users/UsersLoadingState';
+import { usePermissions } from '@/hooks/usePermissions';
+import { useUserPermissions } from '@/hooks/usePermissions';
 
-const UtilisateursInternes = () => {
+interface InternalUser {
+  id: string;
+  user_id: string;
+  matricule: string;
+  prenom: string;
+  nom: string;
+  email: string;
+  telephone?: string;
+  adresse?: string;
+  photo_url?: string;
+  role_id?: string;
+  statut: string;
+  type_compte: string;
+  doit_changer_mot_de_passe: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export function UtilisateursInternes() {
+  const [users, setUsers] = useState<InternalUser[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedRole, setSelectedRole] = useState<string>('all');
+  const [selectedStatus, setSelectedStatus] = useState<string>('all');
+  const { roles } = usePermissions();
+  const { checkPermission } = useUserPermissions();
   const { toast } = useToast();
-  const queryClient = useQueryClient();
-  
-  // Activer la synchronisation temps réel complète
-  useRealTimeUserManagement();
 
-  // Récupérer les utilisateurs internes avec les rôles unifiés
-  const { data: utilisateurs, isLoading, error } = useUtilisateursInternes();
+  const canManageUsers = checkPermission('Paramètres', 'Utilisateurs', 'write');
+  const canViewUsers = checkPermission('Paramètres', 'Utilisateurs', 'read');
 
-  // Mutation pour supprimer un utilisateur
-  const deleteUser = useMutation({
-    mutationFn: async (userId: string) => {
-      console.log('🗑️ Deleting user:', userId);
-      
-      // Supprimer d'abord les rôles associés
-      const { error: roleError } = await supabase
-        .from('user_roles')
-        .delete()
-        .eq('user_id', (await supabase
-          .from('utilisateurs_internes')
-          .select('user_id')
-          .eq('id', userId)
-          .single()
-        ).data?.user_id);
+  const fetchUsers = async () => {
+    try {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('utilisateurs_internes')
+        .select('*')
+        .order('created_at', { ascending: false });
 
-      if (roleError) {
-        console.warn('⚠️ Warning deleting user roles:', roleError);
+      if (error) {
+        console.error('Error fetching users:', error);
+        toast({
+          title: "Erreur",
+          description: "Impossible de charger les utilisateurs.",
+          variant: "destructive",
+        });
+        return;
       }
 
-      // Supprimer l'utilisateur interne
-      const { error } = await supabase
-        .from('utilisateurs_internes')
-        .delete()
-        .eq('id', userId);
-
-      if (error) throw error;
-      
-      console.log('✅ User deleted successfully');
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['utilisateurs-internes'] });
-      queryClient.invalidateQueries({ queryKey: ['user-roles'] });
-      toast({ title: "Utilisateur supprimé avec succès" });
-    },
-    onError: (error: any) => {
-      console.error('❌ Error deleting user:', error);
-      toast({ 
-        title: "Erreur", 
-        description: error.message || "Impossible de supprimer l'utilisateur",
-        variant: "destructive" 
+      setUsers(data || []);
+    } catch (error) {
+      console.error('Error fetching users:', error);
+      toast({
+        title: "Erreur",
+        description: "Erreur lors du chargement des utilisateurs.",
+        variant: "destructive",
       });
+    } finally {
+      setLoading(false);
     }
+  };
+
+  useEffect(() => {
+    if (canViewUsers) {
+      fetchUsers();
+    }
+  }, [canViewUsers]);
+
+  const filteredUsers = users.filter(user => {
+    const matchesSearch = user.prenom.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         user.nom.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         user.matricule.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    const matchesRole = selectedRole === 'all' || user.role_id === selectedRole;
+    const matchesStatus = selectedStatus === 'all' || user.statut === selectedStatus;
+    
+    return matchesSearch && matchesRole && matchesStatus;
   });
 
-  const handleDelete = (id: string) => {
-    if (confirm('Êtes-vous sûr de vouloir supprimer cet utilisateur ? Cette action est irréversible.')) {
-      deleteUser.mutate(id);
+  const getRoleName = (roleId?: string) => {
+    if (!roleId) return 'Aucun rôle';
+    const role = roles.find(r => r.id === roleId);
+    return role?.name || 'Rôle inconnu';
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'actif':
+        return 'bg-green-100 text-green-800';
+      case 'inactif':
+        return 'bg-red-100 text-red-800';
+      case 'suspendu':
+        return 'bg-yellow-100 text-yellow-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
     }
   };
 
-  const handleUserCreated = () => {
-    queryClient.invalidateQueries({ queryKey: ['utilisateurs-internes'] });
-    queryClient.invalidateQueries({ queryKey: ['user-roles'] });
-  };
-
-  const handleUserUpdated = () => {
-    queryClient.invalidateQueries({ queryKey: ['utilisateurs-internes'] });
-    queryClient.invalidateQueries({ queryKey: ['user-roles'] });
-  };
-
-  // Afficher l'erreur s'il y en a une
-  if (error) {
-    return <UsersErrorState error={error} onUserCreated={handleUserCreated} />;
+  if (!canViewUsers) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <User className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+          <p className="text-muted-foreground">Vous n'avez pas les permissions nécessaires pour voir les utilisateurs.</p>
+        </div>
+      </div>
+    );
   }
 
   return (
     <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <User className="h-5 w-5 text-primary" />
+          <h2 className="text-xl font-semibold">Utilisateurs Internes</h2>
+        </div>
+        {canManageUsers && (
+          <Button className="flex items-center gap-2">
+            <Plus className="h-4 w-4" />
+            Nouvel utilisateur
+          </Button>
+        )}
+      </div>
+
       <Card>
-        <UsersHeader onUserCreated={handleUserCreated} />
+        <CardHeader>
+          <CardTitle>Filtres</CardTitle>
+        </CardHeader>
         <CardContent>
-          {isLoading ? (
-            <UsersLoadingState />
+          <div className="flex gap-4 flex-wrap">
+            <div className="flex-1 min-w-[200px]">
+              <Label htmlFor="search">Rechercher</Label>
+              <div className="relative">
+                <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                <Input
+                  id="search"
+                  placeholder="Nom, email, matricule..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-9"
+                />
+              </div>
+            </div>
+            
+            <div className="min-w-[150px]">
+              <Label htmlFor="role">Rôle</Label>
+              <Select value={selectedRole} onValueChange={setSelectedRole}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Tous les rôles" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Tous les rôles</SelectItem>
+                  {roles.map((role) => (
+                    <SelectItem key={role.id} value={role.id}>
+                      {role.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div className="min-w-[150px]">
+              <Label htmlFor="status">Statut</Label>
+              <Select value={selectedStatus} onValueChange={setSelectedStatus}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Tous les statuts" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Tous les statuts</SelectItem>
+                  <SelectItem value="actif">Actif</SelectItem>
+                  <SelectItem value="inactif">Inactif</SelectItem>
+                  <SelectItem value="suspendu">Suspendu</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Liste des utilisateurs ({filteredUsers.length})</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {loading ? (
+            <div className="flex items-center justify-center h-32">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            </div>
           ) : (
-            <>
-              {utilisateurs && utilisateurs.length > 0 && (
-                <div className="mb-4 text-sm text-muted-foreground">
-                  {utilisateurs.length} utilisateur{utilisateurs.length > 1 ? 's' : ''} trouvé{utilisateurs.length > 1 ? 's' : ''}
-                  <span className="ml-2 px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs">
-                    ✅ Synchronisation temps réel complète activée
-                  </span>
+            <div className="space-y-4">
+              {filteredUsers.map((user) => (
+                <div key={user.id} className="flex items-center justify-between p-4 border rounded-lg">
+                  <div className="flex items-center gap-4">
+                    <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
+                      <User className="h-5 w-5 text-primary" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h4 className="font-medium">{user.prenom} {user.nom}</h4>
+                        <Badge variant="outline" className="text-xs">
+                          {user.matricule}
+                        </Badge>
+                        <Badge variant="outline" className={getStatusColor(user.statut)}>
+                          {user.statut}
+                        </Badge>
+                      </div>
+                      <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                        <span>{user.email}</span>
+                        {user.telephone && <span>{user.telephone}</span>}
+                        <span>Rôle: {getRoleName(user.role_id)}</span>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {canManageUsers && (
+                    <div className="flex items-center gap-2">
+                      <Button variant="outline" size="sm" className="flex items-center gap-1">
+                        <Edit2 className="h-4 w-4" />
+                        Modifier
+                      </Button>
+                      <Button variant="destructive" size="sm" className="flex items-center gap-1">
+                        <Trash2 className="h-4 w-4" />
+                        Supprimer
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              ))}
+              
+              {filteredUsers.length === 0 && (
+                <div className="text-center py-8 text-muted-foreground">
+                  {searchTerm || selectedRole !== 'all' || selectedStatus !== 'all' 
+                    ? 'Aucun utilisateur trouvé avec ces critères'
+                    : 'Aucun utilisateur enregistré'
+                  }
                 </div>
               )}
-              
-              <UsersTable
-                utilisateurs={utilisateurs}
-                onDelete={handleDelete}
-                onUserUpdated={handleUserUpdated}
-                isDeleting={deleteUser.isPending}
-              />
-            </>
+            </div>
           )}
         </CardContent>
       </Card>
     </div>
   );
-};
-
-export default UtilisateursInternes;
+}
