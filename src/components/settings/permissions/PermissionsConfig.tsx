@@ -1,236 +1,156 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Switch } from '@/components/ui/switch';
-import { Key, Eye, Edit, Trash2, Settings } from 'lucide-react';
-import { usePermissions } from '@/hooks/usePermissionsSystem';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Plus, Edit, Trash2, Settings } from 'lucide-react';
+import { usePermissions, useCreatePermission, useUpdatePermission, useDeletePermission } from '@/hooks/usePermissionsSystem';
+import { toast } from 'sonner';
 
-// Structure complète des menus et sous-menus de l'application
-const APPLICATION_STRUCTURE = [
-  {
-    menu: 'Dashboard',
-    submenu: null,
-    actions: ['read'],
-    description: 'Tableau de bord principal'
-  },
-  {
-    menu: 'Ventes',
-    submenu: 'Vente au Comptoir',
-    actions: ['read', 'write'],
-    description: 'Gestion des ventes au comptoir'
-  },
-  {
-    menu: 'Ventes',
-    submenu: 'Factures',
-    actions: ['read', 'write'],
-    description: 'Gestion des factures de vente'
-  },
-  {
-    menu: 'Ventes',
-    submenu: 'Précommandes',
-    actions: ['read', 'write'],
-    description: 'Gestion des précommandes'
-  },
-  {
-    menu: 'Ventes',
-    submenu: 'Devis',
-    actions: ['read', 'write'],
-    description: 'Gestion des devis'
-  },
-  {
-    menu: 'Ventes',
-    submenu: 'Factures impayées',
-    actions: ['read', 'write'],
-    description: 'Gestion des factures impayées'
-  },
-  {
-    menu: 'Ventes',
-    submenu: 'Retours Clients',
-    actions: ['read', 'write'],
-    description: 'Gestion des retours clients'
-  },
-  {
-    menu: 'Stock',
-    submenu: 'Entrepôts',
-    actions: ['read', 'write'],
-    description: 'Gestion des stocks entrepôts'
-  },
-  {
-    menu: 'Stock',
-    submenu: 'PDV',
-    actions: ['read', 'write'],
-    description: 'Gestion des stocks points de vente'
-  },
-  {
-    menu: 'Stock',
-    submenu: 'Transferts',
-    actions: ['read', 'write'],
-    description: 'Gestion des transferts de stock'
-  },
-  {
-    menu: 'Stock',
-    submenu: 'Entrées',
-    actions: ['read', 'write'],
-    description: 'Gestion des entrées de stock'
-  },
-  {
-    menu: 'Stock',
-    submenu: 'Sorties',
-    actions: ['read', 'write'],
-    description: 'Gestion des sorties de stock'
-  },
-  {
-    menu: 'Achats',
-    submenu: 'Bons de commande',
-    actions: ['read', 'write'],
-    description: 'Gestion des bons de commande'
-  },
-  {
-    menu: 'Achats',
-    submenu: 'Bons de livraison',
-    actions: ['read', 'write'],
-    description: 'Gestion des bons de livraison'
-  },
-  {
-    menu: 'Achats',
-    submenu: 'Factures',
-    actions: ['read', 'write'],
-    description: 'Gestion des factures d\'achat'
-  },
-  {
-    menu: 'Clients',
-    submenu: null,
-    actions: ['read', 'write', 'delete'],
-    description: 'Gestion des clients'
-  },
-  {
-    menu: 'Caisse',
-    submenu: null,
-    actions: ['read', 'write'],
-    description: 'Gestion de la caisse'
-  },
-  {
-    menu: 'Caisse',
-    submenu: 'Dépenses',
-    actions: ['read', 'write'],
-    description: 'Gestion des dépenses de caisse'
-  },
-  {
-    menu: 'Caisse',
-    submenu: 'Aperçu du jour',
-    actions: ['read'],
-    description: 'Consultation de l\'aperçu journalier'
-  },
-  {
-    menu: 'Marges',
-    submenu: null,
-    actions: ['read'],
-    description: 'Consultation des marges'
-  },
-  {
-    menu: 'Rapports',
-    submenu: null,
-    actions: ['read', 'write'],
-    description: 'Génération de rapports'
-  },
-  {
-    menu: 'Paramètres',
-    submenu: 'Zone Géographique',
-    actions: ['read', 'write'],
-    description: 'Gestion des zones géographiques'
-  },
-  {
-    menu: 'Paramètres',
-    submenu: 'Fournisseurs',
-    actions: ['read', 'write'],
-    description: 'Gestion des fournisseurs'
-  },
-  {
-    menu: 'Paramètres',
-    submenu: 'Dépôts Stock',
-    actions: ['read', 'write'],
-    description: 'Gestion des dépôts de stock'
-  },
-  {
-    menu: 'Paramètres',
-    submenu: 'Dépôts PDV',
-    actions: ['read', 'write'],
-    description: 'Gestion des dépôts PDV'
-  },
-  {
-    menu: 'Paramètres',
-    submenu: 'Utilisateurs',
-    actions: ['read', 'write'],
-    description: 'Gestion des utilisateurs'
-  },
-  {
-    menu: 'Paramètres',
-    submenu: 'Permissions',
-    actions: ['read', 'write'],
-    description: 'Gestion des permissions'
-  }
+// Structure des menus selon les spécifications
+const MENU_STRUCTURE = [
+  { menu: 'Dashboard', submenus: [] },
+  { menu: 'Ventes', submenus: ['Vente au Comptoir', 'Factures', 'Précommandes', 'Devis', 'Factures impayées', 'Retours Clients'] },
+  { menu: 'Stock', submenus: ['Entrepôts', 'PDV', 'Transferts', 'Entrées', 'Sorties'] },
+  { menu: 'Achats', submenus: ['Bons de commande', 'Bons de livraison', 'Factures'] },
+  { menu: 'Clients', submenus: [] },
+  { menu: 'Caisse', submenus: ['Dépenses', 'Aperçu du jour'] },
+  { menu: 'Marges', submenus: [] },
+  { menu: 'Rapports', submenus: [] },
+  { menu: 'Paramètres', submenus: ['Zone Géographique', 'Fournisseurs', 'Dépôts Stock', 'Dépôts PDV', 'Utilisateurs', 'Permissions'] }
 ];
 
+const ACTIONS = ['read', 'write', 'delete'];
+
 export default function PermissionsConfig() {
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [selectedPermission, setSelectedPermission] = useState<any>(null);
+  const [formData, setFormData] = useState({
+    menu: '',
+    submenu: '',
+    action: 'read',
+    description: ''
+  });
+
   const { data: permissions = [], isLoading } = usePermissions();
+  const createPermission = useCreatePermission();
+  const updatePermission = useUpdatePermission();
+  const deletePermission = useDeletePermission();
 
-  const getActionIcon = (action: string) => {
-    switch (action) {
-      case 'read':
-        return <Eye className="h-3 w-3" />;
-      case 'write':
-        return <Edit className="h-3 w-3" />;
-      case 'delete':
-        return <Trash2 className="h-3 w-3" />;
-      default:
-        return <Key className="h-3 w-3" />;
+  const handleCreate = async () => {
+    if (!formData.menu.trim() || !formData.action.trim()) {
+      toast.error('Le menu et l\'action sont requis');
+      return;
     }
-  };
 
-  const getActionColor = (action: string) => {
-    switch (action) {
-      case 'read':
-        return 'text-green-600 bg-green-50 border-green-200';
-      case 'write':
-        return 'text-blue-600 bg-blue-50 border-blue-200';
-      case 'delete':
-        return 'text-red-600 bg-red-50 border-red-200';
-      default:
-        return 'text-gray-600 bg-gray-50 border-gray-200';
-    }
-  };
-
-  const getActionLabel = (action: string) => {
-    switch (action) {
-      case 'read':
-        return 'Lecture';
-      case 'write':
-        return 'Écriture';
-      case 'delete':
-        return 'Suppression';
-      default:
-        return action;
-    }
-  };
-
-  // Grouper les permissions par menu
-  const groupedMenus = APPLICATION_STRUCTURE.reduce((acc, item) => {
-    const menuKey = item.menu;
-    if (!acc[menuKey]) {
-      acc[menuKey] = [];
-    }
-    
-    item.actions.forEach(action => {
-      acc[menuKey].push({
-        ...item,
-        action: action,
-        id: `${item.menu}-${item.submenu}-${action}`
+    try {
+      await createPermission.mutateAsync({
+        menu: formData.menu,
+        submenu: formData.submenu || null,
+        action: formData.action,
+        description: formData.description
       });
+      setIsCreateOpen(false);
+      setFormData({ menu: '', submenu: '', action: 'read', description: '' });
+    } catch (error) {
+      // L'erreur est gérée par le hook
+    }
+  };
+
+  const handleEdit = (permission: any) => {
+    setSelectedPermission(permission);
+    setFormData({
+      menu: permission.menu,
+      submenu: permission.submenu || '',
+      action: permission.action,
+      description: permission.description || ''
     });
-    
-    return acc;
-  }, {} as Record<string, Array<any>>);
+    setIsEditOpen(true);
+  };
+
+  const handleUpdate = async () => {
+    if (!selectedPermission || !formData.menu.trim() || !formData.action.trim()) {
+      toast.error('Le menu et l\'action sont requis');
+      return;
+    }
+
+    try {
+      await updatePermission.mutateAsync({
+        id: selectedPermission.id,
+        menu: formData.menu,
+        submenu: formData.submenu || null,
+        action: formData.action,
+        description: formData.description
+      });
+      setIsEditOpen(false);
+      setSelectedPermission(null);
+      setFormData({ menu: '', submenu: '', action: 'read', description: '' });
+    } catch (error) {
+      // L'erreur est gérée par le hook
+    }
+  };
+
+  const handleDelete = async (permissionId: string, description: string) => {
+    if (confirm(`Êtes-vous sûr de vouloir supprimer la permission "${description}" ?`)) {
+      try {
+        await deletePermission.mutateAsync(permissionId);
+      } catch (error) {
+        // L'erreur est gérée par le hook
+      }
+    }
+  };
+
+  const generateAllPermissions = async () => {
+    try {
+      const permissionsToCreate = [];
+      
+      for (const menuItem of MENU_STRUCTURE) {
+        if (menuItem.submenus.length === 0) {
+          // Menu sans sous-menu
+          for (const action of ACTIONS) {
+            permissionsToCreate.push({
+              menu: menuItem.menu,
+              submenu: null,
+              action,
+              description: `${action} access to ${menuItem.menu}`
+            });
+          }
+        } else {
+          // Menu avec sous-menus
+          for (const submenu of menuItem.submenus) {
+            for (const action of ACTIONS) {
+              permissionsToCreate.push({
+                menu: menuItem.menu,
+                submenu,
+                action,
+                description: `${action} access to ${menuItem.menu} - ${submenu}`
+              });
+            }
+          }
+        }
+      }
+
+      // Créer toutes les permissions
+      for (const permission of permissionsToCreate) {
+        try {
+          await createPermission.mutateAsync(permission);
+        } catch (error) {
+          // Ignorer les erreurs de duplication
+          console.log('Permission already exists:', permission);
+        }
+      }
+      
+      toast.success('Permissions générées avec succès');
+    } catch (error) {
+      toast.error('Erreur lors de la génération des permissions');
+    }
+  };
 
   if (isLoading) {
     return (
@@ -242,60 +162,206 @@ export default function PermissionsConfig() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h3 className="text-lg font-medium">Configuration des Permissions</h3>
-        <p className="text-sm text-muted-foreground">
-          Activez ou désactivez les permissions pour chaque menu et sous-menu
-        </p>
-      </div>
-
-      <div className="space-y-4">
-        {Object.entries(groupedMenus).map(([menuName, menuPermissions]) => (
-          <Card key={menuName}>
-            <CardHeader>
-              <div className="flex items-center space-x-2">
-                <Settings className="h-5 w-5" />
-                <CardTitle className="text-base">{menuName}</CardTitle>
-                <Badge variant="outline">
-                  {menuPermissions.length} permission{menuPermissions.length > 1 ? 's' : ''}
-                </Badge>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {menuPermissions.map((permission, index) => (
-                  <div
-                    key={`${permission.id}-${index}`}
-                    className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors"
-                  >
-                    <div className="flex-1">
-                      <div className="flex items-center space-x-2">
-                        <span className="font-medium">
-                          {permission.submenu ? `${permission.submenu} →` : ''} {getActionLabel(permission.action)}
-                        </span>
-                        <Badge variant="outline" className={`${getActionColor(permission.action)} text-xs`}>
-                          {getActionIcon(permission.action)}
-                          <span className="ml-1">{getActionLabel(permission.action)}</span>
-                        </Badge>
-                      </div>
-                      <p className="text-sm text-muted-foreground mt-1">
-                        {permission.description}
-                      </p>
+      <Card>
+        <CardHeader>
+          <div className="flex justify-between items-center">
+            <CardTitle className="flex items-center gap-2">
+              <Settings className="w-5 h-5" />
+              Configuration des Permissions
+            </CardTitle>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={generateAllPermissions}>
+                Générer toutes les permissions
+              </Button>
+              <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
+                <DialogTrigger asChild>
+                  <Button>
+                    <Plus className="w-4 h-4 mr-2" />
+                    Nouvelle Permission
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Créer une nouvelle permission</DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-4">
+                    <div>
+                      <Label htmlFor="menu">Menu</Label>
+                      <Select value={formData.menu} onValueChange={(value) => setFormData({ ...formData, menu: value })}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Sélectionner un menu" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {MENU_STRUCTURE.map(item => (
+                            <SelectItem key={item.menu} value={item.menu}>{item.menu}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
-                    <Switch
-                      defaultChecked={true}
-                      onCheckedChange={(checked) => {
-                        // Les permissions sont activées par défaut
-                        console.log(`Permission ${permission.id}: ${checked}`);
-                      }}
-                    />
+                    <div>
+                      <Label htmlFor="submenu">Sous-menu (optionnel)</Label>
+                      <Select value={formData.submenu} onValueChange={(value) => setFormData({ ...formData, submenu: value })}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Sélectionner un sous-menu" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="">Aucun</SelectItem>
+                          {MENU_STRUCTURE.find(item => item.menu === formData.menu)?.submenus.map(submenu => (
+                            <SelectItem key={submenu} value={submenu}>{submenu}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label htmlFor="action">Action</Label>
+                      <Select value={formData.action} onValueChange={(value) => setFormData({ ...formData, action: value })}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Sélectionner une action" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {ACTIONS.map(action => (
+                            <SelectItem key={action} value={action}>{action}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label htmlFor="description">Description</Label>
+                      <Input
+                        id="description"
+                        value={formData.description}
+                        onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                        placeholder="Description de la permission"
+                      />
+                    </div>
+                    <div className="flex justify-end gap-2">
+                      <Button variant="outline" onClick={() => setIsCreateOpen(false)}>
+                        Annuler
+                      </Button>
+                      <Button onClick={handleCreate} disabled={createPermission.isPending}>
+                        {createPermission.isPending ? 'Création...' : 'Créer'}
+                      </Button>
+                    </div>
                   </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+                </DialogContent>
+              </Dialog>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Menu</TableHead>
+                <TableHead>Sous-menu</TableHead>
+                <TableHead>Action</TableHead>
+                <TableHead>Description</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {permissions.map((permission) => (
+                <TableRow key={permission.id}>
+                  <TableCell className="font-medium">{permission.menu}</TableCell>
+                  <TableCell>{permission.submenu || '-'}</TableCell>
+                  <TableCell>
+                    <Badge variant={permission.action === 'read' ? 'default' : permission.action === 'write' ? 'secondary' : 'destructive'}>
+                      {permission.action}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>{permission.description || '-'}</TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex justify-end gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleEdit(permission)}
+                      >
+                        <Edit className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleDelete(permission.id, permission.description || `${permission.menu} - ${permission.action}`)}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+
+      {/* Dialog d'édition */}
+      <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Modifier la permission</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="edit-menu">Menu</Label>
+              <Select value={formData.menu} onValueChange={(value) => setFormData({ ...formData, menu: value })}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Sélectionner un menu" />
+                </SelectTrigger>
+                <SelectContent>
+                  {MENU_STRUCTURE.map(item => (
+                    <SelectItem key={item.menu} value={item.menu}>{item.menu}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label htmlFor="edit-submenu">Sous-menu (optionnel)</Label>
+              <Select value={formData.submenu} onValueChange={(value) => setFormData({ ...formData, submenu: value })}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Sélectionner un sous-menu" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">Aucun</SelectItem>
+                  {MENU_STRUCTURE.find(item => item.menu === formData.menu)?.submenus.map(submenu => (
+                    <SelectItem key={submenu} value={submenu}>{submenu}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label htmlFor="edit-action">Action</Label>
+              <Select value={formData.action} onValueChange={(value) => setFormData({ ...formData, action: value })}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Sélectionner une action" />
+                </SelectTrigger>
+                <SelectContent>
+                  {ACTIONS.map(action => (
+                    <SelectItem key={action} value={action}>{action}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label htmlFor="edit-description">Description</Label>
+              <Input
+                id="edit-description"
+                value={formData.description}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                placeholder="Description de la permission"
+              />
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setIsEditOpen(false)}>
+                Annuler
+              </Button>
+              <Button onClick={handleUpdate} disabled={updatePermission.isPending}>
+                {updatePermission.isPending ? 'Mise à jour...' : 'Mettre à jour'}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

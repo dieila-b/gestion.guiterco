@@ -17,7 +17,7 @@ interface CreateRoleDialogProps {
 const CreateRoleDialog = ({ children }: CreateRoleDialogProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const [formData, setFormData] = useState({
-    nom: '',
+    name: '',
     description: ''
   });
   
@@ -25,29 +25,38 @@ const CreateRoleDialog = ({ children }: CreateRoleDialogProps) => {
   const queryClient = useQueryClient();
 
   const createRole = useMutation({
-    mutationFn: async (data: { nom: string; description: string }) => {
+    mutationFn: async (data: { name: string; description: string }) => {
+      console.log('Creating role with data:', data);
+      
       const { data: role, error } = await supabase
-        .from('roles_utilisateurs')
+        .from('roles')
         .insert({
-          nom: data.nom.toLowerCase().replace(/\s+/g, '_'),
-          description: data.description
+          name: data.name,
+          description: data.description,
+          is_system: false
         })
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error creating role:', error);
+        throw error;
+      }
+      
+      console.log('Role created successfully:', role);
       return role;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['roles-utilisateurs'] });
+      queryClient.invalidateQueries({ queryKey: ['roles'] });
       toast({
         title: "Rôle créé",
         description: "Le nouveau rôle a été créé avec succès.",
       });
-      setFormData({ nom: '', description: '' });
+      setFormData({ name: '', description: '' });
       setIsOpen(false);
     },
     onError: (error: any) => {
+      console.error('Mutation error:', error);
       toast({
         title: "Erreur",
         description: error.message || "Impossible de créer le rôle",
@@ -58,7 +67,8 @@ const CreateRoleDialog = ({ children }: CreateRoleDialogProps) => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.nom.trim()) {
+    
+    if (!formData.name.trim()) {
       toast({
         title: "Erreur",
         description: "Le nom du rôle est requis",
@@ -66,6 +76,8 @@ const CreateRoleDialog = ({ children }: CreateRoleDialogProps) => {
       });
       return;
     }
+    
+    console.log('Submitting form with data:', formData);
     createRole.mutate(formData);
   };
 
@@ -86,12 +98,12 @@ const CreateRoleDialog = ({ children }: CreateRoleDialogProps) => {
         
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="nom">Nom du rôle *</Label>
+            <Label htmlFor="name">Nom du rôle *</Label>
             <Input
-              id="nom"
-              value={formData.nom}
-              onChange={(e) => setFormData(prev => ({ ...prev, nom: e.target.value }))}
-              placeholder="Ex: Super Admin, Gestionnaire Stock..."
+              id="name"
+              value={formData.name}
+              onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+              placeholder="Ex: Gestionnaire Stock, Superviseur..."
               required
             />
           </div>
