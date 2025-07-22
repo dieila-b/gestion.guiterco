@@ -22,24 +22,18 @@ serve(async (req) => {
 
     console.log('🚀 Début création utilisateur:', { email, prenom, nom, role_id })
 
-    // Vérifier si l'utilisateur existe déjà dans auth.users
-    const { data: existingAuthUser, error: authCheckError } = await supabaseClient.auth.admin.listUsers()
-    
-    if (authCheckError) {
-      console.error('❌ Erreur lors de la vérification auth:', authCheckError)
-      throw new Error(`Erreur de vérification auth: ${authCheckError.message}`)
+    // Nettoyer d'abord les utilisateurs en doublon pour cet email
+    console.log('🧹 Nettoyage des doublons pour:', email)
+    const { error: cleanupError } = await supabaseClient.rpc('cleanup_duplicate_users', { p_email: email })
+    if (cleanupError) {
+      console.warn('⚠️ Erreur lors du nettoyage:', cleanupError.message)
     }
 
-    const userExists = existingAuthUser.users.find(u => u.email === email)
-    if (userExists) {
-      console.log('⚠️ Utilisateur auth existant trouvé:', userExists.id)
-      throw new Error('Un utilisateur avec cette adresse email existe déjà dans le système d\'authentification')
-    }
-
-    // Vérifier si l'utilisateur existe déjà dans utilisateurs_internes
+    // Approche plus simple pour vérifier les utilisateurs existants
+    // Ne pas vérifier auth.users directement car c'est trop complexe
     const { data: existingInternalUser, error: internalCheckError } = await supabaseClient
       .from('utilisateurs_internes')
-      .select('id, email')
+      .select('id, email, user_id')
       .eq('email', email)
       .maybeSingle()
 

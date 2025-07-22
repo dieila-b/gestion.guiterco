@@ -3143,6 +3143,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      cleanup_duplicate_users: {
+        Args: { p_email: string }
+        Returns: undefined
+      }
       complete_precommande_payment: {
         Args: {
           precommande_uuid: string
@@ -3263,6 +3267,10 @@ export type Database = {
           details: string
           recommandation: string
         }[]
+      }
+      email_exists_in_auth: {
+        Args: { p_email: string }
+        Returns: boolean
       }
       generate_bon_commande_number: {
         Args: Record<PropertyKey, never>
