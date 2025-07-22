@@ -33,10 +33,15 @@ serve(async (req) => {
       const { error: cleanupError } = await supabaseClient.rpc('cleanup_duplicate_users', { p_email: email })
       if (cleanupError) {
         console.warn('⚠️ Erreur lors du nettoyage:', cleanupError.message)
+      } else {
+        console.log('✅ Nettoyage terminé avec succès')
       }
     } catch (cleanupErr) {
       console.warn('⚠️ Erreur de nettoyage ignorée:', cleanupErr)
     }
+
+    // Attendre un peu pour laisser le temps au nettoyage de se propager
+    await new Promise(resolve => setTimeout(resolve, 500))
 
     // Vérifier les utilisateurs existants plus efficacement
     console.log('🔍 Vérification utilisateur existant...')
