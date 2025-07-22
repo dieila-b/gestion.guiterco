@@ -40,10 +40,14 @@ export const checkInternalUser = async (userId: string): Promise<UtilisateurInte
       prenom: data.prenom,
       statut: data.statut,
       type_compte: data.type_compte,
-      role: data.role?.nom
+      role: data.role
     });
 
-    return data as UtilisateurInterne;
+    // Transformer les données pour correspondre au type UtilisateurInterne
+    return {
+      ...data,
+      role: data.role || { nom: '', description: '' }
+    } as UtilisateurInterne;
   } catch (error) {
     console.error('❌ Erreur inattendue lors de la vérification de l\'utilisateur interne:', error);
     return null;

@@ -27,46 +27,38 @@ serve(async (req) => {
       throw new Error('Paramètres manquants: email, password, prenom, nom et role_id sont requis')
     }
 
-    // Nettoyer d'abord les utilisateurs en doublon pour cet email - FORCÉ
-    console.log('🧹 Nettoyage forcé des doublons pour:', email)
-    try {
-      // Nettoyage direct dans la fonction pour éviter tout problème de cache
-      const { error: directCleanupError } = await supabaseClient
-        .from('user_roles')
-        .delete()
-        .in('user_id', 
-          supabaseClient
-            .from('utilisateurs_internes')
-            .select('user_id')
-            .eq('email', email)
-        );
-      
-      if (directCleanupError) {
-        console.warn('⚠️ Erreur nettoyage user_roles:', directCleanupError.message)
-      }
-
-      const { error: directUserCleanupError } = await supabaseClient
-        .from('utilisateurs_internes')
-        .delete()
-        .eq('email', email);
-      
-      if (directUserCleanupError) {
-        console.warn('⚠️ Erreur nettoyage utilisateurs_internes:', directUserCleanupError.message)
-      }
-
-      // Utiliser aussi la fonction de nettoyage
-      const { error: cleanupError } = await supabaseClient.rpc('cleanup_duplicate_users', { p_email: email })
-      if (cleanupError) {
-        console.warn('⚠️ Erreur lors du nettoyage RPC:', cleanupError.message)
-      }
-
-      console.log('✅ Nettoyage forcé terminé')
-    } catch (cleanupErr) {
-      console.warn('⚠️ Erreur de nettoyage forcé ignorée:', cleanupErr)
+    // Vérifier d'abord si la création est possible
+    console.log('🔍 Vérification préalable pour:', email)
+    const { data: canCreate, error: verifyError } = await supabaseClient.rpc('verify_user_creation_ready', { p_email: email })
+    
+    if (verifyError) {
+      console.warn('⚠️ Erreur lors de la vérification:', verifyError.message)
     }
+    
+    console.log('📊 Résultat vérification:', { canCreate, verifyError })
 
-    // Attendre un peu pour laisser le temps au nettoyage de se propager
-    await new Promise(resolve => setTimeout(resolve, 1000))
+    // Nettoyer si nécessaire
+    if (!canCreate) {
+      console.log('🧹 Nettoyage forcé nécessaire pour:', email)
+      try {
+        const { error: cleanupError } = await supabaseClient.rpc('cleanup_duplicate_users', { p_email: email })
+        if (cleanupError) {
+          console.warn('⚠️ Erreur lors du nettoyage:', cleanupError.message)
+        } else {
+          console.log('✅ Nettoyage terminé avec succès')
+        }
+        
+        // Attendre un peu pour laisser le temps au nettoyage de se propager
+        await new Promise(resolve => setTimeout(resolve, 1000))
+        
+        // Re-vérifier après nettoyage
+        const { data: canCreateAfterCleanup } = await supabaseClient.rpc('verify_user_creation_ready', { p_email: email })
+        console.log('📊 Vérification post-nettoyage:', { canCreateAfterCleanup })
+        
+      } catch (cleanupErr) {
+        console.warn('⚠️ Erreur de nettoyage ignorée:', cleanupErr)
+      }
+    }
 
     // Vérifier les utilisateurs existants plus efficacement
     console.log('🔍 Vérification utilisateur existant...')
@@ -84,7 +76,7 @@ serve(async (req) => {
     }
 
     if (existingInternalUser?.user_id) {
-      console.log('⚠️ Utilisateur interne existant avec user_id valide:', existingInternalUser.id)
+      console.log('⚠️ Utilisateur interne existant trouvé:', existingInternalUser.id)
       throw new Error('Un utilisateur avec cette adresse email existe déjà')
     }
 

@@ -2829,7 +2829,7 @@ export type Database = {
             foreignKeyName: "utilisateurs_internes_role_id_fkey"
             columns: ["role_id"]
             isOneToOne: false
-            referencedRelation: "roles_utilisateurs"
+            referencedRelation: "roles"
             referencedColumns: ["id"]
           },
         ]
@@ -3582,6 +3582,10 @@ export type Database = {
           nombre: number
           statut: string
         }[]
+      }
+      verify_user_creation_ready: {
+        Args: { p_email: string }
+        Returns: boolean
       }
     }
     Enums: {
