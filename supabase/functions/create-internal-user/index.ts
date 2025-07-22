@@ -27,21 +27,46 @@ serve(async (req) => {
       throw new Error('Paramètres manquants: email, password, prenom, nom et role_id sont requis')
     }
 
-    // Nettoyer d'abord les utilisateurs en doublon pour cet email
-    console.log('🧹 Nettoyage des doublons pour:', email)
+    // Nettoyer d'abord les utilisateurs en doublon pour cet email - FORCÉ
+    console.log('🧹 Nettoyage forcé des doublons pour:', email)
     try {
+      // Nettoyage direct dans la fonction pour éviter tout problème de cache
+      const { error: directCleanupError } = await supabaseClient
+        .from('user_roles')
+        .delete()
+        .in('user_id', 
+          supabaseClient
+            .from('utilisateurs_internes')
+            .select('user_id')
+            .eq('email', email)
+        );
+      
+      if (directCleanupError) {
+        console.warn('⚠️ Erreur nettoyage user_roles:', directCleanupError.message)
+      }
+
+      const { error: directUserCleanupError } = await supabaseClient
+        .from('utilisateurs_internes')
+        .delete()
+        .eq('email', email);
+      
+      if (directUserCleanupError) {
+        console.warn('⚠️ Erreur nettoyage utilisateurs_internes:', directUserCleanupError.message)
+      }
+
+      // Utiliser aussi la fonction de nettoyage
       const { error: cleanupError } = await supabaseClient.rpc('cleanup_duplicate_users', { p_email: email })
       if (cleanupError) {
-        console.warn('⚠️ Erreur lors du nettoyage:', cleanupError.message)
-      } else {
-        console.log('✅ Nettoyage terminé avec succès')
+        console.warn('⚠️ Erreur lors du nettoyage RPC:', cleanupError.message)
       }
+
+      console.log('✅ Nettoyage forcé terminé')
     } catch (cleanupErr) {
-      console.warn('⚠️ Erreur de nettoyage ignorée:', cleanupErr)
+      console.warn('⚠️ Erreur de nettoyage forcé ignorée:', cleanupErr)
     }
 
     // Attendre un peu pour laisser le temps au nettoyage de se propager
-    await new Promise(resolve => setTimeout(resolve, 500))
+    await new Promise(resolve => setTimeout(resolve, 1000))
 
     // Vérifier les utilisateurs existants plus efficacement
     console.log('🔍 Vérification utilisateur existant...')
@@ -50,6 +75,8 @@ serve(async (req) => {
       .select('id, email, user_id')
       .eq('email', email)
       .maybeSingle()
+
+    console.log('📊 Résultat vérification:', { existingInternalUser, internalCheckError })
 
     if (internalCheckError && internalCheckError.code !== 'PGRST116') {
       console.error('❌ Erreur lors de la vérification interne:', internalCheckError)
