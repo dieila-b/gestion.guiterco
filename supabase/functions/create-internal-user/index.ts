@@ -197,6 +197,7 @@ serve(async (req) => {
         prenom: userData.prenom,
         nom: userData.nom,
         email: userData.email,
+        matricule: userData.matricule,
         role: roleData.name,
         statut: userData.statut
       },

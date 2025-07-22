@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -36,6 +36,7 @@ const CreateUserForm = ({ onSuccess, onCancel }: CreateUserFormProps) => {
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
+  const [generatedMatricule, setGeneratedMatricule] = useState<string>('');
   const { toast } = useToast();
   const { data: roles = [] } = useRolesForUsers();
   
@@ -50,6 +51,24 @@ const CreateUserForm = ({ onSuccess, onCancel }: CreateUserFormProps) => {
   const selectedStatut = watch('statut');
   const password = watch('password');
   const doitChangerMotDePasse = watch('doit_changer_mot_de_passe');
+  const prenom = watch('prenom');
+  const nom = watch('nom');
+
+  // Générer le matricule automatiquement quand le prénom et nom changent
+  useEffect(() => {
+    if (prenom && nom) {
+      // Génération du matricule côté client (pour prévisualisation)
+      const initiales = (
+        (prenom.substring(0, 2) || '') + 
+        (nom.substring(0, 1) || '')
+      ).toUpperCase().padEnd(3, 'X');
+      
+      // Matricule temporaire pour l'affichage (sera remplacé par celui généré côté serveur)
+      setGeneratedMatricule(`${initiales}-XX`);
+    } else {
+      setGeneratedMatricule('');
+    }
+  }, [prenom, nom]);
 
   // Handle photo upload
   const handlePhotoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -172,7 +191,7 @@ const CreateUserForm = ({ onSuccess, onCancel }: CreateUserFormProps) => {
 
       toast({
         title: "Utilisateur créé",
-        description: `L'utilisateur ${result.user.prenom} ${result.user.nom} a été créé avec succès`,
+        description: `L'utilisateur ${result.user.prenom} ${result.user.nom} a été créé avec succès${result.user.matricule ? ` (Matricule: ${result.user.matricule})` : ''}`,
       });
 
       onSuccess();
@@ -328,6 +347,23 @@ const CreateUserForm = ({ onSuccess, onCancel }: CreateUserFormProps) => {
           disabled={isCreating}
         />
       </div>
+
+      {/* Matricule généré automatiquement */}
+      {generatedMatricule && (
+        <div className="space-y-2">
+          <Label htmlFor="matricule">Matricule (généré automatiquement)</Label>
+          <Input
+            id="matricule"
+            value={generatedMatricule}
+            disabled
+            className="bg-muted text-muted-foreground cursor-not-allowed"
+            placeholder="Sera généré automatiquement..."
+          />
+          <p className="text-xs text-muted-foreground">
+            Le matricule définitif sera automatiquement attribué lors de la création
+          </p>
+        </div>
+      )}
 
       <div className="space-y-2">
         <Label htmlFor="role">Rôle *</Label>
