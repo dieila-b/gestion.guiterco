@@ -22,29 +22,38 @@ serve(async (req) => {
 
     console.log('🚀 Début création utilisateur:', { email, prenom, nom, role_id })
 
-    // Nettoyer d'abord les utilisateurs en doublon pour cet email
-    console.log('🧹 Nettoyage des doublons pour:', email)
-    const { error: cleanupError } = await supabaseClient.rpc('cleanup_duplicate_users', { p_email: email })
-    if (cleanupError) {
-      console.warn('⚠️ Erreur lors du nettoyage:', cleanupError.message)
+    // Validation des paramètres requis
+    if (!email || !password || !prenom || !nom || !role_id) {
+      throw new Error('Paramètres manquants: email, password, prenom, nom et role_id sont requis')
     }
 
-    // Approche plus simple pour vérifier les utilisateurs existants
-    // Ne pas vérifier auth.users directement car c'est trop complexe
+    // Nettoyer d'abord les utilisateurs en doublon pour cet email
+    console.log('🧹 Nettoyage des doublons pour:', email)
+    try {
+      const { error: cleanupError } = await supabaseClient.rpc('cleanup_duplicate_users', { p_email: email })
+      if (cleanupError) {
+        console.warn('⚠️ Erreur lors du nettoyage:', cleanupError.message)
+      }
+    } catch (cleanupErr) {
+      console.warn('⚠️ Erreur de nettoyage ignorée:', cleanupErr)
+    }
+
+    // Vérifier les utilisateurs existants plus efficacement
+    console.log('🔍 Vérification utilisateur existant...')
     const { data: existingInternalUser, error: internalCheckError } = await supabaseClient
       .from('utilisateurs_internes')
       .select('id, email, user_id')
       .eq('email', email)
       .maybeSingle()
 
-    if (internalCheckError) {
+    if (internalCheckError && internalCheckError.code !== 'PGRST116') {
       console.error('❌ Erreur lors de la vérification interne:', internalCheckError)
       throw new Error(`Erreur de vérification utilisateur interne: ${internalCheckError.message}`)
     }
 
-    if (existingInternalUser) {
-      console.log('⚠️ Utilisateur interne existant trouvé:', existingInternalUser.id)
-      throw new Error('Un utilisateur avec cette adresse email existe déjà dans les utilisateurs internes')
+    if (existingInternalUser?.user_id) {
+      console.log('⚠️ Utilisateur interne existant avec user_id valide:', existingInternalUser.id)
+      throw new Error('Un utilisateur avec cette adresse email existe déjà')
     }
 
     // Vérifier que le rôle existe
@@ -61,7 +70,8 @@ serve(async (req) => {
 
     console.log('✅ Rôle validé:', roleData.name)
 
-    // Créer l'utilisateur dans Supabase Auth
+    // Créer l'utilisateur dans Supabase Auth avec gestion d'erreur améliorée
+    console.log('📝 Création utilisateur Auth...')
     const { data: authData, error: authError } = await supabaseClient.auth.admin.createUser({
       email,
       password,
@@ -76,6 +86,10 @@ serve(async (req) => {
 
     if (authError) {
       console.error('❌ Erreur création Auth:', authError)
+      // Gestion spécifique des erreurs d'email déjà existant
+      if (authError.message.includes('already been registered') || authError.message.includes('email_exists')) {
+        throw new Error('Un utilisateur avec cette adresse email existe déjà dans le système d\'authentification')
+      }
       throw new Error(`Erreur lors de la création du compte: ${authError.message}`)
     }
 
