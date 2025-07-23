@@ -8,7 +8,6 @@ import {
   Users, 
   Warehouse, 
   Store, 
-  UserCheck, 
   ShoppingCart,
   Shield
 } from 'lucide-react';
@@ -17,7 +16,6 @@ import Fournisseurs from '@/components/settings/Fournisseurs';
 import DepotsStockage from '@/components/settings/DepotsStockage';
 import DepotsPDV from '@/components/settings/DepotsPDV';
 import ClientsSettings from '@/components/settings/ClientsSettings';
-import UtilisateursInternes from '@/components/settings/UtilisateursInternes';
 import AccesPermissions from '@/components/settings/AccesPermissions';
 
 const settingsCards = [
@@ -57,13 +55,6 @@ const settingsCards = [
     color: 'bg-purple-500/10 border-purple-500/20 hover:bg-purple-500/15'
   },
   {
-    id: 'utilisateurs-internes',
-    title: 'Utilisateurs internes',
-    description: 'Gérez les utilisateurs et leurs droits d\'accès',
-    icon: UserCheck,
-    color: 'bg-indigo-500/10 border-indigo-500/20 hover:bg-indigo-500/15'
-  },
-  {
     id: 'acces-permissions',
     title: 'Accès & Permissions',
     description: 'Configurez les rôles et permissions utilisateurs',
@@ -89,14 +80,13 @@ const Settings = () => {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid grid-cols-8 w-full">
+          <TabsList className="grid grid-cols-7 w-full">
             <TabsTrigger value="overview">Vue d'ensemble</TabsTrigger>
             <TabsTrigger value="zone-geo">Zone Géo</TabsTrigger>
             <TabsTrigger value="fournisseurs">Fournisseurs</TabsTrigger>
             <TabsTrigger value="depots-stockage">Dépôts Stock</TabsTrigger>
             <TabsTrigger value="depots-pdv">Dépôts PDV</TabsTrigger>
             <TabsTrigger value="clients">Clients</TabsTrigger>
-            <TabsTrigger value="utilisateurs-internes">Utilisateurs</TabsTrigger>
             <TabsTrigger value="acces-permissions">Permissions</TabsTrigger>
           </TabsList>
 
@@ -143,10 +133,6 @@ const Settings = () => {
 
           <TabsContent value="clients" className="mt-6">
             <ClientsSettings />
-          </TabsContent>
-
-          <TabsContent value="utilisateurs-internes" className="mt-6">
-            <UtilisateursInternes />
           </TabsContent>
 
           <TabsContent value="acces-permissions" className="mt-6">

@@ -58,13 +58,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "articles_bon_commande_article_id_fkey"
-            columns: ["article_id"]
-            isOneToOne: false
-            referencedRelation: "vue_marges_globales_stock"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "articles_bon_commande_bon_commande_id_fkey"
             columns: ["bon_commande_id"]
             isOneToOne: false
@@ -130,13 +123,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "articles_bon_livraison_article_id_fkey"
-            columns: ["article_id"]
-            isOneToOne: false
-            referencedRelation: "vue_marges_globales_stock"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "articles_bon_livraison_bon_livraison_id_fkey"
             columns: ["bon_livraison_id"]
             isOneToOne: false
@@ -196,13 +182,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "articles_facture_achat_article_id_fkey"
-            columns: ["article_id"]
-            isOneToOne: false
-            referencedRelation: "vue_marges_globales_stock"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "articles_facture_achat_facture_achat_id_fkey"
             columns: ["facture_achat_id"]
             isOneToOne: false
@@ -255,13 +234,6 @@ export type Database = {
             columns: ["article_id"]
             isOneToOne: false
             referencedRelation: "vue_marges_articles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "articles_retour_client_article_id_fkey"
-            columns: ["article_id"]
-            isOneToOne: false
-            referencedRelation: "vue_marges_globales_stock"
             referencedColumns: ["id"]
           },
           {
@@ -1021,13 +993,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "entrees_stock_article_id_fkey"
-            columns: ["article_id"]
-            isOneToOne: false
-            referencedRelation: "vue_marges_globales_stock"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "entrees_stock_entrepot_id_fkey"
             columns: ["entrepot_id"]
             isOneToOne: false
@@ -1494,13 +1459,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "lignes_commande_article_id_fkey"
-            columns: ["article_id"]
-            isOneToOne: false
-            referencedRelation: "vue_marges_globales_stock"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "lignes_commande_commande_id_fkey"
             columns: ["commande_id"]
             isOneToOne: false
@@ -1550,13 +1508,6 @@ export type Database = {
             columns: ["article_id"]
             isOneToOne: false
             referencedRelation: "vue_marges_articles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "lignes_devis_article_id_fkey"
-            columns: ["article_id"]
-            isOneToOne: false
-            referencedRelation: "vue_marges_globales_stock"
             referencedColumns: ["id"]
           },
           {
@@ -1618,13 +1569,6 @@ export type Database = {
             columns: ["article_id"]
             isOneToOne: false
             referencedRelation: "vue_marges_articles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "lignes_facture_vente_article_id_fkey"
-            columns: ["article_id"]
-            isOneToOne: false
-            referencedRelation: "vue_marges_globales_stock"
             referencedColumns: ["id"]
           },
           {
@@ -1700,13 +1644,6 @@ export type Database = {
             columns: ["article_id"]
             isOneToOne: false
             referencedRelation: "vue_marges_articles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "lignes_precommande_article_id_fkey"
-            columns: ["article_id"]
-            isOneToOne: false
-            referencedRelation: "vue_marges_globales_stock"
             referencedColumns: ["id"]
           },
           {
@@ -2278,30 +2215,6 @@ export type Database = {
         }
         Relationships: []
       }
-      roles_utilisateurs: {
-        Row: {
-          created_at: string | null
-          description: string | null
-          id: string
-          nom: string
-          updated_at: string | null
-        }
-        Insert: {
-          created_at?: string | null
-          description?: string | null
-          id?: string
-          nom: string
-          updated_at?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          description?: string | null
-          id?: string
-          nom?: string
-          updated_at?: string | null
-        }
-        Relationships: []
-      }
       sorties_financieres: {
         Row: {
           categorie_id: string | null
@@ -2393,13 +2306,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "sorties_stock_article_id_fkey"
-            columns: ["article_id"]
-            isOneToOne: false
-            referencedRelation: "vue_marges_globales_stock"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "sorties_stock_entrepot_id_fkey"
             columns: ["entrepot_id"]
             isOneToOne: false
@@ -2452,13 +2358,6 @@ export type Database = {
             columns: ["article_id"]
             isOneToOne: false
             referencedRelation: "vue_marges_articles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "stock_pdv_article_id_fkey"
-            columns: ["article_id"]
-            isOneToOne: false
-            referencedRelation: "vue_marges_globales_stock"
             referencedColumns: ["id"]
           },
           {
@@ -2520,13 +2419,6 @@ export type Database = {
             columns: ["article_id"]
             isOneToOne: false
             referencedRelation: "vue_marges_articles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "stock_principal_article_id_fkey"
-            columns: ["article_id"]
-            isOneToOne: false
-            referencedRelation: "vue_marges_globales_stock"
             referencedColumns: ["id"]
           },
           {
@@ -2666,13 +2558,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "transferts_article_id_fkey"
-            columns: ["article_id"]
-            isOneToOne: false
-            referencedRelation: "vue_marges_globales_stock"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "transferts_entrepot_destination_id_fkey"
             columns: ["entrepot_destination_id"]
             isOneToOne: false
@@ -2724,115 +2609,6 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
-      }
-      user_roles: {
-        Row: {
-          assigned_at: string | null
-          assigned_by: string | null
-          created_at: string
-          id: string
-          is_active: boolean
-          role_id: string
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          assigned_at?: string | null
-          assigned_by?: string | null
-          created_at?: string
-          id?: string
-          is_active?: boolean
-          role_id: string
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          assigned_at?: string | null
-          assigned_by?: string | null
-          created_at?: string
-          id?: string
-          is_active?: boolean
-          role_id?: string
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "user_roles_role_id_fkey"
-            columns: ["role_id"]
-            isOneToOne: false
-            referencedRelation: "roles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      utilisateurs_internes: {
-        Row: {
-          adresse: string | null
-          created_at: string | null
-          date_embauche: string | null
-          doit_changer_mot_de_passe: boolean | null
-          email: string
-          id: string
-          matricule: string | null
-          nom: string
-          photo_url: string | null
-          poste: string | null
-          prenom: string
-          role_id: string | null
-          statut: string | null
-          telephone: string | null
-          type_compte: string | null
-          updated_at: string | null
-          user_id: string | null
-        }
-        Insert: {
-          adresse?: string | null
-          created_at?: string | null
-          date_embauche?: string | null
-          doit_changer_mot_de_passe?: boolean | null
-          email: string
-          id?: string
-          matricule?: string | null
-          nom: string
-          photo_url?: string | null
-          poste?: string | null
-          prenom: string
-          role_id?: string | null
-          statut?: string | null
-          telephone?: string | null
-          type_compte?: string | null
-          updated_at?: string | null
-          user_id?: string | null
-        }
-        Update: {
-          adresse?: string | null
-          created_at?: string | null
-          date_embauche?: string | null
-          doit_changer_mot_de_passe?: boolean | null
-          email?: string
-          id?: string
-          matricule?: string | null
-          nom?: string
-          photo_url?: string | null
-          poste?: string | null
-          prenom?: string
-          role_id?: string | null
-          statut?: string | null
-          telephone?: string | null
-          type_compte?: string | null
-          updated_at?: string | null
-          user_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "utilisateurs_internes_role_id_fkey"
-            columns: ["role_id"]
-            isOneToOne: false
-            referencedRelation: "roles"
-            referencedColumns: ["id"]
-          },
-        ]
       }
       versements_clients: {
         Row: {
@@ -2939,13 +2715,6 @@ export type Database = {
             referencedRelation: "vue_marges_articles"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "lignes_commande_article_id_fkey"
-            columns: ["article_id"]
-            isOneToOne: false
-            referencedRelation: "vue_marges_globales_stock"
-            referencedColumns: ["id"]
-          },
         ]
       }
       vue_facture_vente_detaillee: {
@@ -3004,23 +2773,6 @@ export type Database = {
           reference: string | null
           taux_marge: number | null
           updated_at: string | null
-        }
-        Relationships: []
-      }
-      vue_marges_globales_stock: {
-        Row: {
-          cout_total_unitaire: number | null
-          id: string | null
-          marge_totale_article: number | null
-          marge_unitaire: number | null
-          nom: string | null
-          prix_achat: number | null
-          prix_vente: number | null
-          reference: string | null
-          stock_total: number | null
-          taux_marge: number | null
-          valeur_stock_cout: number | null
-          valeur_stock_vente: number | null
         }
         Relationships: []
       }
@@ -3143,10 +2895,6 @@ export type Database = {
         }
         Returns: boolean
       }
-      cleanup_duplicate_users: {
-        Args: { p_email: string }
-        Returns: undefined
-      }
       complete_precommande_payment: {
         Args: {
           precommande_uuid: string
@@ -3249,16 +2997,6 @@ export type Database = {
           details: string
         }[]
       }
-      diagnostic_user_management_system: {
-        Args: Record<PropertyKey, never>
-        Returns: {
-          diagnostic_type: string
-          status: string
-          count_result: number
-          message: string
-          details: Json
-        }[]
-      }
       diagnostic_user_system_complet: {
         Args: Record<PropertyKey, never>
         Returns: {
@@ -3267,10 +3005,6 @@ export type Database = {
           details: string
           recommandation: string
         }[]
-      }
-      email_exists_in_auth: {
-        Args: { p_email: string }
-        Returns: boolean
       }
       generate_bon_commande_number: {
         Args: Record<PropertyKey, never>
@@ -3282,10 +3016,6 @@ export type Database = {
       }
       generate_facture_vente_number: {
         Args: Record<PropertyKey, never>
-        Returns: string
-      }
-      generate_matricule: {
-        Args: { prenom_val: string; nom_val: string }
         Returns: string
       }
       generate_precommande_number: {
@@ -3582,10 +3312,6 @@ export type Database = {
           nombre: number
           statut: string
         }[]
-      }
-      verify_user_creation_ready: {
-        Args: { p_email: string }
-        Returns: boolean
       }
     }
     Enums: {
