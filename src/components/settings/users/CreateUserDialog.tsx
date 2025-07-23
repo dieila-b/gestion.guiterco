@@ -310,17 +310,21 @@ export function CreateUserDialog() {
               )}
             />
 
-            {/* Statut - Toujours actif pour la création */}
+            {/* Statut */}
             <div className="space-y-2">
               <label className="text-sm font-medium">Statut *</label>
-              <Select value="actif" disabled>
+              <Select value="actif">
                 <SelectTrigger>
                   <SelectValue placeholder="Actif" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="actif">Actif</SelectItem>
+                  <SelectItem value="inactif">Inactif</SelectItem>
                 </SelectContent>
               </Select>
+              <p className="text-xs text-muted-foreground">
+                Les nouveaux utilisateurs sont créés avec le statut "Actif" par défaut
+              </p>
             </div>
 
             {/* Forcer le changement de mot de passe */}
