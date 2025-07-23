@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -197,7 +196,6 @@ const RolePermissionsDialog = ({ role, children }: RolePermissionsDialogProps) =
       return pendingChanges[key];
     }
     
-    // Corriger l'accès à la permission via l'ID
     return rolePermissions.some(rp => {
       const permission = permissions.find(p => p.id === rp.permission_id);
       return permission && 
@@ -221,7 +219,6 @@ const RolePermissionsDialog = ({ role, children }: RolePermissionsDialogProps) =
       console.log('🔄 Saving role permissions for role:', role.id);
       console.log('📋 Pending changes:', pendingChanges);
 
-      // Traiter chaque changement en attente individuellement
       for (const [key, canAccess] of Object.entries(pendingChanges)) {
         const [menu, submenu, action] = key.split('-');
         const actualSubmenu = submenu === 'null' ? null : submenu;
@@ -320,7 +317,6 @@ const RolePermissionsDialog = ({ role, children }: RolePermissionsDialogProps) =
             </div>
           ) : (
             <div className="space-y-6">
-              {/* Grouper par menu */}
               {APPLICATION_MENUS.reduce((acc, menuItem) => {
                 const menuKey = menuItem.menu;
                 if (!acc.find(group => group.menu === menuKey)) {

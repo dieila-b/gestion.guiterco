@@ -47,7 +47,7 @@ export default function RolesManagement() {
     setFormData({
       name: role.name,
       description: role.description || '',
-      is_system: role.is_system
+      is_system: role.is_system || false
     })
     setIsEditOpen(true)
   }
