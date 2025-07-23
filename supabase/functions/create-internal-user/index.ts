@@ -27,37 +27,44 @@ serve(async (req) => {
       throw new Error('Paramètres manquants: email, password, prenom, nom et role_id sont requis')
     }
 
-    // Vérifier d'abord si la création est possible
-    console.log('🔍 Vérification préalable pour:', email)
-    const { data: canCreate, error: verifyError } = await supabaseClient.rpc('verify_user_creation_ready', { p_email: email })
-    
-    if (verifyError) {
-      console.warn('⚠️ Erreur lors de la vérification:', verifyError.message)
-    }
-    
-    console.log('📊 Résultat vérification:', { canCreate, verifyError })
-
-    // Nettoyer si nécessaire
-    if (!canCreate) {
-      console.log('🧹 Nettoyage forcé nécessaire pour:', email)
-      try {
-        const { error: cleanupError } = await supabaseClient.rpc('cleanup_duplicate_users', { p_email: email })
-        if (cleanupError) {
-          console.warn('⚠️ Erreur lors du nettoyage:', cleanupError.message)
-        } else {
-          console.log('✅ Nettoyage terminé avec succès')
-        }
-        
-        // Attendre un peu pour laisser le temps au nettoyage de se propager
-        await new Promise(resolve => setTimeout(resolve, 1000))
-        
-        // Re-vérifier après nettoyage
-        const { data: canCreateAfterCleanup } = await supabaseClient.rpc('verify_user_creation_ready', { p_email: email })
-        console.log('📊 Vérification post-nettoyage:', { canCreateAfterCleanup })
-        
-      } catch (cleanupErr) {
-        console.warn('⚠️ Erreur de nettoyage ignorée:', cleanupErr)
+    // Nettoyage préventif - supprimer tout utilisateur existant avec cet email
+    console.log('🧹 Nettoyage préventif pour:', email)
+    try {
+      // Supprimer de utilisateurs_internes d'abord
+      const { error: deleteInternalError } = await supabaseClient
+        .from('utilisateurs_internes')
+        .delete()
+        .eq('email', email)
+      
+      if (deleteInternalError) {
+        console.warn('⚠️ Erreur suppression utilisateur interne:', deleteInternalError.message)
       }
+
+      // Supprimer de user_roles
+      const { data: existingAuthUsers } = await supabaseClient
+        .from('utilisateurs_internes')
+        .select('user_id')
+        .eq('email', email)
+      
+      if (existingAuthUsers && existingAuthUsers.length > 0) {
+        for (const user of existingAuthUsers) {
+          if (user.user_id) {
+            const { error: deleteRoleError } = await supabaseClient
+              .from('user_roles')
+              .delete()
+              .eq('user_id', user.user_id)
+            
+            if (deleteRoleError) {
+              console.warn('⚠️ Erreur suppression rôle:', deleteRoleError.message)
+            }
+          }
+        }
+      }
+
+      console.log('✅ Nettoyage préventif terminé')
+      
+    } catch (cleanupErr) {
+      console.warn('⚠️ Erreur de nettoyage préventif ignorée:', cleanupErr)
     }
 
     // Vérifier les utilisateurs existants plus efficacement
