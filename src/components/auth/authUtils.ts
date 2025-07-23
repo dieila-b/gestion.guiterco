@@ -1,5 +1,6 @@
 
 import { supabase } from '@/integrations/supabase/client';
+import { UtilisateurInterne } from './types';
 
 export const signIn = async (email: string, password: string) => {
   try {
@@ -31,4 +32,12 @@ export const signOut = async () => {
   } else {
     console.log('✅ Déconnexion réussie');
   }
+};
+
+// Fonction temporaire pour maintenir la compatibilité
+export const checkInternalUser = async (userId: string): Promise<UtilisateurInterne | null> => {
+  console.log('⚠️ checkInternalUser appelée mais système d\'utilisateurs internes supprimé');
+  
+  // Retourner null car le système d'utilisateurs internes a été supprimé
+  return null;
 };
