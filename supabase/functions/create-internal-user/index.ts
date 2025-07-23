@@ -13,19 +13,33 @@ serve(async (req) => {
   }
 
   try {
+    console.log('🚀 === DÉBUT CRÉATION UTILISATEUR ===')
+    
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
+    console.log('✅ Client Supabase initialisé')
+
     const { prenom, nom, email, password, telephone, adresse, photo_url, role_id, doit_changer_mot_de_passe, statut } = await req.json()
 
-    console.log('🚀 Début création utilisateur:', { email, prenom, nom, role_id })
+    console.log('📝 Paramètres reçus:', { prenom, nom, email, role_id, statut })
 
     // Validation des paramètres requis
     if (!email || !password || !prenom || !nom || !role_id) {
+      const missingParams = {
+        email: !email,
+        password: !password, 
+        prenom: !prenom,
+        nom: !nom,
+        role_id: !role_id
+      }
+      console.error('❌ Paramètres manquants:', missingParams)
       throw new Error('Paramètres manquants: email, password, prenom, nom et role_id sont requis')
     }
+
+    console.log('✅ Validation des paramètres réussie')
 
     // Nettoyage préventif - supprimer tout utilisateur existant avec cet email
     console.log('🧹 Nettoyage préventif pour:', email)
@@ -222,18 +236,41 @@ serve(async (req) => {
     )
 
   } catch (error) {
-    console.error('❌ Erreur globale lors de la création:', error)
+    console.error('💥 === ERREUR GLOBALE ===')
+    console.error('Type:', typeof error)
+    console.error('Message:', error?.message || 'Message indisponible')
+    console.error('Stack:', error?.stack || 'Stack indisponible')
+    console.error('Détails complets:', JSON.stringify(error, null, 2))
+    
+    let errorMessage = 'Erreur inconnue lors de la création de l\'utilisateur'
+    let statusCode = 500
+    
+    if (error?.message) {
+      errorMessage = error.message
+      
+      // Codes d'erreur spécifiques
+      if (error.message.includes('duplicate key') || error.message.includes('already exists')) {
+        statusCode = 409 // Conflict
+      } else if (error.message.includes('Paramètres manquants')) {
+        statusCode = 400 // Bad Request
+      } else if (error.message.includes('Rôle introuvable')) {
+        statusCode = 404 // Not Found
+      }
+    }
     
     const errorResponse = {
       success: false,
-      error: error.message || 'Erreur inconnue lors de la création de l\'utilisateur',
-      details: error.stack || 'Aucun détail disponible'
+      error: errorMessage,
+      details: error?.stack || 'Aucun détail disponible',
+      timestamp: new Date().toISOString()
     }
+    
+    console.error('📤 Réponse d\'erreur:', errorResponse)
     
     return new Response(
       JSON.stringify(errorResponse),
       { 
-        status: 400,
+        status: statusCode,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
       }
     )
