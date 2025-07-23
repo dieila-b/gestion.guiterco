@@ -1,7 +1,7 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { ArticleWithMargin, FactureWithMargin, RapportMargePeriode } from '@/types/margins';
+import { ArticleWithMargin, FactureWithMargin, RapportMargePeriode, MargeGlobaleStock } from '@/types/margins';
 
 export interface MargeArticle {
   id: string;
@@ -17,17 +17,6 @@ export interface MargeArticle {
   updated_at: string;
 }
 
-export interface MargeGlobaleStock {
-  reference: string;
-  stock_total: number;
-  cout_total_unitaire: number;
-  marge_unitaire: number;
-  pourcentage_marge: number;
-  prix_vente_total: number;
-  valeur_stock_totale: number;
-  benefice_potentiel: number;
-}
-
 export const useMargesArticles = () => {
   return useQuery({
     queryKey: ['marges-articles'],
@@ -38,24 +27,36 @@ export const useMargesArticles = () => {
         .order('reference');
       
       if (error) throw error;
-      return data as MargeArticle[];
+      
+      // Transform data to match MargeArticle interface
+      return (data || []).map(item => ({
+        id: item.id,
+        reference: item.reference,
+        nom: item.nom,
+        cout_unitaire: item.cout_total_unitaire,
+        prix_vente: item.prix_vente || 0,
+        marge_unitaire: item.marge_unitaire,
+        pourcentage_marge: item.taux_marge,
+        stock_actuel: 0, // Not available in current view
+        valeur_stock: 0, // Not available in current view
+        created_at: item.created_at,
+        updated_at: item.updated_at,
+      })) as MargeArticle[];
     }
   });
 };
 
-// Hook temporaire désactivé car la vue n'existe plus
 export const useMargesGlobalesStock = () => {
   return useQuery({
     queryKey: ['marges-globales-stock'],
     queryFn: async () => {
       console.log('⚠️ Vue marges globales stock supprimée');
-      // Retourner un tableau vide car la vue n'existe plus
+      // Return empty array with proper type
       return [] as MargeGlobaleStock[];
     }
   });
 };
 
-// Add missing exports for compatibility
 export const useArticlesWithMargins = () => {
   return useQuery({
     queryKey: ['articles-with-margins'],
