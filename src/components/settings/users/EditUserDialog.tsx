@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useUpdateUtilisateurInterne, UtilisateurInterne } from '@/hooks/useUtilisateursInternes';
 import { useRoles } from '@/hooks/usePermissions';
+import { useFileUpload } from '@/hooks/useFileUpload';
 
 const editUserSchema = z.object({
   prenom: z.string().min(1, 'Le prénom est requis'),
@@ -38,6 +39,7 @@ export function EditUserDialog({ user, children }: EditUserDialogProps) {
   
   const updateUser = useUpdateUtilisateurInterne();
   const { data: roles, isLoading: rolesLoading } = useRoles();
+  const { uploadFile, uploading } = useFileUpload();
 
   const form = useForm<EditUserFormData>({
     resolver: zodResolver(editUserSchema),
@@ -92,6 +94,18 @@ export function EditUserDialog({ user, children }: EditUserDialogProps) {
     }
   };
 
+  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const imageUrl = await uploadFile(file, 'user-avatars');
+      form.setValue('photo_url', imageUrl);
+    } catch (error) {
+      console.error('Erreur lors de l\'upload de l\'image:', error);
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
@@ -128,9 +142,23 @@ export function EditUserDialog({ user, children }: EditUserDialogProps) {
                           {...field}
                         />
                       </FormControl>
-                      <Button type="button" variant="outline" size="icon">
-                        <Upload className="h-4 w-4" />
-                      </Button>
+                      <div className="relative">
+                        <Button 
+                          type="button" 
+                          variant="outline" 
+                          size="icon"
+                          disabled={uploading}
+                          className="relative overflow-hidden"
+                        >
+                          <Upload className="h-4 w-4" />
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={handleImageUpload}
+                            className="absolute inset-0 opacity-0 cursor-pointer"
+                          />
+                        </Button>
+                      </div>
                     </div>
                     <FormMessage />
                   </FormItem>

@@ -72,26 +72,10 @@ export const useCreateUtilisateurInterne = () => {
 
   return useMutation({
     mutationFn: async (data: CreateUtilisateurInterneData) => {
-      // Créer d'abord l'utilisateur dans Supabase Auth
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: data.email,
-        password: data.password,
-        options: {
-          emailRedirectTo: `${window.location.origin}/`,
-          data: {
-            prenom: data.prenom,
-            nom: data.nom,
-          }
-        }
-      });
-
-      if (authError) throw authError;
-
-      // Créer l'utilisateur interne dans notre table
+      // Créer directement l'utilisateur interne sans passer par Supabase Auth
       const { data: userData, error: userError } = await supabase
         .from('utilisateurs_internes')
         .insert({
-          user_id: authData.user?.id,
           prenom: data.prenom,
           nom: data.nom,
           email: data.email,
@@ -99,6 +83,7 @@ export const useCreateUtilisateurInterne = () => {
           role_id: data.role_id,
           adresse_complete: data.adresse_complete,
           photo_url: data.photo_url,
+          statut: 'actif', // Toujours actif par défaut
           doit_changer_mot_de_passe: data.doit_changer_mot_de_passe ?? true,
         })
         .select()
