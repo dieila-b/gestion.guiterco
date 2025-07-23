@@ -267,37 +267,19 @@ export const useDeletePermission = () => {
   });
 };
 
+// Disabled user role management functions since user_roles table doesn't exist
 export const useAssignUserRole = () => {
-  const queryClient = useQueryClient();
   const { toast } = useToast();
 
   return useMutation({
     mutationFn: async ({ userId, roleId }: { userId: string; roleId: string }) => {
-      const { data, error } = await supabase
-        .from('user_roles')
-        .insert({
-          user_id: userId,
-          role_id: roleId,
-          is_active: true
-        })
-        .select()
-        .single();
-
-      if (error) throw error;
-      return data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['utilisateurs-internes'] });
-      queryClient.invalidateQueries({ queryKey: ['users-with-roles'] });
-      toast({
-        title: "Rôle assigné",
-        description: "Le rôle a été assigné avec succès",
-      });
+      console.log('⚠️ User role assignment disabled - user_roles table not found');
+      throw new Error('User role assignment is currently disabled');
     },
     onError: (error: any) => {
       toast({
         title: "Erreur",
-        description: error.message || "Impossible d'assigner le rôle",
+        description: "La gestion des rôles utilisateur est actuellement désactivée",
         variant: "destructive",
       });
     }
@@ -305,31 +287,17 @@ export const useAssignUserRole = () => {
 };
 
 export const useRevokeUserRole = () => {
-  const queryClient = useQueryClient();
   const { toast } = useToast();
 
   return useMutation({
     mutationFn: async ({ userId, roleId }: { userId: string; roleId: string }) => {
-      const { error } = await supabase
-        .from('user_roles')
-        .delete()
-        .eq('user_id', userId)
-        .eq('role_id', roleId);
-
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['utilisateurs-internes'] });
-      queryClient.invalidateQueries({ queryKey: ['users-with-roles'] });
-      toast({
-        title: "Rôle révoqué",
-        description: "Le rôle a été révoqué avec succès",
-      });
+      console.log('⚠️ User role revocation disabled - user_roles table not found');
+      throw new Error('User role revocation is currently disabled');
     },
     onError: (error: any) => {
       toast({
         title: "Erreur",
-        description: error.message || "Impossible de révoquer le rôle",
+        description: "La gestion des rôles utilisateur est actuellement désactivée",
         variant: "destructive",
       });
     }

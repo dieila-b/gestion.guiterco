@@ -1,85 +1,36 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Calendar } from '@/components/ui/calendar';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { CalendarIcon, Download, RefreshCw } from 'lucide-react';
-import { format } from 'date-fns';
-import { fr } from 'date-fns/locale';
-import { cn } from '@/lib/utils';
+import { RefreshCw, Download, TrendingUp, Info } from 'lucide-react';
 import { useRapportMargePeriode } from '@/hooks/useMargins';
-import GlobalMarginStatsCards from './GlobalMarginStatsCards';
+import { useRefreshOperations } from '@/hooks/diagnostics/useRefreshOperations';
 
 const GlobalMarginAnalysis = () => {
-  const [dateDebut, setDateDebut] = useState<Date>(
-    new Date(new Date().getFullYear(), new Date().getMonth(), 1)
-  );
-  const [dateFin, setDateFin] = useState<Date>(new Date());
+  const { data: rapport, isLoading, refetch } = useRapportMargePeriode();
+  const { handleRefreshData } = useRefreshOperations();
 
-  const { data: rapport, isLoading, refetch } = useRapportMargePeriode(dateDebut, dateFin);
-
-  const handleRefresh = () => {
-    refetch();
+  const handleRefresh = async () => {
+    await refetch();
+    handleRefreshData();
   };
 
   const handleExport = () => {
-    // Fonctionnalité d'export à implémenter si nécessaire
-    console.log('Export des données de marge pour la période:', { dateDebut, dateFin });
-  };
-
-  const setPeriodQuickSelect = (period: 'thisMonth' | 'lastMonth' | 'thisQuarter' | 'thisYear') => {
-    const now = new Date();
-    let startDate = new Date();
-    let endDate = new Date();
-
-    switch (period) {
-      case 'thisMonth':
-        startDate = new Date(now.getFullYear(), now.getMonth(), 1);
-        endDate = new Date();
-        break;
-      case 'lastMonth':
-        startDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-        endDate = new Date(now.getFullYear(), now.getMonth(), 0);
-        break;
-      case 'thisQuarter':
-        // Calculer les 3 derniers mois glissants (pas le trimestre calendaire)
-        startDate = new Date(now);
-        startDate.setMonth(now.getMonth() - 3);
-        startDate.setDate(1); // Premier jour du mois il y a 3 mois
-        endDate = new Date();
-        break;
-      case 'thisYear':
-        startDate = new Date(now.getFullYear(), 0, 1);
-        endDate = new Date();
-        break;
-    }
-
-    console.log(`📅 Période sélectionnée (${period}):`, {
-      debut: startDate.toLocaleDateString('fr-FR'),
-      fin: endDate.toLocaleDateString('fr-FR'),
-      quarterInfo: period === 'thisQuarter' ? {
-        monthsAgo: 3,
-        startMonth: format(startDate, 'MMMM yyyy', { locale: fr }),
-        endMonth: format(endDate, 'MMMM yyyy', { locale: fr }),
-        totalDays: Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24))
-      } : null
-    });
-
-    setDateDebut(startDate);
-    setDateFin(endDate);
+    console.log('Export des marges globales');
   };
 
   return (
     <div className="space-y-6">
-      {/* En-tête avec sélection de période */}
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle className="text-xl font-bold">Analyse Globale des Marges</CardTitle>
+              <CardTitle className="text-xl font-bold flex items-center gap-2">
+                <TrendingUp className="h-5 w-5" />
+                Analyse Globale des Marges
+              </CardTitle>
               <p className="text-sm text-muted-foreground mt-1">
-                Analysez la rentabilité de vos ventes sur une période donnée
+                Vue d'ensemble des performances de marge sur la période
               </p>
             </div>
             <div className="flex items-center space-x-2">
@@ -106,126 +57,18 @@ const GlobalMarginAnalysis = () => {
           </div>
         </CardHeader>
         <CardContent>
-          <div className="flex flex-wrap items-center gap-4">
-            {/* Sélecteurs de date */}
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-medium">Période :</span>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button variant="outline" className="justify-start text-left font-normal">
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {format(dateDebut, 'dd/MM/yyyy', { locale: fr })}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={dateDebut}
-                    onSelect={(date) => date && setDateDebut(date)}
-                    initialFocus
-                    locale={fr}
-                  />
-                </PopoverContent>
-              </Popover>
-              <span className="text-muted-foreground">à</span>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button variant="outline" className="justify-start text-left font-normal">
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {format(dateFin, 'dd/MM/yyyy', { locale: fr })}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={dateFin}
-                    onSelect={(date) => date && setDateFin(date)}
-                    initialFocus
-                    locale={fr}
-                  />
-                </PopoverContent>
-              </Popover>
-            </div>
-
-            {/* Boutons de sélection rapide */}
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-medium">Raccourcis :</span>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setPeriodQuickSelect('thisMonth')}
-                className="text-xs"
-              >
-                Ce mois
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setPeriodQuickSelect('lastMonth')}
-                className="text-xs"
-              >
-                Mois dernier
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setPeriodQuickSelect('thisQuarter')}
-                className="text-xs"
-                title="Les 3 derniers mois glissants"
-              >
-                3 derniers mois
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setPeriodQuickSelect('thisYear')}
-                className="text-xs"
-              >
-                Cette année
-              </Button>
+          <div className="flex items-start gap-2 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+            <Info className="h-4 w-4 text-yellow-600 mt-0.5 flex-shrink-0" />
+            <div className="text-sm text-yellow-800">
+              <p className="font-medium mb-1">Fonctionnalité temporairement désactivée</p>
+              <p>
+                L'analyse globale des marges est actuellement en maintenance. 
+                Veuillez utiliser les autres onglets pour analyser vos marges.
+              </p>
             </div>
           </div>
         </CardContent>
       </Card>
-
-      {/* Cartes de statistiques */}
-      {rapport && (
-        <GlobalMarginStatsCards rapport={rapport} isLoading={isLoading} />
-      )}
-
-      {rapport && !isLoading && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Résumé de la période</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid gap-4 md:grid-cols-2">
-              <div className="space-y-2">
-                <h4 className="font-medium text-gray-900">Période analysée</h4>
-                <p className="text-sm text-gray-600">
-                  Du {format(dateDebut, 'dd MMMM yyyy', { locale: fr })} au {format(dateFin, 'dd MMMM yyyy', { locale: fr })}
-                </p>
-                <p className="text-sm text-gray-600">
-                  {rapport.nombre_factures} facture{rapport.nombre_factures !== 1 ? 's' : ''} analysée{rapport.nombre_factures !== 1 ? 's' : ''}
-                </p>
-              </div>
-              <div className="space-y-2">
-                <h4 className="font-medium text-gray-900">Performance</h4>
-                <div className="flex items-center gap-2">
-                  <div className={`w-3 h-3 rounded-full ${
-                    (rapport.taux_marge_moyen || 0) >= 20 ? 'bg-green-500' : 
-                    (rapport.taux_marge_moyen || 0) >= 10 ? 'bg-yellow-500' : 'bg-red-500'
-                  }`}></div>
-                  <span className="text-sm text-gray-600">
-                    Marge {(rapport.taux_marge_moyen || 0) >= 20 ? 'excellente' : 
-                           (rapport.taux_marge_moyen || 0) >= 10 ? 'correcte' : 'faible'}
-                  </span>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
     </div>
   );
 };

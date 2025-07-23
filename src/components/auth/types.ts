@@ -19,6 +19,7 @@ export interface UtilisateurInterne {
   role: Role;
   statut: string;
   type_compte: string;
+  photo_url?: string; // Add optional photo_url property
 }
 
 export interface AuthContextType {
