@@ -3,13 +3,12 @@ import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Eye, User, Shield, BarChart3 } from 'lucide-react';
+import { Eye, User, Shield, BarChart3, AlertTriangle } from 'lucide-react';
 import UserPermissionsDisplay from './UserPermissionsDisplay';
 import AccessStatistics from './AccessStatistics';
-import { UtilisateurInterne } from '@/hooks/useUtilisateursInternes';
 
 interface UserDetailedViewProps {
-  user: UtilisateurInterne;
+  user: any;
   children: React.ReactNode;
 }
 
@@ -25,44 +24,21 @@ const UserDetailedView = ({ user, children }: UserDetailedViewProps) => {
         <DialogHeader>
           <DialogTitle className="flex items-center space-x-2">
             <User className="h-5 w-5" />
-            <span>Détails - {user.prenom} {user.nom}</span>
+            <span>Détails utilisateur</span>
           </DialogTitle>
         </DialogHeader>
         
-        <Tabs defaultValue="permissions" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="permissions" className="flex items-center space-x-2">
-              <Shield className="h-4 w-4" />
-              <span>Permissions Détaillées</span>
-            </TabsTrigger>
-            <TabsTrigger value="statistics" className="flex items-center space-x-2">
-              <BarChart3 className="h-4 w-4" />
-              <span>Statistiques d'Accès</span>
-            </TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="permissions" className="mt-6">
-            {user.role ? (
-              <UserPermissionsDisplay
-                userId={user.user_id}
-                userName={`${user.prenom} ${user.nom}`}
-                userRole={user.role.name}
-              />
-            ) : (
-              <div className="text-center py-8">
-                <Shield className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                <h3 className="text-lg font-medium mb-2">Aucun rôle assigné</h3>
-                <p className="text-muted-foreground">
-                  Cet utilisateur n'a pas de rôle assigné et n'a donc aucune permission
-                </p>
-              </div>
-            )}
-          </TabsContent>
-          
-          <TabsContent value="statistics" className="mt-6">
-            <AccessStatistics />
-          </TabsContent>
-        </Tabs>
+        <div className="space-y-4">
+          <div className="flex items-center gap-3 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+            <AlertTriangle className="w-5 h-5 text-amber-600" />
+            <div>
+              <p className="font-medium text-amber-800">Fonctionnalité temporairement indisponible</p>
+              <p className="text-sm text-amber-700">
+                Les détails utilisateur seront disponibles après reconstruction du système.
+              </p>
+            </div>
+          </div>
+        </div>
       </DialogContent>
     </Dialog>
   );
