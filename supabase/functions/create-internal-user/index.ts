@@ -41,27 +41,22 @@ serve(async (req) => {
 
     console.log('✅ Validation des paramètres réussie')
 
-    // Nettoyage préventif - supprimer tout utilisateur existant avec cet email
-    console.log('🧹 Nettoyage préventif pour:', email)
+    // Nettoyage agressif préventif
+    console.log('🧹 === NETTOYAGE AGRESSIF ===')
+    console.log('Email à nettoyer:', email)
+    
     try {
-      // Supprimer de utilisateurs_internes d'abord
-      const { error: deleteInternalError } = await supabaseClient
-        .from('utilisateurs_internes')
-        .delete()
-        .eq('email', email)
-      
-      if (deleteInternalError) {
-        console.warn('⚠️ Erreur suppression utilisateur interne:', deleteInternalError.message)
-      }
-
-      // Supprimer de user_roles
-      const { data: existingAuthUsers } = await supabaseClient
+      // 1. Récupérer les user_ids liés à cet email
+      console.log('🔍 Recherche des user_id existants...')
+      const { data: existingUsers } = await supabaseClient
         .from('utilisateurs_internes')
         .select('user_id')
         .eq('email', email)
       
-      if (existingAuthUsers && existingAuthUsers.length > 0) {
-        for (const user of existingAuthUsers) {
+      // 2. Supprimer les rôles pour ces user_ids
+      if (existingUsers && existingUsers.length > 0) {
+        console.log('🗑️ Suppression des rôles pour', existingUsers.length, 'utilisateurs...')
+        for (const user of existingUsers) {
           if (user.user_id) {
             const { error: deleteRoleError } = await supabaseClient
               .from('user_roles')
@@ -69,16 +64,27 @@ serve(async (req) => {
               .eq('user_id', user.user_id)
             
             if (deleteRoleError) {
-              console.warn('⚠️ Erreur suppression rôle:', deleteRoleError.message)
+              console.warn('⚠️ Erreur suppression rôle (ignorée):', deleteRoleError.message)
             }
           }
         }
       }
 
-      console.log('✅ Nettoyage préventif terminé')
+      // 3. Supprimer de utilisateurs_internes
+      console.log('🗑️ Suppression utilisateur interne...')
+      const { error: deleteInternalError } = await supabaseClient
+        .from('utilisateurs_internes')
+        .delete()
+        .eq('email', email)
+      
+      if (deleteInternalError) {
+        console.warn('⚠️ Erreur suppression utilisateur interne (ignorée):', deleteInternalError.message)
+      }
+
+      console.log('✅ Nettoyage terminé avec succès')
       
     } catch (cleanupErr) {
-      console.warn('⚠️ Erreur de nettoyage préventif ignorée:', cleanupErr)
+      console.warn('⚠️ Erreur de nettoyage (ignorée):', cleanupErr)
     }
 
     // Vérifier les utilisateurs existants plus efficacement
