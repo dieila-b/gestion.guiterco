@@ -22,6 +22,8 @@ export interface UserWithRoles {
   email: string;
   matricule?: string;
   statut: 'actif' | 'inactif';
+  role_id?: string;
+  role_name?: string;
   roles: {
     id: string;
     name: string;
@@ -34,10 +36,13 @@ export const useUsersWithRoles = () => {
   return useQuery({
     queryKey: ['users-with-roles'],
     queryFn: async () => {
-      // Récupérer tous les utilisateurs internes
+      // Récupérer tous les utilisateurs internes avec leur rôle par défaut
       const { data: users, error: usersError } = await supabase
         .from('utilisateurs_internes')
-        .select('id, user_id, prenom, nom, email, matricule, statut')
+        .select(`
+          id, user_id, prenom, nom, email, matricule, statut, role_id,
+          roles:role_id (id, name, description)
+        `)
         .order('prenom', { ascending: true });
 
       if (usersError) throw usersError;
@@ -74,6 +79,7 @@ export const useUsersWithRoles = () => {
         return {
           ...user,
           statut: user.statut as 'actif' | 'inactif',
+          role_name: user.roles?.name,
           roles: userRolesData
         };
       });
@@ -163,6 +169,53 @@ export const useUpdateUserStatus = () => {
     },
     onError: (error: any) => {
       toast.error(error.message || 'Erreur lors de la mise à jour du statut');
+    }
+  });
+};
+
+export const useUpdateUserDefaultRole = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ 
+      userId, 
+      roleId 
+    }: { 
+      userId: string; 
+      roleId: string;
+    }) => {
+      const { data, error } = await supabase
+        .from('utilisateurs_internes')
+        .update({ role_id: roleId })
+        .eq('id', userId)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['users-with-roles'] });
+      queryClient.invalidateQueries({ queryKey: ['utilisateurs-internes'] });
+      toast.success('Rôle utilisateur mis à jour');
+    },
+    onError: (error: any) => {
+      toast.error(error.message || 'Erreur lors de la mise à jour du rôle');
+    }
+  });
+};
+
+export const useRoles = () => {
+  return useQuery({
+    queryKey: ['roles'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('roles')
+        .select('id, name, description')
+        .order('name');
+
+      if (error) throw error;
+      return data;
     }
   });
 };
