@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { Edit, Upload } from 'lucide-react';
+import { Edit, Upload, Eye, EyeOff } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
@@ -14,6 +14,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useUpdateUtilisateurInterne, UtilisateurInterne } from '@/hooks/useUtilisateursInternes';
 import { useRoles } from '@/hooks/usePermissions';
 import { useFileUpload } from '@/hooks/useFileUpload';
+import { usePasswordUpdate } from '@/hooks/usePasswordUpdate';
 
 const editUserSchema = z.object({
   prenom: z.string().min(1, 'Le prénom est requis'),
@@ -25,6 +26,28 @@ const editUserSchema = z.object({
   photo_url: z.string().optional(),
   statut: z.enum(['actif', 'inactif']),
   doit_changer_mot_de_passe: z.boolean(),
+  // Champs pour la modification du mot de passe
+  change_password: z.boolean().default(false),
+  new_password: z.string().optional().refine((password) => {
+    if (!password || password === '') return true; // Optionnel
+    
+    return password.length >= 10 &&
+           /[A-Z]/.test(password) &&
+           /[a-z]/.test(password) &&
+           /[0-9]/.test(password) &&
+           /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password);
+  }, {
+    message: "Le mot de passe doit contenir au moins 10 caractères avec une majuscule, une minuscule, un chiffre et un caractère spécial"
+  }),
+  confirm_new_password: z.string().optional(),
+}).refine((data) => {
+  if (data.change_password) {
+    return data.new_password === data.confirm_new_password;
+  }
+  return true;
+}, {
+  message: "Les mots de passe ne correspondent pas",
+  path: ["confirm_new_password"],
 });
 
 type EditUserFormData = z.infer<typeof editUserSchema>;
@@ -36,10 +59,13 @@ interface EditUserDialogProps {
 
 export function EditUserDialog({ user, children }: EditUserDialogProps) {
   const [open, setOpen] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   
   const updateUser = useUpdateUtilisateurInterne();
   const { data: roles, isLoading: rolesLoading } = useRoles();
   const { uploadFile, uploading } = useFileUpload();
+  const { updatePassword, isLoading: isUpdatingPassword } = usePasswordUpdate();
 
   const form = useForm<EditUserFormData>({
     resolver: zodResolver(editUserSchema),
@@ -53,6 +79,9 @@ export function EditUserDialog({ user, children }: EditUserDialogProps) {
       photo_url: user.photo_url || '',
       statut: user.statut,
       doit_changer_mot_de_passe: user.doit_changer_mot_de_passe,
+      change_password: false,
+      new_password: '',
+      confirm_new_password: '',
     },
   });
 
@@ -68,11 +97,15 @@ export function EditUserDialog({ user, children }: EditUserDialogProps) {
       photo_url: user.photo_url || '',
       statut: user.statut,
       doit_changer_mot_de_passe: user.doit_changer_mot_de_passe,
+      change_password: false,
+      new_password: '',
+      confirm_new_password: '',
     });
   }, [user, form]);
 
   const onSubmit = async (data: EditUserFormData) => {
     try {
+      // Mettre à jour les informations de base
       await updateUser.mutateAsync({
         id: user.id,
         data: {
@@ -87,6 +120,15 @@ export function EditUserDialog({ user, children }: EditUserDialogProps) {
           doit_changer_mot_de_passe: data.doit_changer_mot_de_passe,
         }
       });
+
+      // Mettre à jour le mot de passe si demandé
+      if (data.change_password && data.new_password && user.user_id) {
+        await updatePassword({
+          userId: user.user_id,
+          newPassword: data.new_password,
+          requireChange: data.doit_changer_mot_de_passe
+        });
+      }
       
       setOpen(false);
     } catch (error) {
@@ -308,6 +350,97 @@ export function EditUserDialog({ user, children }: EditUserDialogProps) {
               )}
             />
 
+            {/* Modification du mot de passe */}
+            <FormField
+              control={form.control}
+              name="change_password"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                  <div className="space-y-0.5">
+                    <FormLabel className="text-base">
+                      Modifier le mot de passe
+                    </FormLabel>
+                    <div className="text-sm text-muted-foreground">
+                      Activer pour définir un nouveau mot de passe pour cet utilisateur
+                    </div>
+                  </div>
+                  <FormControl>
+                    <Switch
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+
+            {/* Champs de mot de passe conditionnels */}
+            {form.watch('change_password') && (
+              <div className="space-y-4 border rounded-lg p-4 bg-muted/50">
+                <div className="grid grid-cols-2 gap-4">
+                  {/* Nouveau mot de passe */}
+                  <FormField
+                    control={form.control}
+                    name="new_password"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Nouveau mot de passe *</FormLabel>
+                        <div className="relative">
+                          <FormControl>
+                            <Input
+                              type={showNewPassword ? "text" : "password"}
+                              placeholder="Min. 10 caractères avec maj, min, chiffre et symbole"
+                              {...field}
+                            />
+                          </FormControl>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4"
+                            onClick={() => setShowNewPassword(!showNewPassword)}
+                          >
+                            {showNewPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                          </Button>
+                        </div>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  {/* Confirmer le nouveau mot de passe */}
+                  <FormField
+                    control={form.control}
+                    name="confirm_new_password"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Confirmer le nouveau mot de passe *</FormLabel>
+                        <div className="relative">
+                          <FormControl>
+                            <Input
+                              type={showConfirmPassword ? "text" : "password"}
+                              placeholder="Confirmer le mot de passe"
+                              {...field}
+                            />
+                          </FormControl>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4"
+                            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                          >
+                            {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                          </Button>
+                        </div>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              </div>
+            )}
+
             {/* Forcer le changement de mot de passe */}
             <FormField
               control={form.control}
@@ -343,10 +476,10 @@ export function EditUserDialog({ user, children }: EditUserDialogProps) {
               </Button>
               <Button
                 type="submit"
-                disabled={updateUser.isPending}
+                disabled={updateUser.isPending || isUpdatingPassword}
                 className="flex-1 bg-primary text-primary-foreground hover:bg-primary/90"
               >
-                {updateUser.isPending ? 'Modification...' : 'Modifier l\'utilisateur'}
+                {(updateUser.isPending || isUpdatingPassword) ? 'Modification...' : 'Modifier l\'utilisateur'}
               </Button>
             </div>
           </form>

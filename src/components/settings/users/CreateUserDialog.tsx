@@ -19,7 +19,12 @@ const createUserSchema = z.object({
   prenom: z.string().min(1, 'Le prénom est requis'),
   nom: z.string().min(1, 'Le nom est requis'),
   email: z.string().email('Email invalide'),
-  password: z.string().min(6, 'Le mot de passe doit contenir au moins 6 caractères'),
+  password: z.string()
+    .min(10, 'Le mot de passe doit contenir au moins 10 caractères')
+    .regex(/[A-Z]/, 'Le mot de passe doit contenir au moins une majuscule')
+    .regex(/[a-z]/, 'Le mot de passe doit contenir au moins une minuscule')
+    .regex(/[0-9]/, 'Le mot de passe doit contenir au moins un chiffre')
+    .regex(/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/, 'Le mot de passe doit contenir au moins un caractère spécial'),
   confirmPassword: z.string(),
   telephone: z.string().optional(),
   role_id: z.string().min(1, 'Le rôle est requis'),
@@ -210,13 +215,13 @@ export function CreateUserDialog() {
                   <FormItem>
                     <FormLabel>Mot de passe *</FormLabel>
                     <div className="relative">
-                      <FormControl>
-                        <Input
-                          type={showPassword ? "text" : "password"}
-                          placeholder="••••••••"
-                          {...field}
-                        />
-                      </FormControl>
+                       <FormControl>
+                         <Input
+                           type={showPassword ? "text" : "password"}
+                           placeholder="Min. 10 caractères avec maj, min, chiffre et symbole"
+                           {...field}
+                         />
+                       </FormControl>
                       <Button
                         type="button"
                         variant="ghost"
@@ -284,12 +289,12 @@ export function CreateUserDialog() {
                 Matricule (généré automatiquement)
               </label>
               <Input
-                value="ISB-XX"
+                value={`${form.watch('nom')?.substring(0,1) || 'X'}${form.watch('prenom')?.substring(0,1) || 'X'}${form.watch('nom')?.substring(1,1) || 'X'}-01`}
                 disabled
                 className="bg-muted text-muted-foreground"
               />
               <p className="text-xs text-muted-foreground">
-                Le matricule défini sera automatiquement attribué lors de la création
+                Le matricule sera généré à partir des 3 premières lettres du nom complet + numéro séquentiel (ex: DIB-01)
               </p>
             </div>
 

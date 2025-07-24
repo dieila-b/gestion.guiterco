@@ -1777,6 +1777,36 @@ export type Database = {
           },
         ]
       }
+      password_reset_requests: {
+        Row: {
+          created_at: string | null
+          expires_at: string | null
+          id: string
+          new_password_hash: string
+          require_change: boolean | null
+          used: boolean | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          expires_at?: string | null
+          id?: string
+          new_password_hash: string
+          require_change?: boolean | null
+          used?: boolean | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          expires_at?: string | null
+          id?: string
+          new_password_hash?: string
+          require_change?: boolean | null
+          used?: boolean | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       pays: {
         Row: {
           code_iso: string
@@ -3078,7 +3108,7 @@ export type Database = {
         Returns: string
       }
       generate_matricule: {
-        Args: Record<PropertyKey, never>
+        Args: { prenom_val: string; nom_val: string }
         Returns: string
       }
       generate_precommande_number: {
