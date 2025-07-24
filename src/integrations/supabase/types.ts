@@ -3309,6 +3309,14 @@ export type Database = {
           details: string
         }[]
       }
+      unaccent: {
+        Args: { "": string }
+        Returns: string
+      }
+      unaccent_init: {
+        Args: { "": unknown }
+        Returns: unknown
+      }
       update_internal_user_secure: {
         Args: { user_internal_id: string; user_data: Json }
         Returns: Json
