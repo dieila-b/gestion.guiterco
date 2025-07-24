@@ -169,9 +169,8 @@ export default function AccessControlTab() {
                   <TableHead>Utilisateur</TableHead>
                   <TableHead>Matricule</TableHead>
                   <TableHead>Email</TableHead>
-                  <TableHead>Rôle</TableHead>
+                  <TableHead>Rôle par défaut</TableHead>
                   <TableHead>Statut</TableHead>
-                  <TableHead>Rôles assignés</TableHead>
                   <TableHead className="text-center">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -202,33 +201,17 @@ export default function AccessControlTab() {
                     <TableCell>
                       {getStatusBadge(user.statut)}
                     </TableCell>
-                    <TableCell>
-                      <div className="space-y-2">
-                        {user.roles.map((role) => (
-                          <div key={role.id} className="flex items-center justify-between bg-muted/50 p-2 rounded">
-                            <span className="text-sm font-medium">{role.name}</span>
-                            <Switch
-                              checked={role.is_active}
-                              onCheckedChange={(checked) => 
-                                handleRoleToggle(user.user_id!, role.id, checked)
-                              }
-                              disabled={updateUserRole.isPending}
-                            />
-                          </div>
-                        ))}
-                      </div>
-                    </TableCell>
                     <TableCell className="text-center">
                       <div className="flex items-center justify-center gap-2">
                         <Dialog open={editingUserId === user.id} onOpenChange={(open) => !open && setEditingUserId(null)}>
                           <DialogTrigger asChild>
                             <Button 
-                              variant="outline" 
+                              variant="ghost" 
                               size="sm"
                               onClick={() => openEditDialog(user.id, user.role_id)}
+                              title="Modifier le rôle"
                             >
-                              <Edit className="w-3 h-3 mr-1" />
-                              Modifier rôle
+                              <Edit className="w-4 h-4" />
                             </Button>
                           </DialogTrigger>
                           <DialogContent className="sm:max-w-md">
@@ -265,14 +248,15 @@ export default function AccessControlTab() {
                             </div>
                           </DialogContent>
                         </Dialog>
-                        <button
+                        <Button
+                          variant="ghost"
+                          size="sm"
                           onClick={() => handleStatusToggle(user.id, user.statut)}
                           disabled={updateUserStatus.isPending}
-                          className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded border border-border hover:bg-muted transition-colors"
+                          title={user.statut === 'actif' ? 'Suspendre l\'utilisateur' : 'Activer l\'utilisateur'}
                         >
-                          <Settings className="w-3 h-3" />
-                          {user.statut === 'actif' ? 'Suspendre' : 'Activer'}
-                        </button>
+                          {user.statut === 'actif' ? '🔒' : '🔓'}
+                        </Button>
                       </div>
                     </TableCell>
                   </TableRow>
