@@ -34,10 +34,46 @@ export const signOut = async () => {
   }
 };
 
-// Fonction temporaire pour maintenir la compatibilité
+// Fonction pour vérifier un utilisateur interne par ID
 export const checkInternalUser = async (userId: string): Promise<UtilisateurInterne | null> => {
-  console.log('⚠️ checkInternalUser appelée mais système d\'utilisateurs internes supprimé');
-  
-  // Retourner null car le système d'utilisateurs internes a été supprimé
-  return null;
+  try {
+    console.log('🔍 Vérification utilisateur interne pour ID:', userId);
+    
+    // Utiliser la fonction sécurisée de Supabase
+    const { data, error } = await supabase
+      .rpc('get_internal_user_by_id', { p_user_id: userId });
+
+    if (error) {
+      console.log('❌ Erreur lors de la vérification de l\'utilisateur interne:', error);
+      return null;
+    }
+
+    if (!data || data.length === 0) {
+      console.log('❌ Aucun utilisateur interne trouvé pour cet ID');
+      return null;
+    }
+
+    const userData = data[0];
+    console.log('✅ Utilisateur interne trouvé:', userData);
+
+    // Transformer les données pour correspondre à l'interface UtilisateurInterne
+    const utilisateurInterne: UtilisateurInterne = {
+      id: userData.id,
+      email: userData.email,
+      prenom: userData.prenom,
+      nom: userData.nom,
+      role: {
+        id: userData.role_id,
+        nom: userData.role_nom,
+        description: ''
+      },
+      statut: userData.statut,
+      type_compte: userData.type_compte || 'interne'
+    };
+
+    return utilisateurInterne;
+  } catch (error) {
+    console.error('❌ Erreur inattendue lors de la vérification de l\'utilisateur interne:', error);
+    return null;
+  }
 };

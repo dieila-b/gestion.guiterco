@@ -30,7 +30,7 @@ export interface CreateUtilisateurInterneData {
   email: string;
   password: string;
   telephone?: string;
-  role_id?: string;
+  role_id: string; // Maintenant requis
   adresse_complete?: string;
   photo_url?: string;
   doit_changer_mot_de_passe?: boolean;
@@ -72,25 +72,32 @@ export const useCreateUtilisateurInterne = () => {
 
   return useMutation({
     mutationFn: async (data: CreateUtilisateurInterneData) => {
-      // Créer directement l'utilisateur interne sans passer par Supabase Auth
-      const { data: userData, error: userError } = await supabase
-        .from('utilisateurs_internes')
-        .insert({
+      console.log('📝 Création utilisateur interne via Edge Function:', data);
+      
+      // Appel à l'Edge Function pour créer l'utilisateur avec compte Supabase Auth
+      const { data: result, error } = await supabase.functions.invoke('create-internal-user', {
+        body: {
+          email: data.email,
+          password: data.password,
           prenom: data.prenom,
           nom: data.nom,
-          email: data.email,
-          telephone: data.telephone,
           role_id: data.role_id,
-          adresse_complete: data.adresse_complete,
-          photo_url: data.photo_url,
-          statut: 'actif', // Toujours actif par défaut
-          doit_changer_mot_de_passe: data.doit_changer_mot_de_passe ?? true,
-        })
-        .select()
-        .single();
+          telephone: data.telephone
+        }
+      });
 
-      if (userError) throw userError;
-      return userData;
+      if (error) {
+        console.error('❌ Erreur Edge Function:', error);
+        throw new Error(error.message || 'Erreur lors de la création de l\'utilisateur');
+      }
+
+      if (result?.error) {
+        console.error('❌ Erreur création utilisateur:', result.error);
+        throw new Error(result.error);
+      }
+
+      console.log('✅ Utilisateur créé via Edge Function:', result);
+      return result.user;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['utilisateurs-internes'] });
