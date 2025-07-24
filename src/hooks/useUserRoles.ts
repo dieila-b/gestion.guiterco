@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import type { UtilisateurInterne } from './useUtilisateursInternes';
 
 export interface UserRole {
   id: string;
@@ -72,6 +73,7 @@ export const useUsersWithRoles = () => {
 
         return {
           ...user,
+          statut: user.statut as 'actif' | 'inactif',
           roles: userRolesData
         };
       });
