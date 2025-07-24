@@ -6,31 +6,17 @@ export const signIn = async (email: string, password: string) => {
   try {
     console.log('🔑 Tentative de connexion avec Supabase pour:', email);
     
-    // Essayer d'abord une connexion normale
     const { data, error } = await supabase.auth.signInWithPassword({
-      email: email.toLowerCase().trim(), // Normaliser l'email
+      email,
       password,
     });
 
     if (error) {
       console.log('❌ Erreur de connexion:', error.message);
-      console.log('❌ Code erreur:', error.status);
-      console.log('❌ Détails complets:', error);
       return { error };
     }
 
-    if (!data.user) {
-      console.log('❌ Aucun utilisateur retourné malgré l\'absence d\'erreur');
-      return { error: new Error('Aucun utilisateur trouvé') };
-    }
-
-    console.log('✅ Connexion réussie:', { 
-      userId: data.user.id, 
-      email: data.user.email,
-      emailConfirmed: data.user.email_confirmed_at,
-      lastSignIn: data.user.last_sign_in_at
-    });
-    
+    console.log('✅ Connexion réussie:', { userId: data.user?.id, email: data.user?.email });
     return { error: null };
   } catch (error) {
     console.error('❌ Erreur inattendue lors de la connexion:', error);
