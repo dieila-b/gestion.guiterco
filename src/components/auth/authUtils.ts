@@ -39,36 +39,53 @@ export const checkInternalUser = async (userId: string): Promise<UtilisateurInte
   try {
     console.log('🔍 Vérification utilisateur interne pour ID:', userId);
     
-    // Utiliser la fonction sécurisée de Supabase
+    // Requête directe sur la table utilisateurs_internes
     const { data, error } = await supabase
-      .rpc('get_internal_user_by_id', { p_user_id: userId });
+      .from('utilisateurs_internes')
+      .select(`
+        id,
+        user_id,
+        email,
+        prenom,
+        nom,
+        statut,
+        role_id
+      `)
+      .eq('user_id', userId)
+      .single();
 
     if (error) {
       console.log('❌ Erreur lors de la vérification de l\'utilisateur interne:', error);
       return null;
     }
 
-    if (!data || data.length === 0) {
+    if (!data) {
       console.log('❌ Aucun utilisateur interne trouvé pour cet ID');
       return null;
     }
 
-    const userData = data[0];
-    console.log('✅ Utilisateur interne trouvé:', userData);
+    // Récupérer les informations du rôle séparément
+    const { data: roleData } = await supabase
+      .from('roles')
+      .select('id, name, description')
+      .eq('id', data.role_id)
+      .single();
+
+    console.log('✅ Utilisateur interne trouvé:', data);
 
     // Transformer les données pour correspondre à l'interface UtilisateurInterne
     const utilisateurInterne: UtilisateurInterne = {
-      id: userData.id,
-      email: userData.email,
-      prenom: userData.prenom,
-      nom: userData.nom,
+      id: data.id,
+      email: data.email,
+      prenom: data.prenom,
+      nom: data.nom,
       role: {
-        id: userData.role_id,
-        nom: userData.role_nom,
-        description: ''
+        id: roleData?.id || '',
+        nom: roleData?.name || '',
+        description: roleData?.description || ''
       },
-      statut: userData.statut,
-      type_compte: userData.type_compte || 'interne'
+      statut: data.statut,
+      type_compte: 'interne'
     };
 
     return utilisateurInterne;
