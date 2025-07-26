@@ -21,10 +21,19 @@ const ProtectedRoute = ({ children, requireRole }: ProtectedRouteProps) => {
     internalUserRole: utilisateurInterne?.role?.nom,
     requireRole,
     hostname: window.location.hostname,
-    isProduction: !window.location.hostname.includes('localhost') && 
-                   !window.location.hostname.includes('lovableproject.com') && 
-                   !window.location.hostname.includes('127.0.0.1') &&
-                   !window.location.hostname.includes('.local')
+    isProduction: (() => {
+      const hostname = window.location.hostname;
+      const isLovablePreview = hostname.includes('lovableproject.com') || hostname.includes('lovableproject.app');
+      const isExplicitDev = import.meta.env.DEV || import.meta.env.MODE === 'development';
+      
+      // C'est de la production si :
+      // 1. Pas localhost/127.0.0.1/.local ET
+      // 2. Si c'est lovableproject, alors pas en mode dev explicite
+      return !hostname.includes('localhost') && 
+             !hostname.includes('127.0.0.1') &&
+             !hostname.includes('.local') &&
+             (!isLovablePreview || !isExplicitDev);
+    })()
   });
 
   if (loading) {
@@ -39,11 +48,15 @@ const ProtectedRoute = ({ children, requireRole }: ProtectedRouteProps) => {
   }
 
   // En production : vérification stricte des utilisateurs internes
-  const isProduction = !window.location.hostname.includes('localhost') && 
-                       !window.location.hostname.includes('lovableproject.com') && 
-                       !window.location.hostname.includes('127.0.0.1') &&
-                       !window.location.hostname.includes('.local') &&
-                       import.meta.env.MODE === 'production';
+  const hostname = window.location.hostname;
+  const isLovablePreview = hostname.includes('lovableproject.com') || hostname.includes('lovableproject.app');
+  const isExplicitDev = import.meta.env.DEV || import.meta.env.MODE === 'development';
+  
+  const isProduction = !hostname.includes('localhost') && 
+                       !hostname.includes('127.0.0.1') &&
+                       !hostname.includes('.local') &&
+                       // Si c'est lovableproject, c'est de la production sauf si explicitement en dev
+                       (!isLovablePreview || !isExplicitDev);
 
   if (isProduction) {
     // En production, seuls les utilisateurs internes authentifiés peuvent accéder
@@ -55,11 +68,12 @@ const ProtectedRoute = ({ children, requireRole }: ProtectedRouteProps) => {
     // En développement, l'accès peut être bypassé
     // Mais si l'authentification est activée, vérifier les permissions
     if (!user && !loading) {
-      const isDev = window.location.hostname.includes('localhost') || 
-                    window.location.hostname.includes('lovableproject.com') || 
-                    window.location.hostname.includes('127.0.0.1') ||
-                    window.location.hostname.includes('.local') ||
-                    import.meta.env.DEV;
+      const isDev = (hostname.includes('localhost') || 
+                     hostname.includes('127.0.0.1') ||
+                     hostname.includes('.local') ||
+                     isExplicitDev) ||
+                    // Pour lovableproject, considérer comme dev seulement si explicitement en dev
+                    (isLovablePreview && isExplicitDev);
       
       if (isDev) {
         // En mode dev, si pas de session et pas de bypass, rediriger vers login

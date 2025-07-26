@@ -23,12 +23,17 @@ export const useDevMode = (): DevModeConfig => {
   const [config, setConfig] = useState<DevModeConfig>(() => {
     // Détecter l'environnement de développement
     const hostname = window.location.hostname;
-    const isDev = hostname === 'localhost' || 
-                  hostname.includes('lovableproject.com') || 
-                  hostname.includes('127.0.0.1') ||
-                  hostname.includes('.local') ||
-                  import.meta.env.DEV ||
-                  import.meta.env.MODE === 'development';
+    
+    // En mode production sur lovableproject.com, ne pas considérer comme dev sauf si explicitement en mode dev
+    const isLovablePreview = hostname.includes('lovableproject.com') || hostname.includes('lovableproject.app');
+    const isExplicitDev = import.meta.env.DEV || import.meta.env.MODE === 'development';
+    
+    const isDev = (hostname === 'localhost' || 
+                   hostname.includes('127.0.0.1') ||
+                   hostname.includes('.local') ||
+                   isExplicitDev) ||
+                  // Pour lovableproject, considérer comme dev seulement si en mode dev explicite
+                  (isLovablePreview && isExplicitDev);
 
     let bypassEnabled = false;
     
@@ -69,12 +74,17 @@ export const useDevMode = (): DevModeConfig => {
 
   const updateBypassState = () => {
     const hostname = window.location.hostname;
-    const isDev = hostname === 'localhost' || 
-                  hostname.includes('lovableproject.com') || 
-                  hostname.includes('127.0.0.1') ||
-                  hostname.includes('.local') ||
-                  import.meta.env.DEV ||
-                  import.meta.env.MODE === 'development';
+    
+    // En mode production sur lovableproject.com, ne pas considérer comme dev sauf si explicitement en mode dev
+    const isLovablePreview = hostname.includes('lovableproject.com') || hostname.includes('lovableproject.app');
+    const isExplicitDev = import.meta.env.DEV || import.meta.env.MODE === 'development';
+    
+    const isDev = (hostname === 'localhost' || 
+                   hostname.includes('127.0.0.1') ||
+                   hostname.includes('.local') ||
+                   isExplicitDev) ||
+                  // Pour lovableproject, considérer comme dev seulement si en mode dev explicite
+                  (isLovablePreview && isExplicitDev);
 
     console.log('🔍 Détection environnement:', {
       hostname,
