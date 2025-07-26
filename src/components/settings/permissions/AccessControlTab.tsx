@@ -8,53 +8,28 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Shield, User, Settings, Edit } from 'lucide-react';
-import { useUsersWithRoles, useUpdateUserRole, useUpdateUserStatus, useUpdateUserDefaultRole, useRoles } from '@/hooks/useUserRoles';
 import { toast } from 'sonner';
 
 export default function AccessControlTab() {
-  const { data: users, isLoading, error } = useUsersWithRoles();
-  const { data: roles } = useRoles();
-  const updateUserRole = useUpdateUserRole();
-  const updateUserStatus = useUpdateUserStatus();
-  const updateUserDefaultRole = useUpdateUserDefaultRole();
+  // Hooks désactivés - table utilisateurs_internes supprimée
+  const users: any[] = [];
+  const roles: any[] = [];
+  const isLoading = false;
+  const error = null;
   const [editingUserId, setEditingUserId] = useState<string | null>(null);
   const [selectedRoleId, setSelectedRoleId] = useState<string>('');
 
+  // Fonctions désactivées - fonctionnalité utilisateurs internes supprimée
   const handleRoleToggle = async (userId: string, roleId: string, isActive: boolean) => {
-    try {
-      await updateUserRole.mutateAsync({
-        userId,
-        roleId,
-        isActive
-      });
-    } catch (error) {
-      console.error('Erreur lors de la mise à jour du rôle:', error);
-    }
+    toast.error('Fonctionnalité désactivée - Utilisateurs internes supprimés');
   };
 
   const handleStatusToggle = async (userId: string, currentStatus: 'actif' | 'inactif') => {
-    const newStatus = currentStatus === 'actif' ? 'inactif' : 'actif';
-    try {
-      await updateUserStatus.mutateAsync({
-        userId,
-        statut: newStatus
-      });
-    } catch (error) {
-      console.error('Erreur lors de la mise à jour du statut:', error);
-    }
+    toast.error('Fonctionnalité désactivée - Utilisateurs internes supprimés');
   };
 
   const handleRoleUpdate = async (userId: string, roleId: string) => {
-    try {
-      await updateUserDefaultRole.mutateAsync({
-        userId,
-        roleId
-      });
-      setEditingUserId(null);
-      setSelectedRoleId('');
-    } catch (error) {
-      console.error('Erreur lors de la mise à jour du rôle:', error);
-    }
+    toast.error('Fonctionnalité désactivée - Utilisateurs internes supprimés');
   };
 
   const openEditDialog = (userId: string, currentRoleId?: string) => {
@@ -137,9 +112,9 @@ export default function AccessControlTab() {
             <div className="flex items-center gap-3 p-4 bg-muted border rounded-lg">
               <User className="w-5 h-5 text-muted-foreground" />
               <div>
-                <p className="font-medium">Aucun utilisateur trouvé</p>
+                <p className="font-medium">Fonctionnalité désactivée</p>
                 <p className="text-sm text-muted-foreground">
-                  Aucun utilisateur interne n'a été trouvé dans le système.
+                  La gestion des utilisateurs internes a été supprimée du système.
                 </p>
               </div>
             </div>
@@ -240,7 +215,7 @@ export default function AccessControlTab() {
                                 </Button>
                                 <Button 
                                   onClick={() => handleRoleUpdate(user.id, selectedRoleId)}
-                                  disabled={!selectedRoleId || updateUserDefaultRole.isPending}
+                                  disabled={true}
                                 >
                                   Valider
                                 </Button>
@@ -252,8 +227,8 @@ export default function AccessControlTab() {
                           variant="ghost"
                           size="sm"
                           onClick={() => handleStatusToggle(user.id, user.statut)}
-                          disabled={updateUserStatus.isPending}
-                          title={user.statut === 'actif' ? 'Suspendre l\'utilisateur' : 'Activer l\'utilisateur'}
+                          disabled={true}
+                          title="Fonctionnalité désactivée"
                         >
                           {user.statut === 'actif' ? '🔒' : '🔓'}
                         </Button>
