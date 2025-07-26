@@ -28,12 +28,12 @@ export const useDevMode = (): DevModeConfig => {
     const isLovablePreview = hostname.includes('lovableproject.com') || hostname.includes('lovableproject.app');
     const isExplicitDev = import.meta.env.DEV || import.meta.env.MODE === 'development';
     
-    const isDev = (hostname === 'localhost' || 
-                   hostname.includes('127.0.0.1') ||
-                   hostname.includes('.local') ||
-                   isExplicitDev) ||
-                  // Pour lovableproject, considérer comme dev seulement si en mode dev explicite
-                  (isLovablePreview && isExplicitDev);
+    // Pour les aperçus Lovable, toujours considérer comme dev pour permettre le bypass
+    const isDev = hostname === 'localhost' || 
+                  hostname.includes('127.0.0.1') ||
+                  hostname.includes('.local') ||
+                  isLovablePreview ||  // Tous les aperçus lovable sont considérés comme dev
+                  isExplicitDev;
 
     let bypassEnabled = false;
     
@@ -79,12 +79,12 @@ export const useDevMode = (): DevModeConfig => {
     const isLovablePreview = hostname.includes('lovableproject.com') || hostname.includes('lovableproject.app');
     const isExplicitDev = import.meta.env.DEV || import.meta.env.MODE === 'development';
     
-    const isDev = (hostname === 'localhost' || 
-                   hostname.includes('127.0.0.1') ||
-                   hostname.includes('.local') ||
-                   isExplicitDev) ||
-                  // Pour lovableproject, considérer comme dev seulement si en mode dev explicite
-                  (isLovablePreview && isExplicitDev);
+    // Pour les aperçus Lovable, toujours considérer comme dev pour permettre le bypass
+    const isDev = hostname === 'localhost' || 
+                  hostname.includes('127.0.0.1') ||
+                  hostname.includes('.local') ||
+                  isLovablePreview ||  // Tous les aperçus lovable sont considérés comme dev
+                  isExplicitDev;
 
     console.log('🔍 Détection environnement:', {
       hostname,
