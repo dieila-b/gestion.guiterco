@@ -149,7 +149,8 @@ Deno.serve(async (req) => {
     // Then insert the user in utilisateurs_internes with the same ID
     const finalUserDataWithId = {
       ...finalUserData,
-      id: authData.user!.id  // Use 'id' column, not 'user_id'
+      id: authData.user!.id,    // Primary key ID
+      user_id: authData.user!.id // Foreign key to auth.users
     };
 
     console.log('Inserting user data...');
