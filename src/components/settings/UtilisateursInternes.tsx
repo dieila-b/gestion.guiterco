@@ -190,7 +190,41 @@ const UtilisateursInternes = () => {
     if (!selectedUser) return;
     
     try {
-      await updateUser.mutateAsync({ id: selectedUser.id, ...formData });
+      // Validation côté client pour les mots de passe si fournis
+      if (formData.password && !passwordValidation.isValid) {
+        toast.error('Le mot de passe ne respecte pas les critères requis');
+        return;
+      }
+      
+      if (formData.password && !passwordMatch) {
+        toast.error('Les mots de passe ne correspondent pas');
+        return;
+      }
+
+      let photoUrl = formData.photo_url;
+      
+      // Upload de la photo si une nouvelle photo est sélectionnée
+      if (selectedFile) {
+        photoUrl = await uploadFile(selectedFile, 'user-avatars') || formData.photo_url;
+      }
+
+      // Hash du mot de passe si fourni
+      let passwordHash = '';
+      if (formData.password) {
+        passwordHash = await hashPassword(formData.password);
+      }
+
+      const userData = {
+        ...formData,
+        photo_url: photoUrl,
+        ...(passwordHash && { password_hash: passwordHash })
+      };
+      
+      // Supprimer les champs de mot de passe du form data avant envoi
+      delete userData.password;
+      delete userData.confirmPassword;
+
+      await updateUser.mutateAsync({ id: selectedUser.id, ...userData });
       setShowEditDialog(false);
       setSelectedUser(null);
       resetForm();
@@ -297,11 +331,11 @@ const UtilisateursInternes = () => {
                 Nouvel utilisateur
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-2xl">
+            <DialogContent className="max-w-2xl max-h-[90vh]">
               <DialogHeader>
                 <DialogTitle>Créer un nouvel utilisateur interne</DialogTitle>
               </DialogHeader>
-              <div className="space-y-4 py-4">
+              <div className="space-y-4 py-4 overflow-y-auto max-h-[70vh]">
                 {/* Photo de profil */}
                 <div className="space-y-2">
                   <Label>Photo de profil</Label>
@@ -624,115 +658,224 @@ const UtilisateursInternes = () => {
 
       {/* Dialog de modification */}
       <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-2xl max-h-[90vh]">
           <DialogHeader>
             <DialogTitle>Modifier l'utilisateur</DialogTitle>
           </DialogHeader>
-          <div className="grid grid-cols-2 gap-4 py-4">
+          <div className="space-y-4 py-4 overflow-y-auto max-h-[70vh]">
+            {/* Photo de profil */}
             <div className="space-y-2">
-              <Label htmlFor="edit-prenom">Prénom *</Label>
-              <Input
-                id="edit-prenom"
-                value={formData.prenom}
-                onChange={(e) => setFormData({ ...formData, prenom: e.target.value })}
-                placeholder="Prénom"
-              />
+              <Label>Photo de profil</Label>
+              <div className="flex items-center gap-4">
+                <Avatar className="w-16 h-16">
+                  <AvatarImage src={previewUrl || formData.photo_url} />
+                  <AvatarFallback>
+                    <User className="w-8 h-8" />
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex flex-col gap-2">
+                  <Input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleFileChange}
+                    className="hidden"
+                    id="photo-upload-edit"
+                  />
+                  <Label htmlFor="photo-upload-edit" className="cursor-pointer">
+                    <Button type="button" variant="outline" size="sm" asChild>
+                      <span>
+                        <Upload className="w-4 h-4 mr-2" />
+                        Changer la photo
+                      </span>
+                    </Button>
+                  </Label>
+                  {uploading && <p className="text-sm text-muted-foreground">Upload en cours...</p>}
+                </div>
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit-nom">Nom *</Label>
-              <Input
-                id="edit-nom"
-                value={formData.nom}
-                onChange={(e) => setFormData({ ...formData, nom: e.target.value })}
-                placeholder="Nom"
-              />
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-prenom">Prénom *</Label>
+                <Input
+                  id="edit-prenom"
+                  value={formData.prenom}
+                  onChange={(e) => setFormData({ ...formData, prenom: e.target.value })}
+                  placeholder="Prénom"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-nom">Nom *</Label>
+                <Input
+                  id="edit-nom"
+                  value={formData.nom}
+                  onChange={(e) => setFormData({ ...formData, nom: e.target.value })}
+                  placeholder="Nom"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-email">Email *</Label>
+                <Input
+                  id="edit-email"
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  placeholder="email@exemple.com"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-matricule">Matricule</Label>
+                <Input
+                  id="edit-matricule"
+                  value={formData.matricule}
+                  onChange={(e) => setFormData({ ...formData, matricule: e.target.value })}
+                  placeholder="Matricule"
+                  className="bg-muted/50"
+                />
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit-email">Email *</Label>
-              <Input
-                id="edit-email"
-                type="email"
-                value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                placeholder="email@exemple.com"
-              />
+
+            {/* Mots de passe */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-password">Nouveau mot de passe</Label>
+                <div className="relative">
+                  <Input
+                    id="edit-password"
+                    type={showPassword ? "text" : "password"}
+                    value={formData.password}
+                    onChange={(e) => handlePasswordChange(e.target.value)}
+                    placeholder="Laisser vide pour conserver"
+                    className={!passwordValidation.isValid && formData.password ? "border-destructive" : ""}
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                    onClick={() => setShowPassword(!showPassword)}
+                  >
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </Button>
+                </div>
+                {!passwordValidation.isValid && formData.password && (
+                  <div className="text-xs text-destructive space-y-1">
+                    {passwordValidation.errors.map((error, index) => (
+                      <p key={index}>• {error}</p>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-confirmPassword">Confirmer le nouveau mot de passe</Label>
+                <div className="relative">
+                  <Input
+                    id="edit-confirmPassword"
+                    type={showConfirmPassword ? "text" : "password"}
+                    value={formData.confirmPassword}
+                    onChange={(e) => handleConfirmPasswordChange(e.target.value)}
+                    placeholder="Confirmer le nouveau mot de passe"
+                    className={!passwordMatch && formData.confirmPassword ? "border-destructive" : ""}
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  >
+                    {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </Button>
+                </div>
+                {!passwordMatch && formData.confirmPassword && (
+                  <p className="text-xs text-destructive">Les mots de passe ne correspondent pas</p>
+                )}
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit-matricule">Matricule</Label>
-              <Input
-                id="edit-matricule"
-                value={formData.matricule}
-                onChange={(e) => setFormData({ ...formData, matricule: e.target.value })}
-                placeholder="Matricule"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit-role">Rôle</Label>
-              <Select value={formData.role_id} onValueChange={(value) => setFormData({ ...formData, role_id: value })}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Sélectionner un rôle" />
-                </SelectTrigger>
-                <SelectContent>
-                  {roles?.map((role) => (
-                    <SelectItem key={role.id} value={role.id}>
-                      {role.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit-statut">Statut</Label>
-              <Select value={formData.statut} onValueChange={(value: any) => setFormData({ ...formData, statut: value })}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="actif">Actif</SelectItem>
-                  <SelectItem value="inactif">Inactif</SelectItem>
-                  <SelectItem value="suspendu">Suspendu</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit-type_compte">Type de compte</Label>
-              <Select value={formData.type_compte} onValueChange={(value: any) => setFormData({ ...formData, type_compte: value })}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="employe">Employé</SelectItem>
-                  <SelectItem value="gestionnaire">Gestionnaire</SelectItem>
-                  <SelectItem value="admin">Administrateur</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit-telephone">Téléphone</Label>
-              <Input
-                id="edit-telephone"
-                value={formData.telephone}
-                onChange={(e) => setFormData({ ...formData, telephone: e.target.value })}
-                placeholder="Téléphone"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit-date_embauche">Date d'embauche</Label>
-              <Input
-                id="edit-date_embauche"
-                type="date"
-                value={formData.date_embauche}
-                onChange={(e) => setFormData({ ...formData, date_embauche: e.target.value })}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit-department">Adresse</Label>
-              <Input
-                id="edit-department"
-                value={formData.department}
-                onChange={(e) => setFormData({ ...formData, department: e.target.value })}
-                placeholder="Adresse"
-              />
+
+            {/* Critères de validation du mot de passe si password rempli */}
+            {formData.password && (
+              <div className="bg-muted/50 p-3 rounded-lg">
+                <p className="text-sm font-medium mb-2">Critères du mot de passe :</p>
+                <ul className="text-xs text-muted-foreground space-y-1">
+                  <li>• Minimum 8 caractères</li>
+                  <li>• Au moins une majuscule (A-Z)</li>
+                  <li>• Au moins une minuscule (a-z)</li>
+                  <li>• Au moins un chiffre (0-9)</li>
+                  <li>• Au moins un caractère spécial (!@#$%^&*)</li>
+                </ul>
+              </div>
+            )}
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-role">Rôle</Label>
+                <Select value={formData.role_id} onValueChange={(value) => setFormData({ ...formData, role_id: value })}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Sélectionner un rôle" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {roles?.map((role) => (
+                      <SelectItem key={role.id} value={role.id}>
+                        {role.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-statut">Statut</Label>
+                <Select value={formData.statut} onValueChange={(value: any) => setFormData({ ...formData, statut: value })}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="actif">Actif</SelectItem>
+                    <SelectItem value="inactif">Inactif</SelectItem>
+                    <SelectItem value="suspendu">Suspendu</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-type_compte">Type de compte</Label>
+                <Select value={formData.type_compte} onValueChange={(value: any) => setFormData({ ...formData, type_compte: value })}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="employe">Employé</SelectItem>
+                    <SelectItem value="gestionnaire">Gestionnaire</SelectItem>
+                    <SelectItem value="admin">Administrateur</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-telephone">Téléphone</Label>
+                <Input
+                  id="edit-telephone"
+                  value={formData.telephone}
+                  onChange={(e) => setFormData({ ...formData, telephone: e.target.value })}
+                  placeholder="Téléphone"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-date_embauche">Date d'embauche</Label>
+                <Input
+                  id="edit-date_embauche"
+                  type="date"
+                  value={formData.date_embauche}
+                  onChange={(e) => setFormData({ ...formData, date_embauche: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-department">Adresse</Label>
+                <Input
+                  id="edit-department"
+                  value={formData.department}
+                  onChange={(e) => setFormData({ ...formData, department: e.target.value })}
+                  placeholder="Adresse"
+                />
+              </div>
             </div>
           </div>
           <div className="flex justify-end gap-2">

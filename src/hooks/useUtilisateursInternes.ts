@@ -35,6 +35,7 @@ export interface CreateUtilisateurInterne {
   photo_url?: string;
   password?: string;
   confirmPassword?: string;
+  password_hash?: string;
 }
 
 export const useUtilisateursInternes = () => {
@@ -94,20 +95,40 @@ export const useUpdateUtilisateurInterne = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ id, ...userData }: Partial<UtilisateurInterne> & { id: string }) => {
-      const { data, error } = await supabase
-        .from('utilisateurs_internes')
-        .update(userData)
-        .eq('id', id)
-        .select('*')
-        .single();
+    mutationFn: async ({ id, ...userData }: Partial<CreateUtilisateurInterne> & { id: string }) => {
+      // Utiliser l'Edge Function pour la mise à jour aussi si on a un password_hash
+      if (userData.password_hash) {
+        const { data, error } = await supabase.functions.invoke('update-internal-user', {
+          body: { id, ...userData }
+        });
 
-      if (error) {
-        console.error('Erreur mise à jour utilisateur:', error);
-        throw new Error(`Erreur lors de la mise à jour: ${error.message}`);
+        if (error) {
+          console.error('Erreur Edge Function update:', error);
+          throw new Error(`Erreur lors de la mise à jour: ${error.message}`);
+        }
+
+        if (!data.success) {
+          console.error('Erreur réponse Edge Function update:', data);
+          throw new Error(data.error || 'Erreur lors de la mise à jour');
+        }
+
+        return data.data;
+      } else {
+        // Mise à jour directe sans mot de passe
+        const { data, error } = await supabase
+          .from('utilisateurs_internes')
+          .update(userData)
+          .eq('id', id)
+          .select('*')
+          .single();
+
+        if (error) {
+          console.error('Erreur mise à jour utilisateur:', error);
+          throw new Error(`Erreur lors de la mise à jour: ${error.message}`);
+        }
+
+        return data;
       }
-
-      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['utilisateurs-internes'] });
