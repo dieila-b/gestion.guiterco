@@ -133,14 +133,19 @@ export const useDeleteUtilisateurInterne = () => {
 
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase
-        .from('utilisateurs_internes')
-        .delete()
-        .eq('id', id);
+      // Call the Edge Function with service role access
+      const { data, error } = await supabase.functions.invoke('delete-internal-user', {
+        body: { id }
+      });
 
       if (error) {
-        console.error('Erreur suppression utilisateur:', error);
+        console.error('Erreur Edge Function:', error);
         throw new Error(`Erreur lors de la suppression: ${error.message}`);
+      }
+
+      if (!data.success) {
+        console.error('Erreur réponse Edge Function:', data);
+        throw new Error(data.error || 'Erreur lors de la suppression');
       }
 
       return id;
