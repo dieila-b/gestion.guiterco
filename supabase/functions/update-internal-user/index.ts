@@ -33,10 +33,24 @@ serve(async (req) => {
       throw new Error('User ID is required')
     }
 
+    // First, get the user_id from the utilisateurs_internes table
+    const { data: internalUser, error: fetchError } = await supabaseAdmin
+      .from('utilisateurs_internes')
+      .select('user_id')
+      .eq('id', id)
+      .single()
+
+    if (fetchError || !internalUser) {
+      console.error('Error fetching internal user:', fetchError);
+      throw new Error('Utilisateur interne non trouvé');
+    }
+
+    const authUserId = internalUser.user_id;
+
     // If password is provided, update it in auth
     if (password || password_hash) {
       console.log('Updating auth user password...');
-      const { error: authError } = await supabaseAdmin.auth.admin.updateUserById(id, {
+      const { error: authError } = await supabaseAdmin.auth.admin.updateUserById(authUserId, {
         password: password || password_hash
       });
 
@@ -49,7 +63,7 @@ serve(async (req) => {
     // Update email in auth if provided
     if (userData.email) {
       console.log('Updating auth user email...');
-      const { error: authError } = await supabaseAdmin.auth.admin.updateUserById(id, {
+      const { error: authError } = await supabaseAdmin.auth.admin.updateUserById(authUserId, {
         email: userData.email
       });
 
