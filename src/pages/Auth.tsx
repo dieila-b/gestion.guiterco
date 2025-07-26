@@ -11,6 +11,9 @@ const Auth = () => {
   const { isDevMode, bypassAuth } = useDevMode();
   const navigate = useNavigate();
 
+  // Vérifier si on est en mode production forcé
+  const isProductionMode = !isDevMode || localStorage.getItem('dev_force_production') === 'true';
+
   useEffect(() => {
     // Si l'utilisateur est déjà connecté, rediriger vers la page d'accueil
     if (user && !loading) {
@@ -19,13 +22,13 @@ const Auth = () => {
       return;
     }
 
-    // En mode dev avec bypass activé, rediriger directement
-    if (isDevMode && bypassAuth && !loading) {
+    // En mode dev avec bypass activé ET pas en mode production forcé, rediriger directement
+    if (isDevMode && bypassAuth && !isProductionMode && !loading) {
       console.log('🚀 Mode dev avec bypass activé, redirection vers /');
       navigate('/', { replace: true });
       return;
     }
-  }, [user, loading, isDevMode, bypassAuth, navigate]);
+  }, [user, loading, isDevMode, bypassAuth, isProductionMode, navigate]);
 
   // Afficher un loader pendant la vérification
   if (loading) {
@@ -44,8 +47,8 @@ const Auth = () => {
     return null;
   }
 
-  // En mode dev avec bypass, ne pas afficher le formulaire
-  if (isDevMode && bypassAuth) {
+  // En mode dev avec bypass ET pas en mode production forcé, ne pas afficher le formulaire
+  if (isDevMode && bypassAuth && !isProductionMode) {
     return null;
   }
 
