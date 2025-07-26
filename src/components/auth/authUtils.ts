@@ -34,9 +34,65 @@ export const signOut = async () => {
   }
 };
 
-// Fonction de vérification d'utilisateur interne désactivée
-// La table utilisateurs_internes a été supprimée
 export const checkInternalUser = async (userId: string): Promise<UtilisateurInterne | null> => {
-  console.log('⚠️ Fonction checkInternalUser désactivée - table utilisateurs_internes supprimée');
-  return null;
+  try {
+    console.log('🔍 Vérification utilisateur interne pour userId:', userId);
+    
+    if (!userId) {
+      console.log('❌ UserId manquant');
+      return null;
+    }
+
+    const { data: internalUser, error } = await supabase
+      .from('utilisateurs_internes')
+      .select(`
+        id,
+        email,
+        prenom,
+        nom,
+        statut,
+        type_compte,
+        photo_url,
+        role:roles(id, name, description)
+      `)
+      .eq('user_id', userId)
+      .eq('statut', 'actif')
+      .eq('type_compte', 'interne')
+      .single();
+
+    if (error) {
+      console.log('❌ Erreur lors de la récupération de l\'utilisateur interne:', error);
+      return null;
+    }
+
+    if (!internalUser) {
+      console.log('❌ Aucun utilisateur interne trouvé pour userId:', userId);
+      return null;
+    }
+
+    console.log('✅ Utilisateur interne trouvé:', {
+      id: internalUser.id,
+      email: internalUser.email,
+      statut: internalUser.statut,
+      type_compte: internalUser.type_compte
+    });
+
+    return {
+      id: internalUser.id,
+      email: internalUser.email,
+      prenom: internalUser.prenom,
+      nom: internalUser.nom,
+      statut: internalUser.statut,
+      type_compte: internalUser.type_compte,
+      photo_url: internalUser.photo_url,
+      role: {
+        id: internalUser.role.id,
+        nom: internalUser.role.name, // Mapping de 'name' vers 'nom'
+        description: internalUser.role.description
+      }
+    };
+  } catch (error) {
+    console.error('❌ Erreur inattendue lors de la vérification de l\'utilisateur interne:', error);
+    return null;
+  }
 };

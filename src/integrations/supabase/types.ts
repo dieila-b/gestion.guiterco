@@ -3502,6 +3502,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: Json
       }
+      reset_internal_user_password: {
+        Args: { user_email: string; new_password: string }
+        Returns: Json
+      }
       secure_password_update: {
         Args: {
           target_user_id: string
