@@ -2681,6 +2681,65 @@ export type Database = {
           },
         ]
       }
+      utilisateurs_internes: {
+        Row: {
+          created_at: string
+          date_embauche: string | null
+          department: string | null
+          email: string
+          id: string
+          matricule: string | null
+          nom: string
+          photo_url: string | null
+          prenom: string
+          role_id: string | null
+          statut: string
+          telephone: string | null
+          type_compte: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          date_embauche?: string | null
+          department?: string | null
+          email: string
+          id?: string
+          matricule?: string | null
+          nom: string
+          photo_url?: string | null
+          prenom: string
+          role_id?: string | null
+          statut?: string
+          telephone?: string | null
+          type_compte?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          date_embauche?: string | null
+          department?: string | null
+          email?: string
+          id?: string
+          matricule?: string | null
+          nom?: string
+          photo_url?: string | null
+          prenom?: string
+          role_id?: string | null
+          statut?: string
+          telephone?: string | null
+          type_compte?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "utilisateurs_internes_role_id_fkey"
+            columns: ["role_id"]
+            isOneToOne: false
+            referencedRelation: "roles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       versements_clients: {
         Row: {
           client_id: string
@@ -2847,6 +2906,20 @@ export type Database = {
         }
         Relationships: []
       }
+      vue_permissions_utilisateurs: {
+        Row: {
+          action: string | null
+          can_access: boolean | null
+          description: string | null
+          email: string | null
+          menu: string | null
+          nom: string | null
+          prenom: string | null
+          submenu: string | null
+          user_id: string | null
+        }
+        Relationships: []
+      }
       vue_precommandes_pretes: {
         Row: {
           acompte_verse: number | null
@@ -2930,6 +3003,35 @@ export type Database = {
           solde_actif: number | null
         }
         Relationships: []
+      }
+      vue_utilisateurs_avec_roles: {
+        Row: {
+          created_at: string | null
+          date_embauche: string | null
+          department: string | null
+          email: string | null
+          id: string | null
+          matricule: string | null
+          nom: string | null
+          photo_url: string | null
+          prenom: string | null
+          role_description: string | null
+          role_id: string | null
+          role_name: string | null
+          statut: string | null
+          telephone: string | null
+          type_compte: string | null
+          updated_at: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "utilisateurs_internes_role_id_fkey"
+            columns: ["role_id"]
+            isOneToOne: false
+            referencedRelation: "roles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Functions: {

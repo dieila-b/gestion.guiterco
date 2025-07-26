@@ -11,7 +11,7 @@ import { Shield, User, Settings, Edit } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function AccessControlTab() {
-  // Hooks désactivés - table utilisateurs_internes supprimée
+  // Utilisateurs internes maintenant gérés dans l'onglet dédié
   const users: any[] = [];
   const roles: any[] = [];
   const isLoading = false;
@@ -112,9 +112,9 @@ export default function AccessControlTab() {
             <div className="flex items-center gap-3 p-4 bg-muted border rounded-lg">
               <User className="w-5 h-5 text-muted-foreground" />
               <div>
-                <p className="font-medium">Fonctionnalité désactivée</p>
+                <p className="font-medium">Fonctionnalité déplacée</p>
                 <p className="text-sm text-muted-foreground">
-                  La gestion des utilisateurs internes a été supprimée du système.
+                  La gestion des utilisateurs internes se trouve maintenant dans l'onglet "Utilisateurs Internes".
                 </p>
               </div>
             </div>
