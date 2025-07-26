@@ -22,7 +22,8 @@ import {
   Upload,
   Eye,
   EyeOff,
-  MapPin
+  MapPin,
+  Key
 } from 'lucide-react';
 import { 
   useUtilisateursInternes, 
@@ -34,6 +35,7 @@ import {
 } from '@/hooks/useUtilisateursInternes';
 import { useRoles } from '@/hooks/usePermissionsSystem';
 import { useFileUpload } from '@/hooks/useFileUpload';
+import { useResetAllPasswords } from '@/hooks/useResetAllPasswords';
 import { validatePassword, validatePasswordMatch, hashPassword } from '@/utils/passwordValidation';
 import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
@@ -73,33 +75,22 @@ const UtilisateursInternes = () => {
   const createUser = useCreateUtilisateurInterne();
   const updateUser = useUpdateUtilisateurInterne();
   const deleteUser = useDeleteUtilisateurInterne();
+  const resetAllPasswords = useResetAllPasswords();
   const { uploadFile, uploading } = useFileUpload();
   const queryClient = useQueryClient();
   
-  // Fonction temporaire pour corriger les utilisateurs existants
-  const fixExistingUsers = async () => {
-    try {
-      const { data, error } = await supabase.functions.invoke('fix-existing-users', {});
-      if (error) {
-        console.error('Erreur lors de la correction:', error);
-        toast.error('Erreur lors de la synchronisation des utilisateurs');
-      } else {
-        console.log('Résultats de la synchronisation:', data);
-        toast.success('Utilisateurs synchronisés avec succès');
+  // Fonction de réinitialisation des mots de passe pour tous les utilisateurs
+  const handleResetAllPasswords = async () => {
+    if (window.confirm('Êtes-vous sûr de vouloir réinitialiser les mots de passe de tous les utilisateurs internes ? Cette action va créer des mots de passe temporaires.')) {
+      try {
+        await resetAllPasswords.mutateAsync();
+        // Actualiser la liste des utilisateurs
         queryClient.invalidateQueries({ queryKey: ['utilisateurs-internes'] });
+      } catch (error) {
+        console.error('Erreur lors de la réinitialisation:', error);
       }
-    } catch (error) {
-      console.error('Erreur:', error);
-      toast.error('Erreur lors de la synchronisation');
     }
   };
-  
-  // Exécuter automatiquement au chargement pour corriger les utilisateurs existants
-  React.useEffect(() => {
-    if (users && users.length > 0) {
-      fixExistingUsers();
-    }
-  }, [users]);
 
   const resetForm = () => {
     setFormData({
@@ -354,14 +345,24 @@ const UtilisateursInternes = () => {
             <User className="w-5 h-5" />
             Utilisateurs Internes
           </CardTitle>
-          <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
-            <DialogTrigger asChild>
-              <Button onClick={resetForm}>
-                <Plus className="w-4 h-4 mr-2" />
-                Nouvel utilisateur
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-2xl max-h-[90vh]">
+          <div className="flex items-center gap-2">
+            <Button 
+              variant="outline" 
+              onClick={handleResetAllPasswords}
+              disabled={resetAllPasswords.isPending}
+              className="text-orange-600 border-orange-200 hover:bg-orange-50"
+            >
+              <Key className="w-4 h-4 mr-2" />
+              {resetAllPasswords.isPending ? 'Réinitialisation...' : 'Réinitialiser mots de passe'}
+            </Button>
+            <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
+              <DialogTrigger asChild>
+                <Button onClick={resetForm}>
+                  <Plus className="w-4 h-4 mr-2" />
+                  Nouvel utilisateur
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-2xl max-h-[90vh]">
               <DialogHeader>
                 <DialogTitle>Créer un nouvel utilisateur interne</DialogTitle>
               </DialogHeader>
@@ -598,6 +599,7 @@ const UtilisateursInternes = () => {
               </div>
             </DialogContent>
           </Dialog>
+          </div>
         </CardHeader>
         <CardContent>
           <div className="rounded-md border">
