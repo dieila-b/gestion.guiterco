@@ -225,8 +225,10 @@ const UtilisateursInternes = () => {
       delete userData.confirmPassword;
 
       await updateUser.mutateAsync({ id: selectedUser.id, ...userData });
+      // Reset immédiat pour éviter les boucles
       setShowEditDialog(false);
       setSelectedUser(null);
+      setSelectedFile(null);
       resetForm();
     } catch (error) {
       console.error('Erreur mise à jour:', error);

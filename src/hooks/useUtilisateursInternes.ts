@@ -120,7 +120,7 @@ export const useUpdateUtilisateurInterne = () => {
           .update(userData)
           .eq('id', id)
           .select('*')
-          .single();
+          .maybeSingle();
 
         if (error) {
           console.error('Erreur mise à jour utilisateur:', error);

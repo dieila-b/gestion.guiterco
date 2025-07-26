@@ -39,7 +39,7 @@ serve(async (req) => {
       .update(userData)
       .eq('id', id)
       .select('*')
-      .single()
+      .maybeSingle()
 
     if (updateError) {
       console.error('Error updating user in database:', updateError)
