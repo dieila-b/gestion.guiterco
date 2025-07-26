@@ -306,36 +306,38 @@ export const useRevokeUserRole = () => {
 
 export const useUpdateRolePermission = () => {
   const queryClient = useQueryClient();
-  const { toast } = useToast();
 
   return useMutation({
     mutationFn: async ({ roleId, permissionId, canAccess }: { roleId: string; permissionId: string; canAccess: boolean }) => {
-      const { data, error } = await supabase
-        .from('role_permissions')
-        .upsert({
-          role_id: roleId,
-          permission_id: permissionId,
-          can_access: canAccess
-        })
-        .select()
-        .single();
+      if (canAccess) {
+        // Si on accorde la permission, on utilise upsert
+        const { data, error } = await supabase
+          .from('role_permissions')
+          .upsert({
+            role_id: roleId,
+            permission_id: permissionId,
+            can_access: true
+          }, {
+            onConflict: 'role_id,permission_id'
+          })
+          .select();
 
-      if (error) throw error;
-      return data;
+        if (error) throw error;
+        return data;
+      } else {
+        // Si on révoque la permission, on supprime l'enregistrement
+        const { error } = await supabase
+          .from('role_permissions')
+          .delete()
+          .eq('role_id', roleId)
+          .eq('permission_id', permissionId);
+
+        if (error) throw error;
+        return null;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['role-permissions'] });
-      toast({
-        title: "Permission mise à jour",
-        description: "La permission a été mise à jour avec succès",
-      });
     },
-    onError: (error: any) => {
-      toast({
-        title: "Erreur",
-        description: error.message || "Impossible de mettre à jour la permission",
-        variant: "destructive",
-      });
-    }
   });
 };
