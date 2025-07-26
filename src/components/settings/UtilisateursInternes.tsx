@@ -36,6 +36,8 @@ import { useRoles } from '@/hooks/usePermissionsSystem';
 import { useFileUpload } from '@/hooks/useFileUpload';
 import { validatePassword, validatePasswordMatch, hashPassword } from '@/utils/passwordValidation';
 import { toast } from 'sonner';
+import { useQueryClient } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 
 interface UserFormData extends CreateUtilisateurInterne {}
 
@@ -72,6 +74,32 @@ const UtilisateursInternes = () => {
   const updateUser = useUpdateUtilisateurInterne();
   const deleteUser = useDeleteUtilisateurInterne();
   const { uploadFile, uploading } = useFileUpload();
+  const queryClient = useQueryClient();
+  
+  // Fonction temporaire pour corriger les utilisateurs existants
+  const fixExistingUsers = async () => {
+    try {
+      const { data, error } = await supabase.functions.invoke('fix-existing-users', {});
+      if (error) {
+        console.error('Erreur lors de la correction:', error);
+        toast.error('Erreur lors de la synchronisation des utilisateurs');
+      } else {
+        console.log('Résultats de la synchronisation:', data);
+        toast.success('Utilisateurs synchronisés avec succès');
+        queryClient.invalidateQueries({ queryKey: ['utilisateurs-internes'] });
+      }
+    } catch (error) {
+      console.error('Erreur:', error);
+      toast.error('Erreur lors de la synchronisation');
+    }
+  };
+  
+  // Exécuter automatiquement au chargement pour corriger les utilisateurs existants
+  React.useEffect(() => {
+    if (users && users.length > 0) {
+      fixExistingUsers();
+    }
+  }, [users]);
 
   const resetForm = () => {
     setFormData({
