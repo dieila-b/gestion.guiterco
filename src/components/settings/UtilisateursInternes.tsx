@@ -36,6 +36,7 @@ import {
 import { useRoles } from '@/hooks/usePermissionsSystem';
 import { useFileUpload } from '@/hooks/useFileUpload';
 import { useResetAllPasswords } from '@/hooks/useResetAllPasswords';
+import { useResetUserPassword } from '@/hooks/useResetUserPassword';
 import { validatePassword, validatePasswordMatch, hashPassword } from '@/utils/passwordValidation';
 import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
@@ -76,6 +77,7 @@ const UtilisateursInternes = () => {
   const updateUser = useUpdateUtilisateurInterne();
   const deleteUser = useDeleteUtilisateurInterne();
   const resetAllPasswords = useResetAllPasswords();
+  const resetUserPassword = useResetUserPassword();
   const { uploadFile, uploading } = useFileUpload();
   const queryClient = useQueryClient();
   
@@ -86,6 +88,17 @@ const UtilisateursInternes = () => {
         await resetAllPasswords.mutateAsync();
         // Actualiser la liste des utilisateurs
         queryClient.invalidateQueries({ queryKey: ['utilisateurs-internes'] });
+      } catch (error) {
+        console.error('Erreur lors de la réinitialisation:', error);
+      }
+    }
+  };
+
+  // Fonction de réinitialisation du mot de passe pour un utilisateur spécifique
+  const handleResetUserPassword = async (userId: string) => {
+    if (window.confirm('Êtes-vous sûr de vouloir réinitialiser le mot de passe de cet utilisateur ? Un mot de passe temporaire sera généré.')) {
+      try {
+        await resetUserPassword.mutateAsync(userId);
       } catch (error) {
         console.error('Erreur lors de la réinitialisation:', error);
       }
@@ -659,27 +672,37 @@ const UtilisateursInternes = () => {
                     <TableCell>
                       {getTypeBadge(user.type_compte)}
                     </TableCell>
-                    <TableCell className="text-center">
-                      <div className="flex items-center justify-center gap-2">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleEdit(user)}
-                          title="Modifier"
-                        >
-                          <Edit className="w-4 h-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleDelete(user.id)}
-                          title="Supprimer"
-                          className="text-destructive hover:text-destructive"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
+                     <TableCell className="text-center">
+                       <div className="flex items-center justify-center gap-2">
+                         <Button
+                           variant="ghost"
+                           size="sm"
+                           onClick={() => handleResetUserPassword(user.id)}
+                           title="Réinitialiser le mot de passe"
+                           className="text-orange-600 hover:text-orange-700"
+                           disabled={resetUserPassword.isPending}
+                         >
+                           <Key className="w-4 h-4" />
+                         </Button>
+                         <Button
+                           variant="ghost"
+                           size="sm"
+                           onClick={() => handleEdit(user)}
+                           title="Modifier"
+                         >
+                           <Edit className="w-4 h-4" />
+                         </Button>
+                         <Button
+                           variant="ghost"
+                           size="sm"
+                           onClick={() => handleDelete(user.id)}
+                           title="Supprimer"
+                           className="text-destructive hover:text-destructive"
+                         >
+                           <Trash2 className="w-4 h-4" />
+                         </Button>
+                       </div>
+                     </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
