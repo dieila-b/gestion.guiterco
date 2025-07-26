@@ -103,10 +103,28 @@ Deno.serve(async (req) => {
 
     console.log('Creating auth user...');
     
+    // Check if email already exists first
+    const { data: existingUser } = await supabase.auth.admin.listUsers();
+    const emailExists = existingUser?.users?.some(user => user.email === userData.email);
+    
+    if (emailExists) {
+      console.error('Email already exists:', userData.email);
+      return new Response(
+        JSON.stringify({ error: `Un utilisateur avec l'email ${userData.email} existe déjà` }),
+        { 
+          status: 400, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
+    }
+
+    // Generate a strong temporary password if none provided
+    const tempPassword = userData.password || userData.password_hash || `TempPass${Math.random().toString(36).slice(-8)}!`;
+    
     // First create the user in Supabase Auth
     const { data: authData, error: authError } = await supabase.auth.admin.createUser({
       email: userData.email,
-      password: userData.password || userData.password_hash || 'TempPassword123!',
+      password: tempPassword,
       email_confirm: true,
       user_metadata: {
         prenom: userData.prenom,
@@ -135,6 +153,27 @@ Deno.serve(async (req) => {
     };
 
     console.log('Inserting user data...');
+    console.log('Final user data with ID:', finalUserDataWithId);
+    
+    // Check if user already exists in utilisateurs_internes
+    const { data: existingInternalUser } = await supabase
+      .from('utilisateurs_internes')
+      .select('id')
+      .eq('email', userData.email)
+      .single();
+    
+    if (existingInternalUser) {
+      console.error('Internal user already exists with email:', userData.email);
+      // Clean up the auth user we just created
+      await supabase.auth.admin.deleteUser(authData.user!.id);
+      return new Response(
+        JSON.stringify({ error: `Un utilisateur interne avec l'email ${userData.email} existe déjà` }),
+        { 
+          status: 400, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
+    }
     
     const { data, error } = await supabase
       .from('utilisateurs_internes')
@@ -144,6 +183,12 @@ Deno.serve(async (req) => {
 
     if (error) {
       console.error('Database error:', error);
+      console.error('Error details:', {
+        code: error.code,
+        message: error.message,
+        details: error.details,
+        hint: error.hint
+      });
       // If database insert fails, clean up the auth user
       await supabase.auth.admin.deleteUser(authData.user!.id);
       return new Response(
