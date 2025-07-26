@@ -2681,65 +2681,6 @@ export type Database = {
           },
         ]
       }
-      utilisateurs_internes: {
-        Row: {
-          adresse_complete: string | null
-          created_at: string | null
-          doit_changer_mot_de_passe: boolean | null
-          email: string
-          id: string
-          matricule: string | null
-          nom: string
-          photo_url: string | null
-          prenom: string
-          role_id: string | null
-          statut: string | null
-          telephone: string | null
-          updated_at: string | null
-          user_id: string | null
-        }
-        Insert: {
-          adresse_complete?: string | null
-          created_at?: string | null
-          doit_changer_mot_de_passe?: boolean | null
-          email: string
-          id?: string
-          matricule?: string | null
-          nom: string
-          photo_url?: string | null
-          prenom: string
-          role_id?: string | null
-          statut?: string | null
-          telephone?: string | null
-          updated_at?: string | null
-          user_id?: string | null
-        }
-        Update: {
-          adresse_complete?: string | null
-          created_at?: string | null
-          doit_changer_mot_de_passe?: boolean | null
-          email?: string
-          id?: string
-          matricule?: string | null
-          nom?: string
-          photo_url?: string | null
-          prenom?: string
-          role_id?: string | null
-          statut?: string | null
-          telephone?: string | null
-          updated_at?: string | null
-          user_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "utilisateurs_internes_role_id_fkey"
-            columns: ["role_id"]
-            isOneToOne: false
-            referencedRelation: "roles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       versements_clients: {
         Row: {
           client_id: string
