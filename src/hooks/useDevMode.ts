@@ -17,6 +17,7 @@ export interface DevModeConfig {
     type_compte: string;
   };
   toggleBypass: () => void;
+  toggleProductionMode: () => void;
 }
 
 export const useDevMode = (): DevModeConfig => {
@@ -63,29 +64,35 @@ export const useDevMode = (): DevModeConfig => {
         statut: 'actif',
         type_compte: 'interne'
       },
-      toggleBypass: () => {}
+      toggleBypass: () => {},
+      toggleProductionMode: () => {}
     };
   });
 
   const updateBypassState = () => {
     const hostname = window.location.hostname;
     const isDev = hostname === 'localhost' || 
-                  hostname.includes('lovableproject.com') || 
                   hostname.includes('127.0.0.1') ||
                   hostname.includes('.local') ||
                   import.meta.env.DEV ||
                   import.meta.env.MODE === 'development';
 
+    // Permettre le mode production même sur lovableproject.com si l'utilisateur le demande
+    const forceProductionMode = localStorage.getItem('dev_force_production') === 'true';
+    const isProductionMode = !isDev || forceProductionMode;
+
     console.log('🔍 Détection environnement:', {
       hostname,
       isDev,
+      forceProductionMode,
+      isProductionMode,
       mode: import.meta.env.MODE,
       dev: import.meta.env.DEV
     });
 
     let bypassEnabled = false;
     
-    if (isDev) {
+    if (!isProductionMode) {
       // En mode développement, bypass activé par défaut
       bypassEnabled = true;
       
@@ -110,17 +117,17 @@ export const useDevMode = (): DevModeConfig => {
         envVar: import.meta.env.VITE_DEV_BYPASS_AUTH 
       });
     } else {
-      // En production, authentification toujours requise
+      // En mode production, authentification toujours requise
       console.log('🏢 Mode production: Authentification obligatoire');
     }
 
     setConfig(prevConfig => ({
       ...prevConfig,
-      isDevMode: isDev,
+      isDevMode: !isProductionMode,
       bypassAuth: bypassEnabled,
       toggleBypass: () => {
-        if (!isDev) {
-          console.log('❌ Toggle bypass non disponible en production');
+        if (isProductionMode) {
+          console.log('❌ Toggle bypass non disponible en mode production');
           return;
         }
         
@@ -128,6 +135,20 @@ export const useDevMode = (): DevModeConfig => {
         const newValue = !current;
         localStorage.setItem('dev_bypass_auth', newValue.toString());
         console.log(`🔄 Bypass auth ${newValue ? 'activé' : 'désactivé'}`);
+        
+        // Forcer la mise à jour de l'état
+        updateBypassState();
+        
+        // Recharger la page pour appliquer les changements
+        setTimeout(() => {
+          window.location.reload();
+        }, 100);
+      },
+      toggleProductionMode: () => {
+        const currentProductionMode = localStorage.getItem('dev_force_production') === 'true';
+        const newProductionMode = !currentProductionMode;
+        localStorage.setItem('dev_force_production', newProductionMode.toString());
+        console.log(`🔄 Mode production ${newProductionMode ? 'activé' : 'désactivé'}`);
         
         // Forcer la mise à jour de l'état
         updateBypassState();
