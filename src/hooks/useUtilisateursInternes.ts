@@ -96,43 +96,27 @@ export const useUpdateUtilisateurInterne = () => {
 
   return useMutation({
     mutationFn: async ({ id, ...userData }: Partial<CreateUtilisateurInterne> & { id: string }) => {
-      // Utiliser l'Edge Function pour la mise à jour aussi si on a un password_hash
-      if (userData.password_hash) {
-        const { data, error } = await supabase.functions.invoke('update-internal-user', {
-          body: { id, ...userData }
-        });
+      console.log('▶ Début mise à jour utilisateur:', { id, userData });
+      
+      // Toujours utiliser l'Edge Function pour garantir la synchronisation Auth/DB
+      const { data, error } = await supabase.functions.invoke('update-internal-user', {
+        body: { id, ...userData }
+      });
 
-        if (error) {
-          console.error('Erreur Edge Function update:', error);
-          throw new Error(`Erreur lors de la mise à jour: ${error.message}`);
-        }
+      console.log('▶ Réponse Edge Function update:', { data, error });
 
-        if (!data.success) {
-          console.error('Erreur réponse Edge Function update:', data);
-          throw new Error(data.error || 'Erreur lors de la mise à jour');
-        }
-
-        return data.data;
-      } else {
-        // Mise à jour directe sans mot de passe
-        const { data, error } = await supabase
-          .from('utilisateurs_internes')
-          .update(userData)
-          .eq('id', id)
-          .select('*')
-          .maybeSingle();
-
-        if (error) {
-          console.error('Erreur mise à jour utilisateur:', error);
-          throw new Error(`Erreur lors de la mise à jour: ${error.message}`);
-        }
-
-        if (!data) {
-          throw new Error('Utilisateur non trouvé ou mise à jour échouée');
-        }
-
-        return data;
+      if (error) {
+        console.error('Erreur Edge Function update:', error);
+        throw new Error(`Erreur lors de la mise à jour: ${error.message}`);
       }
+
+      if (!data || !data.success) {
+        console.error('Erreur réponse Edge Function update:', data);
+        throw new Error(data?.error || 'Erreur lors de la mise à jour');
+      }
+
+      console.log('▶ Mise à jour réussie:', data.data);
+      return data.data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['utilisateurs-internes'] });
