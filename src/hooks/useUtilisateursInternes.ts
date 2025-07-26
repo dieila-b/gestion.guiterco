@@ -32,6 +32,9 @@ export interface CreateUtilisateurInterne {
   telephone?: string;
   date_embauche?: string;
   department?: string;
+  photo_url?: string;
+  password?: string;
+  confirmPassword?: string;
 }
 
 export const useUtilisateursInternes = () => {

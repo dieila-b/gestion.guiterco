@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { 
   Plus, 
   Edit, 
@@ -17,7 +18,11 @@ import {
   Mail,
   Phone,
   Calendar,
-  Building
+  Building,
+  Upload,
+  Eye,
+  EyeOff,
+  MapPin
 } from 'lucide-react';
 import { 
   useUtilisateursInternes, 
@@ -28,6 +33,9 @@ import {
   type UtilisateurInterne
 } from '@/hooks/useUtilisateursInternes';
 import { useRoles } from '@/hooks/usePermissionsSystem';
+import { useFileUpload } from '@/hooks/useFileUpload';
+import { validatePassword, validatePasswordMatch, hashPassword } from '@/utils/passwordValidation';
+import { toast } from 'sonner';
 
 interface UserFormData extends CreateUtilisateurInterne {}
 
@@ -35,6 +43,13 @@ const UtilisateursInternes = () => {
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [selectedUser, setSelectedUser] = useState<UtilisateurInterne | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [passwordValidation, setPasswordValidation] = useState({ isValid: true, errors: [] });
+  const [passwordMatch, setPasswordMatch] = useState(true);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  
   const [formData, setFormData] = useState<UserFormData>({
     email: '',
     prenom: '',
@@ -45,7 +60,10 @@ const UtilisateursInternes = () => {
     type_compte: 'employe',
     telephone: '',
     date_embauche: '',
-    department: ''
+    department: '',
+    photo_url: '',
+    password: '',
+    confirmPassword: ''
   });
 
   const { data: users, isLoading, error } = useUtilisateursInternes();
@@ -53,6 +71,7 @@ const UtilisateursInternes = () => {
   const createUser = useCreateUtilisateurInterne();
   const updateUser = useUpdateUtilisateurInterne();
   const deleteUser = useDeleteUtilisateurInterne();
+  const { uploadFile, uploading } = useFileUpload();
 
   const resetForm = () => {
     setFormData({
@@ -65,13 +84,80 @@ const UtilisateursInternes = () => {
       type_compte: 'employe',
       telephone: '',
       date_embauche: '',
-      department: ''
+      department: '',
+      photo_url: '',
+      password: '',
+      confirmPassword: ''
     });
+    setSelectedFile(null);
+    setPreviewUrl(null);
+    setPasswordValidation({ isValid: true, errors: [] });
+    setPasswordMatch(true);
+    setShowPassword(false);
+    setShowConfirmPassword(false);
+  };
+
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      setSelectedFile(file);
+      const reader = new FileReader();
+      reader.onload = () => {
+        setPreviewUrl(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handlePasswordChange = (password: string) => {
+    setFormData({ ...formData, password });
+    const validation = validatePassword(password);
+    setPasswordValidation(validation);
+    setPasswordMatch(validatePasswordMatch(password, formData.confirmPassword || ''));
+  };
+
+  const handleConfirmPasswordChange = (confirmPassword: string) => {
+    setFormData({ ...formData, confirmPassword });
+    setPasswordMatch(validatePasswordMatch(formData.password || '', confirmPassword));
   };
 
   const handleCreate = async () => {
     try {
-      await createUser.mutateAsync(formData);
+      // Validation côté client
+      if (formData.password && !passwordValidation.isValid) {
+        toast.error('Le mot de passe ne respecte pas les critères requis');
+        return;
+      }
+      
+      if (formData.password && !passwordMatch) {
+        toast.error('Les mots de passe ne correspondent pas');
+        return;
+      }
+
+      let photoUrl = formData.photo_url;
+      
+      // Upload de la photo si présente
+      if (selectedFile) {
+        photoUrl = await uploadFile(selectedFile, 'user-avatars') || '';
+      }
+
+      // Hash du mot de passe si présent
+      let passwordHash = '';
+      if (formData.password) {
+        passwordHash = await hashPassword(formData.password);
+      }
+
+      const userData = {
+        ...formData,
+        photo_url: photoUrl,
+        password_hash: passwordHash
+      };
+      
+      // Supprimer les champs de mot de passe du form data avant envoi
+      delete userData.password;
+      delete userData.confirmPassword;
+
+      await createUser.mutateAsync(userData);
       setShowCreateDialog(false);
       resetForm();
     } catch (error) {
@@ -91,8 +177,12 @@ const UtilisateursInternes = () => {
       type_compte: user.type_compte,
       telephone: user.telephone || '',
       date_embauche: user.date_embauche || '',
-      department: user.department || ''
+      department: user.department || '',
+      photo_url: user.photo_url || '',
+      password: '',
+      confirmPassword: ''
     });
+    setPreviewUrl(user.photo_url || null);
     setShowEditDialog(true);
   };
 
@@ -211,111 +301,224 @@ const UtilisateursInternes = () => {
               <DialogHeader>
                 <DialogTitle>Créer un nouvel utilisateur interne</DialogTitle>
               </DialogHeader>
-              <div className="grid grid-cols-2 gap-4 py-4">
+              <div className="space-y-4 py-4">
+                {/* Photo de profil */}
                 <div className="space-y-2">
-                  <Label htmlFor="prenom">Prénom *</Label>
-                  <Input
-                    id="prenom"
-                    value={formData.prenom}
-                    onChange={(e) => setFormData({ ...formData, prenom: e.target.value })}
-                    placeholder="Prénom"
-                  />
+                  <Label>Photo de profil</Label>
+                  <div className="flex items-center gap-4">
+                    <Avatar className="w-16 h-16">
+                      <AvatarImage src={previewUrl || formData.photo_url} />
+                      <AvatarFallback>
+                        <User className="w-8 h-8" />
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex flex-col gap-2">
+                      <Input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleFileChange}
+                        className="hidden"
+                        id="photo-upload"
+                      />
+                      <Label htmlFor="photo-upload" className="cursor-pointer">
+                        <Button type="button" variant="outline" size="sm" asChild>
+                          <span>
+                            <Upload className="w-4 h-4 mr-2" />
+                            Choisir une photo
+                          </span>
+                        </Button>
+                      </Label>
+                      {uploading && <p className="text-sm text-muted-foreground">Upload en cours...</p>}
+                    </div>
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="nom">Nom *</Label>
-                  <Input
-                    id="nom"
-                    value={formData.nom}
-                    onChange={(e) => setFormData({ ...formData, nom: e.target.value })}
-                    placeholder="Nom"
-                  />
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="prenom">Prénom *</Label>
+                    <Input
+                      id="prenom"
+                      value={formData.prenom}
+                      onChange={(e) => setFormData({ ...formData, prenom: e.target.value })}
+                      placeholder="Prénom"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="nom">Nom *</Label>
+                    <Input
+                      id="nom"
+                      value={formData.nom}
+                      onChange={(e) => setFormData({ ...formData, nom: e.target.value })}
+                      placeholder="Nom"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="email">Email *</Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      value={formData.email}
+                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                      placeholder="email@exemple.com"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="matricule">Matricule</Label>
+                    <Input
+                      id="matricule"
+                      value={formData.matricule}
+                      onChange={(e) => setFormData({ ...formData, matricule: e.target.value })}
+                      placeholder="Généré automatiquement si vide"
+                      className="bg-muted/50"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Format: {formData.prenom && formData.nom ? 
+                        `${formData.prenom.charAt(0).toUpperCase()}${formData.nom.substring(0, 3).toUpperCase()}-01` : 
+                        'XAAA-01'
+                      }
+                    </p>
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email *</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    placeholder="email@exemple.com"
-                  />
+
+                {/* Mots de passe */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="password">Mot de passe *</Label>
+                    <div className="relative">
+                      <Input
+                        id="password"
+                        type={showPassword ? "text" : "password"}
+                        value={formData.password}
+                        onChange={(e) => handlePasswordChange(e.target.value)}
+                        placeholder="Mot de passe"
+                        className={!passwordValidation.isValid && formData.password ? "border-destructive" : ""}
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                        onClick={() => setShowPassword(!showPassword)}
+                      >
+                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </Button>
+                    </div>
+                    {!passwordValidation.isValid && formData.password && (
+                      <div className="text-xs text-destructive space-y-1">
+                        {passwordValidation.errors.map((error, index) => (
+                          <p key={index}>• {error}</p>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="confirmPassword">Confirmer le mot de passe *</Label>
+                    <div className="relative">
+                      <Input
+                        id="confirmPassword"
+                        type={showConfirmPassword ? "text" : "password"}
+                        value={formData.confirmPassword}
+                        onChange={(e) => handleConfirmPasswordChange(e.target.value)}
+                        placeholder="Confirmer le mot de passe"
+                        className={!passwordMatch && formData.confirmPassword ? "border-destructive" : ""}
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      >
+                        {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </Button>
+                    </div>
+                    {!passwordMatch && formData.confirmPassword && (
+                      <p className="text-xs text-destructive">Les mots de passe ne correspondent pas</p>
+                    )}
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="matricule">Matricule</Label>
-                  <Input
-                    id="matricule"
-                    value={formData.matricule}
-                    onChange={(e) => setFormData({ ...formData, matricule: e.target.value })}
-                    placeholder="Matricule"
-                  />
+
+                {/* Critères de validation du mot de passe */}
+                <div className="bg-muted/50 p-3 rounded-lg">
+                  <p className="text-sm font-medium mb-2">Critères du mot de passe :</p>
+                  <ul className="text-xs text-muted-foreground space-y-1">
+                    <li>• Minimum 8 caractères</li>
+                    <li>• Au moins une majuscule (A-Z)</li>
+                    <li>• Au moins une minuscule (a-z)</li>
+                    <li>• Au moins un chiffre (0-9)</li>
+                    <li>• Au moins un caractère spécial (!@#$%^&*)</li>
+                  </ul>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="role">Rôle</Label>
-                  <Select value={formData.role_id} onValueChange={(value) => setFormData({ ...formData, role_id: value })}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Sélectionner un rôle" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {roles?.map((role) => (
-                        <SelectItem key={role.id} value={role.id}>
-                          {role.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="statut">Statut</Label>
-                  <Select value={formData.statut} onValueChange={(value: any) => setFormData({ ...formData, statut: value })}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="actif">Actif</SelectItem>
-                      <SelectItem value="inactif">Inactif</SelectItem>
-                      <SelectItem value="suspendu">Suspendu</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="type_compte">Type de compte</Label>
-                  <Select value={formData.type_compte} onValueChange={(value: any) => setFormData({ ...formData, type_compte: value })}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="employe">Employé</SelectItem>
-                      <SelectItem value="gestionnaire">Gestionnaire</SelectItem>
-                      <SelectItem value="admin">Administrateur</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="telephone">Téléphone</Label>
-                  <Input
-                    id="telephone"
-                    value={formData.telephone}
-                    onChange={(e) => setFormData({ ...formData, telephone: e.target.value })}
-                    placeholder="Téléphone"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="date_embauche">Date d'embauche</Label>
-                  <Input
-                    id="date_embauche"
-                    type="date"
-                    value={formData.date_embauche}
-                    onChange={(e) => setFormData({ ...formData, date_embauche: e.target.value })}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="department">Département</Label>
-                  <Input
-                    id="department"
-                    value={formData.department}
-                    onChange={(e) => setFormData({ ...formData, department: e.target.value })}
-                    placeholder="Département"
-                  />
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="role">Rôle</Label>
+                    <Select value={formData.role_id} onValueChange={(value) => setFormData({ ...formData, role_id: value })}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Sélectionner un rôle" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {roles?.map((role) => (
+                          <SelectItem key={role.id} value={role.id}>
+                            {role.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="statut">Statut</Label>
+                    <Select value={formData.statut} onValueChange={(value: any) => setFormData({ ...formData, statut: value })}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="actif">Actif</SelectItem>
+                        <SelectItem value="inactif">Inactif</SelectItem>
+                        <SelectItem value="suspendu">Suspendu</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="type_compte">Type de compte</Label>
+                    <Select value={formData.type_compte} onValueChange={(value: any) => setFormData({ ...formData, type_compte: value })}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="employe">Employé</SelectItem>
+                        <SelectItem value="gestionnaire">Gestionnaire</SelectItem>
+                        <SelectItem value="admin">Administrateur</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="telephone">Téléphone</Label>
+                    <Input
+                      id="telephone"
+                      value={formData.telephone}
+                      onChange={(e) => setFormData({ ...formData, telephone: e.target.value })}
+                      placeholder="Téléphone"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="date_embauche">Date d'embauche</Label>
+                    <Input
+                      id="date_embauche"
+                      type="date"
+                      value={formData.date_embauche}
+                      onChange={(e) => setFormData({ ...formData, date_embauche: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="department">Adresse</Label>
+                    <Input
+                      id="department"
+                      value={formData.department}
+                      onChange={(e) => setFormData({ ...formData, department: e.target.value })}
+                      placeholder="Adresse"
+                    />
+                  </div>
                 </div>
               </div>
               <div className="flex justify-end gap-2">
@@ -349,20 +552,25 @@ const UtilisateursInternes = () => {
               <TableBody>
                 {users?.map((user) => (
                   <TableRow key={user.id}>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <User className="w-4 h-4 text-muted-foreground" />
-                        <div>
-                          <p className="font-medium">{user.prenom} {user.nom}</p>
-                          {user.department && (
-                            <p className="text-sm text-muted-foreground flex items-center gap-1">
-                              <Building className="w-3 h-3" />
-                              {user.department}
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                    </TableCell>
+                     <TableCell>
+                       <div className="flex items-center gap-3">
+                         <Avatar className="w-8 h-8">
+                           <AvatarImage src={user.photo_url} />
+                           <AvatarFallback>
+                             <User className="w-4 h-4" />
+                           </AvatarFallback>
+                         </Avatar>
+                         <div>
+                           <p className="font-medium">{user.prenom} {user.nom}</p>
+                           {user.department && (
+                             <p className="text-sm text-muted-foreground flex items-center gap-1">
+                               <MapPin className="w-3 h-3" />
+                               {user.department}
+                             </p>
+                           )}
+                         </div>
+                       </div>
+                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-1 text-muted-foreground">
                         <Mail className="w-3 h-3" />
@@ -518,12 +726,12 @@ const UtilisateursInternes = () => {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="edit-department">Département</Label>
+              <Label htmlFor="edit-department">Adresse</Label>
               <Input
                 id="edit-department"
                 value={formData.department}
                 onChange={(e) => setFormData({ ...formData, department: e.target.value })}
-                placeholder="Département"
+                placeholder="Adresse"
               />
             </div>
           </div>

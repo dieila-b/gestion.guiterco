@@ -2690,6 +2690,7 @@ export type Database = {
           id: string
           matricule: string | null
           nom: string
+          password_hash: string | null
           photo_url: string | null
           prenom: string
           role_id: string | null
@@ -2706,6 +2707,7 @@ export type Database = {
           id?: string
           matricule?: string | null
           nom: string
+          password_hash?: string | null
           photo_url?: string | null
           prenom: string
           role_id?: string | null
@@ -2722,6 +2724,7 @@ export type Database = {
           id?: string
           matricule?: string | null
           nom?: string
+          password_hash?: string | null
           photo_url?: string | null
           prenom?: string
           role_id?: string | null
@@ -3192,7 +3195,7 @@ export type Database = {
         Returns: string
       }
       generate_matricule: {
-        Args: { prenom_val: string; nom_val: string }
+        Args: { p_prenom: string; p_nom: string }
         Returns: string
       }
       generate_precommande_number: {
