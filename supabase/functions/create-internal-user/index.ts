@@ -9,6 +9,8 @@ interface CreateUserRequest {
   email: string;
   prenom: string;
   nom: string;
+  password?: string;
+  password_hash?: string;
   matricule?: string;
   role_id?: string;
   statut?: 'actif' | 'inactif' | 'suspendu';
@@ -99,17 +101,51 @@ Deno.serve(async (req) => {
       type_compte: userData.type_compte || 'employe'
     };
 
+    console.log('Creating auth user...');
+    
+    // First create the user in Supabase Auth
+    const { data: authData, error: authError } = await supabase.auth.admin.createUser({
+      email: userData.email,
+      password: userData.password || userData.password_hash || 'TempPassword123!',
+      email_confirm: true,
+      user_metadata: {
+        prenom: userData.prenom,
+        nom: userData.nom,
+        matricule: finalUserData.matricule
+      }
+    });
+
+    if (authError) {
+      console.error('Auth error:', authError);
+      return new Response(
+        JSON.stringify({ error: `Erreur lors de la création de l'utilisateur: ${authError.message}` }),
+        { 
+          status: 400, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
+    }
+
+    console.log('Auth user created:', authData.user?.id);
+
+    // Then insert the user in utilisateurs_internes with the same ID
+    const finalUserDataWithId = {
+      ...finalUserData,
+      id: authData.user!.id
+    };
+
     console.log('Inserting user data...');
     
-    // Insert the user using service role (bypasses RLS)
     const { data, error } = await supabase
       .from('utilisateurs_internes')
-      .insert([finalUserData])
+      .insert([finalUserDataWithId])
       .select('*')
       .single();
 
     if (error) {
       console.error('Database error:', error);
+      // If database insert fails, clean up the auth user
+      await supabase.auth.admin.deleteUser(authData.user!.id);
       return new Response(
         JSON.stringify({ error: `Erreur lors de la création: ${error.message}` }),
         { 

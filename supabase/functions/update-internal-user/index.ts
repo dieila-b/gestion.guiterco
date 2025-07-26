@@ -25,12 +25,38 @@ serve(async (req) => {
       }
     )
 
-    const { id, ...userData } = await req.json()
+    const { id, password, password_hash, ...userData } = await req.json()
 
     console.log('Updating internal user:', { id, userData })
 
     if (!id) {
       throw new Error('User ID is required')
+    }
+
+    // If password is provided, update it in auth
+    if (password || password_hash) {
+      console.log('Updating auth user password...');
+      const { error: authError } = await supabaseAdmin.auth.admin.updateUserById(id, {
+        password: password || password_hash
+      });
+
+      if (authError) {
+        console.error('Error updating auth user:', authError);
+        throw new Error(`Erreur lors de la mise à jour du mot de passe: ${authError.message}`);
+      }
+    }
+
+    // Update email in auth if provided
+    if (userData.email) {
+      console.log('Updating auth user email...');
+      const { error: authError } = await supabaseAdmin.auth.admin.updateUserById(id, {
+        email: userData.email
+      });
+
+      if (authError) {
+        console.error('Error updating auth user email:', authError);
+        throw new Error(`Erreur lors de la mise à jour de l'email: ${authError.message}`);
+      }
     }
 
     // Update user data in the utilisateurs_internes table
