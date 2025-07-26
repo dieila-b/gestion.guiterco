@@ -39,11 +39,15 @@ serve(async (req) => {
       .update(userData)
       .eq('id', id)
       .select('*')
-      .maybeSingle()
+      .single()
 
     if (updateError) {
       console.error('Error updating user in database:', updateError)
       throw updateError
+    }
+
+    if (!updatedUser) {
+      throw new Error('User not found or update failed')
     }
 
     console.log('User updated successfully:', updatedUser)

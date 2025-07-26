@@ -120,11 +120,15 @@ export const useUpdateUtilisateurInterne = () => {
           .update(userData)
           .eq('id', id)
           .select('*')
-          .maybeSingle();
+          .single();
 
         if (error) {
           console.error('Erreur mise à jour utilisateur:', error);
           throw new Error(`Erreur lors de la mise à jour: ${error.message}`);
+        }
+
+        if (!data) {
+          throw new Error('Utilisateur non trouvé ou mise à jour échouée');
         }
 
         return data;
