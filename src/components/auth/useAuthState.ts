@@ -185,16 +185,6 @@ export const useAuthState = (bypassAuth: boolean, mockUser: UtilisateurInterne, 
   // Un utilisateur est considéré comme autorisé s'il a un compte interne actif
   const isInternalUser = user && utilisateurInterne && utilisateurInterne.statut === 'actif' && utilisateurInterne.type_compte === 'interne';
 
-  console.log('🔍 État final AuthState:', {
-    hasUser: !!user,
-    hasSession: !!session,
-    hasInternalUser: !!utilisateurInterne,
-    isInternalUser: !!isInternalUser,
-    loading,
-    bypassAuth,
-    isDevMode
-  });
-
   return {
     user,
     session,
