@@ -63,18 +63,22 @@ export const useCreateUtilisateurInterne = () => {
 
   return useMutation({
     mutationFn: async (userData: CreateUtilisateurInterne) => {
-      const { data, error } = await supabase
-        .from('utilisateurs_internes')
-        .insert([userData])
-        .select('*')
-        .single();
+      // Call the Edge Function with service role access
+      const { data, error } = await supabase.functions.invoke('create-internal-user', {
+        body: userData
+      });
 
       if (error) {
-        console.error('Erreur création utilisateur:', error);
+        console.error('Erreur Edge Function:', error);
         throw new Error(`Erreur lors de la création: ${error.message}`);
       }
 
-      return data;
+      if (!data.success) {
+        console.error('Erreur réponse Edge Function:', data);
+        throw new Error(data.error || 'Erreur lors de la création');
+      }
+
+      return data.data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['utilisateurs-internes'] });
