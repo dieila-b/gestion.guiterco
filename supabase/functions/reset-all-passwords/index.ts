@@ -32,7 +32,6 @@ serve(async (req) => {
       .from('utilisateurs_internes')
       .select('*')
       .eq('statut', 'actif')
-      .eq('type_compte', 'interne')
 
     if (fetchError) {
       console.error('Error fetching internal users:', fetchError);
