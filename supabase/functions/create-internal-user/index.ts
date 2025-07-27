@@ -103,73 +103,79 @@ Deno.serve(async (req) => {
 
     console.log('Creating auth user...');
     
-    // ÉTAPE 1: Nettoyage direct avec la même connexion Supabase
-    console.log('🧹 Nettoyage forcé direct pour:', userData.email);
+    // NETTOYAGE COMPLET ET ROBUSTE
+    console.log('🧹 Nettoyage complet pour:', userData.email);
     
-    let deletedAuthUsers = 0;
-    let deletedInternalUsers = 0;
-
-    // Supprimer les utilisateurs auth avec cet email
-    console.log('🔥 Suppression utilisateurs auth...');
-    const { data: authUsers } = await supabase.auth.admin.listUsers();
-    if (authUsers?.users) {
-      const existingAuthUsers = authUsers.users.filter(user => user.email === userData.email);
+    let attempts = 0;
+    const maxAttempts = 3;
+    
+    while (attempts < maxAttempts) {
+      attempts++;
+      console.log(`🔄 Tentative de nettoyage ${attempts}/${maxAttempts}`);
       
-      for (const authUser of existingAuthUsers) {
-        console.log(`🗑️ Suppression auth user: ${authUser.id}`);
-        const { error: deleteAuthError } = await supabase.auth.admin.deleteUser(authUser.id);
-        if (deleteAuthError) {
-          console.error('❌ Erreur suppression auth user:', deleteAuthError);
-        } else {
-          deletedAuthUsers++;
-          console.log(`✅ Auth user ${authUser.id} supprimé`);
-        }
-      }
-    }
-
-    // Suppression directe des utilisateurs internes avec PLUSIEURS stratégies
-    console.log('🔥 Suppression utilisateurs internes...');
-    
-    // Stratégie 1: Suppression par email (la plus directe)
-    const { error: deleteByEmailError } = await supabase
-      .from('utilisateurs_internes')
-      .delete()
-      .eq('email', userData.email);
-    
-    if (deleteByEmailError) {
-      console.error('❌ Erreur suppression par email:', deleteByEmailError);
-    } else {
-      console.log('✅ Suppression par email réussie');
-    }
-
-    // Stratégie 2: Vérification et suppression par ID si des entrées persistent
-    const { data: remainingUsers } = await supabase
-      .from('utilisateurs_internes')
-      .select('id')
-      .eq('email', userData.email);
-    
-    if (remainingUsers && remainingUsers.length > 0) {
-      console.log(`🎯 ${remainingUsers.length} utilisateur(s) restant(s), suppression par ID...`);
-      for (const user of remainingUsers) {
-        const { error: deleteByIdError } = await supabase
-          .from('utilisateurs_internes')
-          .delete()
-          .eq('id', user.id);
+      // 1. Supprimer TOUS les utilisateurs auth avec cet email
+      console.log('🔥 Suppression utilisateurs auth...');
+      const { data: authUsers } = await supabase.auth.admin.listUsers();
+      if (authUsers?.users) {
+        const existingAuthUsers = authUsers.users.filter(user => user.email === userData.email);
         
-        if (deleteByIdError) {
-          console.error(`❌ Erreur suppression ID ${user.id}:`, deleteByIdError);
-        } else {
-          deletedInternalUsers++;
-          console.log(`✅ Utilisateur ${user.id} supprimé`);
+        for (const authUser of existingAuthUsers) {
+          console.log(`🗑️ Suppression auth user: ${authUser.id}`);
+          const { error: deleteAuthError } = await supabase.auth.admin.deleteUser(authUser.id);
+          if (deleteAuthError) {
+            console.error('❌ Erreur suppression auth user:', deleteAuthError);
+          } else {
+            console.log(`✅ Auth user ${authUser.id} supprimé`);
+          }
         }
       }
-    }
 
-    console.log(`🏁 Nettoyage terminé: ${deletedAuthUsers} auth + ${deletedInternalUsers} internes supprimés`);
+      // 2. Supprimer FORCEMENT de utilisateurs_internes - TOUTES les stratégies
+      console.log('🔥 Suppression utilisateurs internes - Force brute...');
+      
+      // Stratégie A: Suppression directe par email
+      await supabase.from('utilisateurs_internes').delete().eq('email', userData.email);
+      
+      // Stratégie B: Récupérer et supprimer par ID  
+      const { data: usersToDelete } = await supabase
+        .from('utilisateurs_internes')
+        .select('id, email, user_id')
+        .eq('email', userData.email);
+      
+      if (usersToDelete && usersToDelete.length > 0) {
+        console.log(`🎯 ${usersToDelete.length} utilisateur(s) trouvé(s), suppression forcée...`);
+        for (const user of usersToDelete) {
+          // Supprimer par ID
+          await supabase.from('utilisateurs_internes').delete().eq('id', user.id);
+          // Supprimer par user_id au cas où
+          if (user.user_id) {
+            await supabase.from('utilisateurs_internes').delete().eq('user_id', user.user_id);
+          }
+          console.log(`🗑️ Suppression forcée: ${user.id}`);
+        }
+      }
+      
+      // 3. Vérification finale
+      const { data: verification } = await supabase
+        .from('utilisateurs_internes')
+        .select('id')
+        .eq('email', userData.email)
+        .limit(1);
+      
+      if (!verification || verification.length === 0) {
+        console.log('✅ Nettoyage réussi - aucun utilisateur restant');
+        break;
+      } else {
+        console.log(`⚠️ ${verification.length} utilisateur(s) encore présent(s), nouvelle tentative...`);
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+    }
     
-    // ÉTAPE 2: Attendre la propagation
-    console.log('⏳ Attente propagation...');
-    await new Promise(resolve => setTimeout(resolve, 500));
+    console.log('🏁 Nettoyage terminé après', attempts, 'tentative(s)');
+    
+    // Attendre la propagation finale
+    console.log('⏳ Attente propagation finale...');
+    await new Promise(resolve => setTimeout(resolve, 1000));
 
     // Generate a strong temporary password if none provided
     const tempPassword = userData.password || userData.password_hash || `TempPass${Math.random().toString(36).slice(-8)}!`;
