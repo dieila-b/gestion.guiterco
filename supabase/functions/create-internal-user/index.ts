@@ -103,14 +103,17 @@ Deno.serve(async (req) => {
 
     console.log('Creating auth user...');
     
-    // Check if email already exists first
-    const { data: existingUser } = await supabase.auth.admin.listUsers();
-    const emailExists = existingUser?.users?.some(user => user.email === userData.email);
+    // Check if user already exists in utilisateurs_internes first
+    const { data: existingInternalUser } = await supabase
+      .from('utilisateurs_internes')
+      .select('id')
+      .eq('email', userData.email)
+      .single();
     
-    if (emailExists) {
-      console.error('Email already exists:', userData.email);
+    if (existingInternalUser) {
+      console.error('Internal user already exists with email:', userData.email);
       return new Response(
-        JSON.stringify({ error: `Un utilisateur avec l'email ${userData.email} existe déjà` }),
+        JSON.stringify({ error: `Un utilisateur interne avec l'email ${userData.email} existe déjà` }),
         { 
           status: 400, 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
@@ -155,26 +158,6 @@ Deno.serve(async (req) => {
 
     console.log('Inserting user data...');
     console.log('Final user data with ID:', finalUserDataWithId);
-    
-    // Check if user already exists in utilisateurs_internes
-    const { data: existingInternalUser } = await supabase
-      .from('utilisateurs_internes')
-      .select('id')
-      .eq('email', userData.email)
-      .single();
-    
-    if (existingInternalUser) {
-      console.error('Internal user already exists with email:', userData.email);
-      // Clean up the auth user we just created
-      await supabase.auth.admin.deleteUser(authData.user!.id);
-      return new Response(
-        JSON.stringify({ error: `Un utilisateur interne avec l'email ${userData.email} existe déjà` }),
-        { 
-          status: 400, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
-      );
-    }
     
     const { data, error } = await supabase
       .from('utilisateurs_internes')

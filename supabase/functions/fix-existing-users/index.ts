@@ -1,4 +1,4 @@
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.50.0'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -14,110 +14,87 @@ Deno.serve(async (req) => {
   try {
     console.log('Starting fix-existing-users function');
 
-    // Create Supabase client with service role key
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
-      {
-        auth: {
-          autoRefreshToken: false,
-          persistSession: false
-        }
-      }
-    );
+    // Get environment variables
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
-    // Get all users from utilisateurs_internes that don't have auth accounts
-    const { data: internalUsers, error: fetchError } = await supabase
+    if (!supabaseUrl || !supabaseServiceKey) {
+      console.error('Missing environment variables');
+      return new Response(
+        JSON.stringify({ error: 'Server configuration error' }),
+        { 
+          status: 500, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
+    }
+
+    // Create Supabase client with service role key (bypasses RLS)
+    const supabase = createClient(supabaseUrl, supabaseServiceKey, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false
+      }
+    });
+
+    console.log('Supabase client created with service role');
+
+    // List all auth users
+    const { data: authUsers, error: authError } = await supabase.auth.admin.listUsers();
+    
+    if (authError) {
+      console.error('Error listing auth users:', authError);
+      return new Response(
+        JSON.stringify({ error: 'Erreur lors de la récupération des utilisateurs auth' }),
+        { 
+          status: 500, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
+    }
+
+    // Get all internal users
+    const { data: internalUsers, error: internalError } = await supabase
       .from('utilisateurs_internes')
-      .select('*');
-
-    if (fetchError) {
-      throw new Error(`Error fetching users: ${fetchError.message}`);
+      .select('user_id, email');
+    
+    if (internalError) {
+      console.error('Error listing internal users:', internalError);
+      return new Response(
+        JSON.stringify({ error: 'Erreur lors de la récupération des utilisateurs internes' }),
+        { 
+          status: 500, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
     }
 
-    console.log(`Found ${internalUsers?.length || 0} internal users`);
+    const internalUserIds = new Set(internalUsers?.map(u => u.user_id) || []);
+    const orphanedAuthUsers = authUsers.users.filter(user => !internalUserIds.has(user.id));
 
-    const results = [];
+    console.log(`Found ${orphanedAuthUsers.length} orphaned auth users`);
 
-    for (const user of internalUsers || []) {
-      try {
-        // Check if auth user already exists
-        const { data: existingAuthUser } = await supabase.auth.admin.getUserById(user.id);
-        
-        if (existingAuthUser.user) {
-          console.log(`Auth user already exists for ${user.email}`);
-          results.push({ 
-            email: user.email, 
-            status: 'already_exists',
-            id: user.id 
-          });
-          continue;
-        }
-
-        // Create auth user with the same ID
-        const { data: authData, error: authError } = await supabase.auth.admin.createUser({
-          email: user.email,
-          password: 'TempPassword123!',
-          email_confirm: true,
-          user_metadata: {
-            prenom: user.prenom,
-            nom: user.nom,
-            matricule: user.matricule
-          }
-        });
-
-        if (authError) {
-          console.error(`Error creating auth user for ${user.email}:`, authError);
-          results.push({ 
-            email: user.email, 
-            status: 'error', 
-            error: authError.message 
-          });
-          continue;
-        }
-
-        // Update the internal user with the new auth ID if different
-        if (authData.user!.id !== user.id) {
-          const { error: updateError } = await supabase
-            .from('utilisateurs_internes')
-            .update({ id: authData.user!.id })
-            .eq('id', user.id);
-
-          if (updateError) {
-            console.error(`Error updating internal user ID for ${user.email}:`, updateError);
-            // Clean up the auth user
-            await supabase.auth.admin.deleteUser(authData.user!.id);
-            results.push({ 
-              email: user.email, 
-              status: 'error', 
-              error: updateError.message 
-            });
-            continue;
-          }
-        }
-
-        console.log(`Successfully created auth user for ${user.email}`);
-        results.push({ 
-          email: user.email, 
-          status: 'created',
-          id: authData.user!.id 
-        });
-
-      } catch (error) {
-        console.error(`Error processing user ${user.email}:`, error);
-        results.push({ 
-          email: user.email, 
-          status: 'error', 
-          error: error.message 
-        });
+    // Clean up orphaned auth users
+    const deletedUsers = [];
+    for (const orphanedUser of orphanedAuthUsers) {
+      console.log(`Deleting orphaned auth user: ${orphanedUser.email}`);
+      const { error: deleteError } = await supabase.auth.admin.deleteUser(orphanedUser.id);
+      
+      if (deleteError) {
+        console.error(`Error deleting user ${orphanedUser.email}:`, deleteError);
+      } else {
+        deletedUsers.push(orphanedUser.email);
       }
     }
+
+    console.log('Cleanup completed successfully');
 
     return new Response(
       JSON.stringify({ 
         success: true, 
-        message: 'Existing users processing completed',
-        results 
+        message: 'Nettoyage des utilisateurs orphelins terminé',
+        deletedUsers,
+        deletedCount: deletedUsers.length
       }),
       { 
         status: 200, 
@@ -128,11 +105,7 @@ Deno.serve(async (req) => {
   } catch (error) {
     console.error('Unexpected error:', error);
     return new Response(
-      JSON.stringify({ 
-        success: false,
-        error: 'Erreur interne du serveur',
-        details: error.message 
-      }),
+      JSON.stringify({ error: 'Erreur interne du serveur' }),
       { 
         status: 500, 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' } 

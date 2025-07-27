@@ -37,6 +37,7 @@ import { useRoles } from '@/hooks/usePermissionsSystem';
 import { useFileUpload } from '@/hooks/useFileUpload';
 import { useResetAllPasswords } from '@/hooks/useResetAllPasswords';
 import { useResetUserPassword } from '@/hooks/useResetUserPassword';
+import { useFixExistingUsers } from '@/hooks/useFixExistingUsers';
 import { validatePassword, validatePasswordMatch, hashPassword } from '@/utils/passwordValidation';
 import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
@@ -78,6 +79,7 @@ const UtilisateursInternes = () => {
   const deleteUser = useDeleteUtilisateurInterne();
   const resetAllPasswords = useResetAllPasswords();
   const resetUserPassword = useResetUserPassword();
+  const fixExistingUsers = useFixExistingUsers();
   const { uploadFile, uploading } = useFileUpload();
   const queryClient = useQueryClient();
   
@@ -359,6 +361,15 @@ const UtilisateursInternes = () => {
             Utilisateurs Internes
           </CardTitle>
           <div className="flex items-center gap-2">
+            <Button 
+              variant="outline" 
+              onClick={() => fixExistingUsers.mutate()}
+              disabled={fixExistingUsers.isPending}
+              className="text-blue-600 border-blue-200 hover:bg-blue-50"
+            >
+              <Shield className="w-4 h-4 mr-2" />
+              {fixExistingUsers.isPending ? 'Nettoyage...' : 'Nettoyer utilisateurs'}
+            </Button>
             <Button 
               variant="outline" 
               onClick={handleResetAllPasswords}
