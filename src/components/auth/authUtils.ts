@@ -53,10 +53,11 @@ export const checkInternalUser = async (userId: string): Promise<UtilisateurInte
         statut,
         type_compte,
         photo_url,
-        roles!inner(id, name, description)
+        role:roles(id, name, description)
       `)
       .eq('user_id', userId)
       .eq('statut', 'actif')
+      .eq('type_compte', 'interne')
       .single();
 
     if (error) {
@@ -85,9 +86,9 @@ export const checkInternalUser = async (userId: string): Promise<UtilisateurInte
       type_compte: internalUser.type_compte,
       photo_url: internalUser.photo_url,
       role: {
-        id: internalUser.roles.id,
-        nom: internalUser.roles.name,
-        description: internalUser.roles.description
+        id: internalUser.role.id,
+        nom: internalUser.role.name, // Mapping de 'name' vers 'nom'
+        description: internalUser.role.description
       }
     };
   } catch (error) {
