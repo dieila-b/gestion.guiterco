@@ -103,40 +103,73 @@ Deno.serve(async (req) => {
 
     console.log('Creating auth user...');
     
-    // ÉTAPE 1: Utiliser la fonction de nettoyage dédiée
-    console.log('🧹 Appel de la fonction de nettoyage forcé pour:', userData.email);
+    // ÉTAPE 1: Nettoyage direct avec la même connexion Supabase
+    console.log('🧹 Nettoyage forcé direct pour:', userData.email);
     
-    const { data: cleanupResult, error: cleanupError } = await supabase.functions.invoke('force-cleanup-user', {
-      body: { email: userData.email }
-    });
+    let deletedAuthUsers = 0;
+    let deletedInternalUsers = 0;
 
-    if (cleanupError) {
-      console.error('❌ Erreur lors du nettoyage:', cleanupError);
-      return new Response(
-        JSON.stringify({ error: `Erreur lors du nettoyage: ${cleanupError.message}` }),
-        { 
-          status: 500, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+    // Supprimer les utilisateurs auth avec cet email
+    console.log('🔥 Suppression utilisateurs auth...');
+    const { data: authUsers } = await supabase.auth.admin.listUsers();
+    if (authUsers?.users) {
+      const existingAuthUsers = authUsers.users.filter(user => user.email === userData.email);
+      
+      for (const authUser of existingAuthUsers) {
+        console.log(`🗑️ Suppression auth user: ${authUser.id}`);
+        const { error: deleteAuthError } = await supabase.auth.admin.deleteUser(authUser.id);
+        if (deleteAuthError) {
+          console.error('❌ Erreur suppression auth user:', deleteAuthError);
+        } else {
+          deletedAuthUsers++;
+          console.log(`✅ Auth user ${authUser.id} supprimé`);
         }
-      );
+      }
     }
 
-    if (!cleanupResult?.success) {
-      console.error('❌ Nettoyage échoué:', cleanupResult);
-      return new Response(
-        JSON.stringify({ error: cleanupResult?.message || 'Nettoyage échoué' }),
-        { 
-          status: 500, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
-      );
+    // Suppression directe des utilisateurs internes avec PLUSIEURS stratégies
+    console.log('🔥 Suppression utilisateurs internes...');
+    
+    // Stratégie 1: Suppression par email (la plus directe)
+    const { error: deleteByEmailError } = await supabase
+      .from('utilisateurs_internes')
+      .delete()
+      .eq('email', userData.email);
+    
+    if (deleteByEmailError) {
+      console.error('❌ Erreur suppression par email:', deleteByEmailError);
+    } else {
+      console.log('✅ Suppression par email réussie');
     }
 
-    console.log('✅ Nettoyage terminé avec succès:', cleanupResult.message);
+    // Stratégie 2: Vérification et suppression par ID si des entrées persistent
+    const { data: remainingUsers } = await supabase
+      .from('utilisateurs_internes')
+      .select('id')
+      .eq('email', userData.email);
     
-    // ÉTAPE 2: Attendre un délai plus long pour la propagation
-    console.log('⏳ Attente propagation base de données...');
-    await new Promise(resolve => setTimeout(resolve, 1000)); // Délai plus long
+    if (remainingUsers && remainingUsers.length > 0) {
+      console.log(`🎯 ${remainingUsers.length} utilisateur(s) restant(s), suppression par ID...`);
+      for (const user of remainingUsers) {
+        const { error: deleteByIdError } = await supabase
+          .from('utilisateurs_internes')
+          .delete()
+          .eq('id', user.id);
+        
+        if (deleteByIdError) {
+          console.error(`❌ Erreur suppression ID ${user.id}:`, deleteByIdError);
+        } else {
+          deletedInternalUsers++;
+          console.log(`✅ Utilisateur ${user.id} supprimé`);
+        }
+      }
+    }
+
+    console.log(`🏁 Nettoyage terminé: ${deletedAuthUsers} auth + ${deletedInternalUsers} internes supprimés`);
+    
+    // ÉTAPE 2: Attendre la propagation
+    console.log('⏳ Attente propagation...');
+    await new Promise(resolve => setTimeout(resolve, 500));
 
     // Generate a strong temporary password if none provided
     const tempPassword = userData.password || userData.password_hash || `TempPass${Math.random().toString(36).slice(-8)}!`;
