@@ -103,21 +103,28 @@ Deno.serve(async (req) => {
 
     console.log('Creating auth user...');
     
-    // Check if user already exists in auth.users
+    // Get all users to check for conflicts
     const { data: authUsers } = await supabase.auth.admin.listUsers();
     const existingAuthUser = authUsers.users.find(user => user.email === userData.email);
     
-    // Check if user already exists in utilisateurs_internes
+    // Check if user exists in utilisateurs_internes
     const { data: existingInternalUser } = await supabase
       .from('utilisateurs_internes')
       .select('id, user_id')
       .eq('email', userData.email)
-      .single();
+      .maybeSingle();
     
+    console.log('Existing auth user:', existingAuthUser?.id);
+    console.log('Existing internal user:', existingInternalUser?.id);
+    
+    // If user exists in both tables, return error
     if (existingInternalUser && existingAuthUser) {
-      console.error('User already exists in both auth and internal tables:', userData.email);
+      console.error('User already exists in both tables:', userData.email);
       return new Response(
-        JSON.stringify({ error: `Un utilisateur avec l'email ${userData.email} existe déjà` }),
+        JSON.stringify({ 
+          error: `Un utilisateur avec l'email ${userData.email} existe déjà dans le système`,
+          suggestion: 'Utilisez un email différent ou supprimez l\'utilisateur existant'
+        }),
         { 
           status: 400, 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
@@ -125,7 +132,7 @@ Deno.serve(async (req) => {
       );
     }
     
-    // If user exists only in utilisateurs_internes but not in auth, delete from internal table
+    // Clean up orphaned data automatically
     if (existingInternalUser && !existingAuthUser) {
       console.log('Cleaning up orphaned internal user:', userData.email);
       await supabase
@@ -134,7 +141,6 @@ Deno.serve(async (req) => {
         .eq('id', existingInternalUser.id);
     }
     
-    // If user exists only in auth but not in internal table, delete from auth
     if (existingAuthUser && !existingInternalUser) {
       console.log('Cleaning up orphaned auth user:', userData.email);
       await supabase.auth.admin.deleteUser(existingAuthUser.id);
