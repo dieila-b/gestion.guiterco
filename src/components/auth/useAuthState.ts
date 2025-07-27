@@ -154,12 +154,15 @@ export const useAuthState = (bypassAuth: boolean, mockUser: UtilisateurInterne, 
       setUser(null);
       setSession(null);
       setUtilisateurInterne(null);
-      // Pas de rechargement automatique, laisser l'utilisateur naviguer
+      // Forcer le rechargement pour revenir à l'écran de connexion
+      window.location.href = '/login';
       return;
     }
     
     await authSignOut();
     setUtilisateurInterne(null);
+    // Rediriger vers la page de connexion après déconnexion
+    window.location.href = '/login';
   };
 
   // Un utilisateur est considéré comme autorisé s'il a un compte interne actif

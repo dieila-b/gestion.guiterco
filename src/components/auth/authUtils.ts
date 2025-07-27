@@ -43,7 +43,8 @@ export const checkInternalUser = async (userId: string): Promise<UtilisateurInte
       return null;
     }
 
-    const { data: internalUser, error } = await supabase
+    // Essayer d'abord avec user_id (production), puis avec id (dev mode bypass)
+    let { data: internalUser, error } = await supabase
       .from('utilisateurs_internes')
       .select(`
         id,
@@ -58,6 +59,29 @@ export const checkInternalUser = async (userId: string): Promise<UtilisateurInte
       .eq('user_id', userId)
       .eq('statut', 'actif')
       .single();
+
+    // Si pas trouvé avec user_id, essayer avec id (pour le mode dev)
+    if (error && error.code === 'PGRST116') {
+      console.log('🔍 Essai avec id au lieu de user_id (mode dev)');
+      const result = await supabase
+        .from('utilisateurs_internes')
+        .select(`
+          id,
+          email,
+          prenom,
+          nom,
+          statut,
+          type_compte,
+          photo_url,
+          roles!inner(id, name, description)
+        `)
+        .eq('id', userId)
+        .eq('statut', 'actif')
+        .single();
+      
+      internalUser = result.data;
+      error = result.error;
+    }
 
     if (error) {
       console.log('❌ Erreur lors de la récupération de l\'utilisateur interne:', error);
