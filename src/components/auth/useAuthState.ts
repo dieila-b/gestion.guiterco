@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -13,20 +13,12 @@ export const useAuthState = (bypassAuth: boolean, mockUser: UtilisateurInterne, 
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
+  // Effect pour gérer le mode bypass
   useEffect(() => {
-    console.log('🔍 AuthState - État actuel:', { 
-      isDevMode, 
-      bypassAuth, 
-      loading,
-      hostname: window.location.hostname
-    });
-
-    // Si le bypass est activé en mode développement
     if (isDevMode && bypassAuth) {
-      console.log('🚀 Mode développement: Bypass d\'authentification activé');
+      console.log('🚀 Activation du bypass d\'authentification');
       setUtilisateurInterne(mockUser);
       
-      // Créer un mock user pour Supabase avec des données plus complètes
       const mockSupabaseUser = {
         id: mockUser.id,
         email: mockUser.email,
@@ -57,60 +49,46 @@ export const useAuthState = (bypassAuth: boolean, mockUser: UtilisateurInterne, 
       setSession(mockSession);
       setLoading(false);
       
-      console.log('✅ Mock session créée:', { user: mockSupabaseUser, session: mockSession });
-      return;
-    }
-
-    // Si on était en mode bypass et qu'on le désactive, nettoyer l'état
-    if (!bypassAuth && (user?.id === 'dev-user-123' || session?.access_token === 'mock-token-dev')) {
-      console.log('🔒 Désactivation du bypass - nettoyage de l\'état mock');
+      console.log('✅ Mock session créée');
+    } else if (!bypassAuth) {
+      // Si le bypass est désactivé, nettoyer l'état mock
+      console.log('🔒 Désactivation du bypass - nettoyage état mock');
       setUser(null);
       setSession(null);
       setUtilisateurInterne(null);
-      setLoading(false);
-      return;
+      setLoading(true); // Remettre en loading pour l'auth normale
     }
+  }, [isDevMode, bypassAuth, mockUser]);
 
-    // Comportement normal en production ou si bypass désactivé
+  // Effect pour l'authentification normale  
+  useEffect(() => {
     if (!bypassAuth) {
-      console.log('🔐 Mode authentification normale');
+      console.log('🔐 Initialisation authentification normale');
       
-      // Configurer l'écoute des changements d'état d'authentification
       const { data: { subscription } } = supabase.auth.onAuthStateChange(
         async (event, session) => {
-          console.log('🔐 Auth state change:', { event, session: !!session, userId: session?.user?.id });
+          console.log('🔐 Auth state change:', { event, session: !!session });
           
           setSession(session);
           setUser(session?.user ?? null);
 
           if (session?.user) {
             try {
-              console.log('👤 Vérification utilisateur interne pour:', session.user.email);
               const internalUser = await checkInternalUser(session.user.id);
               
-              console.log('🔍 Résultat vérification utilisateur interne:', internalUser);
-              
               if (internalUser && internalUser.statut === 'actif' && internalUser.type_compte === 'interne') {
-                console.log('✅ Utilisateur interne autorisé:', internalUser);
                 setUtilisateurInterne(internalUser);
               } else {
-                console.log('❌ Utilisateur non autorisé ou inactif');
-                // Ne pas déconnecter automatiquement, laisser l'utilisateur voir l'erreur
                 setUtilisateurInterne(null);
                 toast({
                   title: "Accès refusé",
-                  description: "Votre compte n'est pas autorisé à accéder à cette application ou est désactivé",
+                  description: "Votre compte n'est pas autorisé à accéder à cette application",
                   variant: "destructive",
                 });
               }
             } catch (error) {
-              console.error('❌ Erreur lors de la vérification de l\'utilisateur interne:', error);
+              console.error('❌ Erreur vérification utilisateur:', error);
               setUtilisateurInterne(null);
-              toast({
-                title: "Erreur de vérification",
-                description: "Impossible de vérifier vos autorisations",
-                variant: "destructive",
-              });
             }
           } else {
             setUtilisateurInterne(null);
@@ -121,31 +99,18 @@ export const useAuthState = (bypassAuth: boolean, mockUser: UtilisateurInterne, 
       );
 
       // Vérifier la session existante
-      supabase.auth.getSession().then(async ({ data: { session }, error }) => {
-        if (error) {
-          console.error('❌ Erreur lors de la récupération de la session:', error);
-          setLoading(false);
-          return;
-        }
-
-        console.log('🔍 Session existante:', { hasSession: !!session, userId: session?.user?.id });
-        
+      supabase.auth.getSession().then(async ({ data: { session } }) => {
         setSession(session);
         setUser(session?.user ?? null);
         
         if (session?.user) {
           try {
             const internalUser = await checkInternalUser(session.user.id);
-            console.log('🔍 Utilisateur interne trouvé:', internalUser);
-            
             if (internalUser && internalUser.statut === 'actif' && internalUser.type_compte === 'interne') {
               setUtilisateurInterne(internalUser);
-            } else {
-              setUtilisateurInterne(null);
             }
           } catch (error) {
-            console.error('❌ Erreur lors de la vérification initiale:', error);
-            setUtilisateurInterne(null);
+            console.error('❌ Erreur vérification initiale:', error);
           }
         }
         
@@ -153,10 +118,8 @@ export const useAuthState = (bypassAuth: boolean, mockUser: UtilisateurInterne, 
       });
 
       return () => subscription.unsubscribe();
-    } else {
-      setLoading(false);
     }
-  }, [toast, bypassAuth, mockUser, isDevMode]);
+  }, [isDevMode, bypassAuth, toast]);
 
   const signIn = async (email: string, password: string) => {
     console.log('🔑 Tentative de connexion pour:', email);
