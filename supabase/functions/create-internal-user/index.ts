@@ -214,12 +214,15 @@ Deno.serve(async (req) => {
       user_id: authData.user!.id // FK vers auth.users
     };
 
-    console.log('📝 Inserting user data in utilisateurs_internes...');
+    console.log('📝 Upserting user data in utilisateurs_internes...');
     console.log('Final user data:', finalUserDataWithId);
     
     const { data, error } = await supabase
       .from('utilisateurs_internes')
-      .insert([finalUserDataWithId])
+      .upsert([finalUserDataWithId], { 
+        onConflict: 'email',
+        ignoreDuplicates: false 
+      })
       .select('*')
       .single();
 
