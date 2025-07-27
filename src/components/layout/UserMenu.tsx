@@ -24,11 +24,9 @@ const UserMenu = () => {
   const getRoleLabel = (role: string) => {
     switch (role) {
       case 'administrateur':
-      case 'admin':
         return 'Administrateur';
       case 'employe':
         return 'Employé';
-      case 'gestionnaire':
       case 'manager':
         return 'Manager';
       default:
@@ -67,7 +65,7 @@ const UserMenu = () => {
             <span>Profil</span>
           </Link>
         </DropdownMenuItem>
-        {(utilisateurInterne.role?.nom === 'Administrateur' || utilisateurInterne.type_compte === 'admin') && (
+        {(utilisateurInterne.role?.nom === 'administrateur' || utilisateurInterne.type_compte === 'admin') && (
           <DropdownMenuItem asChild>
             <Link to="/settings" className="cursor-pointer">
               <Settings className="mr-2 h-4 w-4" />
