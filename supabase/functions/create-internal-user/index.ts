@@ -103,22 +103,41 @@ Deno.serve(async (req) => {
 
     console.log('Creating auth user...');
     
-    // Check if user already exists in utilisateurs_internes first
+    // Check if user already exists in auth.users
+    const { data: authUsers } = await supabase.auth.admin.listUsers();
+    const existingAuthUser = authUsers.users.find(user => user.email === userData.email);
+    
+    // Check if user already exists in utilisateurs_internes
     const { data: existingInternalUser } = await supabase
       .from('utilisateurs_internes')
-      .select('id')
+      .select('id, user_id')
       .eq('email', userData.email)
       .single();
     
-    if (existingInternalUser) {
-      console.error('Internal user already exists with email:', userData.email);
+    if (existingInternalUser && existingAuthUser) {
+      console.error('User already exists in both auth and internal tables:', userData.email);
       return new Response(
-        JSON.stringify({ error: `Un utilisateur interne avec l'email ${userData.email} existe déjà` }),
+        JSON.stringify({ error: `Un utilisateur avec l'email ${userData.email} existe déjà` }),
         { 
           status: 400, 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
         }
       );
+    }
+    
+    // If user exists only in utilisateurs_internes but not in auth, delete from internal table
+    if (existingInternalUser && !existingAuthUser) {
+      console.log('Cleaning up orphaned internal user:', userData.email);
+      await supabase
+        .from('utilisateurs_internes')
+        .delete()
+        .eq('id', existingInternalUser.id);
+    }
+    
+    // If user exists only in auth but not in internal table, delete from auth
+    if (existingAuthUser && !existingInternalUser) {
+      console.log('Cleaning up orphaned auth user:', userData.email);
+      await supabase.auth.admin.deleteUser(existingAuthUser.id);
     }
 
     // Generate a strong temporary password if none provided
