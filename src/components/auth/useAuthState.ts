@@ -88,11 +88,7 @@ export const useAuthState = (bypassAuth: boolean, mockUser: UtilisateurInterne, 
                 setUtilisateurInterne(internalUser);
               } else {
                 setUtilisateurInterne(null);
-                toast({
-                  title: "Accès refusé",
-                  description: "Votre compte n'est pas autorisé à accéder à cette application",
-                  variant: "destructive",
-                });
+                console.log('❌ Utilisateur non autorisé');
               }
             } catch (error) {
               console.error('❌ Erreur vérification utilisateur:', error);
@@ -106,8 +102,14 @@ export const useAuthState = (bypassAuth: boolean, mockUser: UtilisateurInterne, 
         }
       );
 
-      // Vérifier la session existante
+      // Vérifier la session existante avec timeout
+      const sessionTimeout = setTimeout(() => {
+        console.log('⏰ Timeout auth session check');
+        setLoading(false);
+      }, 5000); // Timeout après 5 secondes
+      
       supabase.auth.getSession().then(async ({ data: { session } }) => {
+        clearTimeout(sessionTimeout);
         setSession(session);
         setUser(session?.user ?? null);
         
@@ -123,11 +125,18 @@ export const useAuthState = (bypassAuth: boolean, mockUser: UtilisateurInterne, 
         }
         
         setLoading(false);
+      }).catch((error) => {
+        clearTimeout(sessionTimeout);
+        console.error('❌ Erreur getSession:', error);
+        setLoading(false);
       });
 
-      return () => subscription.unsubscribe();
+      return () => {
+        clearTimeout(sessionTimeout);
+        subscription.unsubscribe();
+      };
     }
-  }, [bypassAuth, toast]);
+  }, []);  // Enlever bypassAuth et toast des dépendances pour éviter la boucle
 
   const signIn = async (email: string, password: string) => {
     console.log('🔑 Tentative de connexion pour:', email);

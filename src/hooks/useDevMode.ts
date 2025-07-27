@@ -171,7 +171,7 @@ export const useDevMode = (): DevModeConfig => {
     return () => {
       window.removeEventListener('storage', handleStorageChange);
     };
-  }, []);
+  }, [mockUser]); // Ajouter mockUser comme dépendance
 
   return config;
 };
