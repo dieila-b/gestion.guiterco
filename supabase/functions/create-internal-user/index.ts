@@ -210,8 +210,7 @@ Deno.serve(async (req) => {
     // ÉTAPE 2: Insérer dans utilisateurs_internes avec l'ID de l'utilisateur auth
     const finalUserDataWithId = {
       ...finalUserData,
-      id: authData.user!.id,     // Utiliser l'ID de l'utilisateur auth
-      user_id: authData.user!.id // FK vers auth.users
+      user_id: authData.user!.id // FK vers auth.users - c'est ce qui lie les deux tables
     };
 
     console.log('📝 Upserting user data in utilisateurs_internes...');
