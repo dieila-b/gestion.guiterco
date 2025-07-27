@@ -17,11 +17,8 @@ export interface UtilisateurInterne {
   department?: string;
   created_at: string;
   updated_at: string;
-  role?: {
-    id: string;
-    name: string;
-    description?: string;
-  };
+  role_name?: string;
+  role_description?: string;
 }
 
 export interface CreateUtilisateurInterne {
@@ -46,15 +43,8 @@ export const useUtilisateursInternes = () => {
     queryKey: ['utilisateurs-internes'],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('utilisateurs_internes')
-        .select(`
-          *,
-          role:roles(
-            id,
-            name,
-            description
-          )
-        `)
+        .from('vue_utilisateurs_avec_roles')
+        .select('*')
         .order('created_at', { ascending: false });
 
       if (error) {
