@@ -12,10 +12,18 @@ export const useAuthState = (bypassAuth: boolean, mockUser: UtilisateurInterne, 
   const [utilisateurInterne, setUtilisateurInterne] = useState<UtilisateurInterne | null>(null);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
+  
+  // Refs pour éviter les boucles infinies
+  const bypassAuthRef = useRef(bypassAuth);
+  const isDevModeRef = useRef(isDevMode);
+  
+  // Mettre à jour les refs quand les valeurs changent
+  bypassAuthRef.current = bypassAuth;
+  isDevModeRef.current = isDevMode;
 
   // Effect pour gérer le mode bypass
   useEffect(() => {
-    if (isDevMode && bypassAuth) {
+    if (isDevModeRef.current && bypassAuthRef.current) {
       console.log('🚀 Activation du bypass d\'authentification');
       setUtilisateurInterne(mockUser);
       
@@ -50,7 +58,7 @@ export const useAuthState = (bypassAuth: boolean, mockUser: UtilisateurInterne, 
       setLoading(false);
       
       console.log('✅ Mock session créée');
-    } else if (!bypassAuth) {
+    } else if (!bypassAuthRef.current) {
       // Si le bypass est désactivé, nettoyer l'état mock
       console.log('🔒 Désactivation du bypass - nettoyage état mock');
       setUser(null);
@@ -58,11 +66,11 @@ export const useAuthState = (bypassAuth: boolean, mockUser: UtilisateurInterne, 
       setUtilisateurInterne(null);
       setLoading(true); // Remettre en loading pour l'auth normale
     }
-  }, [isDevMode, bypassAuth, mockUser]);
+  }, [bypassAuth, isDevMode, mockUser]);
 
   // Effect pour l'authentification normale  
   useEffect(() => {
-    if (!bypassAuth) {
+    if (!bypassAuthRef.current) {
       console.log('🔐 Initialisation authentification normale');
       
       const { data: { subscription } } = supabase.auth.onAuthStateChange(
@@ -119,7 +127,7 @@ export const useAuthState = (bypassAuth: boolean, mockUser: UtilisateurInterne, 
 
       return () => subscription.unsubscribe();
     }
-  }, [isDevMode, bypassAuth, toast]);
+  }, [bypassAuth, toast]);
 
   const signIn = async (email: string, password: string) => {
     console.log('🔑 Tentative de connexion pour:', email);
@@ -131,7 +139,7 @@ export const useAuthState = (bypassAuth: boolean, mockUser: UtilisateurInterne, 
   const signOut = async () => {
     console.log('🚪 Déconnexion...');
     
-    if (bypassAuth && isDevMode) {
+    if (bypassAuthRef.current && isDevModeRef.current) {
       // En mode bypass, on nettoie l'état local et recharge
       console.log('🚪 Déconnexion en mode bypass');
       setUser(null);
