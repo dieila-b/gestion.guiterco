@@ -140,16 +140,19 @@ export const useDevMode = (): DevModeConfig => {
         
         const current = localStorage.getItem('dev_bypass_auth') !== 'false';
         const newValue = !current;
-        localStorage.setItem('dev_bypass_auth', newValue.toString());
+        
+        if (newValue) {
+          // Activer le bypass - supprimer la clé ou la mettre à 'true'
+          localStorage.removeItem('dev_bypass_auth');
+        } else {
+          // Désactiver le bypass
+          localStorage.setItem('dev_bypass_auth', 'false');
+        }
+        
         console.log(`🔄 Bypass auth ${newValue ? 'activé' : 'désactivé'}`);
         
-        // Forcer la mise à jour de l'état
-        updateBypassState();
-        
         // Recharger la page pour appliquer les changements
-        setTimeout(() => {
-          window.location.reload();
-        }, 100);
+        window.location.reload();
       }
     }));
   };
