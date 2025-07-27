@@ -174,39 +174,16 @@ Deno.serve(async (req) => {
     // Generate a strong temporary password if none provided
     const tempPassword = userData.password || userData.password_hash || `TempPass${Math.random().toString(36).slice(-8)}!`;
     
-    // First create the user in Supabase Auth
-    const { data: authData, error: authError } = await supabase.auth.admin.createUser({
-      email: userData.email,
-      password: tempPassword,
-      email_confirm: true,
-      user_metadata: {
-        prenom: userData.prenom,
-        nom: userData.nom,
-        matricule: finalUserData.matricule
-      }
-    });
-
-    if (authError) {
-      console.error('Auth error:', authError);
-      return new Response(
-        JSON.stringify({ error: `Erreur lors de la création de l'utilisateur: ${authError.message}` }),
-        { 
-          status: 400, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
-      );
-    }
-
-    console.log('Auth user created:', authData.user?.id);
-
-    // Then insert the user in utilisateurs_internes with the same ID
+    // NOUVELLE STRATÉGIE: Créer d'abord dans utilisateurs_internes avec un ID généré
+    const userUuid = crypto.randomUUID();
+    
     const finalUserDataWithId = {
       ...finalUserData,
-      id: authData.user!.id,    // Primary key ID
-      user_id: authData.user!.id // Foreign key to auth.users
+      id: userUuid,    // Primary key ID
+      user_id: userUuid // Foreign key to auth.users (sera créé ensuite)
     };
 
-    console.log('Inserting user data...');
+    console.log('Inserting user data first...');
     console.log('Final user data with ID:', finalUserDataWithId);
     
     const { data, error } = await supabase
@@ -223,15 +200,53 @@ Deno.serve(async (req) => {
         details: error.details,
         hint: error.hint
       });
-      // If database insert fails, clean up the auth user
-      await supabase.auth.admin.deleteUser(authData.user!.id);
       return new Response(
-        JSON.stringify({ error: `Erreur lors de la création: ${error.message}` }),
+        JSON.stringify({ error: `Erreur lors de la création en base: ${error.message}` }),
         { 
           status: 400, 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
         }
       );
+    }
+
+    console.log('User data inserted, now creating auth user...');
+
+    // Then create the user in Supabase Auth with the same ID
+    const { data: authData, error: authError } = await supabase.auth.admin.createUser({
+      email: userData.email,
+      password: tempPassword,
+      email_confirm: true,
+      user_metadata: {
+        prenom: userData.prenom,
+        nom: userData.nom,
+        matricule: finalUserData.matricule
+      }
+    });
+
+    if (authError) {
+      console.error('Auth error:', authError);
+      // Si la création auth échoue, supprimer l'entrée utilisateurs_internes
+      await supabase.from('utilisateurs_internes').delete().eq('id', userUuid);
+      return new Response(
+        JSON.stringify({ error: `Erreur lors de la création de l'utilisateur auth: ${authError.message}` }),
+        { 
+          status: 400, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
+    }
+
+    console.log('Auth user created:', authData.user?.id);
+
+    // Mettre à jour l'ID user dans utilisateurs_internes pour correspondre à l'auth user
+    if (authData.user?.id !== userUuid) {
+      await supabase
+        .from('utilisateurs_internes')
+        .update({ 
+          id: authData.user!.id,
+          user_id: authData.user!.id 
+        })
+        .eq('id', userUuid);
     }
 
     console.log('User created successfully:', data.id);
