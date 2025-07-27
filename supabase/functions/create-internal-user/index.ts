@@ -103,39 +103,80 @@ Deno.serve(async (req) => {
 
     console.log('Creating auth user...');
     
-    // ÉTAPE 1: Nettoyage complet et forcé des deux tables
+    // ÉTAPE 1: Nettoyage complet et forcé avec service role (bypass RLS)
     console.log('🧹 Nettoyage forcé pour email:', userData.email);
     
-    // Supprimer de auth.users
+    // D'abord vérifier ce qui existe actuellement
+    const { data: existingUsers, error: checkError } = await supabase
+      .from('utilisateurs_internes')
+      .select('id, user_id, email')
+      .eq('email', userData.email);
+    
+    if (checkError) {
+      console.error('❌ Erreur lors de la vérification:', checkError);
+    } else {
+      console.log('🔍 Utilisateurs existants trouvés:', existingUsers);
+    }
+    
+    // Supprimer TOUS les auth users avec cet email
     const { data: authUsers } = await supabase.auth.admin.listUsers();
     const existingAuthUsers = authUsers.users.filter(user => user.email === userData.email);
     
     for (const authUser of existingAuthUsers) {
       console.log('🗑️ Suppression auth user:', authUser.id);
-      await supabase.auth.admin.deleteUser(authUser.id);
+      const { error: deleteAuthError } = await supabase.auth.admin.deleteUser(authUser.id);
+      if (deleteAuthError) {
+        console.error('❌ Erreur suppression auth user:', deleteAuthError);
+      }
     }
     
-    // Supprimer de utilisateurs_internes
-    const { data: deletedInternal } = await supabase
-      .from('utilisateurs_internes')
-      .delete()
-      .eq('email', userData.email)
-      .select('id');
-    
-    if (deletedInternal && deletedInternal.length > 0) {
-      console.log('🗑️ Suppression utilisateurs internes:', deletedInternal.map(u => u.id));
+    // Supprimer TOUS les utilisateurs internes avec cet email (force delete)
+    if (existingUsers && existingUsers.length > 0) {
+      for (const user of existingUsers) {
+        console.log('🗑️ Suppression forcée utilisateur interne:', user.id);
+        const { error: deleteError } = await supabase
+          .from('utilisateurs_internes')
+          .delete()
+          .eq('id', user.id);
+        
+        if (deleteError) {
+          console.error('❌ Erreur suppression utilisateur interne:', deleteError);
+          // Essayer de supprimer par email en dernier recours
+          const { error: deleteByEmailError } = await supabase
+            .from('utilisateurs_internes')
+            .delete()
+            .eq('email', userData.email);
+          
+          if (deleteByEmailError) {
+            console.error('❌ Erreur suppression par email:', deleteByEmailError);
+            return new Response(
+              JSON.stringify({ error: `Impossible de supprimer l'utilisateur existant: ${deleteByEmailError.message}` }),
+              { 
+                status: 500, 
+                headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+              }
+            );
+          }
+        }
+      }
     }
     
-    // ÉTAPE 2: Vérification que tout est clean
-    const { data: verifyInternal } = await supabase
+    // ÉTAPE 2: Vérification finale avec délai
+    await new Promise(resolve => setTimeout(resolve, 100)); // Petit délai pour la cohérence
+    
+    const { data: verifyInternal, error: verifyError } = await supabase
       .from('utilisateurs_internes')
-      .select('id')
+      .select('id, email')
       .eq('email', userData.email);
     
+    if (verifyError) {
+      console.error('❌ Erreur vérification:', verifyError);
+    }
+    
     if (verifyInternal && verifyInternal.length > 0) {
-      console.error('❌ ERREUR: Utilisateur interne toujours présent après suppression');
+      console.error('❌ ERREUR: Utilisateur interne toujours présent après suppression:', verifyInternal);
       return new Response(
-        JSON.stringify({ error: 'Impossible de nettoyer les données existantes' }),
+        JSON.stringify({ error: `Nettoyage échoué - ${verifyInternal.length} utilisateur(s) persistent avec l'email ${userData.email}` }),
         { 
           status: 500, 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
@@ -143,7 +184,7 @@ Deno.serve(async (req) => {
       );
     }
     
-    console.log('✅ Nettoyage terminé, création du nouvel utilisateur...');
+    console.log('✅ Nettoyage terminé avec succès - aucun utilisateur restant');
 
     // Generate a strong temporary password if none provided
     const tempPassword = userData.password || userData.password_hash || `TempPass${Math.random().toString(36).slice(-8)}!`;
