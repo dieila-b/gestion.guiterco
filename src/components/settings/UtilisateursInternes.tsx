@@ -663,7 +663,7 @@ const UtilisateursInternes = () => {
                     </TableCell>
                     <TableCell>
                       <Badge variant="outline" className="font-medium">
-                        {user.role_name || 'Aucun'}
+                        {user.role?.name || 'Aucun'}
                       </Badge>
                     </TableCell>
                     <TableCell>
