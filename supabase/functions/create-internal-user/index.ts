@@ -103,48 +103,47 @@ Deno.serve(async (req) => {
 
     console.log('Creating auth user...');
     
-    // Get all users to check for conflicts
+    // ÉTAPE 1: Nettoyage complet et forcé des deux tables
+    console.log('🧹 Nettoyage forcé pour email:', userData.email);
+    
+    // Supprimer de auth.users
     const { data: authUsers } = await supabase.auth.admin.listUsers();
-    const existingAuthUser = authUsers.users.find(user => user.email === userData.email);
+    const existingAuthUsers = authUsers.users.filter(user => user.email === userData.email);
     
-    // Check if user exists in utilisateurs_internes
-    const { data: existingInternalUser } = await supabase
+    for (const authUser of existingAuthUsers) {
+      console.log('🗑️ Suppression auth user:', authUser.id);
+      await supabase.auth.admin.deleteUser(authUser.id);
+    }
+    
+    // Supprimer de utilisateurs_internes
+    const { data: deletedInternal } = await supabase
       .from('utilisateurs_internes')
-      .select('id, user_id')
+      .delete()
       .eq('email', userData.email)
-      .maybeSingle();
+      .select('id');
     
-    console.log('Existing auth user:', existingAuthUser?.id);
-    console.log('Existing internal user:', existingInternalUser?.id);
+    if (deletedInternal && deletedInternal.length > 0) {
+      console.log('🗑️ Suppression utilisateurs internes:', deletedInternal.map(u => u.id));
+    }
     
-    // If user exists in both tables, return error
-    if (existingInternalUser && existingAuthUser) {
-      console.error('User already exists in both tables:', userData.email);
+    // ÉTAPE 2: Vérification que tout est clean
+    const { data: verifyInternal } = await supabase
+      .from('utilisateurs_internes')
+      .select('id')
+      .eq('email', userData.email);
+    
+    if (verifyInternal && verifyInternal.length > 0) {
+      console.error('❌ ERREUR: Utilisateur interne toujours présent après suppression');
       return new Response(
-        JSON.stringify({ 
-          error: `Un utilisateur avec l'email ${userData.email} existe déjà dans le système`,
-          suggestion: 'Utilisez un email différent ou supprimez l\'utilisateur existant'
-        }),
+        JSON.stringify({ error: 'Impossible de nettoyer les données existantes' }),
         { 
-          status: 400, 
+          status: 500, 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
         }
       );
     }
     
-    // Clean up orphaned data automatically
-    if (existingInternalUser && !existingAuthUser) {
-      console.log('Cleaning up orphaned internal user:', userData.email);
-      await supabase
-        .from('utilisateurs_internes')
-        .delete()
-        .eq('id', existingInternalUser.id);
-    }
-    
-    if (existingAuthUser && !existingInternalUser) {
-      console.log('Cleaning up orphaned auth user:', userData.email);
-      await supabase.auth.admin.deleteUser(existingAuthUser.id);
-    }
+    console.log('✅ Nettoyage terminé, création du nouvel utilisateur...');
 
     // Generate a strong temporary password if none provided
     const tempPassword = userData.password || userData.password_hash || `TempPass${Math.random().toString(36).slice(-8)}!`;
