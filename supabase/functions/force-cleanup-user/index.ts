@@ -73,43 +73,82 @@ Deno.serve(async (req) => {
       }
     }
 
-    // ÉTAPE 2: Force delete ALL internal users with this email
+    // ÉTAPE 2: Force delete ALL internal users with this email (multiple passes)
     console.log('🔥 Step 2: Force delete internal users...');
-    const { data: existingInternal, error: selectError } = await supabase
-      .from('utilisateurs_internes')
-      .select('id, user_id')
-      .eq('email', email);
+    
+    // Make multiple passes to ensure complete deletion
+    for (let pass = 1; pass <= 3; pass++) {
+      console.log(`🔁 Cleanup pass ${pass}...`);
+      
+      const { data: existingInternal, error: selectError } = await supabase
+        .from('utilisateurs_internes')
+        .select('id, user_id')
+        .eq('email', email);
 
-    if (selectError) {
-      console.error('❌ Error selecting internal users:', selectError);
-    } else if (existingInternal && existingInternal.length > 0) {
+      if (selectError) {
+        console.error(`❌ Error selecting internal users on pass ${pass}:`, selectError);
+        continue;
+      }
+
+      if (!existingInternal || existingInternal.length === 0) {
+        console.log(`✅ No more internal users found on pass ${pass}`);
+        break;
+      }
+
+      console.log(`🎯 Found ${existingInternal.length} internal user(s) on pass ${pass}`);
+      
       for (const user of existingInternal) {
-        console.log(`🗑️ Force deleting internal user: ${user.id}`);
+        console.log(`🗑️ Force deleting internal user: ${user.id} (pass ${pass})`);
         
-        // Try multiple deletion strategies
+        // Strategy 1: Delete by ID
         const { error: deleteError1 } = await supabase
           .from('utilisateurs_internes')
           .delete()
           .eq('id', user.id);
         
         if (deleteError1) {
-          console.error('❌ Error deleting by ID, trying by email:', deleteError1);
+          console.error(`❌ Error deleting by ID on pass ${pass}:`, deleteError1);
           
+          // Strategy 2: Delete by email 
           const { error: deleteError2 } = await supabase
             .from('utilisateurs_internes')
             .delete()
             .eq('email', email);
           
           if (deleteError2) {
-            console.error('❌ Error deleting by email:', deleteError2);
+            console.error(`❌ Error deleting by email on pass ${pass}:`, deleteError2);
+            
+            // Strategy 3: Delete by user_id if available
+            if (user.user_id) {
+              const { error: deleteError3 } = await supabase
+                .from('utilisateurs_internes')
+                .delete()
+                .eq('user_id', user.user_id);
+              
+              if (deleteError3) {
+                console.error(`❌ Error deleting by user_id on pass ${pass}:`, deleteError3);
+              } else {
+                deletedInternalUsers++;
+                console.log(`✅ Internal user deleted by user_id on pass ${pass}`);
+              }
+            }
           } else {
             deletedInternalUsers++;
-            console.log(`✅ Internal user deleted by email`);
+            console.log(`✅ Internal user deleted by email on pass ${pass}`);
           }
         } else {
           deletedInternalUsers++;
-          console.log(`✅ Internal user ${user.id} deleted successfully`);
+          console.log(`✅ Internal user ${user.id} deleted successfully on pass ${pass}`);
         }
+        
+        // Small delay between deletions
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+      
+      // Delay between passes
+      if (pass < 3) {
+        console.log(`⏳ Waiting between cleanup passes...`);
+        await new Promise(resolve => setTimeout(resolve, 500));
       }
     }
 
