@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 
 export interface DevModeConfig {
   isDevMode: boolean;
@@ -20,6 +20,20 @@ export interface DevModeConfig {
 }
 
 export const useDevMode = (): DevModeConfig => {
+  // Stabiliser l'objet mockUser pour éviter les re-renders
+  const mockUser = useMemo(() => ({
+    id: 'dev-user-123',
+    email: 'dev@test.local',
+    prenom: 'Admin',
+    nom: 'Développement',
+    role: {
+      nom: 'administrateur',
+      description: 'Administrateur développement'
+    },
+    statut: 'actif',
+    type_compte: 'interne'
+  }), []);
+
   const [config, setConfig] = useState<DevModeConfig>(() => {
     // Détecter l'environnement de développement
     const hostname = window.location.hostname;
@@ -56,18 +70,7 @@ export const useDevMode = (): DevModeConfig => {
     return {
       isDevMode: isDev,
       bypassAuth: bypassEnabled,
-      mockUser: {
-        id: 'dev-user-123',
-        email: 'dev@test.local',
-        prenom: 'Admin',
-        nom: 'Développement',
-        role: {
-          nom: 'administrateur',
-          description: 'Administrateur développement'
-        },
-        statut: 'actif',
-        type_compte: 'interne'
-      },
+      mockUser,
       toggleBypass: () => {}
     };
   });
@@ -128,6 +131,7 @@ export const useDevMode = (): DevModeConfig => {
       ...prevConfig,
       isDevMode: isDev,
       bypassAuth: bypassEnabled,
+      mockUser,
       toggleBypass: () => {
         if (!isDev) {
           console.log('❌ Toggle bypass non disponible en production');

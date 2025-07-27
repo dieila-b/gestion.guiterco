@@ -66,7 +66,7 @@ export const useAuthState = (bypassAuth: boolean, mockUser: UtilisateurInterne, 
       setUtilisateurInterne(null);
       setLoading(true); // Remettre en loading pour l'auth normale
     }
-  }, [bypassAuth, isDevMode, mockUser]);
+  }, [bypassAuth, isDevMode]);
 
   // Effect pour l'authentification normale  
   useEffect(() => {
