@@ -174,44 +174,9 @@ Deno.serve(async (req) => {
     // Generate a strong temporary password if none provided
     const tempPassword = userData.password || userData.password_hash || `TempPass${Math.random().toString(36).slice(-8)}!`;
     
-    // NOUVELLE STRATÉGIE: Créer d'abord dans utilisateurs_internes avec un ID généré
-    const userUuid = crypto.randomUUID();
+    console.log('🚀 Creating auth user first...');
     
-    const finalUserDataWithId = {
-      ...finalUserData,
-      id: userUuid,    // Primary key ID
-      user_id: userUuid // Foreign key to auth.users (sera créé ensuite)
-    };
-
-    console.log('Inserting user data first...');
-    console.log('Final user data with ID:', finalUserDataWithId);
-    
-    const { data, error } = await supabase
-      .from('utilisateurs_internes')
-      .insert([finalUserDataWithId])
-      .select('*')
-      .single();
-
-    if (error) {
-      console.error('Database error:', error);
-      console.error('Error details:', {
-        code: error.code,
-        message: error.message,
-        details: error.details,
-        hint: error.hint
-      });
-      return new Response(
-        JSON.stringify({ error: `Erreur lors de la création en base: ${error.message}` }),
-        { 
-          status: 400, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
-      );
-    }
-
-    console.log('User data inserted, now creating auth user...');
-
-    // Then create the user in Supabase Auth with the same ID
+    // ÉTAPE 1: Créer d'abord l'utilisateur dans Supabase Auth
     const { data: authData, error: authError } = await supabase.auth.admin.createUser({
       email: userData.email,
       password: tempPassword,
@@ -224,11 +189,9 @@ Deno.serve(async (req) => {
     });
 
     if (authError) {
-      console.error('Auth error:', authError);
-      // Si la création auth échoue, supprimer l'entrée utilisateurs_internes
-      await supabase.from('utilisateurs_internes').delete().eq('id', userUuid);
+      console.error('❌ Auth error:', authError);
       return new Response(
-        JSON.stringify({ error: `Erreur lors de la création de l'utilisateur auth: ${authError.message}` }),
+        JSON.stringify({ error: `Erreur lors de la création auth: ${authError.message}` }),
         { 
           status: 400, 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
@@ -236,17 +199,44 @@ Deno.serve(async (req) => {
       );
     }
 
-    console.log('Auth user created:', authData.user?.id);
+    console.log('✅ Auth user created successfully:', authData.user?.id);
 
-    // Mettre à jour l'ID user dans utilisateurs_internes pour correspondre à l'auth user
-    if (authData.user?.id !== userUuid) {
-      await supabase
-        .from('utilisateurs_internes')
-        .update({ 
-          id: authData.user!.id,
-          user_id: authData.user!.id 
-        })
-        .eq('id', userUuid);
+    // ÉTAPE 2: Insérer dans utilisateurs_internes avec l'ID de l'utilisateur auth
+    const finalUserDataWithId = {
+      ...finalUserData,
+      id: authData.user!.id,     // Utiliser l'ID de l'utilisateur auth
+      user_id: authData.user!.id // FK vers auth.users
+    };
+
+    console.log('📝 Inserting user data in utilisateurs_internes...');
+    console.log('Final user data:', finalUserDataWithId);
+    
+    const { data, error } = await supabase
+      .from('utilisateurs_internes')
+      .insert([finalUserDataWithId])
+      .select('*')
+      .single();
+
+    if (error) {
+      console.error('❌ Database error:', error);
+      console.error('Error details:', {
+        code: error.code,
+        message: error.message,
+        details: error.details,
+        hint: error.hint
+      });
+      
+      // ROLLBACK: Supprimer l'utilisateur auth créé
+      console.log('🔄 Rolling back auth user...');
+      await supabase.auth.admin.deleteUser(authData.user!.id);
+      
+      return new Response(
+        JSON.stringify({ error: `Erreur lors de l'insertion en base: ${error.message}` }),
+        { 
+          status: 400, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
     }
 
     console.log('User created successfully:', data.id);
