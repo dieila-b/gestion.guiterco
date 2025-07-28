@@ -7,6 +7,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/components/auth/AuthProvider";
 import { DevModeToggle } from "@/components/auth/DevModeToggle";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
+import { PermissionGuard } from "@/components/auth/PermissionGuard";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Sales from "./pages/Sales";
@@ -30,15 +31,69 @@ const App = () => (
         <AuthProvider>
           <Routes>
             <Route path="/auth" element={<Auth />} />
-            <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
-            <Route path="/sales" element={<ProtectedRoute><Sales /></ProtectedRoute>} />
-            <Route path="/stocks" element={<ProtectedRoute><Stocks /></ProtectedRoute>} />
-            <Route path="/purchases" element={<ProtectedRoute><Purchases /></ProtectedRoute>} />
-            <Route path="/clients" element={<ProtectedRoute><Clients /></ProtectedRoute>} />
-            <Route path="/cash-registers" element={<ProtectedRoute><CashRegisters /></ProtectedRoute>} />
-            <Route path="/margins" element={<ProtectedRoute><Margins /></ProtectedRoute>} />
-            <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
-            <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+            <Route path="/" element={
+              <ProtectedRoute>
+                <PermissionGuard menu="Dashboard" fallback={<div className="min-h-screen flex items-center justify-center"><p>Accès refusé au tableau de bord</p></div>}>
+                  <Index />
+                </PermissionGuard>
+              </ProtectedRoute>
+            } />
+            <Route path="/sales" element={
+              <ProtectedRoute>
+                <PermissionGuard menu="Ventes" fallback={<div className="min-h-screen flex items-center justify-center"><p>Accès refusé aux ventes</p></div>}>
+                  <Sales />
+                </PermissionGuard>
+              </ProtectedRoute>
+            } />
+            <Route path="/stocks" element={
+              <ProtectedRoute>
+                <PermissionGuard menu="Stock" fallback={<div className="min-h-screen flex items-center justify-center"><p>Accès refusé au stock</p></div>}>
+                  <Stocks />
+                </PermissionGuard>
+              </ProtectedRoute>
+            } />
+            <Route path="/purchases" element={
+              <ProtectedRoute>
+                <PermissionGuard menu="Achats" fallback={<div className="min-h-screen flex items-center justify-center"><p>Accès refusé aux achats</p></div>}>
+                  <Purchases />
+                </PermissionGuard>
+              </ProtectedRoute>
+            } />
+            <Route path="/clients" element={
+              <ProtectedRoute>
+                <PermissionGuard menu="Clients" fallback={<div className="min-h-screen flex items-center justify-center"><p>Accès refusé aux clients</p></div>}>
+                  <Clients />
+                </PermissionGuard>
+              </ProtectedRoute>
+            } />
+            <Route path="/cash-registers" element={
+              <ProtectedRoute>
+                <PermissionGuard menu="Caisse" fallback={<div className="min-h-screen flex items-center justify-center"><p>Accès refusé à la caisse</p></div>}>
+                  <CashRegisters />
+                </PermissionGuard>
+              </ProtectedRoute>
+            } />
+            <Route path="/margins" element={
+              <ProtectedRoute>
+                <PermissionGuard menu="Rapports" submenu="Marges" fallback={<div className="min-h-screen flex items-center justify-center"><p>Accès refusé aux marges</p></div>}>
+                  <Margins />
+                </PermissionGuard>
+              </ProtectedRoute>
+            } />
+            <Route path="/reports" element={
+              <ProtectedRoute>
+                <PermissionGuard menu="Rapports" fallback={<div className="min-h-screen flex items-center justify-center"><p>Accès refusé aux rapports</p></div>}>
+                  <Reports />
+                </PermissionGuard>
+              </ProtectedRoute>
+            } />
+            <Route path="/settings" element={
+              <ProtectedRoute>
+                <PermissionGuard menu="Paramètres" fallback={<div className="min-h-screen flex items-center justify-center"><p>Accès refusé aux paramètres</p></div>}>
+                  <Settings />
+                </PermissionGuard>
+              </ProtectedRoute>
+            } />
             <Route path="*" element={<NotFound />} />
           </Routes>
           <DevModeToggle />
