@@ -62,14 +62,18 @@ const PermissionForm = ({ permission, onSuccess }: { permission?: any; onSuccess
 
   const menuOptions = [
     'Dashboard', 'Catalogue', 'Stock', 'Achats', 'Ventes', 'Clients', 
-    'Fournisseurs', 'Comptabilité', 'Rapports', 'Paramètres'
+    'Caisse', 'Finance', 'Rapports', 'Paramètres'
   ];
 
   const submenuOptions = {
-    'Stock': ['Entrepôts', 'PDV', 'Mouvements', 'Inventaire'],
-    'Achats': ['Bons de commande', 'Factures', 'Fournisseurs'],
-    'Ventes': ['Factures', 'Précommandes', 'Clients'],
-    'Paramètres': ['Utilisateurs', 'Rôles', 'Permissions']
+    'Stock': ['Entrepôts', 'PDV', 'Transferts', 'Mouvements', 'Inventaire'],
+    'Achats': ['Bons de commande', 'Bons de livraison', 'Factures', 'Fournisseurs'],
+    'Ventes': ['Factures', 'Précommandes', 'Devis'],
+    'Catalogue': ['Catégories'],
+    'Caisse': ['Opérations', 'Clôtures', 'États'],
+    'Finance': ['Revenus', 'Dépenses', 'Rapports', 'Trésorerie'],
+    'Rapports': ['Ventes', 'Stock', 'Marges', 'Clients'],
+    'Paramètres': ['Profil', 'Utilisateurs', 'Rôles et permissions', 'Général']
   };
 
   const actionOptions = ['read', 'write', 'delete', 'export', 'import'];
