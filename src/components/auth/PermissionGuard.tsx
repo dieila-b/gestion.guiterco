@@ -19,7 +19,7 @@ export const PermissionGuard: React.FC<PermissionGuardProps> = ({
   const { hasPermission, isLoading } = useHasPermission();
 
   if (isLoading) {
-    return null; // ou un loader si nécessaire
+    return null;
   }
 
   if (!hasPermission(menu, submenu, action)) {
