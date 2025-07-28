@@ -219,27 +219,88 @@ export const useDeletePermission = () => {
   });
 };
 
-// Disabled user role management functions since user_roles table doesn't exist
+// User role management functions
 export const useAssignUserRole = () => {
+  const queryClient = useQueryClient();
+
   return useMutation({
     mutationFn: async ({ userId, roleId }: { userId: string; roleId: string }) => {
-      console.log('⚠️ User role assignment disabled - user_roles table not found');
-      throw new Error('User role assignment is currently disabled');
+      const { data, error } = await supabase
+        .from('user_roles')
+        .upsert({ user_id: userId, role_id: roleId }, { onConflict: 'user_id,role_id' })
+        .select();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['user-roles'] });
+      toast.success('Rôle attribué avec succès');
     },
     onError: (error: any) => {
-      toast.error('La gestion des rôles utilisateur est actuellement désactivée');
+      toast.error(error.message || 'Erreur lors de l\'attribution du rôle');
     }
   });
 };
 
 export const useRevokeUserRole = () => {
+  const queryClient = useQueryClient();
+
   return useMutation({
     mutationFn: async ({ userId, roleId }: { userId: string; roleId: string }) => {
-      console.log('⚠️ User role revocation disabled - user_roles table not found');
-      throw new Error('User role revocation is currently disabled');
+      const { error } = await supabase
+        .from('user_roles')
+        .delete()
+        .eq('user_id', userId)
+        .eq('role_id', roleId);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['user-roles'] });
+      toast.success('Rôle révoqué avec succès');
     },
     onError: (error: any) => {
-      toast.error('La gestion des rôles utilisateur est actuellement désactivée');
+      toast.error(error.message || 'Erreur lors de la révocation du rôle');
+    }
+  });
+};
+
+export const useUserRoles = () => {
+  return useQuery({
+    queryKey: ['user-roles'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('user_roles')
+        .select(`
+          *,
+          role:roles(*)
+        `)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      return data;
+    }
+  });
+};
+
+export const useUsersWithRoles = () => {
+  return useQuery({
+    queryKey: ['users-with-roles'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('utilisateurs_internes')
+        .select(`
+          *,
+          user_roles(
+            id,
+            role:roles(*)
+          )
+        `)
+        .order('nom');
+
+      if (error) throw error;
+      return data;
     }
   });
 };

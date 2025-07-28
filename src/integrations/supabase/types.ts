@@ -2270,25 +2270,11 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "role_permissions_permission_id_fkey"
-            columns: ["permission_id"]
-            isOneToOne: false
-            referencedRelation: "vue_permissions_utilisateurs"
-            referencedColumns: ["permission_id"]
-          },
-          {
             foreignKeyName: "role_permissions_role_id_fkey"
             columns: ["role_id"]
             isOneToOne: false
             referencedRelation: "roles"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "role_permissions_role_id_fkey"
-            columns: ["role_id"]
-            isOneToOne: false
-            referencedRelation: "vue_permissions_utilisateurs"
-            referencedColumns: ["role_id"]
           },
         ]
       }
@@ -2784,13 +2770,6 @@ export type Database = {
             referencedRelation: "roles"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "user_roles_role_id_fkey"
-            columns: ["role_id"]
-            isOneToOne: false
-            referencedRelation: "vue_permissions_utilisateurs"
-            referencedColumns: ["role_id"]
-          },
         ]
       }
       utilisateurs_internes: {
@@ -2855,13 +2834,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "roles"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "utilisateurs_internes_role_id_fkey"
-            columns: ["role_id"]
-            isOneToOne: false
-            referencedRelation: "vue_permissions_utilisateurs"
-            referencedColumns: ["role_id"]
           },
         ]
       }
@@ -3059,17 +3031,10 @@ export type Database = {
         Row: {
           action: string | null
           can_access: boolean | null
-          email: string | null
           menu: string | null
-          nom: string | null
-          permission_description: string | null
-          permission_id: string | null
-          prenom: string | null
-          role_id: string | null
           role_name: string | null
           submenu: string | null
           user_id: string | null
-          utilisateur_interne_id: string | null
         }
         Relationships: []
       }
@@ -3183,13 +3148,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "roles"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "utilisateurs_internes_role_id_fkey"
-            columns: ["role_id"]
-            isOneToOne: false
-            referencedRelation: "vue_permissions_utilisateurs"
-            referencedColumns: ["role_id"]
           },
         ]
       }
