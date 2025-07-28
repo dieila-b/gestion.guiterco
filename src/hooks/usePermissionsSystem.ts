@@ -1,7 +1,7 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 
 export interface Role {
   id: string;
@@ -79,7 +79,6 @@ export const useRolePermissions = () => {
 
 export const useCreateRole = () => {
   const queryClient = useQueryClient();
-  const { toast } = useToast();
 
   return useMutation({
     mutationFn: async (roleData: Omit<Role, 'id' | 'created_at'>) => {
@@ -94,24 +93,16 @@ export const useCreateRole = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['roles'] });
-      toast({
-        title: "Rôle créé",
-        description: "Le nouveau rôle a été créé avec succès",
-      });
+      toast.success('Rôle créé avec succès');
     },
     onError: (error: any) => {
-      toast({
-        title: "Erreur",
-        description: error.message || "Impossible de créer le rôle",
-        variant: "destructive",
-      });
+      toast.error(error.message || 'Erreur lors de la création du rôle');
     }
   });
 };
 
 export const useUpdateRole = () => {
   const queryClient = useQueryClient();
-  const { toast } = useToast();
 
   return useMutation({
     mutationFn: async ({ id, ...roleData }: Partial<Role> & { id: string }) => {
@@ -127,24 +118,16 @@ export const useUpdateRole = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['roles'] });
-      toast({
-        title: "Rôle modifié",
-        description: "Le rôle a été modifié avec succès",
-      });
+      toast.success('Rôle modifié avec succès');
     },
     onError: (error: any) => {
-      toast({
-        title: "Erreur",
-        description: error.message || "Impossible de modifier le rôle",
-        variant: "destructive",
-      });
+      toast.error(error.message || 'Erreur lors de la modification du rôle');
     }
   });
 };
 
 export const useDeleteRole = () => {
   const queryClient = useQueryClient();
-  const { toast } = useToast();
 
   return useMutation({
     mutationFn: async (roleId: string) => {
@@ -157,24 +140,16 @@ export const useDeleteRole = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['roles'] });
-      toast({
-        title: "Rôle supprimé",
-        description: "Le rôle a été supprimé avec succès",
-      });
+      toast.success('Rôle supprimé avec succès');
     },
     onError: (error: any) => {
-      toast({
-        title: "Erreur",
-        description: error.message || "Impossible de supprimer le rôle",
-        variant: "destructive",
-      });
+      toast.error(error.message || 'Erreur lors de la suppression du rôle');
     }
   });
 };
 
 export const useCreatePermission = () => {
   const queryClient = useQueryClient();
-  const { toast } = useToast();
 
   return useMutation({
     mutationFn: async (permissionData: Omit<Permission, 'id'>) => {
@@ -189,24 +164,16 @@ export const useCreatePermission = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['permissions'] });
-      toast({
-        title: "Permission créée",
-        description: "La nouvelle permission a été créée avec succès",
-      });
+      toast.success('Permission créée avec succès');
     },
     onError: (error: any) => {
-      toast({
-        title: "Erreur",
-        description: error.message || "Impossible de créer la permission",
-        variant: "destructive",
-      });
+      toast.error(error.message || 'Erreur lors de la création de la permission');
     }
   });
 };
 
 export const useUpdatePermission = () => {
   const queryClient = useQueryClient();
-  const { toast } = useToast();
 
   return useMutation({
     mutationFn: async ({ id, ...permissionData }: Partial<Permission> & { id: string }) => {
@@ -222,24 +189,16 @@ export const useUpdatePermission = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['permissions'] });
-      toast({
-        title: "Permission modifiée",
-        description: "La permission a été modifiée avec succès",
-      });
+      toast.success('Permission modifiée avec succès');
     },
     onError: (error: any) => {
-      toast({
-        title: "Erreur",
-        description: error.message || "Impossible de modifier la permission",
-        variant: "destructive",
-      });
+      toast.error(error.message || 'Erreur lors de la modification de la permission');
     }
   });
 };
 
 export const useDeletePermission = () => {
   const queryClient = useQueryClient();
-  const { toast } = useToast();
 
   return useMutation({
     mutationFn: async (permissionId: string) => {
@@ -252,54 +211,35 @@ export const useDeletePermission = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['permissions'] });
-      toast({
-        title: "Permission supprimée",
-        description: "La permission a été supprimée avec succès",
-      });
+      toast.success('Permission supprimée avec succès');
     },
     onError: (error: any) => {
-      toast({
-        title: "Erreur",
-        description: error.message || "Impossible de supprimer la permission",
-        variant: "destructive",
-      });
+      toast.error(error.message || 'Erreur lors de la suppression de la permission');
     }
   });
 };
 
 // Disabled user role management functions since user_roles table doesn't exist
 export const useAssignUserRole = () => {
-  const { toast } = useToast();
-
   return useMutation({
     mutationFn: async ({ userId, roleId }: { userId: string; roleId: string }) => {
       console.log('⚠️ User role assignment disabled - user_roles table not found');
       throw new Error('User role assignment is currently disabled');
     },
     onError: (error: any) => {
-      toast({
-        title: "Erreur",
-        description: "La gestion des rôles utilisateur est actuellement désactivée",
-        variant: "destructive",
-      });
+      toast.error('La gestion des rôles utilisateur est actuellement désactivée');
     }
   });
 };
 
 export const useRevokeUserRole = () => {
-  const { toast } = useToast();
-
   return useMutation({
     mutationFn: async ({ userId, roleId }: { userId: string; roleId: string }) => {
       console.log('⚠️ User role revocation disabled - user_roles table not found');
       throw new Error('User role revocation is currently disabled');
     },
     onError: (error: any) => {
-      toast({
-        title: "Erreur",
-        description: "La gestion des rôles utilisateur est actuellement désactivée",
-        variant: "destructive",
-      });
+      toast.error('La gestion des rôles utilisateur est actuellement désactivée');
     }
   });
 };
