@@ -14,12 +14,14 @@ import { LogOut, User, Settings } from 'lucide-react';
 import { useAuth } from '@/components/auth/AuthContext';
 import { Link } from 'react-router-dom';
 
-const UserMenu = () => {
-  const { signOut, user } = useAuth();
+interface UserMenuProps {
+  user?: any;
+}
 
-  if (!user) {
-    return null;
-  }
+const UserMenu = ({ user: propUser }: UserMenuProps) => {
+  const { signOut, user: authUser } = useAuth();
+
+  const user = propUser || authUser;
 
   // Utiliser les données utilisateur disponibles
   const displayUser = {

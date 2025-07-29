@@ -12,7 +12,16 @@ interface AppHeaderProps {
 export function AppHeader({ title, subtitle }: AppHeaderProps) {
   const { user } = useAuth();
 
-  // Toujours afficher le UserMenu s'il y a un utilisateur connecté
+  // Afficher toujours un profil utilisateur par défaut
+  const defaultUser = {
+    email: 'utilisateur@guitierco.com',
+    user_metadata: {
+      prenom: 'Utilisateur',
+      nom: 'GuIterCo'
+    }
+  };
+
+  const displayUser = user || defaultUser;
 
   return (
     <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
@@ -22,7 +31,7 @@ export function AppHeader({ title, subtitle }: AppHeaderProps) {
           <h1 className="text-3xl font-bold">{title}</h1>
           {subtitle && <p className="text-sm text-muted-foreground">{subtitle}</p>}
         </div>
-        {user && <UserMenu />}
+        <UserMenu user={displayUser} />
       </div>
     </header>
   );
