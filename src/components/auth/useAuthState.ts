@@ -166,37 +166,30 @@ export const useAuthState = (bypassAuth: boolean, mockUser: UtilisateurInterne, 
       return;
     }
     
+    // Nettoyer immédiatement l'état local pour assurer la déconnexion
+    setUser(null);
+    setSession(null);
+    setUtilisateurInterne(null);
+    
     try {
-      // Effectuer la déconnexion Supabase
-      const result = await authSignOut();
+      // Tenter la déconnexion Supabase avec timeout
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Timeout de déconnexion')), 3000)
+      );
       
-      if (result.error) {
-        console.error('❌ Échec de la déconnexion:', result.error);
-        toast({
-          title: "Erreur de déconnexion",
-          description: "Impossible de vous déconnecter. Veuillez réessayer.",
-          variant: "destructive",
-        });
-        return;
-      }
+      const signOutPromise = authSignOut();
       
-      // Nettoyer l'état local
-      setUser(null);
-      setSession(null);
-      setUtilisateurInterne(null);
-      
-      console.log('✅ Déconnexion complète, redirection...');
-      
-      // Rediriger vers la page de connexion
-      window.location.href = '/auth';
+      await Promise.race([signOutPromise, timeoutPromise]);
+      console.log('✅ Déconnexion Supabase réussie');
     } catch (error) {
-      console.error('❌ Erreur lors de la déconnexion:', error);
-      toast({
-        title: "Erreur de déconnexion",
-        description: "Une erreur inattendue s'est produite.",
-        variant: "destructive",
-      });
+      console.error('❌ Erreur ou timeout lors de la déconnexion Supabase:', error);
+      // Continuer quand même - l'état local est déjà nettoyé
     }
+    
+    console.log('✅ Déconnexion complète, redirection...');
+    
+    // Rediriger vers la page de connexion dans tous les cas
+    window.location.href = '/auth';
   };
 
   // Un utilisateur est considéré comme autorisé s'il a un compte interne actif
