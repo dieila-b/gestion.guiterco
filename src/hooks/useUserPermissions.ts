@@ -1,3 +1,4 @@
+
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/components/auth/AuthContext';
@@ -10,18 +11,25 @@ export interface UserPermission {
 }
 
 export const useUserPermissions = () => {
-  const { user, isDevMode } = useAuth();
+  const { user, isDevMode, utilisateurInterne } = useAuth();
 
   return useQuery({
-    queryKey: ['user-permissions', user?.id, isDevMode],
+    queryKey: ['user-permissions', user?.id, isDevMode, utilisateurInterne?.id],
     queryFn: async () => {
+      console.log('Chargement des permissions pour:', {
+        userId: user?.id,
+        isDevMode,
+        utilisateurInterneId: utilisateurInterne?.id
+      });
+
       if (!user?.id) {
+        console.warn('Pas d\'utilisateur connecté');
         return [];
       }
 
       // En mode développement avec utilisateur mock, donner toutes les permissions
       if (isDevMode && user.id === 'dev-user-123') {
-        // Retourner un ensemble complet de permissions pour le développement
+        console.log('Mode dev avec utilisateur mock - toutes permissions accordées');
         return [
           { menu: 'Dashboard', action: 'read', can_access: true },
           { menu: 'Catalogue', action: 'read', can_access: true },
@@ -43,43 +51,90 @@ export const useUserPermissions = () => {
         ] as UserPermission[];
       }
 
-      // Vérifier si l'ID utilisateur est un UUID valide
-      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-      if (!uuidRegex.test(user.id)) {
-        console.warn('ID utilisateur invalide pour la base de données:', user.id);
+      // Pour les utilisateurs réels, récupérer les permissions via la vue
+      try {
+        console.log('Récupération des permissions depuis la vue pour utilisateur:', user.id);
+        
+        const { data, error } = await supabase
+          .from('vue_permissions_utilisateurs')
+          .select('menu, submenu, action, can_access')
+          .eq('user_id', user.id)
+          .eq('can_access', true);
+
+        if (error) {
+          console.error('Erreur lors de la récupération des permissions:', error);
+          
+          // Si erreur avec la vue, essayer une approche alternative
+          console.log('Tentative de récupération via les tables directement...');
+          
+          if (!utilisateurInterne?.role?.id) {
+            console.warn('Pas de rôle défini pour l\'utilisateur interne');
+            return [];
+          }
+
+          const { data: rolePermissions, error: roleError } = await supabase
+            .from('role_permissions')
+            .select(`
+              permission:permissions(menu, submenu, action)
+            `)
+            .eq('role_id', utilisateurInterne.role.id)
+            .eq('can_access', true);
+
+          if (roleError) {
+            console.error('Erreur lors de la récupération des permissions par rôle:', roleError);
+            return [];
+          }
+
+          const formattedPermissions = rolePermissions?.map(rp => ({
+            menu: rp.permission.menu,
+            submenu: rp.permission.submenu,
+            action: rp.permission.action,
+            can_access: true
+          })) || [];
+
+          console.log('Permissions récupérées par rôle:', formattedPermissions);
+          return formattedPermissions;
+        }
+
+        console.log('Permissions récupérées depuis la vue:', data);
+        return data as UserPermission[];
+        
+      } catch (error) {
+        console.error('Erreur inattendue lors de la récupération des permissions:', error);
         return [];
       }
-
-      const { data, error } = await supabase
-        .from('vue_permissions_utilisateurs')
-        .select('menu, submenu, action, can_access')
-        .eq('user_id', user.id)
-        .eq('can_access', true);
-
-      if (error) {
-        console.error('Erreur lors de la récupération des permissions:', error);
-        return []; // Retourner un tableau vide au lieu de throw pour éviter de casser l'app
-      }
-
-      return data as UserPermission[];
     },
-    enabled: !!user?.id
+    enabled: !!user?.id,
+    retry: 1,
+    staleTime: 5 * 60 * 1000 // 5 minutes
   });
 };
 
 export const useHasPermission = () => {
-  const { data: permissions = [], isLoading } = useUserPermissions();
+  const { data: permissions = [], isLoading, error } = useUserPermissions();
 
   const hasPermission = (menu: string, submenu?: string, action: string = 'read'): boolean => {
-    if (isLoading) return false;
+    if (isLoading) {
+      console.log('Permissions en cours de chargement...');
+      return false;
+    }
     
-    return permissions.some(permission => 
+    if (error) {
+      console.error('Erreur lors du chargement des permissions:', error);
+      return false;
+    }
+    
+    const hasAccess = permissions.some(permission => 
       permission.menu === menu &&
       (submenu === undefined || permission.submenu === submenu) &&
       permission.action === action &&
       permission.can_access
     );
+    
+    console.log(`Vérification permission: ${menu}${submenu ? ` > ${submenu}` : ''} (${action}):`, hasAccess);
+    
+    return hasAccess;
   };
 
-  return { hasPermission, isLoading };
+  return { hasPermission, isLoading, permissions };
 };

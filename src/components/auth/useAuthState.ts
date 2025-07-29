@@ -82,13 +82,17 @@ export const useAuthState = (bypassAuth: boolean, mockUser: UtilisateurInterne, 
 
           if (session?.user) {
             try {
+              console.log('🔍 Vérification utilisateur interne pour:', session.user.id);
               const internalUser = await checkInternalUser(session.user.id);
+              
+              console.log('👤 Utilisateur interne trouvé:', internalUser);
               
               if (internalUser && internalUser.statut === 'actif' && internalUser.type_compte === 'interne') {
                 setUtilisateurInterne(internalUser);
+                console.log('✅ Utilisateur interne autorisé');
               } else {
                 setUtilisateurInterne(null);
-                console.log('❌ Utilisateur non autorisé');
+                console.log('❌ Utilisateur non autorisé ou inactif');
               }
             } catch (error) {
               console.error('❌ Erreur vérification utilisateur:', error);
@@ -110,6 +114,8 @@ export const useAuthState = (bypassAuth: boolean, mockUser: UtilisateurInterne, 
       
       supabase.auth.getSession().then(async ({ data: { session } }) => {
         clearTimeout(sessionTimeout);
+        console.log('🔍 Session existante récupérée:', !!session);
+        
         setSession(session);
         setUser(session?.user ?? null);
         
@@ -118,6 +124,7 @@ export const useAuthState = (bypassAuth: boolean, mockUser: UtilisateurInterne, 
             const internalUser = await checkInternalUser(session.user.id);
             if (internalUser && internalUser.statut === 'actif' && internalUser.type_compte === 'interne') {
               setUtilisateurInterne(internalUser);
+              console.log('✅ Session existante validée pour utilisateur interne');
             }
           } catch (error) {
             console.error('❌ Erreur vérification initiale:', error);
@@ -155,14 +162,14 @@ export const useAuthState = (bypassAuth: boolean, mockUser: UtilisateurInterne, 
       setSession(null);
       setUtilisateurInterne(null);
       // Forcer le rechargement pour revenir à l'écran de connexion
-      window.location.href = '/login';
+      window.location.href = '/auth';
       return;
     }
     
     await authSignOut();
     setUtilisateurInterne(null);
     // Rediriger vers la page de connexion après déconnexion
-    window.location.href = '/login';
+    window.location.href = '/auth';
   };
 
   // Un utilisateur est considéré comme autorisé s'il a un compte interne actif

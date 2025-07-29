@@ -1,6 +1,8 @@
+
 import React from 'react';
 import { useHasPermission } from '@/hooks/useUserPermissions';
 import { useAuth } from '@/components/auth/AuthContext';
+import { Loader2 } from 'lucide-react';
 
 interface PermissionGuardProps {
   children: React.ReactNode;
@@ -18,23 +20,37 @@ export const PermissionGuard: React.FC<PermissionGuardProps> = ({
   fallback = null
 }) => {
   const { hasPermission, isLoading } = useHasPermission();
-  const { isDevMode, user } = useAuth();
+  const { isDevMode, user, utilisateurInterne } = useAuth();
 
-  // En mode développement, être plus permissif
-  if (isDevMode) {
-    // Si on charge encore ou si on a un utilisateur, laisser passer
-    if (isLoading || user) {
-      return <>{children}</>;
-    }
+  console.log(`PermissionGuard - Vérification: ${menu}${submenu ? ` > ${submenu}` : ''} (${action})`, {
+    isDevMode,
+    hasUser: !!user,
+    hasUtilisateurInterne: !!utilisateurInterne,
+    isLoading
+  });
+
+  // En mode développement, être permissif pour les utilisateurs connectés
+  if (isDevMode && (user || utilisateurInterne)) {
+    console.log('Mode dev - accès accordé');
+    return <>{children}</>;
   }
 
   // En production, attendre que le chargement soit terminé
   if (isLoading) {
-    return null;
+    return (
+      <div className="flex items-center justify-center p-4">
+        <Loader2 className="h-4 w-4 animate-spin mr-2" />
+        <span className="text-sm text-muted-foreground">Vérification des permissions...</span>
+      </div>
+    );
   }
 
   // Vérifier les permissions
-  if (!hasPermission(menu, submenu, action)) {
+  const hasAccess = hasPermission(menu, submenu, action);
+  
+  console.log(`PermissionGuard - Résultat: ${hasAccess ? 'Accès accordé' : 'Accès refusé'}`);
+  
+  if (!hasAccess) {
     return <>{fallback}</>;
   }
 

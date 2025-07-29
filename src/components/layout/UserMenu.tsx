@@ -15,11 +15,36 @@ import { useAuth } from '@/components/auth/AuthContext';
 import { Link } from 'react-router-dom';
 
 const UserMenu = () => {
-  const { utilisateurInterne, signOut } = useAuth();
+  const { utilisateurInterne, signOut, user, isInternalUser } = useAuth();
 
-  if (!utilisateurInterne) return null;
+  // En production, vérifier à la fois utilisateurInterne ET isInternalUser
+  // En développement, être plus permissif
+  const shouldShowMenu = utilisateurInterne || (user && isInternalUser);
+  
+  console.log('UserMenu - État:', {
+    hasUtilisateurInterne: !!utilisateurInterne,
+    hasUser: !!user,
+    isInternalUser,
+    shouldShowMenu
+  });
 
-  const initials = `${utilisateurInterne.prenom.charAt(0)}${utilisateurInterne.nom.charAt(0)}`.toUpperCase();
+  if (!shouldShowMenu) {
+    console.log('UserMenu - Menu non affiché, conditions non remplies');
+    return null;
+  }
+
+  // Utiliser les données disponibles (utilisateurInterne en priorité, sinon user)
+  const displayUser = utilisateurInterne || {
+    prenom: user?.user_metadata?.prenom || 'Utilisateur',
+    nom: user?.user_metadata?.nom || '',
+    email: user?.email || '',
+    role: { nom: 'utilisateur' },
+    type_compte: 'interne'
+  };
+
+  const initials = displayUser.prenom && displayUser.nom 
+    ? `${displayUser.prenom.charAt(0)}${displayUser.nom.charAt(0)}`.toUpperCase()
+    : displayUser.email?.charAt(0).toUpperCase() || 'U';
 
   const getRoleLabel = (role: string) => {
     switch (role) {
@@ -34,12 +59,17 @@ const UserMenu = () => {
     }
   };
 
+  const isAdmin = displayUser.role?.nom === 'administrateur' || displayUser.type_compte === 'admin';
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" className="relative h-8 w-8 rounded-full">
           <Avatar className="h-8 w-8">
-            <AvatarImage src={utilisateurInterne.photo_url || ''} alt={`${utilisateurInterne.prenom} ${utilisateurInterne.nom}`} />
+            <AvatarImage 
+              src={displayUser.photo_url || ''} 
+              alt={`${displayUser.prenom} ${displayUser.nom}`} 
+            />
             <AvatarFallback>{initials}</AvatarFallback>
           </Avatar>
         </Button>
@@ -48,13 +78,13 @@ const UserMenu = () => {
         <DropdownMenuLabel className="font-normal">
           <div className="flex flex-col space-y-1">
             <p className="text-sm font-medium leading-none">
-              {utilisateurInterne.prenom} {utilisateurInterne.nom}
+              {displayUser.prenom} {displayUser.nom}
             </p>
             <p className="text-xs leading-none text-muted-foreground">
-              {utilisateurInterne.email}
+              {displayUser.email}
             </p>
             <p className="text-xs leading-none text-blue-600">
-              {getRoleLabel(utilisateurInterne.role?.nom || utilisateurInterne.type_compte)}
+              {getRoleLabel(displayUser.role?.nom || displayUser.type_compte)}
             </p>
           </div>
         </DropdownMenuLabel>
@@ -65,7 +95,7 @@ const UserMenu = () => {
             <span>Profil</span>
           </Link>
         </DropdownMenuItem>
-        {(utilisateurInterne.role?.nom === 'administrateur' || utilisateurInterne.type_compte === 'admin') && (
+        {isAdmin && (
           <DropdownMenuItem asChild>
             <Link to="/settings" className="cursor-pointer">
               <Settings className="mr-2 h-4 w-4" />
