@@ -10,10 +10,9 @@ interface AppHeaderProps {
 }
 
 export function AppHeader({ title, subtitle }: AppHeaderProps) {
-  const { utilisateurInterne, user, isInternalUser } = useAuth();
+  const { user } = useAuth();
 
-  // Afficher le UserMenu si un utilisateur interne est connecté
-  const shouldShowUserMenu = utilisateurInterne || (user && isInternalUser);
+  // Toujours afficher le UserMenu s'il y a un utilisateur connecté
 
   return (
     <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
@@ -23,7 +22,7 @@ export function AppHeader({ title, subtitle }: AppHeaderProps) {
           <h1 className="text-3xl font-bold">{title}</h1>
           {subtitle && <p className="text-sm text-muted-foreground">{subtitle}</p>}
         </div>
-        {shouldShowUserMenu && <UserMenu />}
+        {user && <UserMenu />}
       </div>
     </header>
   );
