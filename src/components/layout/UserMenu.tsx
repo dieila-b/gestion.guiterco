@@ -18,14 +18,16 @@ const UserMenu = () => {
   const { utilisateurInterne, signOut, user, isInternalUser } = useAuth();
 
   // En production, vérifier à la fois utilisateurInterne ET isInternalUser
-  // En développement, être plus permissif
+  // En développement, être plus permissif  
   const shouldShowMenu = utilisateurInterne || (user && isInternalUser);
   
   console.log('UserMenu - État:', {
     hasUtilisateurInterne: !!utilisateurInterne,
     hasUser: !!user,
     isInternalUser,
-    shouldShowMenu
+    shouldShowMenu,
+    userEmail: user?.email,
+    utilisateurInterneEmail: utilisateurInterne?.email
   });
 
   if (!shouldShowMenu) {

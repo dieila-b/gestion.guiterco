@@ -112,8 +112,15 @@ export const useUserPermissions = () => {
 
 export const useHasPermission = () => {
   const { data: permissions = [], isLoading, error } = useUserPermissions();
+  const { isDevMode, user } = useAuth();
 
   const hasPermission = (menu: string, submenu?: string, action: string = 'read'): boolean => {
+    // En mode développement, être plus permissif
+    if (isDevMode) {
+      console.log(`Permission check (dev mode): ${menu}${submenu ? ` > ${submenu}` : ''} (${action}) - GRANTED`);
+      return true;
+    }
+    
     if (isLoading) {
       console.log('Permissions en cours de chargement...');
       return false;

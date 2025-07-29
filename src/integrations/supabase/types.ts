@@ -3210,6 +3210,10 @@ export type Database = {
         }
         Returns: string
       }
+      debug_auth_context: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
+      }
       debug_auth_info: {
         Args: Record<PropertyKey, never>
         Returns: {
@@ -3603,6 +3607,10 @@ export type Database = {
               submenu_name?: string
               action_name?: string
             }
+        Returns: boolean
+      }
+      user_has_permission_direct: {
+        Args: { p_menu: string; p_submenu?: string; p_action?: string }
         Returns: boolean
       }
       validate_admin_system: {
