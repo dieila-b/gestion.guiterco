@@ -3031,7 +3031,11 @@ export type Database = {
         Row: {
           action: string | null
           can_access: boolean | null
+          email: string | null
+          internal_user_id: string | null
           menu: string | null
+          nom: string | null
+          prenom: string | null
           role_name: string | null
           submenu: string | null
           user_id: string | null
