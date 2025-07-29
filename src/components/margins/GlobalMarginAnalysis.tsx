@@ -1,14 +1,27 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { RefreshCw, Download, TrendingUp, Info } from 'lucide-react';
 import { useRapportMargePeriode } from '@/hooks/useMargins';
 import { useRefreshOperations } from '@/hooks/diagnostics/useRefreshOperations';
+import PeriodSelector from './PeriodSelector';
 
 const GlobalMarginAnalysis = () => {
-  const { data: rapport, isLoading, refetch } = useRapportMargePeriode();
+  const [startDate, setStartDate] = useState(() => {
+    const date = new Date();
+    date.setDate(1); // Premier jour du mois
+    return date;
+  });
+  const [endDate, setEndDate] = useState(new Date());
+
+  const { data: rapport, isLoading, refetch } = useRapportMargePeriode(startDate, endDate);
   const { handleRefreshData } = useRefreshOperations();
+
+  const handlePeriodChange = (newStartDate: Date, newEndDate: Date) => {
+    setStartDate(newStartDate);
+    setEndDate(newEndDate);
+  };
 
   const handleRefresh = async () => {
     await refetch();
@@ -57,6 +70,13 @@ const GlobalMarginAnalysis = () => {
           </div>
         </CardHeader>
         <CardContent>
+          {/* Sélecteur de période */}
+          <PeriodSelector
+            startDate={startDate}
+            endDate={endDate}
+            onPeriodChange={handlePeriodChange}
+          />
+
           {isLoading ? (
             <div className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -164,7 +184,9 @@ const GlobalMarginAnalysis = () => {
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-600">Période analysée:</span>
-                      <span className="font-medium">Mois en cours</span>
+                      <span className="font-medium">
+                        Du {startDate.toLocaleDateString('fr-FR')} au {endDate.toLocaleDateString('fr-FR')}
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -176,8 +198,8 @@ const GlobalMarginAnalysis = () => {
                 <div className="text-sm text-blue-800">
                   <p className="font-medium mb-1">Analyse Globale Activée</p>
                   <p>
-                    Cette vue affiche les données de marge consolidées du mois en cours. 
-                    Utilisez les autres onglets pour des analyses détaillées par article ou facture.
+                    Cette vue affiche les données de marge consolidées pour la période sélectionnée. 
+                    Utilisez le sélecteur de période ci-dessus pour analyser différentes plages de dates.
                   </p>
                 </div>
               </div>

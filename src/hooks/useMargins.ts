@@ -202,17 +202,20 @@ export const useResumeMargesGlobalesStock = () => {
   });
 };
 
-export const useRapportMargePeriode = () => {
+export const useRapportMargePeriode = (startDate?: Date, endDate?: Date) => {
   return useQuery({
-    queryKey: ['rapport-marge-periode'],
+    queryKey: ['rapport-marge-periode', startDate, endDate],
     queryFn: async () => {
-      const startDate = new Date();
-      startDate.setDate(1); // Premier jour du mois
-      const endDate = new Date();
+      const defaultStartDate = startDate || (() => {
+        const date = new Date();
+        date.setDate(1); // Premier jour du mois
+        return date;
+      })();
+      const defaultEndDate = endDate || new Date();
       
       const { data, error } = await supabase.rpc('get_rapport_marges_periode', {
-        date_debut: startDate.toISOString(),
-        date_fin: endDate.toISOString()
+        date_debut: defaultStartDate.toISOString(),
+        date_fin: defaultEndDate.toISOString()
       });
       
       if (error) throw error;
