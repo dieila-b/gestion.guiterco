@@ -39,7 +39,8 @@ const UserMenu = () => {
     nom: user?.user_metadata?.nom || '',
     email: user?.email || '',
     role: { nom: 'utilisateur' },
-    type_compte: 'interne'
+    type_compte: 'interne',
+    photo_url: undefined
   };
 
   const initials = displayUser.prenom && displayUser.nom 
