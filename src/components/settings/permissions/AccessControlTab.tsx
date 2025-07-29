@@ -39,35 +39,18 @@ const AccessControlTab = () => {
   const { data: users, isLoading } = useQuery({
     queryKey: ['internal-users-with-roles'],
     queryFn: async () => {
-      // Récupérer les utilisateurs
+      // Récupérer les utilisateurs avec leurs rôles directement
       const { data: usersData, error: usersError } = await supabase
         .from('utilisateurs_internes')
-        .select('*')
+        .select(`
+          *,
+          role:roles(id, name)
+        `)
         .order('nom');
 
       if (usersError) throw usersError;
 
-      // Pour chaque utilisateur, récupérer ses rôles
-      const usersWithRoles = await Promise.all(
-        usersData.map(async (user) => {
-          const { data: userRoles, error: rolesError } = await supabase
-            .from('user_roles')
-            .select(`
-              id,
-              role:roles(id, name)
-            `)
-            .eq('user_id', user.id);
-
-          if (rolesError) {
-            console.error('Erreur lors de la récupération des rôles:', rolesError);
-            return { ...user, user_roles: [] };
-          }
-
-          return { ...user, user_roles: userRoles || [] };
-        })
-      );
-
-      return usersWithRoles;
+      return usersData || [];
     }
   });
 
@@ -102,12 +85,21 @@ const AccessControlTab = () => {
   const handleRoleChange = async (roleId: string) => {
     if (selectedUser) {
       try {
-        await assignUserRole.mutateAsync({ userId: selectedUser.id, roleId });
+        // Mettre à jour directement le role_id dans utilisateurs_internes
+        const { error } = await supabase
+          .from('utilisateurs_internes')
+          .update({ role_id: roleId })
+          .eq('id', selectedUser.id);
+
+        if (error) throw error;
+        
         queryClient.invalidateQueries({ queryKey: ['internal-users-with-roles'] });
         setIsEditDialogOpen(false);
         setSelectedUser(null);
+        toast.success('Rôle attribué avec succès');
       } catch (error) {
         console.error('Erreur lors de l\'attribution du rôle:', error);
+        toast.error('Erreur lors de l\'attribution du rôle');
       }
     }
   };
@@ -115,10 +107,19 @@ const AccessControlTab = () => {
   const handleRevokeRole = async (userId: string, roleId: string, roleName: string) => {
     if (window.confirm(`Êtes-vous sûr de vouloir révoquer le rôle "${roleName}" pour cet utilisateur ?`)) {
       try {
-        await revokeUserRole.mutateAsync({ userId, roleId });
+        // Supprimer le role_id de l'utilisateur
+        const { error } = await supabase
+          .from('utilisateurs_internes')
+          .update({ role_id: null })
+          .eq('id', userId);
+
+        if (error) throw error;
+
         queryClient.invalidateQueries({ queryKey: ['internal-users-with-roles'] });
+        toast.success('Rôle révoqué avec succès');
       } catch (error) {
         console.error('Erreur lors de la révocation:', error);
+        toast.error('Erreur lors de la révocation du rôle');
       }
     }
   };
@@ -162,12 +163,10 @@ const AccessControlTab = () => {
                 <TableCell>{user.email}</TableCell>
                 <TableCell>
                   <div className="flex flex-wrap gap-1">
-                    {user.user_roles && user.user_roles.length > 0 ? (
-                      user.user_roles.map((userRole: any) => (
-                        <Badge key={userRole.id} variant="outline">
-                          {userRole.role?.name || 'Rôle inconnu'}
-                        </Badge>
-                      ))
+                    {user.role && user.role.name ? (
+                      <Badge variant="outline">
+                        {user.role.name}
+                      </Badge>
                     ) : (
                       <Badge variant="destructive">Aucun rôle</Badge>
                     )}
@@ -202,19 +201,16 @@ const AccessControlTab = () => {
                       <Edit className="w-4 h-4 mr-1" />
                       Attribuer rôle
                     </Button>
-                    {user.user_roles && user.user_roles.length > 0 && (
-                      user.user_roles.map((userRole: any) => (
-                        <Button
-                          key={userRole.id}
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleRevokeRole(user.id, userRole.role?.id, userRole.role?.name)}
-                          disabled={revokeUserRole.isPending}
-                        >
-                          <UserX className="w-4 h-4 mr-1" />
-                          Révoquer {userRole.role?.name}
-                        </Button>
-                      ))
+                    {user.role && user.role.name && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleRevokeRole(user.id, user.role.id, user.role.name)}
+                        disabled={revokeUserRole.isPending}
+                      >
+                        <UserX className="w-4 h-4 mr-1" />
+                        Révoquer {user.role.name}
+                      </Button>
                     )}
                   </div>
                 </TableCell>
