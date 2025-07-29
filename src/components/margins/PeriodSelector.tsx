@@ -20,22 +20,26 @@ const PeriodSelector: React.FC<PeriodSelectorProps> = ({
   const handleQuickPeriod = (period: string) => {
     const now = new Date();
     let newStartDate: Date;
-    let newEndDate = new Date();
+    let newEndDate: Date;
 
     switch (period) {
       case 'month':
         newStartDate = new Date(now.getFullYear(), now.getMonth(), 1);
+        newEndDate = new Date(now.getFullYear(), now.getMonth() + 1, 0); // Dernier jour du mois
         break;
       case 'quarter':
         const quarterStart = Math.floor(now.getMonth() / 3) * 3;
         newStartDate = new Date(now.getFullYear(), quarterStart, 1);
+        newEndDate = new Date(now.getFullYear(), quarterStart + 3, 0); // Dernier jour du trimestre
         break;
       case 'semester':
         const semesterStart = now.getMonth() >= 6 ? 6 : 0;
         newStartDate = new Date(now.getFullYear(), semesterStart, 1);
+        newEndDate = new Date(now.getFullYear(), semesterStart + 6, 0); // Dernier jour du semestre
         break;
       case 'year':
         newStartDate = new Date(now.getFullYear(), 0, 1);
+        newEndDate = new Date(now.getFullYear(), 12, 0); // Dernier jour de l'année
         break;
       default:
         return;
