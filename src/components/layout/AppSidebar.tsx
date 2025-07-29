@@ -82,7 +82,7 @@ const AppSidebar = () => {
           <img 
             src="/gulterco-logo-exact.png" 
             alt="GuIterCo - Commerce international Guinée" 
-            className="h-10 w-auto object-contain max-w-full"
+            className="h-16 w-full object-contain"
           />
         </div>
       </div>
