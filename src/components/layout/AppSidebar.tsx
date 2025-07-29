@@ -13,6 +13,7 @@ import {
   LogOut,
   User
 } from 'lucide-react';
+import gultercoLogo from '@/assets/gulterco-logo.png';
 import { useLocation, Link } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/components/auth/AuthContext';
@@ -78,7 +79,11 @@ const AppSidebar = () => {
   return (
     <aside className="w-64 bg-slate-800 border-r border-slate-700 h-full flex flex-col">
       <div className="p-6 border-b border-slate-700">
-        <h1 className="text-xl font-bold text-white">ERP Business</h1>
+        <img 
+          src={gultercoLogo} 
+          alt="GuIterCo - Commerce international Guinée" 
+          className="h-12 w-auto object-contain"
+        />
       </div>
       
       <nav className="flex-1 p-4">
