@@ -78,12 +78,14 @@ const AppSidebar = () => {
 
   return (
     <aside className="w-64 bg-slate-800 border-r border-slate-700 h-full flex flex-col">
-      <div className="p-6 border-b border-slate-700">
-        <img 
-          src={gultercoLogo} 
-          alt="GuIterCo - Commerce international Guinée" 
-          className="h-12 w-auto object-contain"
-        />
+      <div className="p-6 border-b border-slate-700 bg-slate-800">
+        <div className="bg-white rounded-lg p-3 flex items-center justify-center">
+          <img 
+            src={gultercoLogo} 
+            alt="GuIterCo - Commerce international Guinée" 
+            className="h-10 w-auto object-contain max-w-full"
+          />
+        </div>
       </div>
       
       <nav className="flex-1 p-4">
