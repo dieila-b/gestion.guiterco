@@ -61,6 +61,13 @@ export type Database = {
             foreignKeyName: "articles_bon_commande_article_id_fkey"
             columns: ["article_id"]
             isOneToOne: false
+            referencedRelation: "vue_marges_frais"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "articles_bon_commande_article_id_fkey"
+            columns: ["article_id"]
+            isOneToOne: false
             referencedRelation: "vue_marges_globales_stock"
             referencedColumns: ["id"]
           },
@@ -133,6 +140,13 @@ export type Database = {
             foreignKeyName: "articles_bon_livraison_article_id_fkey"
             columns: ["article_id"]
             isOneToOne: false
+            referencedRelation: "vue_marges_frais"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "articles_bon_livraison_article_id_fkey"
+            columns: ["article_id"]
+            isOneToOne: false
             referencedRelation: "vue_marges_globales_stock"
             referencedColumns: ["id"]
           },
@@ -199,6 +213,13 @@ export type Database = {
             foreignKeyName: "articles_facture_achat_article_id_fkey"
             columns: ["article_id"]
             isOneToOne: false
+            referencedRelation: "vue_marges_frais"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "articles_facture_achat_article_id_fkey"
+            columns: ["article_id"]
+            isOneToOne: false
             referencedRelation: "vue_marges_globales_stock"
             referencedColumns: ["id"]
           },
@@ -255,6 +276,13 @@ export type Database = {
             columns: ["article_id"]
             isOneToOne: false
             referencedRelation: "vue_marges_articles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "articles_retour_client_article_id_fkey"
+            columns: ["article_id"]
+            isOneToOne: false
+            referencedRelation: "vue_marges_frais"
             referencedColumns: ["id"]
           },
           {
@@ -1024,6 +1052,13 @@ export type Database = {
             foreignKeyName: "entrees_stock_article_id_fkey"
             columns: ["article_id"]
             isOneToOne: false
+            referencedRelation: "vue_marges_frais"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entrees_stock_article_id_fkey"
+            columns: ["article_id"]
+            isOneToOne: false
             referencedRelation: "vue_marges_globales_stock"
             referencedColumns: ["id"]
           },
@@ -1497,6 +1532,13 @@ export type Database = {
             foreignKeyName: "lignes_commande_article_id_fkey"
             columns: ["article_id"]
             isOneToOne: false
+            referencedRelation: "vue_marges_frais"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lignes_commande_article_id_fkey"
+            columns: ["article_id"]
+            isOneToOne: false
             referencedRelation: "vue_marges_globales_stock"
             referencedColumns: ["id"]
           },
@@ -1550,6 +1592,13 @@ export type Database = {
             columns: ["article_id"]
             isOneToOne: false
             referencedRelation: "vue_marges_articles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lignes_devis_article_id_fkey"
+            columns: ["article_id"]
+            isOneToOne: false
+            referencedRelation: "vue_marges_frais"
             referencedColumns: ["id"]
           },
           {
@@ -1618,6 +1667,13 @@ export type Database = {
             columns: ["article_id"]
             isOneToOne: false
             referencedRelation: "vue_marges_articles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lignes_facture_vente_article_id_fkey"
+            columns: ["article_id"]
+            isOneToOne: false
+            referencedRelation: "vue_marges_frais"
             referencedColumns: ["id"]
           },
           {
@@ -1700,6 +1756,13 @@ export type Database = {
             columns: ["article_id"]
             isOneToOne: false
             referencedRelation: "vue_marges_articles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lignes_precommande_article_id_fkey"
+            columns: ["article_id"]
+            isOneToOne: false
+            referencedRelation: "vue_marges_frais"
             referencedColumns: ["id"]
           },
           {
@@ -2438,6 +2501,13 @@ export type Database = {
             foreignKeyName: "sorties_stock_article_id_fkey"
             columns: ["article_id"]
             isOneToOne: false
+            referencedRelation: "vue_marges_frais"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sorties_stock_article_id_fkey"
+            columns: ["article_id"]
+            isOneToOne: false
             referencedRelation: "vue_marges_globales_stock"
             referencedColumns: ["id"]
           },
@@ -2494,6 +2564,13 @@ export type Database = {
             columns: ["article_id"]
             isOneToOne: false
             referencedRelation: "vue_marges_articles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_pdv_article_id_fkey"
+            columns: ["article_id"]
+            isOneToOne: false
+            referencedRelation: "vue_marges_frais"
             referencedColumns: ["id"]
           },
           {
@@ -2562,6 +2639,13 @@ export type Database = {
             columns: ["article_id"]
             isOneToOne: false
             referencedRelation: "vue_marges_articles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_principal_article_id_fkey"
+            columns: ["article_id"]
+            isOneToOne: false
+            referencedRelation: "vue_marges_frais"
             referencedColumns: ["id"]
           },
           {
@@ -2705,6 +2789,13 @@ export type Database = {
             columns: ["article_id"]
             isOneToOne: false
             referencedRelation: "vue_marges_articles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transferts_article_id_fkey"
+            columns: ["article_id"]
+            isOneToOne: false
+            referencedRelation: "vue_marges_frais"
             referencedColumns: ["id"]
           },
           {
@@ -2982,6 +3073,13 @@ export type Database = {
             foreignKeyName: "lignes_commande_article_id_fkey"
             columns: ["article_id"]
             isOneToOne: false
+            referencedRelation: "vue_marges_frais"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lignes_commande_article_id_fkey"
+            columns: ["article_id"]
+            isOneToOne: false
             referencedRelation: "vue_marges_globales_stock"
             referencedColumns: ["id"]
           },
@@ -3043,6 +3141,60 @@ export type Database = {
           reference: string | null
           taux_marge: number | null
           updated_at: string | null
+        }
+        Relationships: []
+      }
+      vue_marges_frais: {
+        Row: {
+          autres_frais: number | null
+          cout_total_unitaire: number | null
+          created_at: string | null
+          frais_bon_commande: number | null
+          frais_douane: number | null
+          frais_logistique: number | null
+          frais_transport: number | null
+          id: string | null
+          marge_unitaire: number | null
+          nom: string | null
+          prix_achat: number | null
+          prix_vente: number | null
+          reference: string | null
+          taux_marge: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          autres_frais?: number | null
+          cout_total_unitaire?: never
+          created_at?: string | null
+          frais_bon_commande?: never
+          frais_douane?: number | null
+          frais_logistique?: number | null
+          frais_transport?: number | null
+          id?: string | null
+          marge_unitaire?: never
+          nom?: string | null
+          prix_achat?: number | null
+          prix_vente?: number | null
+          reference?: string | null
+          taux_marge?: never
+          updated_at?: string | null
+        }
+        Update: {
+          autres_frais?: number | null
+          cout_total_unitaire?: never
+          created_at?: string | null
+          frais_bon_commande?: never
+          frais_douane?: number | null
+          frais_logistique?: number | null
+          frais_transport?: number | null
+          id?: string | null
+          marge_unitaire?: never
+          nom?: string | null
+          prix_achat?: number | null
+          prix_vente?: number | null
+          reference?: string | null
+          taux_marge?: never
+          updated_at?: string | null
         }
         Relationships: []
       }
