@@ -123,44 +123,34 @@ export const useArticlesWithMargins = () => {
   return useQuery({
     queryKey: ['articles-with-margins'],
     queryFn: async () => {
-      // Utiliser directement la table catalogue avec calculs côté client
+      // Utiliser la vue vue_marges_articles qui contient les frais BC calculés
       const { data, error } = await supabase
-        .from('catalogue')
+        .from('vue_marges_articles')
         .select('*')
-        .eq('statut', 'actif')
         .order('reference');
       
       if (error) {
-        console.error('Erreur chargement catalogue:', error);
+        console.error('Erreur chargement vue_marges_articles:', error);
         throw error;
       }
       
-      return (data || []).map(item => {
-        const fraisTotal = (item.frais_logistique || 0) + (item.frais_douane || 0) + 
-                          (item.frais_transport || 0) + (item.autres_frais || 0) + 
-                          (item.frais_bon_commande || 0);
-        const coutTotal = (item.prix_achat || 0) + fraisTotal;
-        const marge = (item.prix_vente || 0) - coutTotal;
-        const tauxMarge = coutTotal > 0 ? (marge / coutTotal) * 100 : 0;
-        
-        return {
-          id: item.id,
-          nom: item.nom,
-          reference: item.reference,
-          prix_achat: item.prix_achat,
-          prix_vente: item.prix_vente,
-          frais_logistique: item.frais_logistique,
-          frais_douane: item.frais_douane,
-          frais_transport: item.frais_transport,
-          autres_frais: item.autres_frais,
-          frais_bon_commande: item.frais_bon_commande,
-          cout_total_unitaire: coutTotal,
-          marge_unitaire: marge,
-          taux_marge: Math.round(tauxMarge * 100) / 100,
-          created_at: item.created_at,
-          updated_at: item.updated_at,
-        };
-      }) as ArticleWithMargin[];
+      return (data || []).map(item => ({
+        id: item.id,
+        nom: item.nom,
+        reference: item.reference,
+        prix_achat: item.prix_achat,
+        prix_vente: item.prix_vente,
+        frais_logistique: item.frais_logistique,
+        frais_douane: item.frais_douane,
+        frais_transport: item.frais_transport,
+        autres_frais: item.autres_frais,
+        frais_bon_commande: item.frais_bon_commande, // Maintenant calculé dans la vue
+        cout_total_unitaire: item.cout_total_unitaire,
+        marge_unitaire: item.marge_unitaire,
+        taux_marge: item.taux_marge,
+        created_at: item.created_at,
+        updated_at: item.updated_at,
+      })) as ArticleWithMargin[];
     }
   });
 };
