@@ -8,9 +8,10 @@ import { useIsMobile } from "@/hooks/use-mobile";
 interface AppLayoutProps {
   children: React.ReactNode;
   title?: string;
+  subtitle?: string;
 }
 
-export function AppLayout({ children, title }: AppLayoutProps) {
+export function AppLayout({ children, title, subtitle }: AppLayoutProps) {
   const isMobile = useIsMobile();
   
   return (
@@ -18,7 +19,7 @@ export function AppLayout({ children, title }: AppLayoutProps) {
       <div className="min-h-screen flex w-full bg-gray-50">
         <AppSidebar />
         <div className="flex-1 flex flex-col">
-          <AppHeader title={title} />
+          <AppHeader title={title} subtitle={subtitle} />
           <main className="flex-1 p-4 md:p-6">
             {children}
           </main>

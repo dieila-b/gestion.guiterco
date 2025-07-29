@@ -5,10 +5,7 @@ import NewDashboard from '@/components/dashboard/NewDashboard';
 
 const Index = () => {
   return (
-    <AppLayout title="TABLEAU DE BORD">
-      <div className="mb-6">
-        <p className="text-sm text-muted-foreground">Bienvenue sur votre tableau de bord GuIterCo</p>
-      </div>
+    <AppLayout title="TABLEAU DE BORD" subtitle="Bienvenue sur votre tableau de bord GuIterCo">
       <NewDashboard />
     </AppLayout>
   );
