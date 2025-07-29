@@ -50,7 +50,7 @@ export const useMargesGlobalesStock = () => {
   return useQuery({
     queryKey: ['marges-globales-stock'],
     queryFn: async () => {
-      // Calculer les marges stock à partir des données catalogue et stock
+      // Récupérer les articles du catalogue
       const { data: articles, error: catalogueError } = await supabase
         .from('catalogue')
         .select('*')
@@ -60,30 +60,59 @@ export const useMargesGlobalesStock = () => {
         console.error('Erreur chargement catalogue:', catalogueError);
         return [] as MargeGlobaleStock[];
       }
+
+      // Récupérer le stock des entrepôts
+      const { data: stockEntrepots, error: stockEntrepotsError } = await supabase
+        .from('stock_principal')
+        .select('article_id, quantite_disponible');
+
+      if (stockEntrepotsError) {
+        console.error('Erreur chargement stock entrepôts:', stockEntrepotsError);
+      }
+
+      // Récupérer le stock des points de vente
+      const { data: stockPDV, error: stockPDVError } = await supabase
+        .from('stock_pdv')
+        .select('article_id, quantite_disponible');
+
+      if (stockPDVError) {
+        console.error('Erreur chargement stock PDV:', stockPDVError);
+      }
       
-      // Pour chaque article, calculer les marges avec stock simulé
+      // Calculer les marges avec le stock réel total
       return (articles || []).map(item => {
+        // Calculer le stock total réel (entrepôts + PDV)
+        const stockEntrepot = (stockEntrepots || [])
+          .filter(s => s.article_id === item.id)
+          .reduce((sum, s) => sum + (s.quantite_disponible || 0), 0);
+        
+        const stockPointVente = (stockPDV || [])
+          .filter(s => s.article_id === item.id)
+          .reduce((sum, s) => sum + (s.quantite_disponible || 0), 0);
+        
+        const stockTotal = stockEntrepot + stockPointVente;
+        
+        // Calculs des coûts et marges
         const fraisTotal = (item.frais_logistique || 0) + (item.frais_douane || 0) + 
                           (item.frais_transport || 0) + (item.autres_frais || 0) + 
                           (item.frais_bon_commande || 0);
         const coutTotal = (item.prix_achat || 0) + fraisTotal;
         const marge = (item.prix_vente || 0) - coutTotal;
         const tauxMarge = coutTotal > 0 ? (marge / coutTotal) * 100 : 0;
-        const stockSimule = Math.floor(Math.random() * 100) + 10; // Stock simulé
         
         return {
           id: item.id,
           nom: item.nom,
           reference: item.reference,
-          stock_total: stockSimule,
+          stock_total: stockTotal,
           prix_achat: item.prix_achat,
           prix_vente: item.prix_vente,
           cout_total_unitaire: coutTotal,
           marge_unitaire: marge,
           taux_marge: Math.round(tauxMarge * 100) / 100,
-          marge_totale_article: marge * stockSimule,
-          valeur_stock_cout: coutTotal * stockSimule,
-          valeur_stock_vente: (item.prix_vente || 0) * stockSimule,
+          marge_totale_article: marge * stockTotal,
+          valeur_stock_cout: coutTotal * stockTotal,
+          valeur_stock_vente: (item.prix_vente || 0) * stockTotal,
         };
       }) as MargeGlobaleStock[];
     }
