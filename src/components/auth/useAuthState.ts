@@ -161,35 +161,40 @@ export const useAuthState = (bypassAuth: boolean, mockUser: UtilisateurInterne, 
       setUser(null);
       setSession(null);
       setUtilisateurInterne(null);
-      // Forcer le rechargement pour revenir à l'écran de connexion
-      window.location.href = '/auth';
+      // Forcer le rechargement complet de la page
+      window.location.reload();
       return;
     }
     
-    // Nettoyer immédiatement l'état local pour assurer la déconnexion
+    // Marquer que nous sommes en train de nous déconnecter
+    console.log('🚪 Début de la déconnexion');
+    
+    // Nettoyer immédiatement l'état local
     setUser(null);
     setSession(null);
     setUtilisateurInterne(null);
     
     try {
-      // Tenter la déconnexion Supabase avec timeout
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Timeout de déconnexion')), 3000)
-      );
-      
-      const signOutPromise = authSignOut();
-      
-      await Promise.race([signOutPromise, timeoutPromise]);
+      // Déconnexion Supabase avec méthode plus agressive
+      await supabase.auth.signOut({ scope: 'global' });
       console.log('✅ Déconnexion Supabase réussie');
     } catch (error) {
-      console.error('❌ Erreur ou timeout lors de la déconnexion Supabase:', error);
-      // Continuer quand même - l'état local est déjà nettoyé
+      console.error('❌ Erreur lors de la déconnexion Supabase:', error);
     }
     
-    console.log('✅ Déconnexion complète, redirection...');
+    // Nettoyer le localStorage pour éliminer toute trace de session
+    try {
+      localStorage.removeItem('supabase.auth.token');
+      localStorage.removeItem('sb-hlmiuwwfxerrinfthvrj-auth-token');
+      console.log('✅ LocalStorage nettoyé');
+    } catch (error) {
+      console.error('❌ Erreur nettoyage localStorage:', error);
+    }
     
-    // Rediriger vers la page de connexion dans tous les cas
-    window.location.href = '/auth';
+    console.log('🚪 Déconnexion complète, rechargement...');
+    
+    // Forcer un rechargement complet de la page pour éliminer tout état résiduel
+    window.location.replace('/auth');
   };
 
   // Un utilisateur est considéré comme autorisé s'il a un compte interne actif
