@@ -20,7 +20,7 @@ export function AppHeader({ title, subtitle }: AppHeaderProps) {
       <SidebarTrigger className="-ml-1" />
       <div className="flex flex-1 items-center justify-between">
         <div>
-          <h1 className="text-lg font-semibold">{title}</h1>
+          <h1 className="text-2xl font-bold">{title}</h1>
           {subtitle && <p className="text-sm text-muted-foreground">{subtitle}</p>}
         </div>
         {shouldShowUserMenu && <UserMenu />}
