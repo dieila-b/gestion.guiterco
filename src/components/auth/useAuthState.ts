@@ -106,22 +106,32 @@ export const useAuthState = (bypassAuth: boolean, mockUser: UtilisateurInterne, 
         }
       );
 
-      // Vérifier la session existante - augmenter le timeout et mieux gérer les erreurs
+      // Vérifier la session existante avec timeout de sécurité
       const sessionTimeout = setTimeout(() => {
-        console.log('⏰ Timeout auth session check - garde l\'état de loading');
-        // Ne pas forcer le loading à false, laisser onAuthStateChange gérer
-      }, 10000); // Timeout plus long
+        console.log('⏰ Timeout auth session check - forcer l\'arrêt du loading');
+        setLoading(false);
+      }, 8000); // Timeout de sécurité
       
       supabase.auth.getSession().then(async ({ data: { session } }) => {
         clearTimeout(sessionTimeout);
         console.log('🔍 Session existante récupérée:', !!session);
         
-        // Laisser onAuthStateChange gérer la mise à jour de l'état
-        // pour éviter les conflits de state
+        // Si pas de session, arrêter le loading immédiatement
         if (!session) {
-          console.log('📭 Aucune session existante, attendre onAuthStateChange');
+          console.log('📭 Aucune session existante');
           setLoading(false);
+          return;
         }
+        
+        // Si il y a une session mais que onAuthStateChange ne l'a pas encore traitée
+        // on force une mise à jour manuelle avec un délai
+        setTimeout(() => {
+          if (loading) {
+            console.log('🔧 Force loading false après délai');
+            setLoading(false);
+          }
+        }, 2000);
+        
       }).catch((error) => {
         clearTimeout(sessionTimeout);
         console.error('❌ Erreur getSession:', error);
