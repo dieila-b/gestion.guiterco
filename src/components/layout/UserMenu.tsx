@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import {
@@ -10,8 +9,9 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { LogOut, User, Settings } from 'lucide-react';
+import { LogOut, User } from 'lucide-react';
 import { useAuth } from '@/components/auth/AuthContext';
+import { useProfile } from '@/hooks/useProfile';
 import { Link } from 'react-router-dom';
 
 interface UserMenuProps {
@@ -20,21 +20,29 @@ interface UserMenuProps {
 
 const UserMenu = ({ user: propUser }: UserMenuProps) => {
   const { signOut, user: authUser } = useAuth();
+  const { profile } = useProfile();
 
   const user = propUser || authUser;
 
-  // Utiliser les données utilisateur disponibles
+  // Utiliser les données du profil ou données par défaut
   const displayUser = {
-    prenom: user?.user_metadata?.prenom || user?.user_metadata?.first_name || 'Utilisateur',
-    nom: user?.user_metadata?.nom || user?.user_metadata?.last_name || '',
+    prenom: profile?.prenom || user?.user_metadata?.prenom || user?.user_metadata?.first_name || 'Utilisateur',
+    nom: profile?.nom || user?.user_metadata?.nom || user?.user_metadata?.last_name || '',
     email: user?.email || '',
-    photo_url: user?.user_metadata?.avatar_url
+    photo_url: profile?.avatar_url || user?.user_metadata?.avatar_url
   };
 
   const initials = displayUser.prenom && displayUser.nom 
     ? `${displayUser.prenom.charAt(0)}${displayUser.nom.charAt(0)}`.toUpperCase()
     : displayUser.email?.charAt(0).toUpperCase() || 'U';
 
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+    } catch (error) {
+      console.error('Erreur lors de la déconnexion:', error);
+    }
+  };
 
   return (
     <DropdownMenu>
@@ -45,7 +53,9 @@ const UserMenu = ({ user: propUser }: UserMenuProps) => {
               src={displayUser.photo_url || ''} 
               alt={`${displayUser.prenom} ${displayUser.nom}`} 
             />
-            <AvatarFallback>{initials}</AvatarFallback>
+            <AvatarFallback className="bg-primary text-primary-foreground">
+              {initials}
+            </AvatarFallback>
           </Avatar>
         </Button>
       </DropdownMenuTrigger>
@@ -67,9 +77,10 @@ const UserMenu = ({ user: propUser }: UserMenuProps) => {
             <span>Profil</span>
           </Link>
         </DropdownMenuItem>
+        <DropdownMenuSeparator />
         <DropdownMenuItem
           className="cursor-pointer text-red-600 focus:text-red-600"
-          onClick={() => signOut()}
+          onClick={handleSignOut}
         >
           <LogOut className="mr-2 h-4 w-4" />
           <span>Se déconnecter</span>
