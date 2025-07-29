@@ -166,10 +166,37 @@ export const useAuthState = (bypassAuth: boolean, mockUser: UtilisateurInterne, 
       return;
     }
     
-    await authSignOut();
-    setUtilisateurInterne(null);
-    // Rediriger vers la page de connexion après déconnexion
-    window.location.href = '/auth';
+    try {
+      // Effectuer la déconnexion Supabase
+      const result = await authSignOut();
+      
+      if (result.error) {
+        console.error('❌ Échec de la déconnexion:', result.error);
+        toast({
+          title: "Erreur de déconnexion",
+          description: "Impossible de vous déconnecter. Veuillez réessayer.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      // Nettoyer l'état local
+      setUser(null);
+      setSession(null);
+      setUtilisateurInterne(null);
+      
+      console.log('✅ Déconnexion complète, redirection...');
+      
+      // Rediriger vers la page de connexion
+      window.location.href = '/auth';
+    } catch (error) {
+      console.error('❌ Erreur lors de la déconnexion:', error);
+      toast({
+        title: "Erreur de déconnexion",
+        description: "Une erreur inattendue s'est produite.",
+        variant: "destructive",
+      });
+    }
   };
 
   // Un utilisateur est considéré comme autorisé s'il a un compte interne actif

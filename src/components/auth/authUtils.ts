@@ -25,12 +25,18 @@ export const signIn = async (email: string, password: string) => {
 };
 
 export const signOut = async () => {
-  console.log('🚪 Déconnexion de Supabase...');
-  const { error } = await supabase.auth.signOut();
-  if (error) {
-    console.error('❌ Erreur lors de la déconnexion:', error);
-  } else {
-    console.log('✅ Déconnexion réussie');
+  try {
+    console.log('🚪 Déconnexion de Supabase...');
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      console.error('❌ Erreur lors de la déconnexion:', error);
+      throw error;
+    }
+    console.log('✅ Déconnexion réussie de Supabase');
+    return { error: null };
+  } catch (error) {
+    console.error('❌ Erreur inattendue lors de la déconnexion:', error);
+    return { error };
   }
 };
 
