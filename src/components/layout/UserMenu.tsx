@@ -38,7 +38,7 @@ const UserMenu = () => {
     prenom: user?.user_metadata?.prenom || 'Utilisateur',
     nom: user?.user_metadata?.nom || '',
     email: user?.email || '',
-    role: { nom: 'utilisateur' },
+    role: { nom: 'utilisateur', name: 'utilisateur' },
     type_compte: 'interne',
     photo_url: undefined
   };
@@ -48,19 +48,22 @@ const UserMenu = () => {
     : displayUser.email?.charAt(0).toUpperCase() || 'U';
 
   const getRoleLabel = (role: string) => {
-    switch (role) {
+    switch (role?.toLowerCase()) {
       case 'administrateur':
         return 'Administrateur';
       case 'employe':
+      case 'caissier':
         return 'Employé';
       case 'manager':
         return 'Manager';
+      case 'vendeur':
+        return 'Vendeur';
       default:
         return role;
     }
   };
 
-  const isAdmin = displayUser.role?.nom === 'administrateur' || displayUser.type_compte === 'admin';
+  const isAdmin = (displayUser.role?.name || displayUser.role?.nom) === 'Administrateur' || displayUser.type_compte === 'admin';
 
   return (
     <DropdownMenu>
@@ -85,7 +88,7 @@ const UserMenu = () => {
               {displayUser.email}
             </p>
             <p className="text-xs leading-none text-blue-600">
-              {getRoleLabel(displayUser.role?.nom || displayUser.type_compte)}
+              {getRoleLabel((displayUser.role?.name || displayUser.role?.nom) || displayUser.type_compte)}
             </p>
           </div>
         </DropdownMenuLabel>

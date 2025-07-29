@@ -87,7 +87,7 @@ export const useAuthState = (bypassAuth: boolean, mockUser: UtilisateurInterne, 
               
               console.log('👤 Utilisateur interne trouvé:', internalUser);
               
-              if (internalUser && internalUser.statut === 'actif' && internalUser.type_compte === 'interne') {
+              if (internalUser && internalUser.statut === 'actif') {
                 setUtilisateurInterne(internalUser);
                 console.log('✅ Utilisateur interne autorisé');
               } else {
@@ -122,7 +122,7 @@ export const useAuthState = (bypassAuth: boolean, mockUser: UtilisateurInterne, 
         if (session?.user) {
           try {
             const internalUser = await checkInternalUser(session.user.id);
-            if (internalUser && internalUser.statut === 'actif' && internalUser.type_compte === 'interne') {
+            if (internalUser && internalUser.statut === 'actif') {
               setUtilisateurInterne(internalUser);
               console.log('✅ Session existante validée pour utilisateur interne');
             }
@@ -173,7 +173,7 @@ export const useAuthState = (bypassAuth: boolean, mockUser: UtilisateurInterne, 
   };
 
   // Un utilisateur est considéré comme autorisé s'il a un compte interne actif
-  const isInternalUser = user && utilisateurInterne && utilisateurInterne.statut === 'actif' && utilisateurInterne.type_compte === 'interne';
+  const isInternalUser = user && utilisateurInterne && utilisateurInterne.statut === 'actif';
 
   return {
     user,

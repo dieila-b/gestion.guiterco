@@ -1,7 +1,8 @@
 
 export interface Role {
   id: string;
-  nom: string;
+  nom?: string;  // Support old format
+  name?: string; // Support new format
   description: string;
 }
 
