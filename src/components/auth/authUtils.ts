@@ -110,7 +110,8 @@ export const checkInternalUser = async (userId: string): Promise<UtilisateurInte
       photo_url: internalUser.photo_url,
       role: {
         id: internalUser.roles.id,
-        nom: internalUser.roles.name,
+        name: internalUser.roles.name,
+        nom: internalUser.roles.name, // Compatibility
         description: internalUser.roles.description
       }
     };
