@@ -80,7 +80,7 @@ const AppSidebar = () => {
       <div className="p-6 border-b border-slate-700 bg-slate-800">
         <div className="bg-white rounded-lg p-3 flex items-center justify-center">
           <img 
-            src="/gulterco-logo-exact.png" 
+            src="/lovable-uploads/8d272adb-358e-4d9a-b001-40ad2de9663b.png" 
             alt="GuIterCo - Commerce international Guinée" 
             className="h-16 w-full object-contain"
           />
