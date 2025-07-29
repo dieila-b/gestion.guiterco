@@ -106,32 +106,22 @@ export const useAuthState = (bypassAuth: boolean, mockUser: UtilisateurInterne, 
         }
       );
 
-      // Vérifier la session existante avec timeout
+      // Vérifier la session existante - augmenter le timeout et mieux gérer les erreurs
       const sessionTimeout = setTimeout(() => {
-        console.log('⏰ Timeout auth session check');
-        setLoading(false);
-      }, 5000); // Timeout après 5 secondes
+        console.log('⏰ Timeout auth session check - garde l\'état de loading');
+        // Ne pas forcer le loading à false, laisser onAuthStateChange gérer
+      }, 10000); // Timeout plus long
       
       supabase.auth.getSession().then(async ({ data: { session } }) => {
         clearTimeout(sessionTimeout);
         console.log('🔍 Session existante récupérée:', !!session);
         
-        setSession(session);
-        setUser(session?.user ?? null);
-        
-        if (session?.user) {
-          try {
-            const internalUser = await checkInternalUser(session.user.id);
-            if (internalUser && internalUser.statut === 'actif') {
-              setUtilisateurInterne(internalUser);
-              console.log('✅ Session existante validée pour utilisateur interne');
-            }
-          } catch (error) {
-            console.error('❌ Erreur vérification initiale:', error);
-          }
+        // Laisser onAuthStateChange gérer la mise à jour de l'état
+        // pour éviter les conflits de state
+        if (!session) {
+          console.log('📭 Aucune session existante, attendre onAuthStateChange');
+          setLoading(false);
         }
-        
-        setLoading(false);
       }).catch((error) => {
         clearTimeout(sessionTimeout);
         console.error('❌ Erreur getSession:', error);
