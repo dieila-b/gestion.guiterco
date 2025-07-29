@@ -61,8 +61,30 @@ export const useArticlesWithMargins = () => {
   return useQuery({
     queryKey: ['articles-with-margins'],
     queryFn: async () => {
-      console.log('⚠️ Articles with margins functionality disabled');
-      return [] as ArticleWithMargin[];
+      const { data, error } = await supabase
+        .from('vue_marges_articles')
+        .select('*')
+        .order('reference');
+      
+      if (error) throw error;
+      
+      return (data || []).map(item => ({
+        id: item.id,
+        nom: item.nom,
+        reference: item.reference,
+        prix_achat: item.prix_achat,
+        prix_vente: item.prix_vente,
+        frais_logistique: item.frais_logistique,
+        frais_douane: item.frais_douane,
+        frais_transport: item.frais_transport,
+        autres_frais: item.autres_frais,
+        frais_bon_commande: item.frais_bon_commande,
+        cout_total_unitaire: item.cout_total_unitaire,
+        marge_unitaire: item.marge_unitaire,
+        taux_marge: item.taux_marge,
+        created_at: item.created_at,
+        updated_at: item.updated_at,
+      })) as ArticleWithMargin[];
     }
   });
 };
@@ -71,8 +93,11 @@ export const useFacturesWithMargins = () => {
   return useQuery({
     queryKey: ['factures-with-margins'],
     queryFn: async () => {
-      console.log('⚠️ Factures with margins functionality disabled');
-      return [] as FactureWithMargin[];
+      const { data, error } = await supabase.rpc('get_factures_avec_marges');
+      
+      if (error) throw error;
+      
+      return (data || []) as FactureWithMargin[];
     }
   });
 };
@@ -91,8 +116,18 @@ export const useRapportMargePeriode = () => {
   return useQuery({
     queryKey: ['rapport-marge-periode'],
     queryFn: async () => {
-      console.log('⚠️ Rapport marge periode functionality disabled');
-      return null as RapportMargePeriode | null;
+      const startDate = new Date();
+      startDate.setDate(1); // Premier jour du mois
+      const endDate = new Date();
+      
+      const { data, error } = await supabase.rpc('get_rapport_marges_periode', {
+        date_debut: startDate.toISOString(),
+        date_fin: endDate.toISOString()
+      });
+      
+      if (error) throw error;
+      
+      return data?.[0] as RapportMargePeriode | null;
     }
   });
 };
