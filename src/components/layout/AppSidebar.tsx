@@ -13,7 +13,6 @@ import {
   LogOut,
   User
 } from 'lucide-react';
-import gultercoLogo from '@/assets/gulterco-logo.png';
 import { useLocation, Link } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/components/auth/AuthContext';
@@ -81,7 +80,7 @@ const AppSidebar = () => {
       <div className="p-6 border-b border-slate-700 bg-slate-800">
         <div className="bg-white rounded-lg p-3 flex items-center justify-center">
           <img 
-            src={gultercoLogo} 
+            src="/gulterco-logo.png" 
             alt="GuIterCo - Commerce international Guinée" 
             className="h-10 w-auto object-contain max-w-full"
           />
