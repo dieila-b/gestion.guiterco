@@ -15,7 +15,7 @@ export const useStockPrincipal = () => {
         .from('stock_principal')
         .select(`
           *,
-          article:catalogue!inner(
+          article:catalogue(
             id,
             reference,
             nom,
@@ -32,7 +32,7 @@ export const useStockPrincipal = () => {
             categorie_article:categories_catalogue(nom),
             unite_article:unites(nom)
           ),
-          entrepot:entrepots!inner(
+          entrepot:entrepots(
             id,
             nom,
             adresse,
@@ -43,9 +43,6 @@ export const useStockPrincipal = () => {
             updated_at
           )
         `)
-        .eq('article.statut', 'actif')
-        .eq('entrepot.statut', 'actif')
-        .gt('quantite_disponible', 0)
         .order('updated_at', { ascending: false });
       
       if (error) {

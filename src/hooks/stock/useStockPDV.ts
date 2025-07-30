@@ -11,12 +11,12 @@ export const useStockPDV = () => {
         .from('stock_pdv')
         .select(`
           *,
-          article:article_id(
+          article:catalogue(
             *,
             categorie_article:categories_catalogue(nom),
             unite_article:unites(nom)
           ),
-          point_vente:point_vente_id(*)
+          point_vente:points_de_vente(*)
         `)
         .order('updated_at', { ascending: false });
       
