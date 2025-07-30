@@ -45,7 +45,7 @@ export const useCatalogueOptimized = (
           categorie_id,
           unite_id
         `, { count: 'exact' })
-        .eq('statut', 'actif')
+        // Temporairement désactivé pour debug : .eq('statut', 'actif')
         .range(from, to);
 
       // Filtrage côté serveur
@@ -116,7 +116,7 @@ export const useCatalogueSearch = (searchTerm: string, enabled = false) => {
           image_url,
           statut
         `)
-        .eq('statut', 'actif')
+        // Temporairement désactivé pour debug : .eq('statut', 'actif')
         .or(`nom.ilike.%${searchTerm}%,reference.ilike.%${searchTerm}%`)
         .limit(10);
       

@@ -17,6 +17,10 @@ const ProduitsTab = () => {
   const debouncedSearch = useDebounce(searchTerm, 300);
   
   const { articles, isLoading } = useCatalogueOptimized(1, 50, debouncedSearch);
+  
+  console.log('ProduitsTab - articles:', articles);
+  console.log('ProduitsTab - isLoading:', isLoading);
+  console.log('ProduitsTab - articles length:', articles?.length);
 
   const calculateMargin = (article: any) => {
     const prixAchat = article.prix_achat || 0;

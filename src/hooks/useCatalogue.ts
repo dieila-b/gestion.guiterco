@@ -45,8 +45,12 @@ export const useCatalogue = () => {
           created_at,
           updated_at
         `)
-        .eq('statut', 'actif')
+        // Temporairement désactivé pour debug : .eq('statut', 'actif')
         .order('nom', { ascending: true });
+      
+      console.log('Raw catalogue data from Supabase:', data);
+      console.log('Number of articles:', data?.length);
+      console.log('Articles with status:', data?.map(item => ({ nom: item.nom, statut: item.statut })));
       
       if (error) {
         console.error('Erreur lors du chargement du catalogue:', error);
