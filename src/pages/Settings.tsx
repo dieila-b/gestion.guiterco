@@ -19,6 +19,7 @@ import DepotsPDV from '@/components/settings/DepotsPDV';
 import ClientsSettings from '@/components/settings/ClientsSettings';
 import AccesPermissions from '@/components/settings/AccesPermissions';
 import UtilisateursInternes from '@/components/settings/UtilisateursInternes';
+import { PermissionGuard } from '@/components/auth/PermissionGuard';
 
 
 const settingsCards = [
@@ -127,31 +128,45 @@ const Settings = () => {
           </TabsContent>
 
           <TabsContent value="zone-geo" className="mt-6">
-            <ZoneGeographique />
+            <PermissionGuard menu="Paramètres" submenu="Zone Géographique" action="read">
+              <ZoneGeographique />
+            </PermissionGuard>
           </TabsContent>
 
           <TabsContent value="fournisseurs" className="mt-6">
-            <Fournisseurs />
+            <PermissionGuard menu="Paramètres" submenu="Fournisseurs" action="read">
+              <Fournisseurs />
+            </PermissionGuard>
           </TabsContent>
 
           <TabsContent value="depots-stockage" className="mt-6">
-            <DepotsStockage />
+            <PermissionGuard menu="Paramètres" submenu="Entrepôts" action="read">
+              <DepotsStockage />
+            </PermissionGuard>
           </TabsContent>
 
           <TabsContent value="depots-pdv" className="mt-6">
-            <DepotsPDV />
+            <PermissionGuard menu="Paramètres" submenu="Points de vente" action="read">
+              <DepotsPDV />
+            </PermissionGuard>
           </TabsContent>
 
           <TabsContent value="clients" className="mt-6">
-            <ClientsSettings />
+            <PermissionGuard menu="Clients" action="read">
+              <ClientsSettings />
+            </PermissionGuard>
           </TabsContent>
 
           <TabsContent value="utilisateurs-internes" className="mt-6">
-            <UtilisateursInternes />
+            <PermissionGuard menu="Paramètres" submenu="Utilisateurs" action="read">
+              <UtilisateursInternes />
+            </PermissionGuard>
           </TabsContent>
 
           <TabsContent value="acces-permissions" className="mt-6">
-            <AccesPermissions />
+            <PermissionGuard menu="Paramètres" submenu="Permissions" action="read">
+              <AccesPermissions />
+            </PermissionGuard>
           </TabsContent>
         </Tabs>
       </div>

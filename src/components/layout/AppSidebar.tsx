@@ -16,6 +16,7 @@ import {
 import { useLocation, Link } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/components/auth/AuthContext';
+import { PermissionGuard } from '@/components/auth/PermissionGuard';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   DropdownMenu,
@@ -32,15 +33,15 @@ const AppSidebar = () => {
   const { utilisateurInterne, signOut, user, isInternalUser } = useAuth();
 
   const menuItems = [
-    { icon: Home, label: 'Tableau de bord', href: '/' },
-    { icon: ShoppingCart, label: 'Ventes', href: '/sales' },
-    { icon: Package, label: 'Stocks', href: '/stocks' },
-    { icon: CreditCard, label: 'Achats', href: '/purchases' },
-    { icon: Users, label: 'Clients', href: '/clients' },
-    { icon: DollarSign, label: 'Caisse', href: '/cash-registers' },
-    { icon: TrendingUp, label: 'Marges', href: '/margins' },
-    { icon: FileText, label: 'Rapports', href: '/reports' },
-    { icon: Settings, label: 'Paramètres', href: '/settings' },
+    { icon: Home, label: 'Tableau de bord', href: '/', menu: 'Dashboard' },
+    { icon: ShoppingCart, label: 'Ventes', href: '/sales', menu: 'Ventes' },
+    { icon: Package, label: 'Stocks', href: '/stocks', menu: 'Stocks' },
+    { icon: CreditCard, label: 'Achats', href: '/purchases', menu: 'Achats' },
+    { icon: Users, label: 'Clients', href: '/clients', menu: 'Clients' },
+    { icon: DollarSign, label: 'Caisse', href: '/cash-registers', menu: 'Caisse' },
+    { icon: TrendingUp, label: 'Marges', href: '/margins', menu: 'Marges' },
+    { icon: FileText, label: 'Rapports', href: '/reports', menu: 'Rapports' },
+    { icon: Settings, label: 'Paramètres', href: '/settings', menu: 'Paramètres' },
   ];
 
   // Utiliser les données disponibles (utilisateurInterne en priorité, sinon user)
@@ -95,20 +96,22 @@ const AppSidebar = () => {
           {menuItems.map((item) => {
             const isActive = location.pathname === item.href;
             return (
-              <li key={item.href}>
-                <Link
-                  to={item.href}
-                  className={cn(
-                    "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
-                    isActive
-                      ? "bg-slate-700 text-white"
-                      : "text-slate-300 hover:bg-slate-700 hover:text-white"
-                  )}
-                >
-                  <item.icon className="h-5 w-5" />
-                  {item.label}
-                </Link>
-              </li>
+              <PermissionGuard key={item.href} menu={item.menu} action="read">
+                <li>
+                  <Link
+                    to={item.href}
+                    className={cn(
+                      "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
+                      isActive
+                        ? "bg-slate-700 text-white"
+                        : "text-slate-300 hover:bg-slate-700 hover:text-white"
+                    )}
+                  >
+                    <item.icon className="h-5 w-5" />
+                    {item.label}
+                  </Link>
+                </li>
+              </PermissionGuard>
             );
           })}
         </ul>
