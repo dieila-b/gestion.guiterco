@@ -10,14 +10,23 @@ export const useEntrepots = () => {
   const { data: entrepots, isLoading, error } = useQuery({
     queryKey: ['entrepots'],
     queryFn: async () => {
+      console.log('useEntrepots - Fetching entrepots...');
+      
       const { data, error } = await supabase
         .from('entrepots')
         .select('*')
         .order('nom');
       
+      console.log('useEntrepots - Raw data:', data);
+      console.log('useEntrepots - Error:', error);
+      console.log('useEntrepots - Data length:', data?.length);
+      
       if (error) {
+        console.error('useEntrepots - Query error:', error);
         throw error;
       }
+      
+      console.log('useEntrepots - Returning entrepots:', data);
       return data as Entrepot[];
     }
   });
