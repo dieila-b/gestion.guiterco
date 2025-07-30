@@ -55,6 +55,8 @@ export const useFacturesVenteQuery = () => {
 
       // Récupérer les lignes de facture pour toutes les factures
       const factureIds = facturesData.map(f => f.id);
+      console.log('🔍 IDs des factures:', factureIds);
+      
       const { data: lignesData, error: lignesError } = await supabase
         .from('lignes_facture_vente')
         .select(`
@@ -75,6 +77,9 @@ export const useFacturesVenteQuery = () => {
           )
         `)
         .in('facture_vente_id', factureIds);
+
+      console.log('🔍 Lignes de facture récupérées:', lignesData);
+      console.log('🔍 Nombre de lignes trouvées:', lignesData?.length || 0);
 
       if (lignesError) {
         console.error('❌ Erreur lors de la récupération des lignes:', lignesError);
@@ -108,6 +113,7 @@ export const useFacturesVenteQuery = () => {
       const facturesTraitees = facturesData.map((facture: any) => {
         // Associer les lignes de facture
         const lignesFacture = lignesData?.filter(ligne => ligne.facture_vente_id === facture.id) || [];
+        console.log(`🔍 Lignes pour facture ${facture.numero_facture}:`, lignesFacture);
         
         // Associer les versements
         const versements = versementsData?.filter(versement => versement.facture_id === facture.id) || [];
