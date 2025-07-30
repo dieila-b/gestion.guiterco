@@ -51,6 +51,10 @@ export const useStockPrincipal = () => {
       }
       
       console.log('Stock principal data loaded with relations:', data);
+      console.log('Number of items:', data?.length);
+      console.log('First item with relations:', data?.[0]);
+      console.log('Article relation:', data?.[0]?.article);
+      console.log('Entrepot relation:', data?.[0]?.entrepot);
       return data as StockPrincipal[];
     },
     staleTime: 2 * 60 * 1000, // 2 minutes pour des données plus fraîches

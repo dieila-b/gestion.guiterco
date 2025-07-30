@@ -20,17 +20,30 @@ const StockEntrepot = () => {
   const [selectedEntrepot, setSelectedEntrepot] = useState<string>('tous');
   const [lastSyncTime, setLastSyncTime] = useState<Date | null>(null);
 
+  console.log('StockEntrepot - stockEntrepot data:', stockEntrepot);
+  console.log('StockEntrepot - stockEntrepot length:', stockEntrepot?.length);
+
   const filteredStock = stockEntrepot?.filter(item => {
-    const matchesSearch = 
-      item.article?.nom.toLowerCase().includes(searchTerm.toLowerCase()) || 
-      item.article?.reference.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.entrepot?.nom.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.article?.categorie?.toLowerCase().includes(searchTerm.toLowerCase());
+    console.log('Filtering item:', item);
+    console.log('Item article:', item.article);
+    console.log('Item entrepot:', item.entrepot);
+    
+    const matchesSearch = searchTerm === '' || (
+      (item.article?.nom && item.article.nom.toLowerCase().includes(searchTerm.toLowerCase())) || 
+      (item.article?.reference && item.article.reference.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (item.entrepot?.nom && item.entrepot.nom.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (item.article?.categorie && item.article.categorie.toLowerCase().includes(searchTerm.toLowerCase()))
+    );
     
     const matchesEntrepot = selectedEntrepot === 'tous' || item.entrepot_id === selectedEntrepot;
     
+    console.log('matchesSearch:', matchesSearch, 'matchesEntrepot:', matchesEntrepot);
+    
     return matchesSearch && matchesEntrepot;
   });
+
+  console.log('Filtered stock result:', filteredStock);
+  console.log('Filtered stock length:', filteredStock?.length);
 
   const calculateTotalValue = (quantity: number, unitPrice: number | null | undefined) => {
     if (!unitPrice) return 0;

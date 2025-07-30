@@ -16,14 +16,28 @@ const StockPDV = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedPDV, setSelectedPDV] = useState<string>('all');
 
+  console.log('StockPDV - stockPDV data:', stockPDV);
+  console.log('StockPDV - stockPDV length:', stockPDV?.length);
+
   const filteredStock = stockPDV?.filter(item => {
-    const matchesSearch = item.article?.nom.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                         item.article?.reference.toLowerCase().includes(searchTerm.toLowerCase());
+    console.log('Filtering PDV item:', item);
+    console.log('PDV Item article:', item.article);
+    console.log('PDV Item point_vente:', item.point_vente);
+    
+    const matchesSearch = searchTerm === '' || (
+      (item.article?.nom && item.article.nom.toLowerCase().includes(searchTerm.toLowerCase())) || 
+      (item.article?.reference && item.article.reference.toLowerCase().includes(searchTerm.toLowerCase()))
+    );
     
     const matchesPDV = selectedPDV === 'all' || item.point_vente_id === selectedPDV;
     
+    console.log('PDV matchesSearch:', matchesSearch, 'matchesPDV:', matchesPDV);
+    
     return matchesSearch && matchesPDV;
   });
+
+  console.log('Filtered PDV stock result:', filteredStock);
+  console.log('Filtered PDV stock length:', filteredStock?.length);
 
   return (
     <div className="space-y-6">

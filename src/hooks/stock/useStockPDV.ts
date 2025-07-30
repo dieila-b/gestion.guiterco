@@ -23,6 +23,11 @@ export const useStockPDV = () => {
       if (error) {
         throw error;
       }
+      console.log('Stock PDV data loaded:', data);
+      console.log('Number of PDV items:', data?.length);
+      console.log('First PDV item:', data?.[0]);
+      console.log('Article relation in PDV:', data?.[0]?.article);
+      console.log('Point vente relation:', data?.[0]?.point_vente);
       return data as StockPointDeVente[];
     }
   });
