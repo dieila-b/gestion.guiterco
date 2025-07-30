@@ -41,12 +41,11 @@ export const useDevMode = (): DevModeConfig => {
     // En mode production sur lovableproject.com, ne pas considérer comme dev
     const isLovablePreview = hostname.includes('lovableproject.com') || hostname.includes('lovableproject.app');
     
-    // Ne considérer comme dev que les vrais environnements de développement (pas Lovable)
-    const isDev = !isLovablePreview && (
-                  hostname === 'localhost' || 
+    // RESTAURATION D'URGENCE: Temporairement considérer Lovable comme dev pour débloquer l'accès
+    const isDev = hostname === 'localhost' || 
                   hostname.includes('127.0.0.1') ||
-                  hostname.includes('.local')
-                );
+                  hostname.includes('.local') ||
+                  isLovablePreview; // TEMPORAIRE - pour restaurer l'accès
 
     let bypassEnabled = false;
     
@@ -80,12 +79,11 @@ export const useDevMode = (): DevModeConfig => {
     // En mode production sur lovableproject.com, ne pas considérer comme dev
     const isLovablePreview = hostname.includes('lovableproject.com') || hostname.includes('lovableproject.app');
     
-    // Ne considérer comme dev que les vrais environnements de développement (pas Lovable)
-    const isDev = !isLovablePreview && (
-                  hostname === 'localhost' || 
+    // RESTAURATION D'URGENCE: Temporairement considérer Lovable comme dev pour débloquer l'accès
+    const isDev = hostname === 'localhost' || 
                   hostname.includes('127.0.0.1') ||
-                  hostname.includes('.local')
-                );
+                  hostname.includes('.local') ||
+                  isLovablePreview; // TEMPORAIRE - pour restaurer l'accès
 
     console.log('🔍 Détection environnement:', {
       hostname,
