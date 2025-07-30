@@ -56,6 +56,7 @@ export const useFacturesVenteQuery = () => {
       // Récupérer les lignes de facture pour toutes les factures
       const factureIds = facturesData.map(f => f.id);
       console.log('🔍 IDs des factures:', factureIds);
+      console.log('🔍 Premier ID de facture pour test:', factureIds[0]);
       
       const { data: lignesData, error: lignesError } = await supabase
         .from('lignes_facture_vente')
@@ -80,6 +81,16 @@ export const useFacturesVenteQuery = () => {
 
       console.log('🔍 Lignes de facture récupérées:', lignesData);
       console.log('🔍 Nombre de lignes trouvées:', lignesData?.length || 0);
+      console.log('🔍 Erreur lignes:', lignesError);
+      
+      // Test direct pour une facture spécifique
+      const { data: testLignes, error: testError } = await supabase
+        .from('lignes_facture_vente')
+        .select('*')
+        .eq('facture_vente_id', factureIds[0]);
+      
+      console.log('🔍 Test direct pour première facture:', testLignes);
+      console.log('🔍 Erreur test direct:', testError);
 
       if (lignesError) {
         console.error('❌ Erreur lors de la récupération des lignes:', lignesError);
