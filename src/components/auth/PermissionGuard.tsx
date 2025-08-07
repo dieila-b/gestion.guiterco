@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { useHasPermission } from '@/hooks/useUserPermissions';
+import { useHasPermission } from '@/hooks/useStrictPermissions';
 import { useAuth } from '@/components/auth/AuthContext';
 import { Loader2 } from 'lucide-react';
 
@@ -22,7 +22,7 @@ export const PermissionGuard: React.FC<PermissionGuardProps> = ({
   const { hasPermission, isLoading } = useHasPermission();
   const { isDevMode, user, utilisateurInterne } = useAuth();
 
-  console.log(`PermissionGuard - Vérification: ${menu}${submenu ? ` > ${submenu}` : ''} (${action})`, {
+  console.log(`🛡️ PermissionGuard - Vérification: ${menu}${submenu ? ` > ${submenu}` : ''} (${action})`, {
     isDevMode,
     hasUser: !!user,
     hasUtilisateurInterne: !!utilisateurInterne,
@@ -31,7 +31,7 @@ export const PermissionGuard: React.FC<PermissionGuardProps> = ({
 
   // En mode développement, être permissif pour les utilisateurs connectés
   if (isDevMode && (user || utilisateurInterne)) {
-    console.log('Mode dev - accès accordé');
+    console.log('🚀 Mode dev - accès accordé');
     return <>{children}</>;
   }
 
@@ -48,7 +48,7 @@ export const PermissionGuard: React.FC<PermissionGuardProps> = ({
   // Vérifier les permissions
   const hasAccess = hasPermission(menu, submenu, action);
   
-  console.log(`PermissionGuard - Résultat: ${hasAccess ? 'Accès accordé' : 'Accès refusé'}`);
+  console.log(`🛡️ PermissionGuard - Résultat: ${hasAccess ? '✅ Accès accordé' : '❌ Accès refusé'}`);
   
   if (!hasAccess) {
     return <>{fallback}</>;
