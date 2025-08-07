@@ -18,9 +18,13 @@ export interface UtilisateurInterne {
   prenom: string;
   nom: string;
   role: Role;
+  role_id: string;
   statut: string;
   type_compte: string;
-  photo_url?: string; // Add optional photo_url property
+  matricule: string;
+  photo_url?: string; 
+  created_at: string;
+  updated_at: string;
 }
 
 export interface AuthContextType {

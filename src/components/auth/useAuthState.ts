@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -52,7 +51,6 @@ export const useAuthState = (
           // Créer un utilisateur interne avec le rôle Super Administrateur
           const mockUtilisateurInterne: UtilisateurInterne = {
             id: mockUser.id,
-            user_id: mockUser.id,
             email: mockUser.email,
             prenom: mockUser.user_metadata?.prenom || 'Admin',
             nom: mockUser.user_metadata?.nom || 'Dev',
@@ -115,7 +113,6 @@ export const useAuthState = (
               
               const utilisateurInterne: UtilisateurInterne = {
                 id: userInternalData.id,
-                user_id: userInternalData.user_id,
                 email: userInternalData.email,
                 prenom: userInternalData.prenom,
                 nom: userInternalData.nom,
