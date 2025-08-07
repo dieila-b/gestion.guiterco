@@ -4,9 +4,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
-import { Grid3x3, Save, RefreshCw } from 'lucide-react';
+import { Grid3x3, RefreshCw, CheckCircle2, XCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useRoles, usePermissions, useAllRolePermissions, useUpdateRolePermission } from '@/hooks/usePermissionsSystem';
+import { useRoles, usePermissions, useAllRolePermissions, useUpdateRolePermission, useBulkUpdateRolePermissions } from '@/hooks/usePermissionsSystem';
 import { toast } from 'sonner';
 
 export default function PermissionsMatrix() {
@@ -15,6 +15,7 @@ export default function PermissionsMatrix() {
   const { data: permissions = [] } = usePermissions();
   const { data: rolePermissions = [] } = useAllRolePermissions();
   const updateRolePermission = useUpdateRolePermission();
+  const bulkUpdateRolePermissions = useBulkUpdateRolePermissions();
 
   // Organiser les permissions par menu et sous-menu
   const organizedPermissions = permissions.reduce((acc: any, permission) => {
@@ -55,15 +56,20 @@ export default function PermissionsMatrix() {
 
   // Attribuer toutes les permissions à un rôle
   const handleGrantAllPermissions = async (roleId: string) => {
+    if (isLoading) return;
+    
     setIsLoading(true);
     try {
-      for (const permission of permissions) {
-        await updateRolePermission.mutateAsync({
-          roleId,
-          permissionId: permission.id,
-          canAccess: true
-        });
-      }
+      const updates = permissions.map(permission => ({
+        permissionId: permission.id,
+        canAccess: true
+      }));
+
+      await bulkUpdateRolePermissions.mutateAsync({
+        roleId,
+        permissions: updates
+      });
+      
       toast.success('Toutes les permissions ont été accordées');
     } catch (error) {
       toast.error('Erreur lors de l\'attribution des permissions');
@@ -74,15 +80,20 @@ export default function PermissionsMatrix() {
 
   // Retirer toutes les permissions d'un rôle
   const handleRevokeAllPermissions = async (roleId: string) => {
+    if (isLoading) return;
+    
     setIsLoading(true);
     try {
-      for (const permission of permissions) {
-        await updateRolePermission.mutateAsync({
-          roleId,
-          permissionId: permission.id,
-          canAccess: false
-        });
-      }
+      const updates = permissions.map(permission => ({
+        permissionId: permission.id,
+        canAccess: false
+      }));
+
+      await bulkUpdateRolePermissions.mutateAsync({
+        roleId,
+        permissions: updates
+      });
+      
       toast.success('Toutes les permissions ont été révoquées');
     } catch (error) {
       toast.error('Erreur lors de la révocation des permissions');
@@ -91,7 +102,9 @@ export default function PermissionsMatrix() {
     }
   };
 
-  if (roles.length === 0 || permissions.length === 0) {
+  const filteredRoles = roles.filter(role => role.name); // Filtrer les rôles valides
+
+  if (filteredRoles.length === 0 || permissions.length === 0) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
@@ -108,46 +121,83 @@ export default function PermissionsMatrix() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Grid3x3 className="w-5 h-5" />
-            Matrice des Permissions
+            Matrice Interactive des Permissions
           </CardTitle>
+          <p className="text-sm text-muted-foreground">
+            Configuration rapide des permissions par rôle avec actions en lot
+          </p>
         </CardHeader>
         <CardContent>
           <div className="space-y-6">
-            {/* Actions rapides */}
-            <div className="flex flex-wrap gap-2">
-              {roles.map((role) => (
-                <div key={role.id} className="flex items-center gap-2">
-                  <Badge variant="outline">{role.name}</Badge>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => handleGrantAllPermissions(role.id)}
-                    disabled={isLoading}
-                  >
-                    Tout accorder
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => handleRevokeAllPermissions(role.id)}
-                    disabled={isLoading}
-                  >
-                    Tout révoquer
-                  </Button>
-                </div>
-              ))}
+            {/* Actions rapides par rôle */}
+            <div className="grid gap-4">
+              <h4 className="font-medium">Actions rapides par rôle :</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                {filteredRoles.map((role) => {
+                  const isSystemRole = role.is_system && role.name === 'Administrateur';
+                  const rolePermissionsCount = rolePermissions.filter(
+                    rp => rp.role_id === role.id && rp.can_access
+                  ).length;
+                  
+                  return (
+                    <div key={role.id} className="border rounded-lg p-4 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <Badge 
+                          variant={isSystemRole ? "default" : "outline"}
+                          className="font-medium"
+                        >
+                          {role.name}
+                        </Badge>
+                        <span className="text-xs text-muted-foreground">
+                          {rolePermissionsCount}/{permissions.length}
+                        </span>
+                      </div>
+                      
+                      <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleGrantAllPermissions(role.id)}
+                          disabled={isLoading || isSystemRole}
+                          className="flex-1"
+                        >
+                          <CheckCircle2 className="w-3 h-3 mr-1" />
+                          Tout accorder
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleRevokeAllPermissions(role.id)}
+                          disabled={isLoading || isSystemRole}
+                          className="flex-1"
+                        >
+                          <XCircle className="w-3 h-3 mr-1" />
+                          Tout révoquer
+                        </Button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
 
             {/* Matrice des permissions */}
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto border rounded-lg">
               <Table>
                 <TableHeader>
-                  <TableRow>
-                    <TableHead className="min-w-[200px]">Menu / Sous-menu</TableHead>
-                    <TableHead className="min-w-[100px]">Action</TableHead>
-                    {roles.map((role) => (
-                      <TableHead key={role.id} className="text-center min-w-[120px]">
-                        {role.name}
+                  <TableRow className="bg-muted/50">
+                    <TableHead className="min-w-[250px] font-semibold">Menu / Sous-menu</TableHead>
+                    <TableHead className="min-w-[120px] font-semibold">Action</TableHead>
+                    {filteredRoles.map((role) => (
+                      <TableHead key={role.id} className="text-center min-w-[120px] font-semibold">
+                        <div className="space-y-1">
+                          <div>{role.name}</div>
+                          {role.is_system && (
+                            <Badge variant="secondary" className="text-xs">
+                              Système
+                            </Badge>
+                          )}
+                        </div>
                       </TableHead>
                     ))}
                   </TableRow>
@@ -158,45 +208,77 @@ export default function PermissionsMatrix() {
                       {Object.entries(submenus as any).map(([submenu, perms]) => (
                         <React.Fragment key={`${menu}-${submenu}`}>
                           {/* En-tête de section */}
-                          <TableRow className="bg-muted/50">
-                            <TableCell colSpan={2 + roles.length} className="font-semibold">
-                              {menu} {submenu !== 'principal' && `- ${submenu}`}
+                          <TableRow className="bg-muted/30">
+                            <TableCell colSpan={2 + filteredRoles.length} className="font-semibold py-3">
+                              <div className="flex items-center gap-2">
+                                📁 {menu} {submenu !== 'principal' && `→ ${submenu}`}
+                                <Badge variant="outline" className="ml-auto">
+                                  {(perms as any[]).length} permission(s)
+                                </Badge>
+                              </div>
                             </TableCell>
                           </TableRow>
                           
                           {/* Permissions */}
-                          {(perms as any[]).map((permission) => (
-                            <TableRow key={permission.id}>
-                              <TableCell className="font-medium">
-                                {permission.menu}
-                                {permission.submenu && (
-                                  <span className="text-muted-foreground ml-2">
-                                    → {permission.submenu}
-                                  </span>
-                                )}
+                          {(perms as any[])
+                            .sort((a, b) => {
+                              const order = { 
+                                read: 1, write: 2, delete: 3, validate: 4, cancel: 5,
+                                convert: 6, export: 7, import: 8, print: 9, close: 10,
+                                reopen: 11, transfer: 12, receive: 13, deliver: 14,
+                                invoice: 15, payment: 16
+                              };
+                              return (order[a.action as keyof typeof order] || 99) - 
+                                     (order[b.action as keyof typeof order] || 99);
+                            })
+                            .map((permission) => (
+                            <TableRow key={permission.id} className="hover:bg-muted/20">
+                              <TableCell className="font-medium pl-8">
+                                <div className="space-y-1">
+                                  <div>
+                                    {permission.menu}
+                                    {permission.submenu && (
+                                      <span className="text-muted-foreground ml-2">
+                                        → {permission.submenu}
+                                      </span>
+                                    )}
+                                  </div>
+                                  {permission.description && (
+                                    <div className="text-xs text-muted-foreground">
+                                      {permission.description.split(' - ')[0]}
+                                    </div>
+                                  )}
+                                </div>
                               </TableCell>
                               <TableCell>
                                 <Badge 
                                   variant={
                                     permission.action === 'read' ? 'default' : 
                                     permission.action === 'write' ? 'secondary' : 
-                                    'destructive'
+                                    permission.action === 'delete' ? 'destructive' : 
+                                    'outline'
                                   }
+                                  className="text-xs"
                                 >
                                   {permission.action}
                                 </Badge>
                               </TableCell>
-                              {roles.map((role) => (
-                                <TableCell key={role.id} className="text-center">
-                                  <Switch
-                                    checked={hasPermission(role.id, permission.id)}
-                                    onCheckedChange={(checked) => 
-                                      handlePermissionChange(role.id, permission.id, checked)
-                                    }
-                                    disabled={updateRolePermission.isPending}
-                                  />
-                                </TableCell>
-                              ))}
+                              {filteredRoles.map((role) => {
+                                const hasAccess = hasPermission(role.id, permission.id);
+                                const isSystemRole = role.is_system && role.name === 'Administrateur';
+                                
+                                return (
+                                  <TableCell key={role.id} className="text-center">
+                                    <Switch
+                                      checked={hasAccess}
+                                      onCheckedChange={(checked) => 
+                                        !isSystemRole && handlePermissionChange(role.id, permission.id, checked)
+                                      }
+                                      disabled={isSystemRole || updateRolePermission.isPending}
+                                    />
+                                  </TableCell>
+                                );
+                              })}
                             </TableRow>
                           ))}
                         </React.Fragment>

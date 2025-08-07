@@ -1,4 +1,3 @@
-
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -89,12 +88,12 @@ export const useRoles = () => {
   });
 };
 
-// Hook pour récupérer toutes les permissions
+// Hook pour récupérer toutes les permissions avec synchronisation complète
 export const usePermissions = () => {
   return useQuery({
     queryKey: ['permissions'],
     queryFn: async () => {
-      console.log('🔍 Fetching permissions from Supabase...');
+      console.log('🔍 Fetching all permissions from Supabase...');
       const { data, error } = await supabase
         .from('permissions')
         .select('*')
@@ -105,7 +104,7 @@ export const usePermissions = () => {
         throw error;
       }
       
-      console.log('✅ Permissions fetched:', data?.length || 0);
+      console.log('✅ Permissions fetched:', data?.length || 0, 'permissions');
       return (data || []) as Permission[];
     }
   });
@@ -143,12 +142,12 @@ export const useRolePermissions = (roleId?: string) => {
   });
 };
 
-// Hook pour récupérer toutes les associations rôle-permissions
+// Hook pour récupérer toutes les associations rôle-permissions avec détails complets
 export const useAllRolePermissions = () => {
   return useQuery({
     queryKey: ['all-role-permissions'],
     queryFn: async () => {
-      console.log('🔍 Fetching all role permissions with details...');
+      console.log('🔍 Fetching all role permissions with complete details...');
       const { data, error } = await supabase
         .from('role_permissions')
         .select(`
@@ -156,7 +155,12 @@ export const useAllRolePermissions = () => {
           permissions!inner(
             menu,
             submenu,
-            action
+            action,
+            description
+          ),
+          roles!inner(
+            name,
+            is_system
           )
         `);
 
@@ -171,15 +175,18 @@ export const useAllRolePermissions = () => {
         permission_menu: (rp.permissions as any)?.menu,
         permission_submenu: (rp.permissions as any)?.submenu,
         permission_action: (rp.permissions as any)?.action,
+        permission_description: (rp.permissions as any)?.description,
+        role_name: (rp.roles as any)?.name,
+        role_is_system: (rp.roles as any)?.is_system,
       }));
       
-      console.log('✅ All role permissions fetched:', enrichedData.length);
+      console.log('✅ All role permissions fetched and enriched:', enrichedData.length);
       return enrichedData as RolePermission[];
     }
   });
 };
 
-// Hook pour mettre à jour une permission de rôle
+// Hook pour mettre à jour une permission de rôle avec validation
 export const useUpdateRolePermission = () => {
   const queryClient = useQueryClient();
 
@@ -209,15 +216,64 @@ export const useUpdateRolePermission = () => {
       console.log('✅ Role permission updated:', data);
       return data;
     },
-    onSuccess: () => {
+    onSuccess: (data, variables) => {
+      // Invalider tous les caches liés aux permissions
       queryClient.invalidateQueries({ queryKey: ['all-role-permissions'] });
       queryClient.invalidateQueries({ queryKey: ['role-permissions'] });
       queryClient.invalidateQueries({ queryKey: ['user-permissions'] });
-      toast.success('Permission mise à jour avec succès');
+      queryClient.invalidateQueries({ queryKey: ['menus-permissions-structure'] });
+      
+      toast.success(
+        `Permission ${variables.canAccess ? 'accordée' : 'révoquée'} avec succès`
+      );
     },
     onError: (error: any) => {
       console.error('💥 Mutation error:', error);
       toast.error(error.message || 'Erreur lors de la mise à jour de la permission');
+    }
+  });
+};
+
+// Hook pour synchroniser toutes les permissions d'un rôle
+export const useBulkUpdateRolePermissions = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ roleId, permissions }: { 
+      roleId: string; 
+      permissions: { permissionId: string; canAccess: boolean }[]
+    }) => {
+      console.log('🔄 Bulk updating role permissions:', { roleId, count: permissions.length });
+      
+      const updates = permissions.map(p => ({
+        role_id: roleId,
+        permission_id: p.permissionId,
+        can_access: p.canAccess
+      }));
+
+      const { data, error } = await supabase
+        .from('role_permissions')
+        .upsert(updates)
+        .select();
+
+      if (error) {
+        console.error('❌ Error bulk updating role permissions:', error);
+        throw error;
+      }
+      
+      console.log('✅ Bulk role permissions updated:', data?.length || 0);
+      return data;
+    },
+    onSuccess: (data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['all-role-permissions'] });
+      queryClient.invalidateQueries({ queryKey: ['role-permissions', variables.roleId] });
+      queryClient.invalidateQueries({ queryKey: ['user-permissions'] });
+      
+      toast.success(`${variables.permissions.length} permissions mises à jour avec succès`);
+    },
+    onError: (error: any) => {
+      console.error('💥 Bulk mutation error:', error);
+      toast.error(error.message || 'Erreur lors de la mise à jour en lot des permissions');
     }
   });
 };
@@ -482,6 +538,7 @@ export const useAssignUserRole = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['users-with-roles'] });
+      queryClient.invalidateQueries({ queryKey: ['user-permissions'] });
       toast.success('Rôle assigné avec succès');
     },
     onError: (error: any) => {
@@ -515,6 +572,7 @@ export const useRevokeUserRole = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['users-with-roles'] });
+      queryClient.invalidateQueries({ queryKey: ['user-permissions'] });
       toast.success('Rôle révoqué avec succès');
     },
     onError: (error: any) => {
