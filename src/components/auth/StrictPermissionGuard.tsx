@@ -28,7 +28,8 @@ export const StrictPermissionGuard: React.FC<StrictPermissionGuardProps> = ({
     isDevMode,
     hasUser: !!user,
     hasUtilisateurInterne: !!utilisateurInterne,
-    isLoading
+    isLoading,
+    userEmail: user?.email
   });
 
   // En mode développement avec utilisateur connecté, autoriser l'accès
@@ -74,6 +75,11 @@ export const StrictPermissionGuard: React.FC<StrictPermissionGuardProps> = ({
             {utilisateurInterne?.role && (
               <p className="text-xs text-red-600 mt-1">
                 Votre rôle : {utilisateurInterne.role.nom || utilisateurInterne.role.name}
+              </p>
+            )}
+            {isDevMode && (
+              <p className="text-xs text-blue-600 mt-1">
+                Mode développement activé - Problème de configuration détecté
               </p>
             )}
           </div>

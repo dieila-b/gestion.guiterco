@@ -28,9 +28,9 @@ export const useUserPermissions = () => {
         return [];
       }
 
-      // En mode développement avec utilisateur mock, donner toutes les permissions
-      if (isDevMode && user.id === 'dev-user-123') {
-        console.log('🚀 Mode dev avec utilisateur mock - toutes permissions accordées');
+      // En mode développement, donner toutes les permissions
+      if (isDevMode) {
+        console.log('🚀 Mode dev - toutes permissions accordées');
         return [
           { menu: 'Dashboard', action: 'read', can_access: true },
           { menu: 'Catalogue', action: 'read', can_access: true },
@@ -45,18 +45,33 @@ export const useUserPermissions = () => {
       }
 
       try {
-        // Récupérer les permissions via la fonction Supabase
         console.log('📡 Récupération des permissions depuis Supabase...');
         
+        // Utiliser la fonction Supabase pour obtenir les permissions
         const { data, error } = await supabase
           .rpc('get_user_permissions', { user_uuid: user.id });
 
         if (error) {
-          console.error('❌ Erreur lors de la récupération des permissions:', error);
-          return [];
+          console.error('❌ Erreur RPC get_user_permissions:', error);
+          
+          // Fallback : essayer de récupérer via la vue directement
+          console.log('🔄 Fallback vers vue_permissions_utilisateurs...');
+          const { data: fallbackData, error: fallbackError } = await supabase
+            .from('vue_permissions_utilisateurs')
+            .select('menu, submenu, action, can_access')
+            .eq('user_id', user.id)
+            .eq('can_access', true);
+
+          if (fallbackError) {
+            console.error('❌ Erreur fallback:', fallbackError);
+            return [];
+          }
+
+          console.log('✅ Permissions récupérées (fallback):', fallbackData);
+          return fallbackData as UserPermission[];
         }
 
-        console.log('✅ Permissions récupérées:', data);
+        console.log('✅ Permissions récupérées (RPC):', data);
         return data as UserPermission[];
         
       } catch (error) {
@@ -65,8 +80,9 @@ export const useUserPermissions = () => {
       }
     },
     enabled: !!user?.id,
-    retry: 1,
-    staleTime: 5 * 60 * 1000 // 5 minutes
+    retry: 2,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    refetchOnWindowFocus: false,
   });
 };
 

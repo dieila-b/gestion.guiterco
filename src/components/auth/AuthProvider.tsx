@@ -7,9 +7,13 @@ import { useAuthState } from './useAuthState';
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const { bypassAuth, mockUser: originalMockUser, isDevMode } = useDevMode();
   
-  // Ensure the mock user has the required id property in role
+  // Générer un UUID valide pour l'utilisateur mock
+  const validMockUserId = 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'; // UUID valide fixe
+  
+  // Ensure the mock user has a valid UUID and required properties
   const mockUser = {
     ...originalMockUser,
+    id: validMockUserId,
     role: {
       ...originalMockUser.role,
       id: 'mock-role-id'
