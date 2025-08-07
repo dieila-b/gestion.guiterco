@@ -2,285 +2,461 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Edit, Trash2, Settings } from 'lucide-react';
-import { usePermissions, useCreatePermission, useUpdatePermission, useDeletePermission } from '@/hooks/usePermissionsSystem';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { useForm } from 'react-hook-form';
-import { toast } from 'sonner';
+import { 
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
+import {
+  usePermissions,
+  useCreatePermission,
+  useUpdatePermission,
+  useDeletePermission
+} from '@/hooks/usePermissionsSystem';
+import { 
+  Plus, 
+  Edit, 
+  Trash2, 
+  Eye, 
+  Settings,
+  Key,
+  Search
+} from 'lucide-react';
 
-interface PermissionFormData {
-  menu: string;
-  submenu?: string;
-  action: string;
-  description?: string;
-}
+const AVAILABLE_MENUS = [
+  'Dashboard',
+  'Catalogue', 
+  'Stock',
+  'Achats',
+  'Ventes',
+  'Clients',
+  'Caisse',
+  'Rapports',
+  'Paramètres'
+];
 
-const PermissionForm = ({ permission, onSuccess }: { permission?: any; onSuccess: () => void }) => {
-  const { register, handleSubmit, setValue, watch, formState: { errors } } = useForm<PermissionFormData>({
-    defaultValues: permission ? {
-      menu: permission.menu,
-      submenu: permission.submenu || '',
-      action: permission.action,
-      description: permission.description || ''
-    } : {
-      menu: '',
-      submenu: '',
-      action: '',
-      description: ''
-    }
-  });
-
-  const createPermission = useCreatePermission();
-  const updatePermission = useUpdatePermission();
-  const selectedAction = watch('action');
-
-  const onSubmit = async (data: PermissionFormData) => {
-    try {
-      if (permission) {
-        await updatePermission.mutateAsync({ 
-          id: permission.id, 
-          ...data,
-          submenu: data.submenu || null
-        });
-      } else {
-        await createPermission.mutateAsync({
-          ...data,
-          submenu: data.submenu || null
-        });
-      }
-      onSuccess();
-    } catch (error) {
-      console.error('Erreur lors de la sauvegarde de la permission:', error);
-    }
-  };
-
-  const menuOptions = [
-    'Dashboard', 'Catalogue', 'Stock', 'Achats', 'Ventes', 'Clients', 
-    'Caisse', 'Finance', 'Rapports', 'Paramètres'
-  ];
-
-  const submenuOptions = {
-    'Stock': ['Entrepôts', 'PDV', 'Transferts', 'Mouvements', 'Inventaire'],
-    'Achats': ['Bons de commande', 'Bons de livraison', 'Factures', 'Fournisseurs'],
-    'Ventes': ['Factures', 'Précommandes', 'Devis'],
-    'Catalogue': ['Catégories'],
-    'Caisse': ['Opérations', 'Clôtures', 'États'],
-    'Finance': ['Revenus', 'Dépenses', 'Rapports', 'Trésorerie'],
-    'Rapports': ['Ventes', 'Stock', 'Marges', 'Clients'],
-    'Paramètres': ['Profil', 'Utilisateurs', 'Rôles et permissions', 'Général']
-  };
-
-  const actionOptions = ['read', 'write', 'delete', 'export', 'import'];
-
-  return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-      <div className="space-y-2">
-        <Label htmlFor="menu">Menu *</Label>
-        <Select value={watch('menu')} onValueChange={value => setValue('menu', value)}>
-          <SelectTrigger>
-            <SelectValue placeholder="Sélectionner un menu" />
-          </SelectTrigger>
-          <SelectContent>
-            {menuOptions.map((menu) => (
-              <SelectItem key={menu} value={menu}>
-                {menu}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        {errors.menu && (
-          <p className="text-sm text-destructive">{errors.menu.message}</p>
-        )}
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="submenu">Sous-menu</Label>
-        <Select value={watch('submenu')} onValueChange={value => setValue('submenu', value)}>
-          <SelectTrigger>
-            <SelectValue placeholder="Sélectionner un sous-menu (optionnel)" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="">Aucun</SelectItem>
-            {(submenuOptions[watch('menu') as keyof typeof submenuOptions] || []).map((submenu) => (
-              <SelectItem key={submenu} value={submenu}>
-                {submenu}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="action">Action *</Label>
-        <Select value={selectedAction} onValueChange={value => setValue('action', value)}>
-          <SelectTrigger>
-            <SelectValue placeholder="Sélectionner une action" />
-          </SelectTrigger>
-          <SelectContent>
-            {actionOptions.map((action) => (
-              <SelectItem key={action} value={action}>
-                {action === 'read' ? 'Lecture' : 
-                 action === 'write' ? 'Écriture' : 
-                 action === 'delete' ? 'Suppression' : 
-                 action === 'export' ? 'Export' : 'Import'}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        {errors.action && (
-          <p className="text-sm text-destructive">{errors.action.message}</p>
-        )}
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="description">Description</Label>
-        <Textarea
-          id="description"
-          {...register("description")}
-          placeholder="Description de la permission"
-          rows={3}
-        />
-      </div>
-
-      <div className="flex justify-end space-x-2 pt-4">
-        <Button type="submit" disabled={createPermission.isPending || updatePermission.isPending}>
-          {permission ? 'Modifier' : 'Créer'}
-        </Button>
-      </div>
-    </form>
-  );
+const SUBMENUS_BY_MENU = {
+  'Stock': ['Entrepôts', 'PDV', 'Transferts', 'Entrées', 'Sorties'],
+  'Achats': ['Bons de commande', 'Bons de livraison', 'Factures'],
+  'Ventes': ['Factures', 'Précommandes', 'Devis', 'Vente au Comptoir', 'Retours'],
+  'Caisse': ['Opérations', 'Clôtures', 'Dépenses'],
+  'Rapports': ['Ventes', 'Stock', 'Marges', 'Clients'],
+  'Paramètres': ['Utilisateurs', 'Rôles et permissions', 'Fournisseurs']
 };
 
+const AVAILABLE_ACTIONS = ['read', 'write', 'delete'];
+
 export default function PermissionsTab() {
-  const [selectedPermission, setSelectedPermission] = useState<any>(null);
-  const [showCreateDialog, setShowCreateDialog] = useState(false);
-  const [showEditDialog, setShowEditDialog] = useState(false);
-  
+  const [searchTerm, setSearchTerm] = useState('');
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [editingPermission, setEditingPermission] = useState<any>(null);
+  const [newPermission, setNewPermission] = useState({
+    menu: '',
+    submenu: '',
+    action: '',
+    description: ''
+  });
+
   const { data: permissions = [], isLoading } = usePermissions();
+  const createPermission = useCreatePermission();
+  const updatePermission = useUpdatePermission();
   const deletePermission = useDeletePermission();
 
-  const handleDelete = async (permission: any) => {
-    if (window.confirm(`Êtes-vous sûr de vouloir supprimer la permission "${permission.menu} - ${permission.action}" ?`)) {
-      try {
-        await deletePermission.mutateAsync(permission.id);
-      } catch (error) {
-        console.error('Erreur lors de la suppression:', error);
-      }
+  const getActionIcon = (action: string) => {
+    switch (action) {
+      case 'read':
+        return <Eye className="h-3 w-3" />;
+      case 'write':
+        return <Edit className="h-3 w-3" />;
+      case 'delete':
+        return <Trash2 className="h-3 w-3" />;
+      default:
+        return <Settings className="h-3 w-3" />;
     }
   };
 
-  const handleEdit = (permission: any) => {
-    setSelectedPermission(permission);
-    setShowEditDialog(true);
+  const getActionColor = (action: string) => {
+    switch (action) {
+      case 'read':
+        return 'text-green-600 bg-green-50 border-green-200';
+      case 'write':
+        return 'text-blue-600 bg-blue-50 border-blue-200';
+      case 'delete':
+        return 'text-red-600 bg-red-50 border-red-200';
+      default:
+        return 'text-gray-600 bg-gray-50 border-gray-200';
+    }
   };
 
-  const handleSuccess = () => {
-    setShowCreateDialog(false);
-    setShowEditDialog(false);
-    setSelectedPermission(null);
+  const filteredPermissions = permissions.filter(permission => {
+    const searchLower = searchTerm.toLowerCase();
+    return (
+      permission.menu.toLowerCase().includes(searchLower) ||
+      (permission.submenu || '').toLowerCase().includes(searchLower) ||
+      permission.action.toLowerCase().includes(searchLower) ||
+      (permission.description || '').toLowerCase().includes(searchLower)
+    );
+  });
+
+  const groupedPermissions = filteredPermissions.reduce((acc, permission) => {
+    const key = permission.menu;
+    if (!acc[key]) {
+      acc[key] = [];
+    }
+    acc[key].push(permission);
+    return acc;
+  }, {} as Record<string, typeof permissions>);
+
+  const handleCreatePermission = async () => {
+    if (newPermission.menu && newPermission.action) {
+      await createPermission.mutateAsync({
+        menu: newPermission.menu,
+        submenu: newPermission.submenu || undefined,
+        action: newPermission.action,
+        description: newPermission.description || undefined
+      });
+      setNewPermission({ menu: '', submenu: '', action: '', description: '' });
+      setIsCreateDialogOpen(false);
+    }
+  };
+
+  const handleUpdatePermission = async () => {
+    if (editingPermission && editingPermission.menu && editingPermission.action) {
+      await updatePermission.mutateAsync({
+        id: editingPermission.id,
+        menu: editingPermission.menu,
+        submenu: editingPermission.submenu || undefined,
+        action: editingPermission.action,
+        description: editingPermission.description || undefined
+      });
+      setEditingPermission(null);
+    }
+  };
+
+  const handleDeletePermission = async (permissionId: string) => {
+    if (window.confirm('Êtes-vous sûr de vouloir supprimer cette permission ?')) {
+      await deletePermission.mutateAsync(permissionId);
+    }
   };
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-64">
+      <div className="flex items-center justify-center p-8">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        <span className="ml-2">Chargement des permissions...</span>
       </div>
     );
   }
 
   return (
     <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <div className="flex justify-between items-center">
-            <CardTitle className="flex items-center gap-2">
-              <Settings className="w-5 h-5" />
-              Gestion des Permissions
-            </CardTitle>
-            <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
-              <DialogTrigger asChild>
-                <Button>
-                  <Plus className="w-4 h-4 mr-2" />
-                  Nouvelle permission
+      <div className="flex items-center justify-between">
+        <div>
+          <h3 className="text-lg font-medium">Gestion des permissions</h3>
+          <p className="text-sm text-muted-foreground">
+            Créez et gérez les permissions individuelles du système
+          </p>
+        </div>
+        
+        <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+          <DialogTrigger asChild>
+            <Button>
+              <Plus className="h-4 w-4 mr-2" />
+              Nouvelle permission
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Créer une nouvelle permission</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="menu">Menu</Label>
+                  <Select 
+                    value={newPermission.menu}
+                    onValueChange={(value) => setNewPermission({ ...newPermission, menu: value, submenu: '' })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Sélectionner un menu" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {AVAILABLE_MENUS.map(menu => (
+                        <SelectItem key={menu} value={menu}>{menu}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label htmlFor="submenu">Sous-menu (optionnel)</Label>
+                  <Select 
+                    value={newPermission.submenu}
+                    onValueChange={(value) => setNewPermission({ ...newPermission, submenu: value })}
+                    disabled={!newPermission.menu || !SUBMENUS_BY_MENU[newPermission.menu]}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Sélectionner un sous-menu" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">Aucun sous-menu</SelectItem>
+                      {newPermission.menu && SUBMENUS_BY_MENU[newPermission.menu]?.map(submenu => (
+                        <SelectItem key={submenu} value={submenu}>{submenu}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div>
+                <Label htmlFor="action">Action</Label>
+                <Select 
+                  value={newPermission.action}
+                  onValueChange={(value) => setNewPermission({ ...newPermission, action: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Sélectionner une action" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {AVAILABLE_ACTIONS.map(action => (
+                      <SelectItem key={action} value={action}>
+                        <div className="flex items-center space-x-2">
+                          {getActionIcon(action)}
+                          <span className="capitalize">{action}</span>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label htmlFor="description">Description</Label>
+                <Textarea
+                  id="description"
+                  value={newPermission.description}
+                  onChange={(e) => setNewPermission({ ...newPermission, description: e.target.value })}
+                  placeholder="Description de cette permission"
+                />
+              </div>
+              <div className="flex justify-end space-x-2">
+                <Button 
+                  variant="outline" 
+                  onClick={() => setIsCreateDialogOpen(false)}
+                >
+                  Annuler
                 </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Créer une nouvelle permission</DialogTitle>
-                </DialogHeader>
-                <PermissionForm onSuccess={handleSuccess} />
-              </DialogContent>
-            </Dialog>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Menu</TableHead>
-                <TableHead>Sous-menu</TableHead>
-                <TableHead>Action</TableHead>
-                <TableHead>Description</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {permissions.map((permission) => (
-                <TableRow key={permission.id}>
-                  <TableCell className="font-medium">{permission.menu}</TableCell>
-                  <TableCell>{permission.submenu || '-'}</TableCell>
-                  <TableCell>
-                    <Badge variant="outline">
-                      {permission.action === 'read' ? 'Lecture' : 
-                       permission.action === 'write' ? 'Écriture' : 
-                       permission.action === 'delete' ? 'Suppression' : 
-                       permission.action === 'export' ? 'Export' : 
-                       permission.action === 'import' ? 'Import' : permission.action}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>{permission.description || '-'}</TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleEdit(permission)}
+                <Button 
+                  onClick={handleCreatePermission}
+                  disabled={createPermission.isPending}
+                >
+                  {createPermission.isPending ? 'Création...' : 'Créer'}
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      </div>
+
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+        <Input
+          placeholder="Rechercher des permissions..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="pl-10"
+        />
+      </div>
+
+      <div className="space-y-6">
+        {Object.entries(groupedPermissions).map(([menu, menuPermissions]) => (
+          <Card key={menu}>
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <Key className="h-5 w-5" />
+                <span>{menu}</span>
+                <Badge variant="outline">{menuPermissions.length} permission(s)</Badge>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {menuPermissions.map((permission) => (
+                  <div 
+                    key={permission.id}
+                    className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50"
+                  >
+                    <div className="flex items-center space-x-3">
+                      <Badge 
+                        variant="outline" 
+                        className={`${getActionColor(permission.action)} text-xs`}
                       >
-                        <Edit className="w-4 h-4" />
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleDelete(permission)}
-                        disabled={deletePermission.isPending}
+                        <div className="flex items-center space-x-1">
+                          {getActionIcon(permission.action)}
+                          <span className="capitalize">{permission.action}</span>
+                        </div>
+                      </Badge>
+                      <div>
+                        <p className="font-medium text-sm">
+                          {permission.menu}
+                          {permission.submenu && ` > ${permission.submenu}`}
+                        </p>
+                        {permission.description && (
+                          <p className="text-xs text-muted-foreground">
+                            {permission.description}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                    
+                    <div className="flex space-x-2">
+                      <Dialog 
+                        open={editingPermission?.id === permission.id} 
+                        onOpenChange={(open) => !open && setEditingPermission(null)}
                       >
-                        <Trash2 className="w-4 h-4" />
+                        <DialogTrigger asChild>
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => setEditingPermission({ ...permission })}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent>
+                          <DialogHeader>
+                            <DialogTitle>Modifier la permission</DialogTitle>
+                          </DialogHeader>
+                          <div className="space-y-4">
+                            <div className="grid grid-cols-2 gap-4">
+                              <div>
+                                <Label>Menu</Label>
+                                <Select 
+                                  value={editingPermission?.menu || ''}
+                                  onValueChange={(value) => setEditingPermission({ ...editingPermission, menu: value, submenu: '' })}
+                                >
+                                  <SelectTrigger>
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {AVAILABLE_MENUS.map(menu => (
+                                      <SelectItem key={menu} value={menu}>{menu}</SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                              <div>
+                                <Label>Sous-menu</Label>
+                                <Select 
+                                  value={editingPermission?.submenu || ''}
+                                  onValueChange={(value) => setEditingPermission({ ...editingPermission, submenu: value })}
+                                >
+                                  <SelectTrigger>
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="">Aucun sous-menu</SelectItem>
+                                    {editingPermission?.menu && SUBMENUS_BY_MENU[editingPermission.menu]?.map(submenu => (
+                                      <SelectItem key={submenu} value={submenu}>{submenu}</SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                            </div>
+                            <div>
+                              <Label>Action</Label>
+                              <Select 
+                                value={editingPermission?.action || ''}
+                                onValueChange={(value) => setEditingPermission({ ...editingPermission, action: value })}
+                              >
+                                <SelectTrigger>
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {AVAILABLE_ACTIONS.map(action => (
+                                    <SelectItem key={action} value={action}>
+                                      <div className="flex items-center space-x-2">
+                                        {getActionIcon(action)}
+                                        <span className="capitalize">{action}</span>
+                                      </div>
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                            <div>
+                              <Label>Description</Label>
+                              <Textarea
+                                value={editingPermission?.description || ''}
+                                onChange={(e) => setEditingPermission({ ...editingPermission, description: e.target.value })}
+                              />
+                            </div>
+                            <div className="flex justify-end space-x-2">
+                              <Button 
+                                variant="outline" 
+                                onClick={() => setEditingPermission(null)}
+                              >
+                                Annuler
+                              </Button>
+                              <Button 
+                                onClick={handleUpdatePermission}
+                                disabled={updatePermission.isPending}
+                              >
+                                {updatePermission.isPending ? 'Mise à jour...' : 'Mettre à jour'}
+                              </Button>
+                            </div>
+                          </div>
+                        </DialogContent>
+                      </Dialog>
+
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => handleDeletePermission(permission.id)}
+                        className="text-red-600 hover:text-red-700"
+                      >
+                        <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        ))}
 
-      <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Modifier la permission</DialogTitle>
-          </DialogHeader>
-          {selectedPermission && (
-            <PermissionForm permission={selectedPermission} onSuccess={handleSuccess} />
-          )}
-        </DialogContent>
-      </Dialog>
+        {filteredPermissions.length === 0 && (
+          <Card>
+            <CardContent className="text-center py-8">
+              <Key className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+              <h3 className="text-lg font-medium mb-2">
+                {searchTerm ? 'Aucun résultat' : 'Aucune permission'}
+              </h3>
+              <p className="text-muted-foreground mb-4">
+                {searchTerm 
+                  ? `Aucune permission ne correspond à "${searchTerm}"`
+                  : 'Aucune permission n\'est actuellement configurée.'
+                }
+              </p>
+              {!searchTerm && (
+                <Button onClick={() => setIsCreateDialogOpen(true)}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Créer une permission
+                </Button>
+              )}
+            </CardContent>
+          </Card>
+        )}
+      </div>
     </div>
   );
 }

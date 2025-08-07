@@ -44,25 +44,43 @@ export const useUserPermissions = () => {
           { menu: 'Stock', submenu: 'Entrepôts', action: 'write', can_access: true },
           { menu: 'Stock', submenu: 'PDV', action: 'read', can_access: true },
           { menu: 'Stock', submenu: 'PDV', action: 'write', can_access: true },
+          { menu: 'Stock', submenu: 'Transferts', action: 'read', can_access: true },
+          { menu: 'Stock', submenu: 'Transferts', action: 'write', can_access: true },
+          { menu: 'Achats', submenu: 'Bons de commande', action: 'read', can_access: true },
+          { menu: 'Achats', submenu: 'Bons de commande', action: 'write', can_access: true },
+          { menu: 'Achats', submenu: 'Bons de livraison', action: 'read', can_access: true },
+          { menu: 'Achats', submenu: 'Bons de livraison', action: 'write', can_access: true },
           { menu: 'Ventes', submenu: 'Factures', action: 'read', can_access: true },
           { menu: 'Ventes', submenu: 'Factures', action: 'write', can_access: true },
           { menu: 'Ventes', submenu: 'Précommandes', action: 'read', can_access: true },
           { menu: 'Ventes', submenu: 'Précommandes', action: 'write', can_access: true },
+          { menu: 'Ventes', submenu: 'Devis', action: 'read', can_access: true },
+          { menu: 'Ventes', submenu: 'Devis', action: 'write', can_access: true },
+          { menu: 'Ventes', submenu: 'Vente au Comptoir', action: 'read', can_access: true },
+          { menu: 'Ventes', submenu: 'Vente au Comptoir', action: 'write', can_access: true },
           { menu: 'Clients', action: 'read', can_access: true },
           { menu: 'Clients', action: 'write', can_access: true },
           { menu: 'Clients', action: 'delete', can_access: true },
           { menu: 'Caisse', submenu: 'Opérations', action: 'read', can_access: true },
           { menu: 'Caisse', submenu: 'Opérations', action: 'write', can_access: true },
+          { menu: 'Caisse', submenu: 'Clôtures', action: 'read', can_access: true },
+          { menu: 'Caisse', submenu: 'Clôtures', action: 'write', can_access: true },
           { menu: 'Rapports', submenu: 'Ventes', action: 'read', can_access: true },
+          { menu: 'Rapports', submenu: 'Stock', action: 'read', can_access: true },
           { menu: 'Rapports', submenu: 'Marges', action: 'read', can_access: true },
+          { menu: 'Rapports', submenu: 'Clients', action: 'read', can_access: true },
+          { menu: 'Paramètres', submenu: 'Utilisateurs', action: 'read', can_access: true },
+          { menu: 'Paramètres', submenu: 'Utilisateurs', action: 'write', can_access: true },
           { menu: 'Paramètres', submenu: 'Rôles et permissions', action: 'read', can_access: true },
-          { menu: 'Paramètres', submenu: 'Rôles et permissions', action: 'write', can_access: true }
+          { menu: 'Paramètres', submenu: 'Rôles et permissions', action: 'write', can_access: true },
+          { menu: 'Paramètres', submenu: 'Fournisseurs', action: 'read', can_access: true },
+          { menu: 'Paramètres', submenu: 'Fournisseurs', action: 'write', can_access: true }
         ] as UserPermission[];
       }
 
-      // En production, essayer de récupérer depuis Supabase
+      // En production, utiliser la nouvelle fonction RPC
       try {
-        console.log('📡 Récupération des permissions depuis Supabase...');
+        console.log('📡 Récupération des permissions via RPC get_user_permissions...');
         
         const { data, error } = await supabase
           .rpc('get_user_permissions', { user_uuid: user.id });
