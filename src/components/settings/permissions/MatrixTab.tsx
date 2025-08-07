@@ -11,7 +11,7 @@ import {
   Role
 } from '@/hooks/usePermissionsSystem';
 import { useGroupedMenusStructure } from '@/hooks/useMenusStructure';
-import { Settings, Eye, Edit, Trash2, Shield } from 'lucide-react';
+import { Settings, Eye, Edit, Trash2, Shield, Check, X, FileText, Download, Upload, AlertCircle, Lock } from 'lucide-react';
 
 export default function MatrixTab() {
   const [selectedRole, setSelectedRole] = useState<Role | null>(null);
@@ -55,8 +55,18 @@ export default function MatrixTab() {
         return <Edit className="h-3 w-3" />;
       case 'delete':
         return <Trash2 className="h-3 w-3" />;
+      case 'validate':
+        return <Check className="h-3 w-3" />;
+      case 'cancel':
+        return <X className="h-3 w-3" />;
+      case 'convert':
+        return <FileText className="h-3 w-3" />;
+      case 'export':
+        return <Download className="h-3 w-3" />;
+      case 'import':
+        return <Upload className="h-3 w-3" />;
       default:
-        return null;
+        return <Settings className="h-3 w-3" />;
     }
   };
 
@@ -68,6 +78,12 @@ export default function MatrixTab() {
         return 'Écriture';
       case 'delete':
         return 'Suppression';
+      case 'validate':
+        return 'Validation';
+      case 'cancel':
+        return 'Annulation';
+      case 'convert':
+        return 'Conversion';
       case 'export':
         return 'Export';
       case 'import':
@@ -85,10 +101,16 @@ export default function MatrixTab() {
         return 'text-blue-600 bg-blue-50 border-blue-200';
       case 'delete':
         return 'text-red-600 bg-red-50 border-red-200';
+      case 'validate':
+        return 'text-emerald-600 bg-emerald-50 border-emerald-200';
+      case 'cancel':
+        return 'text-orange-600 bg-orange-50 border-orange-200';
+      case 'convert':
+        return 'text-indigo-600 bg-indigo-50 border-indigo-200';
       case 'export':
         return 'text-purple-600 bg-purple-50 border-purple-200';
       case 'import':
-        return 'text-orange-600 bg-orange-50 border-orange-200';
+        return 'text-cyan-600 bg-cyan-50 border-cyan-200';
       default:
         return 'text-gray-600 bg-gray-50 border-gray-200';
     }
@@ -128,7 +150,7 @@ export default function MatrixTab() {
           Matrice des Permissions
         </h3>
         <p className="text-sm text-muted-foreground">
-          Configurez les permissions par rôle et menu
+          Configurez les permissions par rôle et menu - Structure complète avec tous les types d'actions
         </p>
       </div>
 
@@ -136,7 +158,7 @@ export default function MatrixTab() {
         <CardHeader>
           <CardTitle>Édition des Permissions par Rôle</CardTitle>
           <p className="text-sm text-muted-foreground">
-            Sélectionnez un rôle pour modifier ses permissions
+            Sélectionnez un rôle pour modifier ses permissions. Toutes les fonctionnalités de l'application sont représentées.
           </p>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -153,6 +175,7 @@ export default function MatrixTab() {
                 >
                   <Shield className="w-4 h-4 mr-2" />
                   {role.name}
+                  {role.is_system && <Lock className="w-3 h-3 ml-1" />}
                 </Button>
               ))}
             </div>
@@ -167,10 +190,18 @@ export default function MatrixTab() {
                     {selectedRole.name}
                   </Badge>
                   {isAdminRole && (
-                    <Badge variant="secondary">
+                    <Badge variant="secondary" className="flex items-center gap-1">
+                      <Lock className="w-3 h-3" />
                       Permissions système (lecture seule)
                     </Badge>
                   )}
+                </div>
+                <div className="text-sm text-muted-foreground">
+                  {menusStructure.reduce((total, menu) => 
+                    total + menu.sous_menus.reduce((subTotal, sousMenu) => 
+                      subTotal + sousMenu.permissions.length, 0
+                    ), 0
+                  )} permissions au total
                 </div>
               </div>
 
@@ -179,19 +210,26 @@ export default function MatrixTab() {
                   <div className="flex items-center gap-2 mb-4">
                     <div className="w-2 h-2 bg-primary rounded-full"></div>
                     <h4 className="font-semibold text-lg">{menu.menu_nom}</h4>
+                    <Badge variant="outline" className="ml-auto">
+                      {menu.sous_menus.reduce((total, sm) => total + sm.permissions.length, 0)} permission(s)
+                    </Badge>
                   </div>
 
                   <div className="space-y-4">
                     {menu.sous_menus.map((sousMenu) => (
                       <div key={`${menu.menu_id}-${sousMenu.sous_menu_id || 'main'}`} className="ml-4">
-                        <div className="font-medium mb-3 text-muted-foreground">
-                          {sousMenu.sous_menu_nom || 'Principal'}
+                        <div className="font-medium mb-3 text-muted-foreground flex items-center gap-2">
+                          <AlertCircle className="w-4 h-4" />
+                          {sousMenu.sous_menu_nom || 'Menu principal'}
                           {sousMenu.sous_menu_description && (
-                            <span className="text-xs ml-2">- {sousMenu.sous_menu_description}</span>
+                            <span className="text-xs">- {sousMenu.sous_menu_description}</span>
                           )}
+                          <Badge variant="outline" className="ml-auto text-xs">
+                            {sousMenu.permissions.length} action(s)
+                          </Badge>
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 ml-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 ml-4">
                           {sousMenu.permissions.map((permission) => {
                             const hasAccess = hasPermission(
                               selectedRole.id,
@@ -203,7 +241,9 @@ export default function MatrixTab() {
                             return (
                               <div
                                 key={permission.permission_id}
-                                className="flex items-center space-x-3 p-3 border rounded-lg hover:bg-muted/50"
+                                className={`flex items-center space-x-3 p-3 border rounded-lg transition-all hover:shadow-sm ${
+                                  hasAccess ? 'bg-green-50 border-green-200' : 'hover:bg-muted/50'
+                                }`}
                               >
                                 <Checkbox
                                   checked={hasAccess}
@@ -214,20 +254,24 @@ export default function MatrixTab() {
                                 />
                                 
                                 <div className="flex-1 min-w-0">
-                                  <div className="flex items-center space-x-2">
+                                  <div className="flex items-center space-x-2 mb-1">
                                     <Badge 
                                       variant="outline" 
-                                      className={`${getActionColor(permission.action)} text-xs`}
+                                      className={`${getActionColor(permission.action)} text-xs font-medium`}
                                     >
                                       <div className="flex items-center space-x-1">
                                         {getActionIcon(permission.action)}
-                                        <span>{getActionLabel(permission.action)}</span>
+                                        <span className="uppercase font-bold">{permission.action}</span>
                                       </div>
                                     </Badge>
                                   </div>
                                   
+                                  <div className="text-sm font-medium text-gray-700">
+                                    {getActionLabel(permission.action)}
+                                  </div>
+                                  
                                   {permission.permission_description && (
-                                    <p className="text-xs text-muted-foreground mt-1 truncate">
+                                    <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
                                       {permission.permission_description}
                                     </p>
                                   )}
@@ -246,6 +290,7 @@ export default function MatrixTab() {
                 <div className="text-center py-8 text-muted-foreground">
                   <Settings className="h-12 w-12 mx-auto mb-4 opacity-50" />
                   <p>Aucune permission trouvée</p>
+                  <p className="text-xs mt-1">La structure des permissions n'a pas pu être chargée</p>
                 </div>
               )}
             </div>
@@ -258,6 +303,11 @@ export default function MatrixTab() {
               <p className="text-sm text-muted-foreground">
                 Choisissez un rôle ci-dessus pour modifier ses permissions
               </p>
+              <div className="mt-4 text-xs text-muted-foreground">
+                <p>Structure complète disponible :</p>
+                <p>• Dashboard, Catalogue, Stock, Achats, Ventes, Clients, Caisse, Rapports, Paramètres</p>
+                <p>• Actions : Lecture, Écriture, Suppression, Validation, Export, Import, etc.</p>
+              </div>
             </div>
           )}
         </CardContent>

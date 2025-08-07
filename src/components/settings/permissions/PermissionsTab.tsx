@@ -9,7 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Plus, Settings, Eye, Edit, Trash2, RefreshCw } from 'lucide-react';
+import { Plus, Settings, Eye, Edit, Trash2, RefreshCw, Check, X, FileText, Download, Upload, AlertCircle } from 'lucide-react';
 import { useGroupedMenusStructure } from '@/hooks/useMenusStructure';
 import { useCreatePermission, useUpdatePermission, useDeletePermission } from '@/hooks/usePermissionsSystem';
 import { toast } from 'sonner';
@@ -70,6 +70,16 @@ export default function PermissionsTab() {
         return <Edit className="h-3 w-3" />;
       case 'delete':
         return <Trash2 className="h-3 w-3" />;
+      case 'validate':
+        return <Check className="h-3 w-3" />;
+      case 'cancel':
+        return <X className="h-3 w-3" />;
+      case 'convert':
+        return <FileText className="h-3 w-3" />;
+      case 'export':
+        return <Download className="h-3 w-3" />;
+      case 'import':
+        return <Upload className="h-3 w-3" />;
       default:
         return <Settings className="h-3 w-3" />;
     }
@@ -83,6 +93,12 @@ export default function PermissionsTab() {
         return 'Gérer';
       case 'delete':
         return 'Supprimer';
+      case 'validate':
+        return 'Valider';
+      case 'cancel':
+        return 'Annuler';
+      case 'convert':
+        return 'Convertir';
       case 'export':
         return 'Exporter';
       case 'import':
@@ -100,14 +116,30 @@ export default function PermissionsTab() {
         return 'bg-blue-100 text-blue-800 border-blue-200';
       case 'delete':
         return 'bg-red-100 text-red-800 border-red-200';
+      case 'validate':
+        return 'bg-emerald-100 text-emerald-800 border-emerald-200';
+      case 'cancel':
+        return 'bg-orange-100 text-orange-800 border-orange-200';
+      case 'convert':
+        return 'bg-indigo-100 text-indigo-800 border-indigo-200';
       case 'export':
         return 'bg-purple-100 text-purple-800 border-purple-200';
       case 'import':
-        return 'bg-orange-100 text-orange-800 border-orange-200';
+        return 'bg-cyan-100 text-cyan-800 border-cyan-200';
       default:
         return 'bg-gray-100 text-gray-800 border-gray-200';
     }
   };
+
+  // Calculer les statistiques totales
+  const totalPermissions = menusStructure.reduce((total, menu) => 
+    total + menu.sous_menus.reduce((subTotal, sousMenu) => 
+      subTotal + sousMenu.permissions.length, 0
+    ), 0
+  );
+
+  const totalMenus = menusStructure.length;
+  const totalSousMenus = menusStructure.reduce((total, menu) => total + menu.sous_menus.length, 0);
 
   if (isLoading) {
     return (
@@ -126,6 +158,20 @@ export default function PermissionsTab() {
           <p className="text-sm text-muted-foreground">
             Structure complète des menus, sous-menus et leurs permissions
           </p>
+          <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
+            <span className="flex items-center gap-1">
+              <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+              {totalMenus} menus
+            </span>
+            <span className="flex items-center gap-1">
+              <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+              {totalSousMenus} sous-menus
+            </span>
+            <span className="flex items-center gap-1">
+              <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
+              {totalPermissions} permissions
+            </span>
+          </div>
         </div>
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" onClick={() => refetch()}>
@@ -150,7 +196,7 @@ export default function PermissionsTab() {
                     id="menu"
                     value={newPermission.menu}
                     onChange={(e) => setNewPermission(prev => ({ ...prev, menu: e.target.value }))}
-                    placeholder="Ex: Achats"
+                    placeholder="Ex: Ventes"
                   />
                 </div>
                 <div>
@@ -159,7 +205,7 @@ export default function PermissionsTab() {
                     id="submenu"
                     value={newPermission.submenu}
                     onChange={(e) => setNewPermission(prev => ({ ...prev, submenu: e.target.value }))}
-                    placeholder="Ex: Bons de commande"
+                    placeholder="Ex: Factures"
                   />
                 </div>
                 <div>
@@ -172,6 +218,9 @@ export default function PermissionsTab() {
                       <SelectItem value="read">Consulter (read)</SelectItem>
                       <SelectItem value="write">Gérer (write)</SelectItem>
                       <SelectItem value="delete">Supprimer (delete)</SelectItem>
+                      <SelectItem value="validate">Valider (validate)</SelectItem>
+                      <SelectItem value="cancel">Annuler (cancel)</SelectItem>
+                      <SelectItem value="convert">Convertir (convert)</SelectItem>
                       <SelectItem value="export">Exporter (export)</SelectItem>
                       <SelectItem value="import">Importer (import)</SelectItem>
                     </SelectContent>
@@ -212,11 +261,15 @@ export default function PermissionsTab() {
                   {menu.sous_menus.reduce((total, sm) => total + sm.permissions.length, 0)} permission(s)
                 </Badge>
               </CardTitle>
+              {menu.description && (
+                <p className="text-sm text-muted-foreground mt-1">{menu.description}</p>
+              )}
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
                 {menu.sous_menus.length === 0 ? (
                   <div className="text-center py-4 text-muted-foreground">
+                    <AlertCircle className="h-8 w-8 mx-auto mb-2 opacity-50" />
                     Aucun sous-menu ou permission défini pour ce menu
                   </div>
                 ) : (
@@ -224,12 +277,16 @@ export default function PermissionsTab() {
                     <div key={sousMenu.sous_menu_id || `no-submenu-${index}`} className="border rounded-lg p-4">
                       <div className="mb-3">
                         <h4 className="font-medium flex items-center gap-2">
+                          <AlertCircle className="w-4 h-4" />
                           Sous-menu : {sousMenu.sous_menu_nom || '(Menu principal)'}
                           {sousMenu.sous_menu_description && (
                             <span className="text-sm text-muted-foreground">
                               - {sousMenu.sous_menu_description}
                             </span>
                           )}
+                          <Badge variant="secondary" className="ml-auto">
+                            {sousMenu.permissions.length} action(s)
+                          </Badge>
                         </h4>
                       </div>
                       
@@ -253,11 +310,11 @@ export default function PermissionsTab() {
                                 <TableCell>
                                   <Badge 
                                     variant="outline" 
-                                    className={`${getActionColor(permission.action)} text-xs`}
+                                    className={`${getActionColor(permission.action)} text-xs font-medium`}
                                   >
                                     <div className="flex items-center space-x-1">
                                       {getActionIcon(permission.action)}
-                                      <span className="uppercase">{permission.action}</span>
+                                      <span className="uppercase font-bold">{permission.action}</span>
                                     </div>
                                   </Badge>
                                 </TableCell>
