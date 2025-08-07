@@ -1,10 +1,9 @@
 
-import React, { useState } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import React from 'react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { useUsersByRole } from '@/hooks/useRoleCards';
 import { Users, User } from 'lucide-react';
 
 interface RoleUsersDialogProps {
@@ -13,39 +12,12 @@ interface RoleUsersDialogProps {
     name: string;
     description?: string;
   };
-  children: React.ReactNode;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
 }
 
-const RoleUsersDialog = ({ role, children }: RoleUsersDialogProps) => {
-  const [isOpen, setIsOpen] = useState(false);
-
-  // Récupérer les utilisateurs ayant ce rôle via la fonction PostgreSQL optimisée
-  const { data: usersWithRole = [], isLoading } = useQuery({
-    queryKey: ['role-users', role.id],
-    queryFn: async () => {
-      console.log('🔍 Fetching users for role:', role.id, role.name);
-      
-      try {
-        // Utiliser la fonction PostgreSQL optimisée
-        const { data, error } = await supabase
-          .rpc('get_users_by_role', { role_uuid: role.id });
-
-        if (error) {
-          console.error('❌ Error fetching users for role:', error);
-          throw error;
-        }
-
-        console.log('✅ Users fetched via PostgreSQL function:', data?.length || 0);
-        console.log('👥 Users details:', data);
-        
-        return data || [];
-      } catch (error) {
-        console.error('💥 Critical error fetching users for role:', error);
-        throw error;
-      }
-    },
-    enabled: isOpen
-  });
+const RoleUsersDialog = ({ role, open, onOpenChange }: RoleUsersDialogProps) => {
+  const { data: usersWithRole = [], isLoading } = useUsersByRole(role.id);
 
   const getRoleColor = (roleName: string) => {
     switch (roleName.toLowerCase()) {
@@ -54,19 +26,16 @@ const RoleUsersDialog = ({ role, children }: RoleUsersDialogProps) => {
       case 'manager':
         return 'bg-blue-50 text-blue-700 border-blue-200';
       case 'vendeur':
-        return 'bg-green-50 text-green-700 border-green-200';
-      case 'caissier':
         return 'bg-purple-50 text-purple-700 border-purple-200';
+      case 'caissier':
+        return 'bg-green-50 text-green-700 border-green-200';
       default:
         return 'bg-gray-50 text-gray-700 border-gray-200';
     }
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogTrigger asChild>
-        {children}
-      </DialogTrigger>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center space-x-2">
@@ -99,6 +68,7 @@ const RoleUsersDialog = ({ role, children }: RoleUsersDialogProps) => {
                     <div>
                       <p className="font-medium">{user.prenom} {user.nom}</p>
                       <p className="text-sm text-muted-foreground">{user.email}</p>
+                      <p className="text-xs text-muted-foreground">Matricule: {user.matricule}</p>
                     </div>
                   </div>
                   <div className="flex items-center space-x-2">
@@ -124,7 +94,7 @@ const RoleUsersDialog = ({ role, children }: RoleUsersDialogProps) => {
         </div>
 
         <div className="flex justify-end pt-4">
-          <Button variant="outline" onClick={() => setIsOpen(false)}>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
             Fermer
           </Button>
         </div>
