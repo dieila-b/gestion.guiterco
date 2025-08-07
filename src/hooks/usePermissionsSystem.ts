@@ -18,6 +18,8 @@ export interface Permission {
   action: string;
   description?: string;
   created_at?: string;
+  menu_id?: string;
+  sous_menu_id?: string;
 }
 
 export interface RolePermission {
@@ -26,6 +28,10 @@ export interface RolePermission {
   permission_id: string;
   can_access: boolean;
   created_at?: string;
+  // Champs dénormalisés pour faciliter les requêtes
+  permission_menu?: string;
+  permission_submenu?: string;
+  permission_action?: string;
 }
 
 export interface UserWithRole {
@@ -86,18 +92,33 @@ export const useRolePermissions = () => {
   return useQuery({
     queryKey: ['role-permissions'],
     queryFn: async () => {
-      console.log('🔍 Fetching role permissions from Supabase...');
+      console.log('🔍 Fetching role permissions with details from Supabase...');
       const { data, error } = await supabase
         .from('role_permissions')
-        .select('*');
+        .select(`
+          *,
+          permissions!inner(
+            menu,
+            submenu,
+            action
+          )
+        `);
 
       if (error) {
         console.error('❌ Error fetching role permissions:', error);
         throw error;
       }
       
-      console.log('✅ Role permissions fetched:', data?.length || 0);
-      return data as RolePermission[];
+      // Transformer les données pour inclure les informations de permission dénormalisées
+      const enrichedData = data?.map(rp => ({
+        ...rp,
+        permission_menu: rp.permissions?.menu,
+        permission_submenu: rp.permissions?.submenu,
+        permission_action: rp.permissions?.action,
+      })) || [];
+      
+      console.log('✅ Role permissions fetched:', enrichedData.length);
+      return enrichedData as RolePermission[];
     }
   });
 };
