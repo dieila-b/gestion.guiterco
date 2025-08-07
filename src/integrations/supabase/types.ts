@@ -1803,6 +1803,36 @@ export type Database = {
         }
         Relationships: []
       }
+      menus: {
+        Row: {
+          created_at: string | null
+          icone: string | null
+          id: string
+          nom: string
+          ordre: number | null
+          statut: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          icone?: string | null
+          id?: string
+          nom: string
+          ordre?: number | null
+          statut?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          icone?: string | null
+          id?: string
+          nom?: string
+          ordre?: number | null
+          statut?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       notifications_precommandes: {
         Row: {
           created_at: string
@@ -1964,6 +1994,8 @@ export type Database = {
           description: string | null
           id: string
           menu: string
+          menu_id: string | null
+          sous_menu_id: string | null
           submenu: string | null
         }
         Insert: {
@@ -1972,6 +2004,8 @@ export type Database = {
           description?: string | null
           id?: string
           menu: string
+          menu_id?: string | null
+          sous_menu_id?: string | null
           submenu?: string | null
         }
         Update: {
@@ -1980,9 +2014,26 @@ export type Database = {
           description?: string | null
           id?: string
           menu?: string
+          menu_id?: string | null
+          sous_menu_id?: string | null
           submenu?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "permissions_menu_id_fkey"
+            columns: ["menu_id"]
+            isOneToOne: false
+            referencedRelation: "menus"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "permissions_sous_menu_id_fkey"
+            columns: ["sous_menu_id"]
+            isOneToOne: false
+            referencedRelation: "sous_menus"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       points_de_vente: {
         Row: {
@@ -2523,6 +2574,47 @@ export type Database = {
             columns: ["entrepot_id"]
             isOneToOne: false
             referencedRelation: "entrepots"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sous_menus: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          menu_id: string
+          nom: string
+          ordre: number | null
+          statut: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          menu_id: string
+          nom: string
+          ordre?: number | null
+          statut?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          menu_id?: string
+          nom?: string
+          ordre?: number | null
+          statut?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sous_menus_menu_id_fkey"
+            columns: ["menu_id"]
+            isOneToOne: false
+            referencedRelation: "menus"
             referencedColumns: ["id"]
           },
         ]
@@ -3653,6 +3745,22 @@ export type Database = {
           restant: number
           statut_paiement: string
           statut_livraison: string
+        }[]
+      }
+      get_permissions_structure: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          menu_id: string
+          menu_nom: string
+          menu_icone: string
+          menu_ordre: number
+          sous_menu_id: string
+          sous_menu_nom: string
+          sous_menu_description: string
+          sous_menu_ordre: number
+          permission_id: string
+          action: string
+          permission_description: string
         }[]
       }
       get_precommande_quantities: {

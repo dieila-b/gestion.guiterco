@@ -1,4 +1,3 @@
-
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -336,12 +335,22 @@ export const useCreatePermission = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (permissionData: Omit<Permission, 'id' | 'created_at'>) => {
+    mutationFn: async (permissionData: { 
+      menu: string; 
+      submenu?: string; 
+      action: string; 
+      description?: string;
+    }) => {
       console.log('🔄 Creating permission:', permissionData);
       
       const { data, error } = await supabase
         .from('permissions')
-        .insert(permissionData)
+        .insert({
+          menu: permissionData.menu,
+          submenu: permissionData.submenu || null,
+          action: permissionData.action,
+          description: permissionData.description || null
+        })
         .select()
         .single();
 
@@ -355,6 +364,7 @@ export const useCreatePermission = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['permissions'] });
+      queryClient.invalidateQueries({ queryKey: ['menus-structure'] });
       toast.success('Permission créée avec succès');
     },
     onError: (error: any) => {
@@ -388,6 +398,7 @@ export const useUpdatePermission = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['permissions'] });
+      queryClient.invalidateQueries({ queryKey: ['menus-structure'] });
       toast.success('Permission modifiée avec succès');
     },
     onError: (error: any) => {
@@ -418,6 +429,7 @@ export const useDeletePermission = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['permissions'] });
+      queryClient.invalidateQueries({ queryKey: ['menus-structure'] });
       queryClient.invalidateQueries({ queryKey: ['role-permissions'] });
       toast.success('Permission supprimée avec succès');
     },
