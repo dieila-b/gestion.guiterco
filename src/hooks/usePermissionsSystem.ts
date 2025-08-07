@@ -62,7 +62,7 @@ export const useMenusPermissionsStructure = () => {
       }
       
       console.log('✅ Permissions structure fetched:', data?.length || 0);
-      return data;
+      return data || [];
     }
   });
 };
@@ -84,7 +84,7 @@ export const useRoles = () => {
       }
       
       console.log('✅ Roles fetched:', data?.length || 0);
-      return data as Role[];
+      return (data || []) as Role[];
     }
   });
 };
@@ -106,7 +106,7 @@ export const usePermissions = () => {
       }
       
       console.log('✅ Permissions fetched:', data?.length || 0);
-      return data as Permission[];
+      return (data || []) as Permission[];
     }
   });
 };
@@ -120,7 +120,16 @@ export const useRolePermissions = (roleId?: string) => {
       
       console.log('🔍 Fetching role permissions for role:', roleId);
       const { data, error } = await supabase
-        .rpc('get_role_permissions', { p_role_id: roleId });
+        .from('role_permissions')
+        .select(`
+          *,
+          permissions!inner(
+            menu,
+            submenu,
+            action
+          )
+        `)
+        .eq('role_id', roleId);
 
       if (error) {
         console.error('❌ Error fetching role permissions:', error);
@@ -128,7 +137,7 @@ export const useRolePermissions = (roleId?: string) => {
       }
       
       console.log('✅ Role permissions fetched:', data?.length || 0);
-      return data;
+      return (data || []) as RolePermission[];
     },
     enabled: !!roleId
   });
@@ -157,12 +166,12 @@ export const useAllRolePermissions = () => {
       }
       
       // Transformer les données pour inclure les informations de permission dénormalisées
-      const enrichedData = data?.map(rp => ({
+      const enrichedData = (data || []).map(rp => ({
         ...rp,
-        permission_menu: rp.permissions?.menu,
-        permission_submenu: rp.permissions?.submenu,
-        permission_action: rp.permissions?.action,
-      })) || [];
+        permission_menu: (rp.permissions as any)?.menu,
+        permission_submenu: (rp.permissions as any)?.submenu,
+        permission_action: (rp.permissions as any)?.action,
+      }));
       
       console.log('✅ All role permissions fetched:', enrichedData.length);
       return enrichedData as RolePermission[];
@@ -444,7 +453,7 @@ export const useUsersWithRoles = () => {
       }
       
       console.log('✅ Users with roles fetched:', data?.length || 0);
-      return data as UserWithRole[];
+      return (data || []) as UserWithRole[];
     }
   });
 };
