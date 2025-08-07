@@ -40,7 +40,7 @@ export const useMenusStructure = () => {
   return useQuery({
     queryKey: ['menus-structure'],
     queryFn: async () => {
-      console.log('🔍 Récupération de la structure des menus...');
+      console.log('🔍 Récupération de la structure complète des menus...');
       
       const { data, error } = await supabase.rpc('get_permissions_structure');
 
@@ -49,7 +49,7 @@ export const useMenusStructure = () => {
         throw error;
       }
 
-      console.log('✅ Structure récupérée:', data?.length || 0, 'éléments');
+      console.log('✅ Structure complète récupérée:', data?.length || 0, 'éléments');
       return data as MenuStructure[];
     }
   });
@@ -124,8 +124,14 @@ function groupMenusStructure(data: MenuStructure[]): GroupedMenuStructure[] {
         .map(sousMenu => ({
           ...sousMenu,
           permissions: sousMenu.permissions.sort((a, b) => {
-            const order = { read: 1, write: 2, delete: 3, validate: 4, cancel: 5, convert: 6, export: 7, import: 8 };
-            return (order[a.action as keyof typeof order] || 99) - (order[b.action as keyof typeof order] || 99);
+            const order = { 
+              read: 1, write: 2, delete: 3, validate: 4, cancel: 5, 
+              convert: 6, export: 7, import: 8, print: 9, close: 10,
+              reopen: 11, transfer: 12, receive: 13, deliver: 14,
+              invoice: 15, payment: 16
+            };
+            return (order[a.action as keyof typeof order] || 99) - 
+                   (order[b.action as keyof typeof order] || 99);
           })
         }))
     }));
