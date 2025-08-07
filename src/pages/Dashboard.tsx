@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { StrictPermissionGuard } from '@/components/auth/StrictPermissionGuard';
-import DashboardContent from '@/components/dashboard/DashboardContent';
+import NewDashboard from '@/components/dashboard/NewDashboard';
 
 const Dashboard = () => {
   return (
@@ -10,7 +10,7 @@ const Dashboard = () => {
         <div className="flex items-center justify-between">
           <h1 className="text-3xl font-bold tracking-tight">Tableau de bord</h1>
         </div>
-        <DashboardContent />
+        <NewDashboard />
       </div>
     </StrictPermissionGuard>
   );
