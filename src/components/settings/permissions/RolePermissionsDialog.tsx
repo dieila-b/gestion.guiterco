@@ -1,12 +1,12 @@
-
 import React, { useState } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useRolePermissions, usePermissions, useUpdateRolePermissions } from '@/hooks/usePermissions';
 import { Settings, Eye, Edit, Trash2, Save } from 'lucide-react';
 
+// STRUCTURE SYNCHRONISÉE AVEC PermissionsMatrix et PermissionsManagement
 const APPLICATION_MENUS = [
   {
     menu: 'Dashboard',
@@ -33,6 +33,42 @@ const APPLICATION_MENUS = [
     description: 'Gestion des stocks points de vente'
   },
   {
+    menu: 'Stock',
+    submenu: 'Transferts',
+    actions: ['read', 'write'],
+    description: 'Gestion des transferts de stock'
+  },
+  {
+    menu: 'Stock',
+    submenu: 'Entrées',
+    actions: ['read', 'write'],
+    description: 'Gestion des entrées de stock'
+  },
+  {
+    menu: 'Stock',
+    submenu: 'Sorties',
+    actions: ['read', 'write'],
+    description: 'Gestion des sorties de stock'
+  },
+  {
+    menu: 'Achats',
+    submenu: 'Bons de commande',
+    actions: ['read', 'write'],
+    description: 'Gestion des bons de commande'
+  },
+  {
+    menu: 'Achats',
+    submenu: 'Bons de livraison',
+    actions: ['read', 'write'],
+    description: 'Gestion des bons de livraison'
+  },
+  {
+    menu: 'Achats',
+    submenu: 'Factures',
+    actions: ['read', 'write'],
+    description: 'Gestion des factures d\'achat'
+  },
+  {
     menu: 'Ventes',
     submenu: 'Factures',
     actions: ['read', 'write'],
@@ -45,34 +81,94 @@ const APPLICATION_MENUS = [
     description: 'Gestion des précommandes'
   },
   {
+    menu: 'Ventes',
+    submenu: 'Devis',
+    actions: ['read', 'write'],
+    description: 'Gestion des devis'
+  },
+  {
+    menu: 'Ventes',
+    submenu: 'Vente au Comptoir',
+    actions: ['read', 'write'],
+    description: 'Gestion des ventes au comptoir'
+  },
+  {
+    menu: 'Ventes',
+    submenu: 'Factures impayées',
+    actions: ['read', 'write'],
+    description: 'Gestion des factures impayées'
+  },
+  {
+    menu: 'Ventes',
+    submenu: 'Retours Clients',
+    actions: ['read', 'write'],
+    description: 'Gestion des retours clients'
+  },
+  {
     menu: 'Clients',
     submenu: null,
     actions: ['read', 'write'],
     description: 'Gestion des clients'
   },
   {
-    menu: 'Caisse',
-    submenu: 'Opérations',
+    menu: 'Clients',
+    submenu: 'Clients',
     actions: ['read', 'write'],
-    description: 'Opérations de caisse'
+    description: 'Gestion détaillée des clients'
+  },
+  {
+    menu: 'Caisse',
+    submenu: null,
+    actions: ['read', 'write'],
+    description: 'Gestion de la caisse'
+  },
+  {
+    menu: 'Caisse',
+    submenu: 'Dépenses',
+    actions: ['read', 'write'],
+    description: 'Gestion des dépenses de caisse'
+  },
+  {
+    menu: 'Caisse',
+    submenu: 'Aperçu du jour',
+    actions: ['read'],
+    description: 'Consultation de l\'aperçu journalier'
+  },
+  {
+    menu: 'Marges',
+    submenu: null,
+    actions: ['read'],
+    description: 'Consultation des marges'
   },
   {
     menu: 'Rapports',
-    submenu: 'Ventes',
-    actions: ['read'],
-    description: 'Rapports des ventes'
-  },
-  {
-    menu: 'Rapports',
-    submenu: 'Marges',
-    actions: ['read'],
-    description: 'Rapports des marges'
+    submenu: null,
+    actions: ['read', 'write'],
+    description: 'Génération de rapports'
   },
   {
     menu: 'Paramètres',
-    submenu: 'Rôles et permissions',
+    submenu: null,
+    actions: ['read', 'write'],
+    description: 'Accès aux paramètres généraux'
+  },
+  {
+    menu: 'Paramètres',
+    submenu: 'Utilisateurs',
+    actions: ['read', 'write'],
+    description: 'Gestion des utilisateurs'
+  },
+  {
+    menu: 'Paramètres',
+    submenu: 'Permissions',
     actions: ['read', 'write'],
     description: 'Gestion des permissions'
+  },
+  {
+    menu: 'Paramètres',
+    submenu: 'Fournisseurs',
+    actions: ['read', 'write'],
+    description: 'Gestion des fournisseurs'
   }
 ];
 
@@ -83,11 +179,11 @@ interface RolePermissionsDialogProps {
     description?: string;
     is_system?: boolean;
   };
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
+  children: React.ReactNode;
 }
 
-const RolePermissionsDialog = ({ role, open, onOpenChange }: RolePermissionsDialogProps) => {
+const RolePermissionsDialog = ({ role, children }: RolePermissionsDialogProps) => {
+  const [isOpen, setIsOpen] = useState(false);
   const [pendingChanges, setPendingChanges] = useState<Record<string, boolean>>({});
 
   const { data: permissions = [], isLoading: permissionsLoading } = usePermissions();
@@ -144,7 +240,7 @@ const RolePermissionsDialog = ({ role, open, onOpenChange }: RolePermissionsDial
 
       setPendingChanges({});
       await refetchRolePermissions();
-      onOpenChange(false);
+      setIsOpen(false);
     } catch (error) {
       console.error('❌ Error updating permissions:', error);
     }
@@ -180,7 +276,10 @@ const RolePermissionsDialog = ({ role, open, onOpenChange }: RolePermissionsDial
   const hasPendingChanges = Object.keys(pendingChanges).length > 0;
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+      <DialogTrigger asChild>
+        {children}
+      </DialogTrigger>
       <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
         <DialogHeader>
           <div className="flex items-center justify-between">
@@ -279,7 +378,7 @@ const RolePermissionsDialog = ({ role, open, onOpenChange }: RolePermissionsDial
         </div>
 
         <div className="flex justify-between pt-4 border-t">
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+          <Button variant="outline" onClick={() => setIsOpen(false)}>
             Annuler
           </Button>
           <Button 

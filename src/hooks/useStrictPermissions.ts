@@ -60,7 +60,7 @@ export const useUserPermissions = () => {
         ] as UserPermission[];
       }
 
-      // En production, utiliser la nouvelle fonction RPC
+      // En production, essayer de récupérer depuis Supabase
       try {
         console.log('📡 Récupération des permissions depuis Supabase...');
         
