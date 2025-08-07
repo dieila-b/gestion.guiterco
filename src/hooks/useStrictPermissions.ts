@@ -31,9 +31,9 @@ export const useUserPermissions = () => {
         return [];
       }
 
-      // En mode développement avec bypass, donner TOUTES les permissions
-      if (isDevMode && bypassAuth) {
-        console.log('🚀 Mode dev avec bypass - TOUTES permissions accordées');
+      // EN MODE DÉVELOPPEMENT - TOUTES LES PERMISSIONS IMMÉDIATEMENT
+      if (isDevMode) {
+        console.log('🚀 MODE DEV - TOUTES PERMISSIONS ACCORDÉES AUTOMATIQUEMENT');
         return [
           { menu: 'Dashboard', action: 'read', can_access: true },
           { menu: 'Dashboard', action: 'write', can_access: true },
@@ -45,6 +45,8 @@ export const useUserPermissions = () => {
           { menu: 'Stock', submenu: 'PDV', action: 'write', can_access: true },
           { menu: 'Ventes', submenu: 'Factures', action: 'read', can_access: true },
           { menu: 'Ventes', submenu: 'Factures', action: 'write', can_access: true },
+          { menu: 'Ventes', submenu: 'Précommandes', action: 'read', can_access: true },
+          { menu: 'Ventes', submenu: 'Précommandes', action: 'write', can_access: true },
           { menu: 'Clients', action: 'read', can_access: true },
           { menu: 'Clients', action: 'write', can_access: true },
           { menu: 'Paramètres', submenu: 'Rôles et permissions', action: 'read', can_access: true },
@@ -52,44 +54,16 @@ export const useUserPermissions = () => {
         ] as UserPermission[];
       }
 
-      // En mode développement même sans bypass, donner les permissions essentielles
-      if (isDevMode) {
-        console.log('🚀 Mode dev - permissions essentielles accordées');
-        return [
-          { menu: 'Dashboard', action: 'read', can_access: true },
-          { menu: 'Catalogue', action: 'read', can_access: true },
-          { menu: 'Stock', submenu: 'Entrepôts', action: 'read', can_access: true },
-          { menu: 'Stock', submenu: 'PDV', action: 'read', can_access: true },
-          { menu: 'Ventes', submenu: 'Factures', action: 'read', can_access: true },
-          { menu: 'Clients', action: 'read', can_access: true }
-        ] as UserPermission[];
-      }
-
+      // En production, essayer de récupérer depuis Supabase
       try {
         console.log('📡 Récupération des permissions depuis Supabase...');
         
-        // Utiliser la fonction Supabase pour obtenir les permissions
         const { data, error } = await supabase
           .rpc('get_user_permissions', { user_uuid: user.id });
 
         if (error) {
           console.error('❌ Erreur RPC get_user_permissions:', error);
-          
-          // Fallback : essayer de récupérer via la vue directement
-          console.log('🔄 Fallback vers vue_permissions_utilisateurs...');
-          const { data: fallbackData, error: fallbackError } = await supabase
-            .from('vue_permissions_utilisateurs')
-            .select('menu, submenu, action, can_access')
-            .eq('user_id', user.id)
-            .eq('can_access', true);
-
-          if (fallbackError) {
-            console.error('❌ Erreur fallback:', fallbackError);
-            return [];
-          }
-
-          console.log('✅ Permissions récupérées (fallback):', fallbackData);
-          return fallbackData as UserPermission[];
+          return [];
         }
 
         console.log('✅ Permissions récupérées (RPC):', data);
@@ -101,8 +75,8 @@ export const useUserPermissions = () => {
       }
     },
     enabled: !!user?.id,
-    retry: 2,
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    retry: 1,
+    staleTime: 5 * 60 * 1000,
     refetchOnWindowFocus: false,
   });
 };
@@ -113,15 +87,9 @@ export const useHasPermission = () => {
   const { bypassAuth } = useDevMode();
 
   const hasPermission = (menu: string, submenu?: string, action: string = 'read'): boolean => {
-    // En mode développement avec bypass, TOUJOURS autoriser
-    if (isDevMode && bypassAuth && user) {
-      console.log(`✅ Permission check (dev mode bypass): ${menu}${submenu ? ` > ${submenu}` : ''} (${action}) - GRANTED`);
-      return true;
-    }
-
-    // En mode développement avec utilisateur connecté, être permissif
-    if (isDevMode && user) {
-      console.log(`✅ Permission check (dev mode): ${menu}${submenu ? ` > ${submenu}` : ''} (${action}) - GRANTED`);
+    // EN MODE DÉVELOPPEMENT - TOUJOURS AUTORISER
+    if (isDevMode) {
+      console.log(`✅ Permission check (MODE DEV): ${menu}${submenu ? ` > ${submenu}` : ''} (${action}) - ACCORDÉ AUTOMATIQUEMENT`);
       return true;
     }
     

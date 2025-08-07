@@ -35,15 +35,9 @@ export const StrictPermissionGuard: React.FC<StrictPermissionGuardProps> = ({
     userEmail: user?.email
   });
 
-  // En mode développement avec bypass activé, autoriser IMMÉDIATEMENT l'accès
-  if (isDevMode && bypassAuth) {
-    console.log('🚀 Mode dev avec bypass - accès IMMÉDIATEMENT accordé');
-    return <>{children}</>;
-  }
-
-  // En mode développement avec utilisateur connecté (même sans bypass), autoriser l'accès
-  if (isDevMode && user) {
-    console.log('🚀 Mode dev avec utilisateur - accès accordé');
+  // EN MODE DÉVELOPPEMENT - ACCÈS IMMÉDIAT ET INCONDITIONNEL
+  if (isDevMode) {
+    console.log('🚀 MODE DEV DÉTECTÉ - ACCÈS ACCORDÉ IMMÉDIATEMENT');
     return <>{children}</>;
   }
 
@@ -86,11 +80,9 @@ export const StrictPermissionGuard: React.FC<StrictPermissionGuardProps> = ({
                 Votre rôle : {utilisateurInterne.role.nom || utilisateurInterne.role.name}
               </p>
             )}
-            {isDevMode && (
-              <p className="text-xs text-blue-600 mt-1">
-                Mode développement - Bypass: {bypassAuth ? 'Activé' : 'Désactivé'}
-              </p>
-            )}
+            <p className="text-xs text-blue-600 mt-1">
+              Mode développement : {isDevMode ? 'Activé' : 'Désactivé'}
+            </p>
           </div>
         </div>
       </div>

@@ -19,11 +19,11 @@ export const useDevMode = () => {
     
     setIsDevMode(devMode);
     
-    // En mode dev, activer le bypass par défaut
-    const shouldBypass = devMode && localStorage.getItem('dev_bypass_auth') !== 'false';
+    // En mode dev, TOUJOURS activer le bypass
+    const shouldBypass = devMode;
     setBypassAuth(shouldBypass);
     
-    console.log('🔧 DevMode configuration:', {
+    console.log('🔧 DevMode configuration FORCÉE:', {
       hostname,
       isLovablePreview,
       isExplicitDev,
@@ -50,8 +50,8 @@ export const useDevMode = () => {
     nom: 'Dev',
     role: {
       id: 'mock-admin-role',
-      nom: 'Administrateur',
-      description: 'Utilisateur administrateur de développement'
+      nom: 'Super Administrateur Dev',
+      description: 'Utilisateur administrateur de développement avec TOUS LES POUVOIRS'
     },
     statut: 'actif' as const,
     type_compte: 'admin' as const
