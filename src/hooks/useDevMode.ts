@@ -19,16 +19,19 @@ export const useDevMode = () => {
     
     setIsDevMode(devMode);
     
-    // En mode dev, TOUJOURS activer le bypass
-    const shouldBypass = devMode;
+    // Lire la préférence de bypass depuis localStorage, par défaut activé en dev
+    const savedBypass = localStorage.getItem('dev_bypass_auth');
+    const shouldBypass = savedBypass !== null ? savedBypass === 'true' : devMode;
+    
     setBypassAuth(shouldBypass);
     
-    console.log('🔧 DevMode configuration FORCÉE:', {
+    console.log('🔧 DevMode configuration:', {
       hostname,
       isLovablePreview,
       isExplicitDev,
       devMode,
-      bypassAuth: shouldBypass
+      bypassAuth: shouldBypass,
+      savedBypass
     });
   }, []);
 
@@ -37,9 +40,14 @@ export const useDevMode = () => {
     setBypassAuth(newBypass);
     localStorage.setItem('dev_bypass_auth', newBypass.toString());
     
+    console.log('🔧 Toggle bypass auth:', newBypass);
+    
     if (!newBypass) {
-      // Recharger pour forcer la déconnexion
+      // Recharger pour forcer la déconnexion et retourner à l'auth normale
       window.location.reload();
+    } else {
+      // Si on active le bypass, rediriger vers la page d'accueil
+      window.location.href = '/';
     }
   };
 
