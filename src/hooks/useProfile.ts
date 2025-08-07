@@ -27,7 +27,7 @@ export const useProfile = () => {
       return;
     }
 
-    // En mode développement, créer un profil mock sans interagir avec Supabase
+    // En mode développement, créer un profil mock complet avec rôle valide
     if (isDevMode) {
       const mockProfile: Profile = {
         id: user.id,
@@ -35,12 +35,13 @@ export const useProfile = () => {
         prenom: user.user_metadata?.prenom || 'Admin',
         nom: user.user_metadata?.nom || 'Dev',
         avatar_url: user.user_metadata?.avatar_url,
-        bio: 'Profil administrateur de développement',
-        telephone: '',
+        bio: 'Profil administrateur de développement avec accès complet',
+        telephone: '+33123456789',
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       };
       
+      console.log('🚀 Profile mock créé en mode dev:', mockProfile);
       setProfile(mockProfile);
       setLoading(false);
       return;
@@ -99,6 +100,7 @@ export const useProfile = () => {
     if (isDevMode) {
       const updatedProfile = { ...profile, ...updates };
       setProfile(updatedProfile);
+      console.log('🚀 Profile mock mis à jour:', updatedProfile);
       return { error: null };
     }
 

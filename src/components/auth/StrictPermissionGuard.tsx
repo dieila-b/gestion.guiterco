@@ -2,6 +2,7 @@
 import React from 'react';
 import { useHasPermission } from '@/hooks/useStrictPermissions';
 import { useAuth } from '@/components/auth/AuthContext';
+import { useDevMode } from '@/hooks/useDevMode';
 import { Loader2, ShieldX } from 'lucide-react';
 
 interface StrictPermissionGuardProps {
@@ -23,18 +24,26 @@ export const StrictPermissionGuard: React.FC<StrictPermissionGuardProps> = ({
 }) => {
   const { hasPermission, isLoading } = useHasPermission();
   const { isDevMode, user, utilisateurInterne } = useAuth();
+  const { bypassAuth } = useDevMode();
 
   console.log(`🛡️ StrictPermissionGuard - Vérification: ${menu}${submenu ? ` > ${submenu}` : ''} (${action})`, {
     isDevMode,
+    bypassAuth,
     hasUser: !!user,
     hasUtilisateurInterne: !!utilisateurInterne,
     isLoading,
     userEmail: user?.email
   });
 
-  // En mode développement avec utilisateur connecté, autoriser l'accès
+  // En mode développement avec bypass activé, autoriser IMMÉDIATEMENT l'accès
+  if (isDevMode && bypassAuth) {
+    console.log('🚀 Mode dev avec bypass - accès IMMÉDIATEMENT accordé');
+    return <>{children}</>;
+  }
+
+  // En mode développement avec utilisateur connecté (même sans bypass), autoriser l'accès
   if (isDevMode && user) {
-    console.log('🚀 Mode dev - accès accordé');
+    console.log('🚀 Mode dev avec utilisateur - accès accordé');
     return <>{children}</>;
   }
 
@@ -50,7 +59,7 @@ export const StrictPermissionGuard: React.FC<StrictPermissionGuardProps> = ({
     );
   }
 
-  // Vérifier les permissions
+  // Vérifier les permissions seulement en production
   const hasAccess = hasPermission(menu, submenu, action);
   
   console.log(`🛡️ StrictPermissionGuard - Résultat: ${hasAccess ? '✅ Accès accordé' : '❌ Accès refusé'}`);
@@ -79,7 +88,7 @@ export const StrictPermissionGuard: React.FC<StrictPermissionGuardProps> = ({
             )}
             {isDevMode && (
               <p className="text-xs text-blue-600 mt-1">
-                Mode développement activé - Problème de configuration détecté
+                Mode développement - Bypass: {bypassAuth ? 'Activé' : 'Désactivé'}
               </p>
             )}
           </div>
