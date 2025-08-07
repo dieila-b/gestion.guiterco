@@ -9,6 +9,7 @@ export interface Role {
   description?: string;
   is_system?: boolean;
   created_at?: string;
+  updated_at?: string;
 }
 
 export interface Permission {
@@ -17,6 +18,7 @@ export interface Permission {
   submenu?: string;
   action: string;
   description?: string;
+  created_at?: string;
 }
 
 export interface RolePermission {
@@ -24,20 +26,25 @@ export interface RolePermission {
   role_id: string;
   permission_id: string;
   can_access: boolean;
-  role?: Role;
-  permission?: Permission;
+  created_at?: string;
 }
 
 export const useRoles = () => {
   return useQuery({
     queryKey: ['roles'],
     queryFn: async () => {
+      console.log('🔍 Fetching roles from Supabase...');
       const { data, error } = await supabase
         .from('roles')
         .select('*')
         .order('name');
 
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Error fetching roles:', error);
+        throw error;
+      }
+      
+      console.log('✅ Roles fetched:', data?.length || 0);
       return data as Role[];
     }
   });
@@ -47,12 +54,18 @@ export const usePermissions = () => {
   return useQuery({
     queryKey: ['permissions'],
     queryFn: async () => {
+      console.log('🔍 Fetching permissions from Supabase...');
       const { data, error } = await supabase
         .from('permissions')
         .select('*')
         .order('menu, submenu, action');
 
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Error fetching permissions:', error);
+        throw error;
+      }
+      
+      console.log('✅ Permissions fetched:', data?.length || 0);
       return data as Permission[];
     }
   });
@@ -62,17 +75,59 @@ export const useRolePermissions = () => {
   return useQuery({
     queryKey: ['role-permissions'],
     queryFn: async () => {
+      console.log('🔍 Fetching role permissions from Supabase...');
       const { data, error } = await supabase
         .from('role_permissions')
-        .select(`
-          *,
-          role:roles(*),
-          permission:permissions(*)
-        `)
-        .order('role_id, permission_id');
+        .select('*');
 
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Error fetching role permissions:', error);
+        throw error;
+      }
+      
+      console.log('✅ Role permissions fetched:', data?.length || 0);
       return data as RolePermission[];
+    }
+  });
+};
+
+export const useUpdateRolePermission = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ roleId, permissionId, canAccess }: { 
+      roleId: string; 
+      permissionId: string; 
+      canAccess: boolean 
+    }) => {
+      console.log('🔄 Updating role permission:', { roleId, permissionId, canAccess });
+      
+      const { data, error } = await supabase
+        .from('role_permissions')
+        .upsert({
+          role_id: roleId,
+          permission_id: permissionId,
+          can_access: canAccess
+        })
+        .select()
+        .single();
+
+      if (error) {
+        console.error('❌ Error updating role permission:', error);
+        throw error;
+      }
+      
+      console.log('✅ Role permission updated:', data);
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['role-permissions'] });
+      queryClient.invalidateQueries({ queryKey: ['user-permissions'] });
+      toast.success('Permission mise à jour avec succès');
+    },
+    onError: (error: any) => {
+      console.error('💥 Mutation error:', error);
+      toast.error(error.message || 'Erreur lors de la mise à jour de la permission');
     }
   });
 };
@@ -81,14 +136,21 @@ export const useCreateRole = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (roleData: Omit<Role, 'id' | 'created_at'>) => {
+    mutationFn: async (roleData: Omit<Role, 'id' | 'created_at' | 'updated_at'>) => {
+      console.log('🔄 Creating role:', roleData);
+      
       const { data, error } = await supabase
         .from('roles')
         .insert(roleData)
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Error creating role:', error);
+        throw error;
+      }
+      
+      console.log('✅ Role created:', data);
       return data;
     },
     onSuccess: () => {
@@ -96,6 +158,7 @@ export const useCreateRole = () => {
       toast.success('Rôle créé avec succès');
     },
     onError: (error: any) => {
+      console.error('💥 Mutation error:', error);
       toast.error(error.message || 'Erreur lors de la création du rôle');
     }
   });
@@ -106,6 +169,8 @@ export const useUpdateRole = () => {
 
   return useMutation({
     mutationFn: async ({ id, ...roleData }: Partial<Role> & { id: string }) => {
+      console.log('🔄 Updating role:', { id, roleData });
+      
       const { data, error } = await supabase
         .from('roles')
         .update(roleData)
@@ -113,7 +178,12 @@ export const useUpdateRole = () => {
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Error updating role:', error);
+        throw error;
+      }
+      
+      console.log('✅ Role updated:', data);
       return data;
     },
     onSuccess: () => {
@@ -121,6 +191,7 @@ export const useUpdateRole = () => {
       toast.success('Rôle modifié avec succès');
     },
     onError: (error: any) => {
+      console.error('💥 Mutation error:', error);
       toast.error(error.message || 'Erreur lors de la modification du rôle');
     }
   });
@@ -131,214 +202,28 @@ export const useDeleteRole = () => {
 
   return useMutation({
     mutationFn: async (roleId: string) => {
+      console.log('🔄 Deleting role:', roleId);
+      
       const { error } = await supabase
         .from('roles')
         .delete()
         .eq('id', roleId);
 
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Error deleting role:', error);
+        throw error;
+      }
+      
+      console.log('✅ Role deleted');
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['roles'] });
+      queryClient.invalidateQueries({ queryKey: ['role-permissions'] });
       toast.success('Rôle supprimé avec succès');
     },
     onError: (error: any) => {
+      console.error('💥 Mutation error:', error);
       toast.error(error.message || 'Erreur lors de la suppression du rôle');
     }
-  });
-};
-
-export const useCreatePermission = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (permissionData: Omit<Permission, 'id'>) => {
-      const { data, error } = await supabase
-        .from('permissions')
-        .insert(permissionData)
-        .select()
-        .single();
-
-      if (error) throw error;
-      return data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['permissions'] });
-      toast.success('Permission créée avec succès');
-    },
-    onError: (error: any) => {
-      toast.error(error.message || 'Erreur lors de la création de la permission');
-    }
-  });
-};
-
-export const useUpdatePermission = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async ({ id, ...permissionData }: Partial<Permission> & { id: string }) => {
-      const { data, error } = await supabase
-        .from('permissions')
-        .update(permissionData)
-        .eq('id', id)
-        .select()
-        .single();
-
-      if (error) throw error;
-      return data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['permissions'] });
-      toast.success('Permission modifiée avec succès');
-    },
-    onError: (error: any) => {
-      toast.error(error.message || 'Erreur lors de la modification de la permission');
-    }
-  });
-};
-
-export const useDeletePermission = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (permissionId: string) => {
-      const { error } = await supabase
-        .from('permissions')
-        .delete()
-        .eq('id', permissionId);
-
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['permissions'] });
-      toast.success('Permission supprimée avec succès');
-    },
-    onError: (error: any) => {
-      toast.error(error.message || 'Erreur lors de la suppression de la permission');
-    }
-  });
-};
-
-// User role management functions
-export const useAssignUserRole = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async ({ userId, roleId }: { userId: string; roleId: string }) => {
-      const { data, error } = await supabase
-        .from('user_roles')
-        .upsert({ user_id: userId, role_id: roleId }, { onConflict: 'user_id,role_id' })
-        .select();
-
-      if (error) throw error;
-      return data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['user-roles'] });
-      toast.success('Rôle attribué avec succès');
-    },
-    onError: (error: any) => {
-      toast.error(error.message || 'Erreur lors de l\'attribution du rôle');
-    }
-  });
-};
-
-export const useRevokeUserRole = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async ({ userId, roleId }: { userId: string; roleId: string }) => {
-      const { error } = await supabase
-        .from('user_roles')
-        .delete()
-        .eq('user_id', userId)
-        .eq('role_id', roleId);
-
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['user-roles'] });
-      toast.success('Rôle révoqué avec succès');
-    },
-    onError: (error: any) => {
-      toast.error(error.message || 'Erreur lors de la révocation du rôle');
-    }
-  });
-};
-
-export const useUserRoles = () => {
-  return useQuery({
-    queryKey: ['user-roles'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('user_roles')
-        .select(`
-          *,
-          role:roles(*)
-        `)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      return data;
-    }
-  });
-};
-
-export const useUsersWithRoles = () => {
-  return useQuery({
-    queryKey: ['users-with-roles'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('utilisateurs_internes')
-        .select(`
-          *,
-          user_roles(
-            id,
-            role:roles(*)
-          )
-        `)
-        .order('nom');
-
-      if (error) throw error;
-      return data;
-    }
-  });
-};
-
-export const useUpdateRolePermission = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async ({ roleId, permissionId, canAccess }: { roleId: string; permissionId: string; canAccess: boolean }) => {
-      if (canAccess) {
-        // Si on accorde la permission, on utilise upsert
-        const { data, error } = await supabase
-          .from('role_permissions')
-          .upsert({
-            role_id: roleId,
-            permission_id: permissionId,
-            can_access: true
-          }, {
-            onConflict: 'role_id,permission_id'
-          })
-          .select();
-
-        if (error) throw error;
-        return data;
-      } else {
-        // Si on révoque la permission, on supprime l'enregistrement
-        const { error } = await supabase
-          .from('role_permissions')
-          .delete()
-          .eq('role_id', roleId)
-          .eq('permission_id', permissionId);
-
-        if (error) throw error;
-        return null;
-      }
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['role-permissions'] });
-    },
   });
 };

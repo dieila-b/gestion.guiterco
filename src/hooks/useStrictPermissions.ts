@@ -39,6 +39,7 @@ export const useUserPermissions = () => {
           { menu: 'Dashboard', action: 'write', can_access: true },
           { menu: 'Catalogue', action: 'read', can_access: true },
           { menu: 'Catalogue', action: 'write', can_access: true },
+          { menu: 'Catalogue', action: 'delete', can_access: true },
           { menu: 'Stock', submenu: 'Entrepôts', action: 'read', can_access: true },
           { menu: 'Stock', submenu: 'Entrepôts', action: 'write', can_access: true },
           { menu: 'Stock', submenu: 'PDV', action: 'read', can_access: true },
@@ -49,6 +50,11 @@ export const useUserPermissions = () => {
           { menu: 'Ventes', submenu: 'Précommandes', action: 'write', can_access: true },
           { menu: 'Clients', action: 'read', can_access: true },
           { menu: 'Clients', action: 'write', can_access: true },
+          { menu: 'Clients', action: 'delete', can_access: true },
+          { menu: 'Caisse', submenu: 'Opérations', action: 'read', can_access: true },
+          { menu: 'Caisse', submenu: 'Opérations', action: 'write', can_access: true },
+          { menu: 'Rapports', submenu: 'Ventes', action: 'read', can_access: true },
+          { menu: 'Rapports', submenu: 'Marges', action: 'read', can_access: true },
           { menu: 'Paramètres', submenu: 'Rôles et permissions', action: 'read', can_access: true },
           { menu: 'Paramètres', submenu: 'Rôles et permissions', action: 'write', can_access: true }
         ] as UserPermission[];

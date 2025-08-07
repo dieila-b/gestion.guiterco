@@ -19,56 +19,63 @@ export const useDevMode = () => {
     
     setIsDevMode(devMode);
     
-    // Lire la préférence de bypass depuis localStorage, par défaut activé en dev
-    const savedBypass = localStorage.getItem('dev_bypass_auth');
-    const shouldBypass = savedBypass !== null ? savedBypass === 'true' : devMode;
-    
-    setBypassAuth(shouldBypass);
-    
-    console.log('🔧 DevMode configuration:', {
-      hostname,
-      isLovablePreview,
-      isExplicitDev,
-      devMode,
-      bypassAuth: shouldBypass,
-      savedBypass
-    });
+    if (devMode) {
+      console.log('🚀 MODE DÉVELOPPEMENT DÉTECTÉ');
+      console.log('🌐 Hostname:', hostname);
+      console.log('🔧 Is Lovable Preview:', isLovablePreview);
+      console.log('⚙️ Is Explicit Dev:', isExplicitDev);
+      
+      // En mode dev, toujours bypasser l'auth par défaut
+      const savedBypass = localStorage.getItem('dev_bypass_auth');
+      const shouldBypass = savedBypass !== 'false';
+      setBypassAuth(shouldBypass);
+      
+      console.log('🔐 Auth bypass activé par défaut en mode dev:', shouldBypass);
+    } else {
+      console.log('🏭 MODE PRODUCTION DÉTECTÉ');
+      setBypassAuth(false);
+    }
   }, []);
 
-  const toggleBypassAuth = () => {
+  const toggleBypass = () => {
+    if (!isDevMode) return;
+    
     const newBypass = !bypassAuth;
     setBypassAuth(newBypass);
     localStorage.setItem('dev_bypass_auth', newBypass.toString());
     
-    console.log('🔧 Toggle bypass auth:', newBypass);
+    console.log('🔄 Auth bypass toggled:', newBypass);
     
+    // Recharger la page pour appliquer les changements
     if (!newBypass) {
-      // Recharger pour forcer la déconnexion et retourner à l'auth normale
-      window.location.reload();
-    } else {
-      // Si on active le bypass, rediriger vers la page d'accueil
-      window.location.href = '/';
+      setTimeout(() => {
+        window.location.reload();
+      }, 100);
     }
   };
 
+  // Mock user avec rôle Super Administrateur complet
   const mockUser = {
-    id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', // UUID valide
-    email: 'admin@eco-business.com',
-    prenom: 'Admin',
-    nom: 'Dev',
-    role: {
-      id: 'mock-admin-role',
-      nom: 'Super Administrateur Dev',
-      description: 'Utilisateur administrateur de développement avec TOUS LES POUVOIRS'
+    id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', // UUID valide fixe
+    email: 'admin@dev.local',
+    user_metadata: {
+      prenom: 'Admin',
+      nom: 'Développement',
+      full_name: 'Admin Développement',
+      avatar_url: null
     },
-    statut: 'actif' as const,
-    type_compte: 'admin' as const
+    app_metadata: {},
+    aud: 'authenticated',
+    role: 'authenticated',
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+    last_sign_in_at: new Date().toISOString()
   };
 
   return {
     isDevMode,
     bypassAuth,
-    toggleBypassAuth,
+    toggleBypass,
     mockUser
   };
 };
