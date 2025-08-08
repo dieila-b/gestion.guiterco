@@ -4,14 +4,14 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
-import { Grid3x3, RefreshCw, CheckCircle2, XCircle } from 'lucide-react';
+import { Grid3x3, RefreshCw, CheckCircle2, XCircle, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useRoles, usePermissions, useAllRolePermissions, useUpdateRolePermission, useBulkUpdateRolePermissions } from '@/hooks/usePermissionsSystem';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 
 export default function PermissionsMatrix() {
-  const [refreshing, setRefreshing] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const queryClient = useQueryClient();
   
   const { data: roles = [], refetch: refetchRoles, isLoading: rolesLoading } = useRoles();
@@ -22,13 +22,15 @@ export default function PermissionsMatrix() {
 
   const isDataLoading = rolesLoading || permissionsLoading || rolePermissionsLoading;
 
-  // Fonction pour forcer le rafraîchissement de toutes les données
+  // Fonction pour actualiser toutes les données
   const handleRefresh = async () => {
-    setRefreshing(true);
+    if (isRefreshing) return;
+    
+    console.log('🔄 Début de l\'actualisation manuelle...');
+    setIsRefreshing(true);
+    
     try {
-      console.log('🔄 Début du rafraîchissement des données...');
-      
-      // Invalider tous les caches liés aux permissions
+      // Invalider tous les caches
       await queryClient.invalidateQueries({ queryKey: ['roles'] });
       await queryClient.invalidateQueries({ queryKey: ['permissions'] });
       await queryClient.invalidateQueries({ queryKey: ['all-role-permissions'] });
@@ -36,28 +38,21 @@ export default function PermissionsMatrix() {
       await queryClient.invalidateQueries({ queryKey: ['menus-permissions-structure'] });
       await queryClient.invalidateQueries({ queryKey: ['user-permissions'] });
       
-      // Refetch explicite avec gestion d'erreur
-      const results = await Promise.allSettled([
+      // Refetch forcé
+      await Promise.all([
         refetchRoles(),
-        refetchPermissions(), 
+        refetchPermissions(),
         refetchRolePermissions()
       ]);
       
-      // Vérifier les résultats
-      const failures = results.filter(result => result.status === 'rejected');
-      if (failures.length > 0) {
-        console.error('❌ Erreurs lors du rafraîchissement:', failures);
-        toast.error('Certaines données n\'ont pas pu être actualisées');
-      } else {
-        console.log('✅ Toutes les données ont été actualisées avec succès');
-        toast.success('Données des permissions actualisées avec succès');
-      }
+      console.log('✅ Actualisation terminée avec succès');
+      toast.success('Données actualisées avec succès');
       
     } catch (error) {
       console.error('❌ Erreur lors de l\'actualisation:', error);
       toast.error('Erreur lors de l\'actualisation des données');
     } finally {
-      setRefreshing(false);
+      setIsRefreshing(false);
     }
   };
 
@@ -100,9 +95,8 @@ export default function PermissionsMatrix() {
 
   // Attribuer toutes les permissions à un rôle
   const handleGrantAllPermissions = async (roleId: string) => {
-    if (refreshing) return;
+    if (isRefreshing) return;
     
-    setRefreshing(true);
     try {
       const updates = permissions.map(permission => ({
         permissionId: permission.id,
@@ -117,16 +111,13 @@ export default function PermissionsMatrix() {
       toast.success('Toutes les permissions ont été accordées');
     } catch (error) {
       toast.error('Erreur lors de l\'attribution des permissions');
-    } finally {
-      setRefreshing(false);
     }
   };
 
   // Retirer toutes les permissions d'un rôle
   const handleRevokeAllPermissions = async (roleId: string) => {
-    if (refreshing) return;
+    if (isRefreshing) return;
     
-    setRefreshing(true);
     try {
       const updates = permissions.map(permission => ({
         permissionId: permission.id,
@@ -141,41 +132,17 @@ export default function PermissionsMatrix() {
       toast.success('Toutes les permissions ont été révoquées');
     } catch (error) {
       toast.error('Erreur lors de la révocation des permissions');
-    } finally {
-      setRefreshing(false);
     }
   };
 
-  const filteredRoles = roles.filter(role => role.name && role.name.trim()); // Filtrer les rôles valides
+  const filteredRoles = roles.filter(role => role.name && role.name.trim());
 
-  if (isDataLoading && !refreshing) {
+  if (isDataLoading && !isRefreshing) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
-          <RefreshCw className="w-8 h-8 animate-spin mx-auto mb-2" />
+          <Loader2 className="w-8 h-8 animate-spin mx-auto mb-2" />
           <p className="text-muted-foreground">Chargement de la matrice des permissions...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (filteredRoles.length === 0 && permissions.length === 0) {
-    return (
-      <div className="flex flex-col items-center justify-center h-64 space-y-4">
-        <div className="text-center">
-          <p className="text-muted-foreground mb-4">Aucune donnée de permissions trouvée.</p>
-          <Button 
-            onClick={handleRefresh}
-            disabled={refreshing}
-            variant="outline"
-          >
-            {refreshing ? (
-              <RefreshCw className="w-4 h-4 animate-spin mr-2" />
-            ) : (
-              <RefreshCw className="w-4 h-4 mr-2" />
-            )}
-            Actualiser les données
-          </Button>
         </div>
       </div>
     );
@@ -197,16 +164,16 @@ export default function PermissionsMatrix() {
             </div>
             <Button 
               onClick={handleRefresh}
-              disabled={refreshing}
+              disabled={isRefreshing || isDataLoading}
               variant="outline"
               size="sm"
             >
-              {refreshing ? (
-                <RefreshCw className="w-4 h-4 animate-spin mr-2" />
+              {isRefreshing ? (
+                <Loader2 className="w-4 h-4 animate-spin mr-2" />
               ) : (
                 <RefreshCw className="w-4 h-4 mr-2" />
               )}
-              Actualiser
+              {isRefreshing ? 'Actualisation...' : 'Actualiser'}
             </Button>
           </div>
         </CardHeader>
@@ -264,7 +231,7 @@ export default function PermissionsMatrix() {
                             size="sm"
                             variant="outline"
                             onClick={() => handleGrantAllPermissions(role.id)}
-                            disabled={refreshing || isSystemRole}
+                            disabled={isRefreshing || isSystemRole}
                             className="flex-1"
                           >
                             <CheckCircle2 className="w-3 h-3 mr-1" />
@@ -274,7 +241,7 @@ export default function PermissionsMatrix() {
                             size="sm"
                             variant="outline"
                             onClick={() => handleRevokeAllPermissions(role.id)}
-                            disabled={refreshing || isSystemRole}
+                            disabled={isRefreshing || isSystemRole}
                             className="flex-1"
                           >
                             <XCircle className="w-3 h-3 mr-1" />
@@ -382,7 +349,7 @@ export default function PermissionsMatrix() {
                                         onCheckedChange={(checked) => 
                                           !isSystemRole && handlePermissionChange(role.id, permission.id, checked)
                                         }
-                                        disabled={isSystemRole || updateRolePermission.isPending || refreshing}
+                                        disabled={isSystemRole || updateRolePermission.isPending || isRefreshing}
                                       />
                                     </TableCell>
                                   );
@@ -398,20 +365,25 @@ export default function PermissionsMatrix() {
               </div>
             )}
 
-            {Object.keys(organizedPermissions).length === 0 && permissions.length === 0 && (
+            {/* Message si pas de données */}
+            {filteredRoles.length === 0 && permissions.length === 0 && (
               <div className="text-center py-8">
                 <Grid3x3 className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <h3 className="text-lg font-medium mb-2">Aucune permission trouvée</h3>
+                <h3 className="text-lg font-medium mb-2">Aucune donnée trouvée</h3>
                 <p className="text-muted-foreground mb-4">
-                  Les permissions doivent être configurées dans la base de données
+                  Cliquez sur Actualiser pour recharger les données
                 </p>
-                <Button onClick={handleRefresh} disabled={refreshing} variant="outline">
-                  {refreshing ? (
-                    <RefreshCw className="w-4 h-4 animate-spin mr-2" />
+                <Button 
+                  onClick={handleRefresh} 
+                  disabled={isRefreshing} 
+                  variant="outline"
+                >
+                  {isRefreshing ? (
+                    <Loader2 className="w-4 h-4 animate-spin mr-2" />
                   ) : (
                     <RefreshCw className="w-4 h-4 mr-2" />
                   )}
-                  Actualiser
+                  {isRefreshing ? 'Actualisation...' : 'Actualiser'}
                 </Button>
               </div>
             )}
