@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -12,6 +13,27 @@ import { Plus, Settings, Eye, Edit, Trash2, RefreshCw, Check, X, FileText, Downl
 import { useMenusPermissionsStructure, useCreatePermission, useUpdatePermission, useDeletePermission } from '@/hooks/usePermissionsSystem';
 import { usePermissionsRefresh } from '@/hooks/usePermissionsRefresh';
 import { toast } from 'sonner';
+
+interface GroupedPermission {
+  permission_id: string;
+  action: string;
+  permission_description?: string;
+}
+
+interface GroupedSousMenu {
+  sous_menu_id: string | null;
+  sous_menu_nom: string;
+  sous_menu_ordre: number;
+  permissions: GroupedPermission[];
+}
+
+interface GroupedMenu {
+  menu_id: string;
+  menu_nom: string;
+  menu_icone: string;
+  menu_ordre: number;
+  sous_menus: GroupedSousMenu[];
+}
 
 export default function PermissionsTab() {
   const { isRefreshing, refreshAllData } = usePermissionsRefresh();
@@ -111,8 +133,8 @@ export default function PermissionsTab() {
     }
   };
 
-  // Grouper les données de structure par menu
-  const groupedData = menusStructure.reduce((acc, item) => {
+  // Grouper les données de structure par menu avec typage correct
+  const groupedData = menusStructure.reduce<Record<string, GroupedMenu>>((acc, item) => {
     if (!acc[item.menu_nom]) {
       acc[item.menu_nom] = {
         menu_id: item.menu_id,
@@ -124,7 +146,7 @@ export default function PermissionsTab() {
     }
     
     const menu = acc[item.menu_nom];
-    let sousMenu = menu.sous_menus.find((sm: any) => 
+    let sousMenu = menu.sous_menus.find((sm) => 
       (sm.sous_menu_nom === item.sous_menu_nom) || 
       (sm.sous_menu_nom === null && item.sous_menu_nom === null)
     );
@@ -148,13 +170,16 @@ export default function PermissionsTab() {
     }
     
     return acc;
-  }, {} as any);
+  }, {});
+
+  // Convertir en array et trier
+  const sortedMenus = Object.values(groupedData).sort((a, b) => a.menu_ordre - b.menu_ordre);
 
   // Calculer les statistiques
-  const totalMenus = Object.keys(groupedData).length;
-  const totalSousMenus = Object.values(groupedData).reduce((total: number, menu: any) => total + menu.sous_menus.length, 0);
-  const totalPermissions = Object.values(groupedData).reduce((total: number, menu: any) => 
-    total + menu.sous_menus.reduce((subTotal: number, sousMenu: any) => 
+  const totalMenus = sortedMenus.length;
+  const totalSousMenus = sortedMenus.reduce((total, menu) => total + menu.sous_menus.length, 0);
+  const totalPermissions = sortedMenus.reduce((total, menu) => 
+    total + menu.sous_menus.reduce((subTotal, sousMenu) => 
       subTotal + sousMenu.permissions.length, 0
     ), 0
   );
@@ -288,7 +313,7 @@ export default function PermissionsTab() {
 
       {/* Structure des permissions */}
       <div className="space-y-6">
-        {Object.values(groupedData).length === 0 ? (
+        {sortedMenus.length === 0 ? (
           <Card>
             <CardContent className="text-center py-8">
               <Settings className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
@@ -307,14 +332,14 @@ export default function PermissionsTab() {
             </CardContent>
           </Card>
         ) : (
-          Object.values(groupedData).map((menu: any) => (
+          sortedMenus.map((menu) => (
             <Card key={menu.menu_id}>
               <CardHeader className="pb-4">
                 <CardTitle className="flex items-center gap-2">
                   <Settings className="w-5 h-5" />
                   Menu : {menu.menu_nom}
                   <Badge variant="outline" className="ml-auto">
-                    {menu.sous_menus.reduce((total: number, sm: any) => total + sm.permissions.length, 0)} permission(s)
+                    {menu.sous_menus.reduce((total, sm) => total + sm.permissions.length, 0)} permission(s)
                   </Badge>
                 </CardTitle>
               </CardHeader>
@@ -326,7 +351,7 @@ export default function PermissionsTab() {
                       Aucun sous-menu ou permission défini pour ce menu
                     </div>
                   ) : (
-                    menu.sous_menus.map((sousMenu: any, index: number) => (
+                    menu.sous_menus.map((sousMenu, index) => (
                       <div key={sousMenu.sous_menu_id || `no-submenu-${index}`} className="border rounded-lg p-4">
                         <div className="mb-3">
                           <h4 className="font-medium flex items-center gap-2">
@@ -353,7 +378,7 @@ export default function PermissionsTab() {
                               </TableRow>
                             </TableHeader>
                             <TableBody>
-                              {sousMenu.permissions.map((permission: any) => (
+                              {sousMenu.permissions.map((permission) => (
                                 <TableRow key={permission.permission_id}>
                                   <TableCell>
                                     <Badge 
