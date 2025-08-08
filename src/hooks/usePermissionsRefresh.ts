@@ -13,11 +13,11 @@ export const usePermissionsRefresh = () => {
       return;
     }
     
-    console.log('🔄 Début de l\'actualisation complète...');
+    console.log('🔄 Début de l\'actualisation complète du système de permissions...');
     setIsRefreshing(true);
     
     try {
-      // Invalider tous les caches liés aux permissions
+      // Invalider tous les caches liés aux permissions et à la structure
       const queries = [
         'roles',
         'permissions', 
@@ -25,7 +25,8 @@ export const usePermissionsRefresh = () => {
         'role-permissions',
         'menus-permissions-structure',
         'user-permissions',
-        'users-with-roles'
+        'users-with-roles',
+        'menus-structure'
       ];
 
       console.log('🗑️ Invalidation des caches:', queries);
@@ -37,18 +38,19 @@ export const usePermissionsRefresh = () => {
         )
       );
       
-      // Forcer le refetch
+      // Forcer le refetch des données principales
       await Promise.all([
         queryClient.refetchQueries({ queryKey: ['roles'] }),
         queryClient.refetchQueries({ queryKey: ['permissions'] }),
-        queryClient.refetchQueries({ queryKey: ['all-role-permissions'] })
+        queryClient.refetchQueries({ queryKey: ['all-role-permissions'] }),
+        queryClient.refetchQueries({ queryKey: ['menus-permissions-structure'] })
       ]);
       
-      console.log('✅ Actualisation terminée avec succès');
-      toast.success('Données actualisées avec succès');
+      console.log('✅ Actualisation du système de permissions terminée avec succès');
+      toast.success('Système de permissions actualisé avec succès');
       
     } catch (error) {
-      console.error('❌ Erreur lors de l\'actualisation:', error);
+      console.error('❌ Erreur lors de l\'actualisation du système de permissions:', error);
       toast.error('Erreur lors de l\'actualisation des données');
     } finally {
       setIsRefreshing(false);

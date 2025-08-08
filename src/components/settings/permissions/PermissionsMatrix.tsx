@@ -55,7 +55,7 @@ export default function PermissionsMatrix() {
 
   // Mettre à jour une permission
   const handlePermissionChange = async (roleId: string, permissionId: string, canAccess: boolean) => {
-    if (isRefreshing) return;
+    if (isRefreshing || updateRolePermission.isPending) return;
     
     try {
       await updateRolePermission.mutateAsync({
@@ -71,7 +71,7 @@ export default function PermissionsMatrix() {
 
   // Attribuer toutes les permissions à un rôle
   const handleGrantAllPermissions = async (roleId: string) => {
-    if (isRefreshing) return;
+    if (isRefreshing || bulkUpdateRolePermissions.isPending) return;
     
     try {
       const updates = permissions.map(permission => ({
@@ -93,7 +93,7 @@ export default function PermissionsMatrix() {
 
   // Retirer toutes les permissions d'un rôle
   const handleRevokeAllPermissions = async (roleId: string) => {
-    if (isRefreshing) return;
+    if (isRefreshing || bulkUpdateRolePermissions.isPending) return;
     
     try {
       const updates = permissions.map(permission => ({
@@ -210,7 +210,7 @@ export default function PermissionsMatrix() {
                             size="sm"
                             variant="outline"
                             onClick={() => handleGrantAllPermissions(role.id)}
-                            disabled={isRefreshing || isSystemRole}
+                            disabled={isRefreshing || isSystemRole || bulkUpdateRolePermissions.isPending}
                             className="flex-1"
                           >
                             <CheckCircle2 className="w-3 h-3 mr-1" />
@@ -220,7 +220,7 @@ export default function PermissionsMatrix() {
                             size="sm"
                             variant="outline"
                             onClick={() => handleRevokeAllPermissions(role.id)}
-                            disabled={isRefreshing || isSystemRole}
+                            disabled={isRefreshing || isSystemRole || bulkUpdateRolePermissions.isPending}
                             className="flex-1"
                           >
                             <XCircle className="w-3 h-3 mr-1" />
