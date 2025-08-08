@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Switch } from '@/components/ui/switch';
@@ -7,54 +7,27 @@ import { Badge } from '@/components/ui/badge';
 import { Grid3x3, RefreshCw, CheckCircle2, XCircle, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useRoles, usePermissions, useAllRolePermissions, useUpdateRolePermission, useBulkUpdateRolePermissions } from '@/hooks/usePermissionsSystem';
-import { useQueryClient } from '@tanstack/react-query';
+import { usePermissionsRefresh } from '@/hooks/usePermissionsRefresh';
 import { toast } from 'sonner';
 
 export default function PermissionsMatrix() {
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const queryClient = useQueryClient();
+  const { isRefreshing, refreshAllData } = usePermissionsRefresh();
   
-  const { data: roles = [], refetch: refetchRoles, isLoading: rolesLoading } = useRoles();
-  const { data: permissions = [], refetch: refetchPermissions, isLoading: permissionsLoading } = usePermissions();
-  const { data: rolePermissions = [], refetch: refetchRolePermissions, isLoading: rolePermissionsLoading } = useAllRolePermissions();
+  const { data: roles = [], isLoading: rolesLoading } = useRoles();
+  const { data: permissions = [], isLoading: permissionsLoading } = usePermissions();
+  const { data: rolePermissions = [], isLoading: rolePermissionsLoading } = useAllRolePermissions();
   const updateRolePermission = useUpdateRolePermission();
   const bulkUpdateRolePermissions = useBulkUpdateRolePermissions();
 
   const isDataLoading = rolesLoading || permissionsLoading || rolePermissionsLoading;
 
-  // Fonction pour actualiser toutes les données
-  const handleRefresh = async () => {
-    if (isRefreshing) return;
-    
-    console.log('🔄 Début de l\'actualisation manuelle...');
-    setIsRefreshing(true);
-    
-    try {
-      // Invalider tous les caches
-      await queryClient.invalidateQueries({ queryKey: ['roles'] });
-      await queryClient.invalidateQueries({ queryKey: ['permissions'] });
-      await queryClient.invalidateQueries({ queryKey: ['all-role-permissions'] });
-      await queryClient.invalidateQueries({ queryKey: ['role-permissions'] });
-      await queryClient.invalidateQueries({ queryKey: ['menus-permissions-structure'] });
-      await queryClient.invalidateQueries({ queryKey: ['user-permissions'] });
-      
-      // Refetch forcé
-      await Promise.all([
-        refetchRoles(),
-        refetchPermissions(),
-        refetchRolePermissions()
-      ]);
-      
-      console.log('✅ Actualisation terminée avec succès');
-      toast.success('Données actualisées avec succès');
-      
-    } catch (error) {
-      console.error('❌ Erreur lors de l\'actualisation:', error);
-      toast.error('Erreur lors de l\'actualisation des données');
-    } finally {
-      setIsRefreshing(false);
-    }
-  };
+  console.log('🔍 État du composant PermissionsMatrix:', {
+    isRefreshing,
+    isDataLoading,
+    rolesCount: roles.length,
+    permissionsCount: permissions.length,
+    rolePermissionsCount: rolePermissions.length
+  });
 
   // Organiser les permissions par menu et sous-menu
   const organizedPermissions = permissions.reduce((acc: any, permission) => {
@@ -82,6 +55,8 @@ export default function PermissionsMatrix() {
 
   // Mettre à jour une permission
   const handlePermissionChange = async (roleId: string, permissionId: string, canAccess: boolean) => {
+    if (isRefreshing) return;
+    
     try {
       await updateRolePermission.mutateAsync({
         roleId,
@@ -89,6 +64,7 @@ export default function PermissionsMatrix() {
         canAccess
       });
     } catch (error) {
+      console.error('❌ Erreur permission change:', error);
       toast.error('Erreur lors de la mise à jour de la permission');
     }
   };
@@ -110,6 +86,7 @@ export default function PermissionsMatrix() {
       
       toast.success('Toutes les permissions ont été accordées');
     } catch (error) {
+      console.error('❌ Erreur grant all:', error);
       toast.error('Erreur lors de l\'attribution des permissions');
     }
   };
@@ -131,12 +108,14 @@ export default function PermissionsMatrix() {
       
       toast.success('Toutes les permissions ont été révoquées');
     } catch (error) {
+      console.error('❌ Erreur revoke all:', error);
       toast.error('Erreur lors de la révocation des permissions');
     }
   };
 
   const filteredRoles = roles.filter(role => role.name && role.name.trim());
 
+  // Affichage de chargement
   if (isDataLoading && !isRefreshing) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -163,7 +142,7 @@ export default function PermissionsMatrix() {
               </p>
             </div>
             <Button 
-              onClick={handleRefresh}
+              onClick={refreshAllData}
               disabled={isRefreshing || isDataLoading}
               variant="outline"
               size="sm"
@@ -374,7 +353,7 @@ export default function PermissionsMatrix() {
                   Cliquez sur Actualiser pour recharger les données
                 </p>
                 <Button 
-                  onClick={handleRefresh} 
+                  onClick={refreshAllData} 
                   disabled={isRefreshing} 
                   variant="outline"
                 >
