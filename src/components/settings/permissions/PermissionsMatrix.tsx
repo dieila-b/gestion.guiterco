@@ -7,15 +7,45 @@ import { Badge } from '@/components/ui/badge';
 import { Grid3x3, RefreshCw, CheckCircle2, XCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useRoles, usePermissions, useAllRolePermissions, useUpdateRolePermission, useBulkUpdateRolePermissions } from '@/hooks/usePermissionsSystem';
+import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 
 export default function PermissionsMatrix() {
   const [isLoading, setIsLoading] = useState(false);
-  const { data: roles = [] } = useRoles();
-  const { data: permissions = [] } = usePermissions();
-  const { data: rolePermissions = [] } = useAllRolePermissions();
+  const queryClient = useQueryClient();
+  
+  const { data: roles = [], refetch: refetchRoles, isLoading: rolesLoading } = useRoles();
+  const { data: permissions = [], refetch: refetchPermissions, isLoading: permissionsLoading } = usePermissions();
+  const { data: rolePermissions = [], refetch: refetchRolePermissions, isLoading: rolePermissionsLoading } = useAllRolePermissions();
   const updateRolePermission = useUpdateRolePermission();
   const bulkUpdateRolePermissions = useBulkUpdateRolePermissions();
+
+  // Fonction pour forcer le rafraîchissement de toutes les données
+  const handleRefresh = async () => {
+    setIsLoading(true);
+    try {
+      // Invalider tous les caches liés aux permissions
+      await queryClient.invalidateQueries({ queryKey: ['roles'] });
+      await queryClient.invalidateQueries({ queryKey: ['permissions'] });
+      await queryClient.invalidateQueries({ queryKey: ['role-permissions'] });
+      
+      // Refetch explicite
+      await Promise.all([
+        refetchRoles(),
+        refetchPermissions(),
+        refetchRolePermissions()
+      ]);
+      
+      toast.success('Données des permissions actualisées');
+    } catch (error) {
+      toast.error('Erreur lors de l\'actualisation');
+      console.error('Erreur refresh:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const isDataLoading = rolesLoading || permissionsLoading || rolePermissionsLoading;
 
   // Organiser les permissions par menu et sous-menu
   const organizedPermissions = permissions.reduce((acc: any, permission) => {
@@ -104,7 +134,7 @@ export default function PermissionsMatrix() {
 
   const filteredRoles = roles.filter(role => role.name); // Filtrer les rôles valides
 
-  if (filteredRoles.length === 0 || permissions.length === 0) {
+  if (isDataLoading || isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
@@ -115,17 +145,55 @@ export default function PermissionsMatrix() {
     );
   }
 
+  if (filteredRoles.length === 0 || permissions.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center h-64 space-y-4">
+        <div className="text-center">
+          <p className="text-muted-foreground mb-4">Aucune donnée de permissions trouvée.</p>
+          <button 
+            onClick={handleRefresh}
+            disabled={isLoading}
+            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-primary hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary disabled:opacity-50"
+          >
+            {isLoading ? (
+              <RefreshCw className="w-4 h-4 animate-spin mr-2" />
+            ) : (
+              <RefreshCw className="w-4 h-4 mr-2" />
+            )}
+            Actualiser les données
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Grid3x3 className="w-5 h-5" />
-            Matrice Interactive des Permissions
-          </CardTitle>
-          <p className="text-sm text-muted-foreground">
-            Configuration rapide des permissions par rôle avec actions en lot
-          </p>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <Grid3x3 className="w-5 h-5" />
+                Matrice Interactive des Permissions
+              </CardTitle>
+              <p className="text-sm text-muted-foreground">
+                Configuration rapide des permissions par rôle avec actions en lot
+              </p>
+            </div>
+            <button 
+              onClick={handleRefresh}
+              disabled={isLoading}
+              className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary disabled:opacity-50"
+            >
+              {isLoading ? (
+                <RefreshCw className="w-4 h-4 animate-spin mr-2" />
+              ) : (
+                <RefreshCw className="w-4 h-4 mr-2" />
+              )}
+              Actualiser
+            </button>
+          </div>
         </CardHeader>
         <CardContent>
           <div className="space-y-6">
