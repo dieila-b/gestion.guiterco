@@ -31,20 +31,27 @@ export const usePermissionsRefresh = () => {
 
       console.log('🗑️ Invalidation des caches:', queries);
       
-      // Invalider tous les caches en parallèle
-      await Promise.all(
-        queries.map(queryKey => 
-          queryClient.invalidateQueries({ queryKey: [queryKey] })
-        )
-      );
+      // Invalider et refetch en séquence pour éviter les conflits
+      await queryClient.cancelQueries();
+      
+      // Invalider tous les caches
+      queries.forEach(queryKey => {
+        queryClient.invalidateQueries({ queryKey: [queryKey] });
+      });
+      
+      // Attendre un court délai avant le refetch
+      await new Promise(resolve => setTimeout(resolve, 100));
       
       // Forcer le refetch des données principales
-      await Promise.all([
+      const refetchPromises = [
         queryClient.refetchQueries({ queryKey: ['roles'] }),
         queryClient.refetchQueries({ queryKey: ['permissions'] }),
         queryClient.refetchQueries({ queryKey: ['all-role-permissions'] }),
-        queryClient.refetchQueries({ queryKey: ['menus-permissions-structure'] })
-      ]);
+        queryClient.refetchQueries({ queryKey: ['menus-permissions-structure'] }),
+        queryClient.refetchQueries({ queryKey: ['users-with-roles'] })
+      ];
+      
+      await Promise.all(refetchPromises);
       
       console.log('✅ Actualisation du système de permissions terminée avec succès');
       toast.success('Système de permissions actualisé avec succès');

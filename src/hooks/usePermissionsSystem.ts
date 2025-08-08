@@ -76,7 +76,9 @@ export const useRoles = () => {
       
       console.log('✅ Rôles récupérés:', data?.length || 0);
       return data as Role[];
-    }
+    },
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    refetchOnWindowFocus: false,
   });
 };
 
@@ -98,7 +100,9 @@ export const usePermissions = () => {
       
       console.log('✅ Permissions récupérées:', data?.length || 0);
       return data as Permission[];
-    }
+    },
+    staleTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: false,
   });
 };
 
@@ -119,7 +123,9 @@ export const useAllRolePermissions = () => {
       
       console.log('✅ Relations rôle-permissions récupérées:', data?.length || 0);
       return data as RolePermission[];
-    }
+    },
+    staleTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: false,
   });
 };
 
@@ -138,7 +144,9 @@ export const useMenusPermissionsStructure = () => {
 
       console.log('✅ Structure complète récupérée:', data?.length || 0);
       return data as MenuStructure[];
-    }
+    },
+    staleTime: 2 * 60 * 1000, // 2 minutes pour la structure
+    refetchOnWindowFocus: false,
   });
 };
 
@@ -164,7 +172,9 @@ export const useUsersWithRoles = () => {
       
       console.log('✅ Utilisateurs avec rôles récupérés:', data?.length || 0);
       return data as UserWithRole[];
-    }
+    },
+    staleTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: false,
   });
 };
 
@@ -199,9 +209,8 @@ export const useUpdateRolePermission = () => {
       return data;
     },
     onSuccess: () => {
-      // Invalider tous les caches liés aux permissions
+      // Invalider seulement les caches nécessaires
       queryClient.invalidateQueries({ queryKey: ['all-role-permissions'] });
-      queryClient.invalidateQueries({ queryKey: ['role-permissions'] });
       queryClient.invalidateQueries({ queryKey: ['user-permissions'] });
       toast.success('Permission mise à jour');
     },
@@ -243,9 +252,7 @@ export const useBulkUpdateRolePermissions = () => {
       return data;
     },
     onSuccess: () => {
-      // Invalider tous les caches liés aux permissions
       queryClient.invalidateQueries({ queryKey: ['all-role-permissions'] });
-      queryClient.invalidateQueries({ queryKey: ['role-permissions'] });
       queryClient.invalidateQueries({ queryKey: ['user-permissions'] });
       toast.success('Permissions mises à jour en lot');
     },

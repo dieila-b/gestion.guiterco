@@ -37,7 +37,7 @@ interface GroupedMenu {
 
 export default function PermissionsTab() {
   const { isRefreshing, refreshAllData } = usePermissionsRefresh();
-  const { data: menusStructure = [], isLoading } = useMenusPermissionsStructure();
+  const { data: menusStructure = [], isLoading, error } = useMenusPermissionsStructure();
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [newPermission, setNewPermission] = useState({
     menu: '',
@@ -66,7 +66,8 @@ export default function PermissionsTab() {
       
       setIsCreateDialogOpen(false);
       setNewPermission({ menu: '', submenu: '', action: '', description: '' });
-      await refreshAllData();
+      // Rafraîchir automatiquement après création
+      setTimeout(() => refreshAllData(), 500);
     } catch (error) {
       console.error('Erreur création permission:', error);
     }
@@ -77,7 +78,8 @@ export default function PermissionsTab() {
 
     try {
       await deletePermission.mutateAsync(permissionId);
-      await refreshAllData();
+      // Rafraîchir automatiquement après suppression
+      setTimeout(() => refreshAllData(), 500);
     } catch (error) {
       console.error('Erreur suppression permission:', error);
     }
@@ -195,6 +197,21 @@ export default function PermissionsTab() {
     );
   }
 
+  if (error) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <div className="text-center">
+          <AlertCircle className="h-8 w-8 mx-auto mb-2 text-destructive" />
+          <span className="text-sm text-destructive">Erreur lors du chargement des permissions</span>
+          <Button variant="outline" onClick={refreshAllData} className="mt-2">
+            <RefreshCw className="w-4 h-4 mr-2" />
+            Réessayer
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -246,12 +263,16 @@ export default function PermissionsTab() {
               <div className="space-y-4">
                 <div>
                   <Label htmlFor="menu">Menu *</Label>
-                  <Input
-                    id="menu"
-                    value={newPermission.menu}
-                    onChange={(e) => setNewPermission(prev => ({ ...prev, menu: e.target.value }))}
-                    placeholder="Ex: Ventes"
-                  />
+                  <Select value={newPermission.menu} onValueChange={(value) => setNewPermission(prev => ({ ...prev, menu: value }))}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Sélectionner un menu" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Array.from(new Set(menusStructure.map(item => item.menu_nom))).map(menu => (
+                        <SelectItem key={menu} value={menu}>{menu}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div>
                   <Label htmlFor="submenu">Sous-menu</Label>
@@ -259,7 +280,7 @@ export default function PermissionsTab() {
                     id="submenu"
                     value={newPermission.submenu}
                     onChange={(e) => setNewPermission(prev => ({ ...prev, submenu: e.target.value }))}
-                    placeholder="Ex: Factures"
+                    placeholder="Ex: Factures (optionnel)"
                   />
                 </div>
                 <div>
@@ -278,13 +299,6 @@ export default function PermissionsTab() {
                       <SelectItem value="export">Exporter (export)</SelectItem>
                       <SelectItem value="import">Importer (import)</SelectItem>
                       <SelectItem value="print">Imprimer (print)</SelectItem>
-                      <SelectItem value="close">Clôturer (close)</SelectItem>
-                      <SelectItem value="reopen">Rouvrir (reopen)</SelectItem>
-                      <SelectItem value="transfer">Transférer (transfer)</SelectItem>
-                      <SelectItem value="receive">Réceptionner (receive)</SelectItem>
-                      <SelectItem value="deliver">Livrer (deliver)</SelectItem>
-                      <SelectItem value="invoice">Facturer (invoice)</SelectItem>
-                      <SelectItem value="payment">Paiement (payment)</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -317,9 +331,9 @@ export default function PermissionsTab() {
           <Card>
             <CardContent className="text-center py-8">
               <Settings className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-              <h3 className="text-lg font-medium mb-2">Aucune structure trouvée</h3>
+              <h3 className="text-lg font-medium mb-2">Structure en cours de chargement</h3>
               <p className="text-muted-foreground mb-4">
-                La structure des menus et permissions n'a pas pu être chargée.
+                La structure des menus et permissions est en cours de synchronisation.
               </p>
               <Button onClick={refreshAllData} disabled={isRefreshing}>
                 {isRefreshing ? (
