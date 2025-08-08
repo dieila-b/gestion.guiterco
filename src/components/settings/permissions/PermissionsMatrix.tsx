@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -24,22 +23,35 @@ export default function PermissionsMatrix() {
   const handleRefresh = async () => {
     setIsLoading(true);
     try {
+      console.log('🔄 Début du rafraîchissement des données...');
+      
       // Invalider tous les caches liés aux permissions
       await queryClient.invalidateQueries({ queryKey: ['roles'] });
       await queryClient.invalidateQueries({ queryKey: ['permissions'] });
+      await queryClient.invalidateQueries({ queryKey: ['all-role-permissions'] });
       await queryClient.invalidateQueries({ queryKey: ['role-permissions'] });
+      await queryClient.invalidateQueries({ queryKey: ['menus-permissions-structure'] });
       
-      // Refetch explicite
-      await Promise.all([
+      // Refetch explicite avec gestion d'erreur
+      const results = await Promise.allSettled([
         refetchRoles(),
         refetchPermissions(),
         refetchRolePermissions()
       ]);
       
-      toast.success('Données des permissions actualisées');
+      // Vérifier les résultats
+      const failures = results.filter(result => result.status === 'rejected');
+      if (failures.length > 0) {
+        console.error('❌ Erreurs lors du rafraîchissement:', failures);
+        toast.error('Certaines données n\'ont pas pu être actualisées');
+      } else {
+        console.log('✅ Toutes les données ont été actualisées avec succès');
+        toast.success('Données des permissions actualisées avec succès');
+      }
+      
     } catch (error) {
-      toast.error('Erreur lors de l\'actualisation');
-      console.error('Erreur refresh:', error);
+      console.error('❌ Erreur lors de l\'actualisation:', error);
+      toast.error('Erreur lors de l\'actualisation des données');
     } finally {
       setIsLoading(false);
     }
@@ -150,10 +162,10 @@ export default function PermissionsMatrix() {
       <div className="flex flex-col items-center justify-center h-64 space-y-4">
         <div className="text-center">
           <p className="text-muted-foreground mb-4">Aucune donnée de permissions trouvée.</p>
-          <button 
+          <Button 
             onClick={handleRefresh}
             disabled={isLoading}
-            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-primary hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary disabled:opacity-50"
+            variant="outline"
           >
             {isLoading ? (
               <RefreshCw className="w-4 h-4 animate-spin mr-2" />
@@ -161,7 +173,7 @@ export default function PermissionsMatrix() {
               <RefreshCw className="w-4 h-4 mr-2" />
             )}
             Actualiser les données
-          </button>
+          </Button>
         </div>
       </div>
     );
@@ -181,10 +193,11 @@ export default function PermissionsMatrix() {
                 Configuration rapide des permissions par rôle avec actions en lot
               </p>
             </div>
-            <button 
+            <Button 
               onClick={handleRefresh}
               disabled={isLoading}
-              className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary disabled:opacity-50"
+              variant="outline"
+              size="sm"
             >
               {isLoading ? (
                 <RefreshCw className="w-4 h-4 animate-spin mr-2" />
@@ -192,7 +205,7 @@ export default function PermissionsMatrix() {
                 <RefreshCw className="w-4 h-4 mr-2" />
               )}
               Actualiser
-            </button>
+            </Button>
           </div>
         </CardHeader>
         <CardContent>
