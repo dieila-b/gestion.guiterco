@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -62,7 +61,7 @@ export default function PermissionsTab() {
     }
   };
 
-  const getActionIcon = (action: string) => {
+  const getActionIcon = (action: string): React.ReactNode => {
     switch (action) {
       case 'read': return <Eye className="h-3 w-3" />;
       case 'write': return <Edit className="h-3 w-3" />;
@@ -76,7 +75,7 @@ export default function PermissionsTab() {
     }
   };
 
-  const getActionLabel = (action: string) => {
+  const getActionLabel = (action: string): string => {
     switch (action) {
       case 'read': return 'Consulter';
       case 'write': return 'Gérer';
@@ -98,7 +97,7 @@ export default function PermissionsTab() {
     }
   };
 
-  const getActionColor = (action: string) => {
+  const getActionColor = (action: string): string => {
     switch (action) {
       case 'read': return 'bg-green-100 text-green-800 border-green-200';
       case 'write': return 'bg-blue-100 text-blue-800 border-blue-200';
@@ -125,7 +124,7 @@ export default function PermissionsTab() {
     }
     
     const menu = acc[item.menu_nom];
-    let sousMenu = menu.sous_menus.find(sm => 
+    let sousMenu = menu.sous_menus.find((sm: any) => 
       (sm.sous_menu_nom === item.sous_menu_nom) || 
       (sm.sous_menu_nom === null && item.sous_menu_nom === null)
     );

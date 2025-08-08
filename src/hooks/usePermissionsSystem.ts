@@ -44,6 +44,20 @@ export interface MenuStructure {
   permission_description?: string;
 }
 
+export interface UserWithRole {
+  id: string;
+  nom: string;
+  prenom: string;
+  email: string;
+  matricule: string;
+  statut: string;
+  type_compte: string;
+  role?: {
+    id: string;
+    name: string;
+  };
+}
+
 // Hook pour récupérer tous les rôles
 export const useRoles = () => {
   return useQuery({
@@ -124,6 +138,32 @@ export const useMenusPermissionsStructure = () => {
 
       console.log('✅ Structure complète récupérée:', data?.length || 0);
       return data as MenuStructure[];
+    }
+  });
+};
+
+// Hook pour récupérer les utilisateurs avec leurs rôles
+export const useUsersWithRoles = () => {
+  return useQuery({
+    queryKey: ['users-with-roles'],
+    queryFn: async () => {
+      console.log('🔍 Récupération des utilisateurs avec rôles...');
+      const { data, error } = await supabase
+        .from('utilisateurs_internes')
+        .select(`
+          *,
+          role:roles(id, name)
+        `)
+        .eq('statut', 'actif')
+        .order('nom');
+
+      if (error) {
+        console.error('❌ Erreur lors de la récupération des utilisateurs:', error);
+        throw error;
+      }
+      
+      console.log('✅ Utilisateurs avec rôles récupérés:', data?.length || 0);
+      return data as UserWithRole[];
     }
   });
 };
@@ -212,6 +252,105 @@ export const useBulkUpdateRolePermissions = () => {
     onError: (error: any) => {
       console.error('❌ Erreur lors de la mise à jour en lot:', error);
       toast.error(error.message || 'Erreur lors de la mise à jour des permissions');
+    }
+  });
+};
+
+// Hook pour créer un nouveau rôle
+export const useCreateRole = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (roleData: Omit<Role, 'id' | 'created_at'>) => {
+      console.log('🔄 Création nouveau rôle:', roleData);
+      
+      const { data, error } = await supabase
+        .from('roles')
+        .insert(roleData)
+        .select()
+        .single();
+
+      if (error) {
+        console.error('❌ Erreur création rôle:', error);
+        throw error;
+      }
+
+      console.log('✅ Rôle créé avec succès');
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['roles'] });
+      toast.success('Rôle créé avec succès');
+    },
+    onError: (error: any) => {
+      console.error('❌ Erreur lors de la création:', error);
+      toast.error(error.message || 'Erreur lors de la création du rôle');
+    }
+  });
+};
+
+// Hook pour mettre à jour un rôle
+export const useUpdateRole = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ id, ...roleData }: Partial<Role> & { id: string }) => {
+      console.log('🔄 Mise à jour rôle:', id, roleData);
+      
+      const { data, error } = await supabase
+        .from('roles')
+        .update(roleData)
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) {
+        console.error('❌ Erreur mise à jour rôle:', error);
+        throw error;
+      }
+
+      console.log('✅ Rôle mis à jour avec succès');
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['roles'] });
+      toast.success('Rôle modifié avec succès');
+    },
+    onError: (error: any) => {
+      console.error('❌ Erreur lors de la modification:', error);
+      toast.error(error.message || 'Erreur lors de la modification du rôle');
+    }
+  });
+};
+
+// Hook pour supprimer un rôle
+export const useDeleteRole = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (roleId: string) => {
+      console.log('🔄 Suppression rôle:', roleId);
+      
+      const { error } = await supabase
+        .from('roles')
+        .delete()
+        .eq('id', roleId);
+
+      if (error) {
+        console.error('❌ Erreur suppression rôle:', error);
+        throw error;
+      }
+
+      console.log('✅ Rôle supprimé avec succès');
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['roles'] });
+      queryClient.invalidateQueries({ queryKey: ['users-with-roles'] });
+      toast.success('Rôle supprimé avec succès');
+    },
+    onError: (error: any) => {
+      console.error('❌ Erreur lors de la suppression:', error);
+      toast.error(error.message || 'Erreur lors de la suppression du rôle');
     }
   });
 };
