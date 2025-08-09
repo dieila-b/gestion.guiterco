@@ -53,9 +53,14 @@ export default function PermissionsMatrix() {
     return rolePermission?.can_access || false;
   };
 
-  // Mettre à jour une permission
+  // Mettre à jour une permission - CORRECTION PRINCIPALE
   const handlePermissionChange = async (roleId: string, permissionId: string, canAccess: boolean) => {
-    if (isRefreshing || updateRolePermission.isPending) return;
+    if (isRefreshing || updateRolePermission.isPending) {
+      console.log('🚫 Opération bloquée - actualisation en cours ou mutation pendante');
+      return;
+    }
+    
+    console.log('🔄 Modification permission:', { roleId, permissionId, canAccess });
     
     try {
       await updateRolePermission.mutateAsync({
@@ -63,6 +68,8 @@ export default function PermissionsMatrix() {
         permissionId,
         canAccess
       });
+      
+      console.log('✅ Permission mise à jour avec succès');
     } catch (error) {
       console.error('❌ Erreur permission change:', error);
       toast.error('Erreur lors de la mise à jour de la permission');
@@ -325,10 +332,14 @@ export default function PermissionsMatrix() {
                                     <TableCell key={role.id} className="text-center">
                                       <Switch
                                         checked={hasAccess}
-                                        onCheckedChange={(checked) => 
-                                          !isSystemRole && handlePermissionChange(role.id, permission.id, checked)
-                                        }
+                                        onCheckedChange={(checked) => {
+                                          console.log('🎯 Switch cliqué:', { role: role.name, permission: permission.action, checked });
+                                          if (!isSystemRole) {
+                                            handlePermissionChange(role.id, permission.id, checked);
+                                          }
+                                        }}
                                         disabled={isSystemRole || updateRolePermission.isPending || isRefreshing}
+                                        className={hasAccess ? 'data-[state=checked]:bg-green-600' : ''}
                                       />
                                     </TableCell>
                                   );
