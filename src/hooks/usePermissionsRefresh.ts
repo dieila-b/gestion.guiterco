@@ -31,34 +31,43 @@ export const usePermissionsRefresh = () => {
 
       console.log('🗑️ Invalidation des caches:', queries);
       
-      // Invalider et refetch en séquence pour éviter les conflits
+      // Annuler toutes les requêtes en cours
       await queryClient.cancelQueries();
       
-      // Invalider tous les caches
-      queries.forEach(queryKey => {
-        queryClient.invalidateQueries({ queryKey: [queryKey] });
-      });
+      // Invalider tous les caches de façon séquentielle
+      for (const queryKey of queries) {
+        await queryClient.invalidateQueries({ queryKey: [queryKey] });
+      }
       
       // Attendre un court délai avant le refetch
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise(resolve => setTimeout(resolve, 200));
       
-      // Forcer le refetch des données principales
+      // Forcer le refetch des données principales en séquence
       const refetchPromises = [
-        queryClient.refetchQueries({ queryKey: ['roles'] }),
-        queryClient.refetchQueries({ queryKey: ['permissions'] }),
-        queryClient.refetchQueries({ queryKey: ['all-role-permissions'] }),
-        queryClient.refetchQueries({ queryKey: ['menus-permissions-structure'] }),
-        queryClient.refetchQueries({ queryKey: ['users-with-roles'] })
+        () => queryClient.refetchQueries({ queryKey: ['permissions'] }),
+        () => queryClient.refetchQueries({ queryKey: ['roles'] }),
+        () => queryClient.refetchQueries({ queryKey: ['all-role-permissions'] }),
+        () => queryClient.refetchQueries({ queryKey: ['menus-permissions-structure'] }),
+        () => queryClient.refetchQueries({ queryKey: ['users-with-roles'] })
       ];
       
-      await Promise.all(refetchPromises);
+      // Exécuter les refetch en séquence pour éviter la surcharge
+      for (const refetchFn of refetchPromises) {
+        await refetchFn();
+        // Petit délai entre chaque refetch
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
       
       console.log('✅ Actualisation du système de permissions terminée avec succès');
-      toast.success('Système de permissions actualisé avec succès');
+      toast.success('Données actualisées avec succès', {
+        description: 'La structure complète des permissions a été rechargée.'
+      });
       
     } catch (error) {
       console.error('❌ Erreur lors de l\'actualisation du système de permissions:', error);
-      toast.error('Erreur lors de l\'actualisation des données');
+      toast.error('Erreur lors de l\'actualisation', {
+        description: 'Impossible de recharger les données. Veuillez réessayer.'
+      });
     } finally {
       setIsRefreshing(false);
     }

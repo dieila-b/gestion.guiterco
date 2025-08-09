@@ -76,7 +76,7 @@ export const useRoles = () => {
       console.log('✅ Rôles récupérés:', data?.length || 0);
       return data as Role[];
     },
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 5 * 60 * 1000,
     refetchOnWindowFocus: false,
   });
 };
@@ -128,132 +128,62 @@ export const useAllRolePermissions = () => {
   });
 };
 
-// Hook pour récupérer la structure complète des menus et permissions
+// Hook simplifié pour récupérer la structure complète des menus et permissions
 export const useMenusPermissionsStructure = () => {
   return useQuery({
     queryKey: ['menus-permissions-structure'],
     queryFn: async () => {
-      console.log('🔍 Récupération de la structure complète...');
+      console.log('🔍 Récupération de la structure simplifiée...');
       
-      // Utiliser une requête directe pour récupérer la structure
-      const { data: menus, error: menusError } = await supabase
-        .from('menus')
-        .select('*')
-        .eq('statut', 'actif')
-        .order('ordre');
+      try {
+        // Récupérer directement toutes les permissions
+        const { data: permissions, error: permissionsError } = await supabase
+          .from('permissions')
+          .select('*')
+          .order('menu, submenu, action');
 
-      if (menusError) {
-        console.error('❌ Erreur lors de la récupération des menus:', menusError);
-        throw menusError;
-      }
-
-      const { data: sousMenus, error: sousMenusError } = await supabase
-        .from('sous_menus')
-        .select('*')
-        .eq('statut', 'actif')
-        .order('ordre');
-
-      if (sousMenusError) {
-        console.error('❌ Erreur lors de la récupération des sous-menus:', sousMenusError);
-        // Continuer même si pas de sous-menus
-      }
-
-      const { data: permissions, error: permissionsError } = await supabase
-        .from('permissions')
-        .select('*')
-        .order('menu, submenu, action');
-
-      if (permissionsError) {
-        console.error('❌ Erreur lors de la récupération des permissions:', permissionsError);
-        throw permissionsError;
-      }
-
-      // Construire la structure manuellement
-      const structure: MenuStructure[] = [];
-
-      menus?.forEach(menu => {
-        // Ajouter les permissions directes du menu (sans sous-menu)
-        const menuPermissions = permissions?.filter(p => 
-          p.menu === menu.nom && !p.submenu
-        ) || [];
-
-        menuPermissions.forEach(permission => {
-          structure.push({
-            menu_id: menu.id,
-            menu_nom: menu.nom,
-            menu_icone: menu.icone,
-            menu_ordre: menu.ordre,
-            sous_menu_id: null,
-            sous_menu_nom: null,
-            sous_menu_ordre: 0,
-            permission_id: permission.id,
-            action: permission.action,
-            permission_description: permission.description
-          });
-        });
-
-        // Ajouter les sous-menus et leurs permissions
-        const menuSousMenus = sousMenus?.filter(sm => sm.menu_id === menu.id) || [];
-        
-        menuSousMenus.forEach(sousMenu => {
-          const sousMenuPermissions = permissions?.filter(p => 
-            p.menu === menu.nom && p.submenu === sousMenu.nom
-          ) || [];
-
-          if (sousMenuPermissions.length > 0) {
-            sousMenuPermissions.forEach(permission => {
-              structure.push({
-                menu_id: menu.id,
-                menu_nom: menu.nom,
-                menu_icone: menu.icone,
-                menu_ordre: menu.ordre,
-                sous_menu_id: sousMenu.id,
-                sous_menu_nom: sousMenu.nom,
-                sous_menu_ordre: sousMenu.ordre,
-                permission_id: permission.id,
-                action: permission.action,
-                permission_description: permission.description
-              });
-            });
-          } else {
-            // Ajouter le sous-menu même sans permissions pour le débogage
-            structure.push({
-              menu_id: menu.id,
-              menu_nom: menu.nom,
-              menu_icone: menu.icone,
-              menu_ordre: menu.ordre,
-              sous_menu_id: sousMenu.id,
-              sous_menu_nom: sousMenu.nom,
-              sous_menu_ordre: sousMenu.ordre,
-              permission_id: null,
-              action: null,
-              permission_description: null
-            });
-          }
-        });
-
-        // Si le menu n'a ni permissions directes ni sous-menus, l'ajouter quand même
-        if (menuPermissions.length === 0 && menuSousMenus.length === 0) {
-          structure.push({
-            menu_id: menu.id,
-            menu_nom: menu.nom,
-            menu_icone: menu.icone,
-            menu_ordre: menu.ordre,
-            sous_menu_id: null,
-            sous_menu_nom: null,
-            sous_menu_ordre: 0,
-            permission_id: null,
-            action: null,
-            permission_description: null
-          });
+        if (permissionsError) {
+          console.error('❌ Erreur permissions:', permissionsError);
+          throw permissionsError;
         }
-      });
 
-      console.log('✅ Structure complète construite:', structure.length);
-      return structure;
+        if (!permissions || permissions.length === 0) {
+          console.warn('⚠️ Aucune permission trouvée');
+          return [];
+        }
+
+        // Construire la structure directement à partir des permissions
+        const structure: MenuStructure[] = permissions.map((permission, index) => ({
+          menu_id: `menu-${permission.menu.toLowerCase().replace(/\s+/g, '-')}`,
+          menu_nom: permission.menu,
+          menu_icone: 'Settings', // Icône par défaut
+          menu_ordre: index,
+          sous_menu_id: permission.submenu ? `submenu-${permission.submenu.toLowerCase().replace(/\s+/g, '-')}` : null,
+          sous_menu_nom: permission.submenu || null,
+          sous_menu_ordre: 0,
+          permission_id: permission.id,
+          action: permission.action,
+          permission_description: permission.description
+        }));
+
+        console.log('✅ Structure construite:', structure.length, 'éléments');
+        console.log('📊 Répartition:', {
+          menus: new Set(structure.map(s => s.menu_nom)).size,
+          sousMenus: new Set(structure.map(s => s.sous_menu_nom).filter(Boolean)).size,
+          permissions: structure.filter(s => s.permission_id).length
+        });
+
+        return structure;
+
+      } catch (error) {
+        console.error('❌ Erreur inattendue:', error);
+        throw error;
+      }
     },
-    staleTime: 2 * 60 * 1000, // 2 minutes pour la structure
+    staleTime: 2 * 60 * 1000,
     refetchOnWindowFocus: false,
+    retry: 2,
+    retryDelay: 1000,
   });
 };
 
@@ -316,7 +246,6 @@ export const useUpdateRolePermission = () => {
       return data;
     },
     onSuccess: () => {
-      // Invalider seulement les caches nécessaires
       queryClient.invalidateQueries({ queryKey: ['all-role-permissions'] });
       queryClient.invalidateQueries({ queryKey: ['user-permissions'] });
       toast.success('Permission mise à jour');
