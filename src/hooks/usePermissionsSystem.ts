@@ -225,13 +225,14 @@ export const useUpdateRolePermission = () => {
       permissionId: string; 
       canAccess: boolean 
     }) => {
-      console.log('🔄 Mutation permission:', { roleId, permissionId, canAccess });
+      console.log('🔄 Début mutation permission:', { roleId, permissionId, canAccess });
       
-      // Vérifier que les IDs ne sont pas vides
+      // Validation des paramètres
       if (!roleId || !permissionId) {
         throw new Error('roleId et permissionId sont requis');
       }
       
+      // Utiliser upsert pour créer ou mettre à jour
       const { data, error } = await supabase
         .from('role_permissions')
         .upsert({
@@ -239,7 +240,8 @@ export const useUpdateRolePermission = () => {
           permission_id: permissionId,
           can_access: canAccess
         }, {
-          onConflict: 'role_id,permission_id'
+          onConflict: 'role_id,permission_id',
+          ignoreDuplicates: false
         })
         .select()
         .single();
@@ -249,13 +251,19 @@ export const useUpdateRolePermission = () => {
         throw error;
       }
 
-      console.log('✅ Permission mise à jour avec succès:', data);
+      console.log('✅ Mutation réussie:', data);
       return data;
     },
-    onSuccess: (data, variables) => {
-      console.log('🎉 Mutation réussie, invalidation des caches...');
+    onMutate: async (variables) => {
+      console.log('🔄 onMutate - Mise à jour optimiste:', variables);
       
-      // Invalidation optimiste - mise à jour immédiate du cache
+      // Annuler les requêtes en cours
+      await queryClient.cancelQueries({ queryKey: ['all-role-permissions'] });
+      
+      // Sauvegarder l'état précédent
+      const previousData = queryClient.getQueryData(['all-role-permissions']);
+      
+      // Mise à jour optimiste
       queryClient.setQueryData(['all-role-permissions'], (oldData: any) => {
         if (!oldData) return oldData;
         
@@ -266,12 +274,15 @@ export const useUpdateRolePermission = () => {
         if (existingIndex >= 0) {
           // Mettre à jour l'entrée existante
           const newData = [...oldData];
-          newData[existingIndex] = { ...newData[existingIndex], can_access: variables.canAccess };
+          newData[existingIndex] = { 
+            ...newData[existingIndex], 
+            can_access: variables.canAccess 
+          };
           return newData;
         } else {
           // Ajouter une nouvelle entrée
           return [...oldData, {
-            id: data?.id || crypto.randomUUID(),
+            id: crypto.randomUUID(),
             role_id: variables.roleId,
             permission_id: variables.permissionId,
             can_access: variables.canAccess
@@ -279,14 +290,23 @@ export const useUpdateRolePermission = () => {
         }
       });
       
-      // Invalider les caches pour forcer un refresh
+      return { previousData };
+    },
+    onSuccess: (data, variables) => {
+      console.log('🎉 onSuccess - Mutation réussie:', data);
+      
+      // Invalider pour refetch les données fraîches
       queryClient.invalidateQueries({ queryKey: ['all-role-permissions'] });
       queryClient.invalidateQueries({ queryKey: ['user-permissions'] });
-      
-      toast.success('Permission mise à jour avec succès');
     },
-    onError: (error: any) => {
-      console.error('❌ Erreur lors de la mise à jour:', error);
+    onError: (error: any, variables, context) => {
+      console.error('❌ onError - Erreur mutation:', error);
+      
+      // Restaurer l'état précédent en cas d'erreur
+      if (context?.previousData) {
+        queryClient.setQueryData(['all-role-permissions'], context.previousData);
+      }
+      
       toast.error(error.message || 'Erreur lors de la mise à jour de la permission');
     }
   });

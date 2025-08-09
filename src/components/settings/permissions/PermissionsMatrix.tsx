@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -26,7 +25,8 @@ export default function PermissionsMatrix() {
     isDataLoading,
     rolesCount: roles.length,
     permissionsCount: permissions.length,
-    rolePermissionsCount: rolePermissions.length
+    rolePermissionsCount: rolePermissions.length,
+    isMutating: updateRolePermission.isPending
   });
 
   // Organiser les permissions par menu et sous-menu
@@ -53,25 +53,42 @@ export default function PermissionsMatrix() {
     return rolePermission?.can_access || false;
   };
 
-  // Mettre à jour une permission - CORRECTION PRINCIPALE
-  const handlePermissionChange = async (roleId: string, permissionId: string, canAccess: boolean) => {
+  // Mettre à jour une permission - VERSION CORRIGÉE
+  const handlePermissionChange = async (roleId: string, permissionId: string, newValue: boolean) => {
+    // Bloquer toute action si une opération est en cours
     if (isRefreshing || updateRolePermission.isPending) {
-      console.log('🚫 Opération bloquée - actualisation en cours ou mutation pendante');
+      console.log('🚫 Opération bloquée - en cours de traitement');
+      toast.warning('Une opération est en cours, veuillez patienter...');
+      return;
+    }
+
+    // Vérifier que les IDs sont valides
+    if (!roleId || !permissionId) {
+      console.error('❌ IDs manquants:', { roleId, permissionId });
+      toast.error('Erreur: données manquantes');
       return;
     }
     
-    console.log('🔄 Modification permission:', { roleId, permissionId, canAccess });
+    console.log('🎯 Modification permission demandée:', { 
+      roleId, 
+      permissionId, 
+      newValue,
+      currentValue: hasPermission(roleId, permissionId)
+    });
     
     try {
+      // Déclencher la mutation
       await updateRolePermission.mutateAsync({
         roleId,
         permissionId,
-        canAccess
+        canAccess: newValue
       });
       
       console.log('✅ Permission mise à jour avec succès');
-    } catch (error) {
-      console.error('❌ Erreur permission change:', error);
+      toast.success(`Permission ${newValue ? 'accordée' : 'révoquée'} avec succès`);
+      
+    } catch (error: any) {
+      console.error('❌ Erreur lors de la mise à jour:', error);
       toast.error('Erreur lors de la mise à jour de la permission');
     }
   };
@@ -241,7 +258,7 @@ export default function PermissionsMatrix() {
               </div>
             )}
 
-            {/* Matrice des permissions */}
+            {/* Matrice des permissions - VERSION CORRIGÉE */}
             {Object.keys(organizedPermissions).length > 0 && (
               <div className="overflow-x-auto border rounded-lg">
                 <Table>
@@ -325,22 +342,38 @@ export default function PermissionsMatrix() {
                                   </Badge>
                                 </TableCell>
                                 {filteredRoles.map((role) => {
-                                  const hasAccess = hasPermission(role.id, permission.id);
+                                  const currentValue = hasPermission(role.id, permission.id);
                                   const isSystemRole = role.is_system && role.name === 'Administrateur';
+                                  const isDisabled = isSystemRole || updateRolePermission.isPending || isRefreshing;
+                                  
+                                  console.log(`Switch ${role.name}-${permission.action}:`, {
+                                    currentValue,
+                                    isDisabled,
+                                    roleId: role.id,
+                                    permissionId: permission.id
+                                  });
                                   
                                   return (
                                     <TableCell key={role.id} className="text-center">
-                                      <Switch
-                                        checked={hasAccess}
-                                        onCheckedChange={(checked) => {
-                                          console.log('🎯 Switch cliqué:', { role: role.name, permission: permission.action, checked });
-                                          if (!isSystemRole) {
-                                            handlePermissionChange(role.id, permission.id, checked);
-                                          }
-                                        }}
-                                        disabled={isSystemRole || updateRolePermission.isPending || isRefreshing}
-                                        className={hasAccess ? 'data-[state=checked]:bg-green-600' : ''}
-                                      />
+                                      <div className="flex justify-center">
+                                        <Switch
+                                          checked={currentValue}
+                                          disabled={isDisabled}
+                                          onCheckedChange={(newValue) => {
+                                            console.log('🎯 Switch activé:', { 
+                                              role: role.name, 
+                                              permission: permission.action, 
+                                              oldValue: currentValue,
+                                              newValue 
+                                            });
+                                            
+                                            if (!isDisabled) {
+                                              handlePermissionChange(role.id, permission.id, newValue);
+                                            }
+                                          }}
+                                          className={currentValue ? 'data-[state=checked]:bg-green-600' : ''}
+                                        />
+                                      </div>
                                     </TableCell>
                                   );
                                 })}
