@@ -9,7 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Plus, Settings, Eye, Edit, Trash2, RefreshCw, Check, X, FileText, Download, Upload, AlertCircle, Loader2 } from 'lucide-react';
+import { Plus, Settings, Eye, Edit, Trash2, RefreshCw, Check, X, FileText, Download, Upload, AlertCircle, Loader2, Lock, Users, Grid3x3 } from 'lucide-react';
 import { useMenusPermissionsStructure, useCreatePermission, useUpdatePermission, useDeletePermission } from '@/hooks/usePermissionsSystem';
 import { usePermissionsRefresh } from '@/hooks/usePermissionsRefresh';
 import { toast } from 'sonner';
@@ -95,6 +95,12 @@ export default function PermissionsTab() {
       case 'convert': return <FileText className="h-3 w-3" />;
       case 'export': return <Download className="h-3 w-3" />;
       case 'import': return <Upload className="h-3 w-3" />;
+      case 'transfer': return <Users className="h-3 w-3" />;
+      case 'payment': return <Grid3x3 className="h-3 w-3" />;
+      case 'receive': return <Check className="h-3 w-3" />;
+      case 'deliver': return <Users className="h-3 w-3" />;
+      case 'close': return <Lock className="h-3 w-3" />;
+      case 'print': return <FileText className="h-3 w-3" />;
       default: return <Settings className="h-3 w-3" />;
     }
   };
@@ -131,6 +137,8 @@ export default function PermissionsTab() {
       case 'convert': return 'bg-indigo-100 text-indigo-800 border-indigo-200';
       case 'export': return 'bg-purple-100 text-purple-800 border-purple-200';
       case 'import': return 'bg-cyan-100 text-cyan-800 border-cyan-200';
+      case 'transfer': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+      case 'payment': return 'bg-pink-100 text-pink-800 border-pink-200';
       default: return 'bg-gray-100 text-gray-800 border-gray-200';
     }
   };
@@ -148,15 +156,14 @@ export default function PermissionsTab() {
     }
     
     const menu = acc[item.menu_nom];
-    let sousMenu = menu.sous_menus.find((sm) => 
-      (sm.sous_menu_nom === item.sous_menu_nom) || 
-      (sm.sous_menu_nom === null && item.sous_menu_nom === null)
-    );
+    const sousMenuNom = item.sous_menu_nom || '(Menu principal)';
+    
+    let sousMenu = menu.sous_menus.find((sm) => sm.sous_menu_nom === sousMenuNom);
     
     if (!sousMenu) {
       sousMenu = {
         sous_menu_id: item.sous_menu_id,
-        sous_menu_nom: item.sous_menu_nom || '(Menu principal)',
+        sous_menu_nom: sousMenuNom,
         sous_menu_ordre: item.sous_menu_ordre || 0,
         permissions: []
       };
@@ -185,6 +192,10 @@ export default function PermissionsTab() {
       subTotal + sousMenu.permissions.length, 0
     ), 0
   );
+
+  const menusUniquesPourSelect = Array.from(
+    new Set(menusStructure.map(item => item.menu_nom))
+  ).sort();
 
   if (isLoading && !isRefreshing) {
     return (
@@ -227,7 +238,7 @@ export default function PermissionsTab() {
             </span>
             <span className="flex items-center gap-1">
               <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-              {totalSousMenus} sous-menus
+              {totalSousMenus} sections
             </span>
             <span className="flex items-center gap-1">
               <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
@@ -268,7 +279,7 @@ export default function PermissionsTab() {
                       <SelectValue placeholder="Sélectionner un menu" />
                     </SelectTrigger>
                     <SelectContent>
-                      {Array.from(new Set(menusStructure.map(item => item.menu_nom))).map(menu => (
+                      {menusUniquesPourSelect.map(menu => (
                         <SelectItem key={menu} value={menu}>{menu}</SelectItem>
                       ))}
                     </SelectContent>
@@ -299,6 +310,11 @@ export default function PermissionsTab() {
                       <SelectItem value="export">Exporter (export)</SelectItem>
                       <SelectItem value="import">Importer (import)</SelectItem>
                       <SelectItem value="print">Imprimer (print)</SelectItem>
+                      <SelectItem value="transfer">Transférer (transfer)</SelectItem>
+                      <SelectItem value="payment">Paiement (payment)</SelectItem>
+                      <SelectItem value="receive">Réceptionner (receive)</SelectItem>
+                      <SelectItem value="deliver">Livrer (deliver)</SelectItem>
+                      <SelectItem value="close">Clôturer (close)</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -362,7 +378,7 @@ export default function PermissionsTab() {
                   {menu.sous_menus.length === 0 ? (
                     <div className="text-center py-4 text-muted-foreground">
                       <AlertCircle className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                      Aucun sous-menu ou permission défini pour ce menu
+                      Aucune section ou permission définie pour ce menu
                     </div>
                   ) : (
                     menu.sous_menus.map((sousMenu, index) => (
@@ -370,7 +386,7 @@ export default function PermissionsTab() {
                         <div className="mb-3">
                           <h4 className="font-medium flex items-center gap-2">
                             <AlertCircle className="w-4 h-4" />
-                            Sous-menu : {sousMenu.sous_menu_nom}
+                            Section : {sousMenu.sous_menu_nom}
                             <Badge variant="secondary" className="ml-auto">
                               {sousMenu.permissions.length} action(s)
                             </Badge>
@@ -378,8 +394,14 @@ export default function PermissionsTab() {
                         </div>
                         
                         {sousMenu.permissions.length === 0 ? (
-                          <div className="text-sm text-muted-foreground py-2">
-                            Aucune permission définie
+                          <div className="text-sm text-muted-foreground py-2 bg-amber-50 border border-amber-200 rounded-md p-3">
+                            <div className="flex items-center gap-2">
+                              <AlertCircle className="h-4 w-4 text-amber-600" />
+                              <span className="font-medium text-amber-800">Aucune permission définie</span>
+                            </div>
+                            <p className="text-xs text-amber-700 mt-1">
+                              Cette section apparaît sans permissions. Cela peut empêcher la gestion correcte des droits d'accès.
+                            </p>
                           </div>
                         ) : (
                           <Table>

@@ -1,4 +1,3 @@
-
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -135,15 +134,123 @@ export const useMenusPermissionsStructure = () => {
     queryKey: ['menus-permissions-structure'],
     queryFn: async () => {
       console.log('🔍 Récupération de la structure complète...');
-      const { data, error } = await supabase.rpc('get_permissions_structure');
+      
+      // Utiliser une requête directe pour récupérer la structure
+      const { data: menus, error: menusError } = await supabase
+        .from('menus')
+        .select('*')
+        .eq('statut', 'actif')
+        .order('ordre');
 
-      if (error) {
-        console.error('❌ Erreur lors de la récupération de la structure:', error);
-        throw error;
+      if (menusError) {
+        console.error('❌ Erreur lors de la récupération des menus:', menusError);
+        throw menusError;
       }
 
-      console.log('✅ Structure complète récupérée:', data?.length || 0);
-      return data as MenuStructure[];
+      const { data: sousMenus, error: sousMenusError } = await supabase
+        .from('sous_menus')
+        .select('*')
+        .eq('statut', 'actif')
+        .order('ordre');
+
+      if (sousMenusError) {
+        console.error('❌ Erreur lors de la récupération des sous-menus:', sousMenusError);
+        // Continuer même si pas de sous-menus
+      }
+
+      const { data: permissions, error: permissionsError } = await supabase
+        .from('permissions')
+        .select('*')
+        .order('menu, submenu, action');
+
+      if (permissionsError) {
+        console.error('❌ Erreur lors de la récupération des permissions:', permissionsError);
+        throw permissionsError;
+      }
+
+      // Construire la structure manuellement
+      const structure: MenuStructure[] = [];
+
+      menus?.forEach(menu => {
+        // Ajouter les permissions directes du menu (sans sous-menu)
+        const menuPermissions = permissions?.filter(p => 
+          p.menu === menu.nom && !p.submenu
+        ) || [];
+
+        menuPermissions.forEach(permission => {
+          structure.push({
+            menu_id: menu.id,
+            menu_nom: menu.nom,
+            menu_icone: menu.icone,
+            menu_ordre: menu.ordre,
+            sous_menu_id: null,
+            sous_menu_nom: null,
+            sous_menu_ordre: 0,
+            permission_id: permission.id,
+            action: permission.action,
+            permission_description: permission.description
+          });
+        });
+
+        // Ajouter les sous-menus et leurs permissions
+        const menuSousMenus = sousMenus?.filter(sm => sm.menu_id === menu.id) || [];
+        
+        menuSousMenus.forEach(sousMenu => {
+          const sousMenuPermissions = permissions?.filter(p => 
+            p.menu === menu.nom && p.submenu === sousMenu.nom
+          ) || [];
+
+          if (sousMenuPermissions.length > 0) {
+            sousMenuPermissions.forEach(permission => {
+              structure.push({
+                menu_id: menu.id,
+                menu_nom: menu.nom,
+                menu_icone: menu.icone,
+                menu_ordre: menu.ordre,
+                sous_menu_id: sousMenu.id,
+                sous_menu_nom: sousMenu.nom,
+                sous_menu_ordre: sousMenu.ordre,
+                permission_id: permission.id,
+                action: permission.action,
+                permission_description: permission.description
+              });
+            });
+          } else {
+            // Ajouter le sous-menu même sans permissions pour le débogage
+            structure.push({
+              menu_id: menu.id,
+              menu_nom: menu.nom,
+              menu_icone: menu.icone,
+              menu_ordre: menu.ordre,
+              sous_menu_id: sousMenu.id,
+              sous_menu_nom: sousMenu.nom,
+              sous_menu_ordre: sousMenu.ordre,
+              permission_id: null,
+              action: null,
+              permission_description: null
+            });
+          }
+        });
+
+        // Si le menu n'a ni permissions directes ni sous-menus, l'ajouter quand même
+        if (menuPermissions.length === 0 && menuSousMenus.length === 0) {
+          structure.push({
+            menu_id: menu.id,
+            menu_nom: menu.nom,
+            menu_icone: menu.icone,
+            menu_ordre: menu.ordre,
+            sous_menu_id: null,
+            sous_menu_nom: null,
+            sous_menu_ordre: 0,
+            permission_id: null,
+            action: null,
+            permission_description: null
+          });
+        }
+      });
+
+      console.log('✅ Structure complète construite:', structure.length);
+      return structure;
     },
     staleTime: 2 * 60 * 1000, // 2 minutes pour la structure
     refetchOnWindowFocus: false,
