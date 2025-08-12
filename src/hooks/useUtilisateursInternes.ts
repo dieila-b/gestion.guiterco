@@ -1,4 +1,3 @@
-
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -40,6 +39,21 @@ export interface CreateUtilisateurInterne {
   password_hash?: string;
 }
 
+// Type definition for auth user
+interface AuthUser {
+  id: string;
+  email?: string;
+  user_metadata?: {
+    prenom?: string;
+    nom?: string;
+    first_name?: string;
+    last_name?: string;
+    telephone?: string;
+    phone?: string;
+    avatar_url?: string;
+  };
+}
+
 export const useUtilisateursInternes = () => {
   return useQuery({
     queryKey: ['utilisateurs-internes'],
@@ -57,18 +71,21 @@ export const useUtilisateursInternes = () => {
 
         // Récupérer tous les utilisateurs auth pour synchronisation
         console.log('📡 Récupération des utilisateurs auth...');
-        const { data: authUsers, error: authError } = await supabase.auth.admin.listUsers();
+        const { data: authData, error: authError } = await supabase.auth.admin.listUsers();
+        
+        // Type assertion to ensure proper typing
+        const authUsers = authData?.users as AuthUser[] | undefined;
         
         console.log('📋 Utilisateurs auth récupérés:', { 
-          count: authUsers?.users?.length || 0, 
+          count: authUsers?.length || 0, 
           authError,
-          users: authUsers?.users?.map(u => ({ id: u.id, email: u.email })) 
+          users: authUsers?.map(u => ({ id: u.id, email: u.email })) 
         });
 
         // Si on a des utilisateurs auth mais pas dans utilisateurs_internes, créer les entrées manquantes
-        if (authUsers?.users && authUsers.users.length > 0) {
+        if (authUsers && authUsers.length > 0) {
           const existingUserIds = new Set(existingUsers?.map(u => u.user_id) || []);
-          const missingUsers = authUsers.users.filter(authUser => 
+          const missingUsers = authUsers.filter(authUser => 
             authUser.email && !existingUserIds.has(authUser.id)
           );
 
