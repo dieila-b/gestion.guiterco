@@ -1,3 +1,4 @@
+
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -46,14 +47,80 @@ export const useUtilisateursInternes = () => {
       console.log('🔍 Récupération des utilisateurs internes...');
       
       try {
-        // Utiliser la vue directement
+        // D'abord, récupérer les utilisateurs existants dans utilisateurs_internes
+        console.log('📡 Vérification de la table utilisateurs_internes...');
+        const { data: existingUsers, error: existingError } = await supabase
+          .from('utilisateurs_internes')
+          .select('*');
+
+        console.log('📋 Utilisateurs existants dans utilisateurs_internes:', { existingUsers, existingError });
+
+        // Récupérer tous les utilisateurs auth pour synchronisation
+        console.log('📡 Récupération des utilisateurs auth...');
+        const { data: authUsers, error: authError } = await supabase.auth.admin.listUsers();
+        
+        console.log('📋 Utilisateurs auth récupérés:', { 
+          count: authUsers?.users?.length || 0, 
+          authError,
+          users: authUsers?.users?.map(u => ({ id: u.id, email: u.email })) 
+        });
+
+        // Si on a des utilisateurs auth mais pas dans utilisateurs_internes, créer les entrées manquantes
+        if (authUsers?.users && authUsers.users.length > 0) {
+          const existingUserIds = new Set(existingUsers?.map(u => u.user_id) || []);
+          const missingUsers = authUsers.users.filter(authUser => 
+            authUser.email && !existingUserIds.has(authUser.id)
+          );
+
+          console.log('📋 Utilisateurs manquants à synchroniser:', missingUsers.length);
+
+          if (missingUsers.length > 0) {
+            console.log('📡 Synchronisation des utilisateurs manquants...');
+            
+            // Créer les enregistrements manquants
+            for (const authUser of missingUsers) {
+              const userMetadata = authUser.user_metadata || {};
+              const emailParts = authUser.email?.split('@') || ['', ''];
+              const defaultName = emailParts[0] || 'Utilisateur';
+              
+              const newUserData = {
+                user_id: authUser.id,
+                email: authUser.email,
+                prenom: userMetadata.prenom || userMetadata.first_name || defaultName,
+                nom: userMetadata.nom || userMetadata.last_name || 'Interne',
+                statut: 'actif' as const,
+                type_compte: 'employe' as const,
+                telephone: userMetadata.telephone || userMetadata.phone || null,
+                matricule: null,
+                role_id: null,
+                photo_url: userMetadata.avatar_url || null,
+                department: null,
+                date_embauche: null
+              };
+
+              console.log('📝 Création utilisateur interne pour:', authUser.email);
+              
+              const { error: insertError } = await supabase
+                .from('utilisateurs_internes')
+                .insert([newUserData]);
+
+              if (insertError) {
+                console.error('❌ Erreur création utilisateur interne:', insertError);
+              } else {
+                console.log('✅ Utilisateur interne créé:', authUser.email);
+              }
+            }
+          }
+        }
+
+        // Maintenant récupérer tous les utilisateurs avec leurs rôles via la vue
         console.log('📡 Utilisation de la vue vue_utilisateurs_avec_roles...');
         const { data: viewData, error: viewError } = await supabase
           .from('vue_utilisateurs_avec_roles')
           .select('*')
           .order('created_at', { ascending: false });
 
-        console.log('📋 Résultat vue directe:', { viewData, viewError });
+        console.log('📋 Résultat vue après synchronisation:', { viewData, viewError });
 
         if (viewError) {
           console.error('❌ Erreur vue:', viewError);
