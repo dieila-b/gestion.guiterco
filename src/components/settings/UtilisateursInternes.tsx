@@ -15,12 +15,10 @@ import {
   Edit, 
   Trash2, 
   User, 
-  Shield,
-  Mail,
   RefreshCw,
   AlertTriangle,
   Users,
-  Key
+  Mail
 } from 'lucide-react';
 import { 
   useUtilisateursInternes, 
@@ -30,9 +28,8 @@ import {
   type CreateUtilisateurInterne,
   type UtilisateurInterne
 } from '@/hooks/useUtilisateursInternes';
-import { useRoles } from '@/hooks/usePermissionsSystem';
+import { useRoles } from '@/hooks/usePermissions';
 import { useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
 
 interface UserFormData extends CreateUtilisateurInterne {}
 
@@ -40,7 +37,6 @@ const UtilisateursInternes = () => {
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [selectedUser, setSelectedUser] = useState<UtilisateurInterne | null>(null);
-  const [debugMode, setDebugMode] = useState(false);
   
   const [formData, setFormData] = useState<UserFormData>({
     email: '',
@@ -63,45 +59,16 @@ const UtilisateursInternes = () => {
   const deleteUser = useDeleteUtilisateurInterne();
   const queryClient = useQueryClient();
 
-  console.log('🔍 État des données:', { users, isLoading, error, hasUsers: users?.length });
-
-  // Debug function améliorée
-  const handleDebugData = async () => {
-    console.log('🔍 Debug complet des données utilisateurs...');
-    
-    // Test direct sans RLS
-    try {
-      const { data: directUsers, error: directError } = await supabase
-        .from('utilisateurs_internes')
-        .select('*');
-      
-      console.log('👥 Utilisateurs directs (sans RLS):', { directUsers, directError });
-      
-      // Test avec les rôles
-      const { data: usersWithRoles, error: rolesError } = await supabase
-        .from('utilisateurs_internes')
-        .select(`
-          *,
-          roles (
-            id,
-            name,
-            description
-          )
-        `);
-      
-      console.log('👁️ Utilisateurs avec rôles:', { usersWithRoles, rolesError });
-      
-      // Test des politiques RLS
-      const { data: currentUser } = await supabase.auth.getUser();
-      console.log('👤 Utilisateur actuel:', currentUser);
-      
-      setDebugMode(true);
-    } catch (err) {
-      console.error('❌ Erreur lors du debug:', err);
-    }
-  };
+  console.log('🔍 État des données utilisateurs:', { 
+    users, 
+    isLoading, 
+    error, 
+    hasUsers: users?.length,
+    usersList: users
+  });
 
   const forceRefresh = () => {
+    console.log('🔄 Force refresh des utilisateurs internes...');
     queryClient.invalidateQueries({ queryKey: ['utilisateurs-internes'] });
     refetch();
   };
@@ -239,24 +206,10 @@ const UtilisateursInternes = () => {
             </AlertDescription>
           </Alert>
           
-          <div className="flex gap-2">
-            <Button onClick={forceRefresh} variant="outline">
-              <RefreshCw className="w-4 h-4 mr-2" />
-              Réessayer
-            </Button>
-            <Button onClick={handleDebugData} variant="outline">
-              <Shield className="w-4 h-4 mr-2" />
-              Debug
-            </Button>
-          </div>
-          
-          {debugMode && (
-            <div className="mt-4 p-4 bg-muted rounded-lg">
-              <p className="text-sm text-muted-foreground">
-                Vérifiez la console du navigateur pour les détails de debug.
-              </p>
-            </div>
-          )}
+          <Button onClick={forceRefresh} variant="outline">
+            <RefreshCw className="w-4 h-4 mr-2" />
+            Réessayer
+          </Button>
         </CardContent>
       </Card>
     );
@@ -274,10 +227,6 @@ const UtilisateursInternes = () => {
             <Button onClick={forceRefresh} variant="outline" size="sm">
               <RefreshCw className="w-4 h-4 mr-2" />
               Actualiser
-            </Button>
-            <Button onClick={handleDebugData} variant="outline" size="sm">
-              <Shield className="w-4 h-4 mr-2" />
-              Debug
             </Button>
             <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
               <DialogTrigger asChild>
@@ -357,7 +306,7 @@ const UtilisateursInternes = () => {
             <Alert>
               <Users className="h-4 w-4" />
               <AlertDescription>
-                Aucun utilisateur interne trouvé. {debugMode && 'Mode debug activé - consultez la console.'}
+                Aucun utilisateur interne trouvé. Vérifiez que des utilisateurs existent dans la base de données.
               </AlertDescription>
             </Alert>
           ) : (
@@ -445,7 +394,7 @@ const UtilisateursInternes = () => {
         </CardContent>
       </Card>
 
-      {/* Dialog de modification - version simplifiée */}
+      {/* Dialog de modification */}
       <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>

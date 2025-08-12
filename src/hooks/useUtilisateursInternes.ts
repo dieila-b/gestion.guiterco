@@ -43,76 +43,72 @@ export const useUtilisateursInternes = () => {
   return useQuery({
     queryKey: ['utilisateurs-internes'],
     queryFn: async () => {
-      console.log('🔍 Récupération des utilisateurs internes...');
+      console.log('🔍 Récupération des utilisateurs internes via RPC...');
       
-      // Stratégie simplifiée : requête directe avec LEFT JOIN
-      const { data: directData, error: directError } = await supabase
-        .from('utilisateurs_internes')
-        .select(`
-          *,
-          roles (
-            id,
-            name,
-            description
-          )
-        `)
-        .order('created_at', { ascending: false });
+      try {
+        // Utiliser la fonction RPC nouvellement créée
+        const { data: rpcData, error: rpcError } = await supabase
+          .rpc('get_internal_users_with_roles');
 
-      console.log('📋 Résultat requête directe:', { directData, directError });
+        console.log('📋 Résultat RPC get_internal_users_with_roles:', { rpcData, rpcError });
 
-      if (directError) {
-        console.error('❌ Erreur requête directe:', directError);
-        
-        // Fallback : table seule sans jointure
-        const { data: simpleData, error: simpleError } = await supabase
-          .from('utilisateurs_internes')
-          .select('*')
-          .order('created_at', { ascending: false });
+        if (rpcError) {
+          console.error('❌ Erreur RPC:', rpcError);
+          
+          // Fallback : utiliser la vue directement
+          console.log('📡 Fallback: utilisation de la vue directement...');
+          const { data: viewData, error: viewError } = await supabase
+            .from('vue_utilisateurs_avec_roles')
+            .select('*')
+            .order('created_at', { ascending: false });
 
-        console.log('📝 Fallback table simple:', { simpleData, simpleError });
+          console.log('📋 Résultat vue directe:', { viewData, viewError });
 
-        if (simpleError) {
-          console.error('❌ Erreur finale:', simpleError);
-          throw new Error(`Erreur de récupération: ${simpleError.message}`);
+          if (viewError) {
+            console.error('❌ Erreur vue:', viewError);
+            
+            // Dernier fallback : requête simple avec LEFT JOIN manuel
+            console.log('📡 Dernier fallback: requête avec LEFT JOIN...');
+            const { data: fallbackData, error: fallbackError } = await supabase
+              .from('utilisateurs_internes')
+              .select(`
+                *,
+                roles (
+                  name,
+                  description
+                )
+              `)
+              .order('created_at', { ascending: false });
+
+            console.log('📋 Résultat fallback:', { fallbackData, fallbackError });
+
+            if (fallbackError) {
+              console.error('❌ Erreur finale:', fallbackError);
+              throw new Error(`Erreur de récupération: ${fallbackError.message}`);
+            }
+
+            // Transformer les données du fallback
+            const transformedFallbackData = (fallbackData || []).map(user => ({
+              ...user,
+              role_name: user.roles?.name,
+              role_description: user.roles?.description
+            }));
+
+            console.log('✅ Données transformées (fallback):', transformedFallbackData);
+            return transformedFallbackData as UtilisateurInterne[];
+          }
+
+          console.log('✅ Données récupérées (vue):', viewData);
+          return viewData as UtilisateurInterne[];
         }
 
-        // Enrichir avec les rôles séparément si nécessaire
-        const enrichedData = await Promise.all(
-          (simpleData || []).map(async (user) => {
-            if (user.role_id) {
-              try {
-                const { data: roleData } = await supabase
-                  .from('roles')
-                  .select('name, description')
-                  .eq('id', user.role_id)
-                  .single();
-                
-                return {
-                  ...user,
-                  role_name: roleData?.name,
-                  role_description: roleData?.description
-                };
-              } catch (error) {
-                console.warn('Impossible de récupérer le rôle pour:', user.id);
-                return user;
-              }
-            }
-            return user;
-          })
-        );
-
-        return enrichedData as UtilisateurInterne[];
+        console.log('✅ Données récupérées (RPC):', rpcData);
+        return rpcData as UtilisateurInterne[];
+        
+      } catch (error) {
+        console.error('❌ Erreur inattendue lors de la récupération des utilisateurs:', error);
+        throw error;
       }
-
-      // Transformer les données avec jointure
-      const transformedData = (directData || []).map(user => ({
-        ...user,
-        role_name: user.roles?.name,
-        role_description: user.roles?.description
-      }));
-
-      console.log('✅ Données transformées:', transformedData);
-      return transformedData as UtilisateurInterne[];
     },
     retry: 2,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 5000),
