@@ -43,54 +43,44 @@ export const useUtilisateursInternes = () => {
   return useQuery({
     queryKey: ['utilisateurs-internes'],
     queryFn: async () => {
-      console.log('🔍 Début de la récupération des utilisateurs internes...');
+      console.log('🔍 Récupération des utilisateurs internes...');
       
-      // D'abord, essayer la vue optimisée
-      let { data: vueData, error: vueError } = await supabase
-        .from('vue_utilisateurs_avec_roles')
-        .select('*')
+      // Stratégie simplifiée : requête directe avec LEFT JOIN
+      const { data: directData, error: directError } = await supabase
+        .from('utilisateurs_internes')
+        .select(`
+          *,
+          roles (
+            id,
+            name,
+            description
+          )
+        `)
         .order('created_at', { ascending: false });
 
-      console.log('📊 Résultat vue_utilisateurs_avec_roles:', { vueData, vueError });
+      console.log('📋 Résultat requête directe:', { directData, directError });
 
-      // Si la vue échoue, essayer la table directe avec jointure
-      if (vueError || !vueData || vueData.length === 0) {
-        console.log('⚠️ Vue échoue, tentative avec table directe...');
+      if (directError) {
+        console.error('❌ Erreur requête directe:', directError);
         
-        const { data: directData, error: directError } = await supabase
+        // Fallback : table seule sans jointure
+        const { data: simpleData, error: simpleError } = await supabase
           .from('utilisateurs_internes')
-          .select(`
-            *,
-            roles!inner(
-              id,
-              name,
-              description
-            )
-          `)
+          .select('*')
           .order('created_at', { ascending: false });
 
-        console.log('📋 Résultat table directe:', { directData, directError });
+        console.log('📝 Fallback table simple:', { simpleData, simpleError });
 
-        if (directError) {
-          console.error('❌ Erreur table directe:', directError);
-          
-          // Dernière tentative : table seule sans jointure
-          const { data: simpleData, error: simpleError } = await supabase
-            .from('utilisateurs_internes')
-            .select('*')
-            .order('created_at', { ascending: false });
+        if (simpleError) {
+          console.error('❌ Erreur finale:', simpleError);
+          throw new Error(`Erreur de récupération: ${simpleError.message}`);
+        }
 
-          console.log('📝 Résultat table simple:', { simpleData, simpleError });
-
-          if (simpleError) {
-            console.error('❌ Erreur finale:', simpleError);
-            throw new Error(`Erreur de récupération: ${simpleError.message}`);
-          }
-
-          // Enrichir avec les rôles séparément
-          const enrichedData = await Promise.all(
-            (simpleData || []).map(async (user) => {
-              if (user.role_id) {
+        // Enrichir avec les rôles séparément si nécessaire
+        const enrichedData = await Promise.all(
+          (simpleData || []).map(async (user) => {
+            if (user.role_id) {
+              try {
                 const { data: roleData } = await supabase
                   .from('roles')
                   .select('name, description')
@@ -102,29 +92,31 @@ export const useUtilisateursInternes = () => {
                   role_name: roleData?.name,
                   role_description: roleData?.description
                 };
+              } catch (error) {
+                console.warn('Impossible de récupérer le rôle pour:', user.id);
+                return user;
               }
-              return user;
-            })
-          );
+            }
+            return user;
+          })
+        );
 
-          return enrichedData as UtilisateurInterne[];
-        }
-
-        // Transformer les données avec jointure
-        const transformedData = (directData || []).map(user => ({
-          ...user,
-          role_name: user.roles?.name,
-          role_description: user.roles?.description
-        }));
-
-        return transformedData as UtilisateurInterne[];
+        return enrichedData as UtilisateurInterne[];
       }
 
-      return vueData as UtilisateurInterne[];
+      // Transformer les données avec jointure
+      const transformedData = (directData || []).map(user => ({
+        ...user,
+        role_name: user.roles?.name,
+        role_description: user.roles?.description
+      }));
+
+      console.log('✅ Données transformées:', transformedData);
+      return transformedData as UtilisateurInterne[];
     },
-    retry: 3,
-    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
-    staleTime: 30000, // 30 secondes
+    retry: 2,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 5000),
+    staleTime: 30000,
     refetchOnWindowFocus: true,
     refetchOnMount: true,
   });
