@@ -43,67 +43,54 @@ export const useUtilisateursInternes = () => {
   return useQuery({
     queryKey: ['utilisateurs-internes'],
     queryFn: async () => {
-      console.log('🔍 Récupération des utilisateurs internes via RPC...');
+      console.log('🔍 Récupération des utilisateurs internes...');
       
       try {
-        // Utiliser la fonction RPC nouvellement créée
-        const { data: rpcData, error: rpcError } = await supabase
-          .rpc('get_internal_users_with_roles');
+        // Utiliser la vue directement
+        console.log('📡 Utilisation de la vue vue_utilisateurs_avec_roles...');
+        const { data: viewData, error: viewError } = await supabase
+          .from('vue_utilisateurs_avec_roles')
+          .select('*')
+          .order('created_at', { ascending: false });
 
-        console.log('📋 Résultat RPC get_internal_users_with_roles:', { rpcData, rpcError });
+        console.log('📋 Résultat vue directe:', { viewData, viewError });
 
-        if (rpcError) {
-          console.error('❌ Erreur RPC:', rpcError);
+        if (viewError) {
+          console.error('❌ Erreur vue:', viewError);
           
-          // Fallback : utiliser la vue directement
-          console.log('📡 Fallback: utilisation de la vue directement...');
-          const { data: viewData, error: viewError } = await supabase
-            .from('vue_utilisateurs_avec_roles')
-            .select('*')
+          // Fallback : requête simple avec LEFT JOIN manuel
+          console.log('📡 Fallback: requête avec LEFT JOIN...');
+          const { data: fallbackData, error: fallbackError } = await supabase
+            .from('utilisateurs_internes')
+            .select(`
+              *,
+              roles (
+                name,
+                description
+              )
+            `)
             .order('created_at', { ascending: false });
 
-          console.log('📋 Résultat vue directe:', { viewData, viewError });
+          console.log('📋 Résultat fallback:', { fallbackData, fallbackError });
 
-          if (viewError) {
-            console.error('❌ Erreur vue:', viewError);
-            
-            // Dernier fallback : requête simple avec LEFT JOIN manuel
-            console.log('📡 Dernier fallback: requête avec LEFT JOIN...');
-            const { data: fallbackData, error: fallbackError } = await supabase
-              .from('utilisateurs_internes')
-              .select(`
-                *,
-                roles (
-                  name,
-                  description
-                )
-              `)
-              .order('created_at', { ascending: false });
-
-            console.log('📋 Résultat fallback:', { fallbackData, fallbackError });
-
-            if (fallbackError) {
-              console.error('❌ Erreur finale:', fallbackError);
-              throw new Error(`Erreur de récupération: ${fallbackError.message}`);
-            }
-
-            // Transformer les données du fallback
-            const transformedFallbackData = (fallbackData || []).map(user => ({
-              ...user,
-              role_name: user.roles?.name,
-              role_description: user.roles?.description
-            }));
-
-            console.log('✅ Données transformées (fallback):', transformedFallbackData);
-            return transformedFallbackData as UtilisateurInterne[];
+          if (fallbackError) {
+            console.error('❌ Erreur finale:', fallbackError);
+            throw new Error(`Erreur de récupération: ${fallbackError.message}`);
           }
 
-          console.log('✅ Données récupérées (vue):', viewData);
-          return viewData as UtilisateurInterne[];
+          // Transformer les données du fallback
+          const transformedFallbackData = (fallbackData || []).map(user => ({
+            ...user,
+            role_name: user.roles?.name,
+            role_description: user.roles?.description
+          }));
+
+          console.log('✅ Données transformées (fallback):', transformedFallbackData);
+          return transformedFallbackData as UtilisateurInterne[];
         }
 
-        console.log('✅ Données récupérées (RPC):', rpcData);
-        return rpcData as UtilisateurInterne[];
+        console.log('✅ Données récupérées (vue):', viewData);
+        return viewData as UtilisateurInterne[];
         
       } catch (error) {
         console.error('❌ Erreur inattendue lors de la récupération des utilisateurs:', error);
