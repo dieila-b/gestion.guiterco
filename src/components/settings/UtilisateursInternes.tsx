@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { 
   Plus, 
   Edit, 
@@ -23,7 +24,9 @@ import {
   Eye,
   EyeOff,
   MapPin,
-  Key
+  Key,
+  RefreshCw,
+  AlertTriangle
 } from 'lucide-react';
 import { 
   useUtilisateursInternes, 
@@ -55,6 +58,7 @@ const UtilisateursInternes = () => {
   const [passwordMatch, setPasswordMatch] = useState(true);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [debugMode, setDebugMode] = useState(false);
   
   const [formData, setFormData] = useState<UserFormData>({
     email: '',
@@ -72,7 +76,7 @@ const UtilisateursInternes = () => {
     confirmPassword: ''
   });
 
-  const { data: users, isLoading, error } = useUtilisateursInternes();
+  const { data: users, isLoading, error, refetch } = useUtilisateursInternes();
   const { data: roles } = useRoles();
   const createUser = useCreateUtilisateurInterne();
   const updateUser = useUpdateUtilisateurInterne();
@@ -82,6 +86,44 @@ const UtilisateursInternes = () => {
   const fixExistingUsers = useFixExistingUsers();
   const { uploadFile, uploading } = useFileUpload();
   const queryClient = useQueryClient();
+
+  // Debug function
+  const handleDebugData = async () => {
+    console.log('🔍 Debug des données utilisateurs...');
+    
+    // Test direct de la base de données
+    const { data: directUsers, error: directError } = await supabase
+      .from('utilisateurs_internes')
+      .select('*');
+    
+    console.log('👥 Utilisateurs directs:', { directUsers, directError });
+    
+    // Test de la vue
+    const { data: vueUsers, error: vueError } = await supabase
+      .from('vue_utilisateurs_avec_roles')
+      .select('*');
+    
+    console.log('👁️ Vue utilisateurs:', { vueUsers, vueError });
+    
+    // Test des rôles
+    const { data: rolesData, error: rolesError } = await supabase
+      .from('roles')
+      .select('*');
+    
+    console.log('🎭 Rôles:', { rolesData, rolesError });
+    
+    // Test des permissions utilisateur actuel
+    const { data: currentUser } = await supabase.auth.getUser();
+    console.log('👤 Utilisateur actuel:', currentUser);
+    
+    // Test fonction de permission
+    const { data: permissionTest, error: permissionError } = await supabase
+      .rpc('debug_current_user');
+    
+    console.log('🔐 Test permissions:', { permissionTest, permissionError });
+    
+    setDebugMode(true);
+  };
   
   // Fonction de réinitialisation des mots de passe pour tous les utilisateurs
   const handleResetAllPasswords = async () => {
@@ -307,6 +349,12 @@ const UtilisateursInternes = () => {
     );
   };
 
+  const forceRefresh = () => {
+    queryClient.invalidateQueries({ queryKey: ['utilisateurs-internes'] });
+    refetch();
+    toast.info('Actualisation des données...');
+  };
+
   if (isLoading) {
     return (
       <Card>
@@ -338,15 +386,97 @@ const UtilisateursInternes = () => {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="flex items-center gap-3 p-4 bg-destructive/10 border border-destructive/20 rounded-lg">
-            <Shield className="w-5 h-5 text-destructive" />
-            <div>
-              <p className="font-medium text-destructive">Erreur de chargement</p>
-              <p className="text-sm text-destructive/80">
-                {error.message || 'Impossible de charger les données des utilisateurs.'}
+          <Alert className="mb-4">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertDescription>
+              <strong>Erreur de chargement:</strong> {error.message}
+            </AlertDescription>
+          </Alert>
+          
+          <div className="flex gap-2">
+            <Button onClick={forceRefresh} variant="outline">
+              <RefreshCw className="w-4 h-4 mr-2" />
+              Réessayer
+            </Button>
+            <Button onClick={handleDebugData} variant="outline">
+              <Shield className="w-4 h-4 mr-2" />
+              Debug
+            </Button>
+          </div>
+          
+          {debugMode && (
+            <div className="mt-4 p-4 bg-muted rounded-lg">
+              <p className="text-sm text-muted-foreground">
+                Vérifiez la console du navigateur pour les détails de debug.
               </p>
             </div>
+          )}
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Affichage si aucun utilisateur
+  if (!users || users.length === 0) {
+    return (
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="flex items-center gap-2">
+            <User className="w-5 h-5" />
+            Utilisateurs Internes
+          </CardTitle>
+          <div className="flex items-center gap-2">
+            <Button onClick={handleDebugData} variant="outline" size="sm">
+              <Shield className="w-4 h-4 mr-2" />
+              Debug
+            </Button>
+            <Button onClick={forceRefresh} variant="outline" size="sm">
+              <RefreshCw className="w-4 h-4 mr-2" />
+              Actualiser
+            </Button>
+            <Button 
+              variant="outline" 
+              onClick={() => fixExistingUsers.mutate()}
+              disabled={fixExistingUsers.isPending}
+              className="text-blue-600 border-blue-200 hover:bg-blue-50"
+            >
+              <Shield className="w-4 h-4 mr-2" />
+              {fixExistingUsers.isPending ? 'Nettoyage...' : 'Nettoyer utilisateurs'}
+            </Button>
+            <Button 
+              variant="outline" 
+              onClick={handleResetAllPasswords}
+              disabled={resetAllPasswords.isPending}
+              className="text-orange-600 border-orange-200 hover:bg-orange-50"
+            >
+              <Key className="w-4 h-4 mr-2" />
+              {resetAllPasswords.isPending ? 'Réinitialisation...' : 'Réinitialiser mots de passe'}
+            </Button>
+            <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
+              <DialogTrigger asChild>
+                <Button onClick={resetForm}>
+                  <Plus className="w-4 h-4 mr-2" />
+                  Nouvel utilisateur
+                </Button>
+              </DialogTrigger>
+            </Dialog>
           </div>
+        </CardHeader>
+        <CardContent>
+          <Alert>
+            <User className="h-4 w-4" />
+            <AlertDescription>
+              Aucun utilisateur interne trouvé. Vérifiez les permissions ou créez le premier utilisateur.
+            </AlertDescription>
+          </Alert>
+          
+          {debugMode && (
+            <div className="mt-4 p-4 bg-muted rounded-lg">
+              <p className="text-sm text-muted-foreground">
+                Mode debug activé. Consultez la console pour les détails.
+              </p>
+            </div>
+          )}
         </CardContent>
       </Card>
     );
@@ -358,9 +488,13 @@ const UtilisateursInternes = () => {
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="flex items-center gap-2">
             <User className="w-5 h-5" />
-            Utilisateurs Internes
+            Utilisateurs Internes ({users.length})
           </CardTitle>
           <div className="flex items-center gap-2">
+            <Button onClick={forceRefresh} variant="outline" size="sm">
+              <RefreshCw className="w-4 h-4 mr-2" />
+              Actualiser
+            </Button>
             <Button 
               variant="outline" 
               onClick={() => fixExistingUsers.mutate()}
@@ -640,27 +774,27 @@ const UtilisateursInternes = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {users?.map((user) => (
+                {users.map((user) => (
                   <TableRow key={user.id}>
-                     <TableCell>
-                       <div className="flex items-center gap-3">
-                         <Avatar className="w-8 h-8">
-                           <AvatarImage src={user.photo_url} />
-                           <AvatarFallback>
-                             <User className="w-4 h-4" />
-                           </AvatarFallback>
-                         </Avatar>
-                         <div>
-                           <p className="font-medium">{user.prenom} {user.nom}</p>
-                           {user.department && (
-                             <p className="text-sm text-muted-foreground flex items-center gap-1">
-                               <MapPin className="w-3 h-3" />
-                               {user.department}
-                             </p>
-                           )}
-                         </div>
-                       </div>
-                     </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-3">
+                        <Avatar className="w-8 h-8">
+                          <AvatarImage src={user.photo_url} />
+                          <AvatarFallback>
+                            <User className="w-4 h-4" />
+                          </AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <p className="font-medium">{user.prenom} {user.nom}</p>
+                          {user.department && (
+                            <p className="text-sm text-muted-foreground flex items-center gap-1">
+                              <MapPin className="w-3 h-3" />
+                              {user.department}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-1 text-muted-foreground">
                         <Mail className="w-3 h-3" />
@@ -683,37 +817,37 @@ const UtilisateursInternes = () => {
                     <TableCell>
                       {getTypeBadge(user.type_compte)}
                     </TableCell>
-                     <TableCell className="text-center">
-                       <div className="flex items-center justify-center gap-2">
-                         <Button
-                           variant="ghost"
-                           size="sm"
-                           onClick={() => handleResetUserPassword(user.id)}
-                           title="Réinitialiser le mot de passe"
-                           className="text-orange-600 hover:text-orange-700"
-                           disabled={resetUserPassword.isPending}
-                         >
-                           <Key className="w-4 h-4" />
-                         </Button>
-                         <Button
-                           variant="ghost"
-                           size="sm"
-                           onClick={() => handleEdit(user)}
-                           title="Modifier"
-                         >
-                           <Edit className="w-4 h-4" />
-                         </Button>
-                         <Button
-                           variant="ghost"
-                           size="sm"
-                           onClick={() => handleDelete(user.id)}
-                           title="Supprimer"
-                           className="text-destructive hover:text-destructive"
-                         >
-                           <Trash2 className="w-4 h-4" />
-                         </Button>
-                       </div>
-                     </TableCell>
+                    <TableCell className="text-center">
+                      <div className="flex items-center justify-center gap-2">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleResetUserPassword(user.id)}
+                          title="Réinitialiser le mot de passe"
+                          className="text-orange-600 hover:text-orange-700"
+                          disabled={resetUserPassword.isPending}
+                        >
+                          <Key className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleEdit(user)}
+                          title="Modifier"
+                        >
+                          <Edit className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleDelete(user.id)}
+                          title="Supprimer"
+                          className="text-destructive hover:text-destructive"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>

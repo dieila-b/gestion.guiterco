@@ -4,6 +4,7 @@ import { toast } from 'sonner';
 
 export interface UtilisateurInterne {
   id: string;
+  user_id?: string;
   email: string;
   prenom: string;
   nom: string;
@@ -42,20 +43,90 @@ export const useUtilisateursInternes = () => {
   return useQuery({
     queryKey: ['utilisateurs-internes'],
     queryFn: async () => {
-      const { data, error } = await supabase
+      console.log('🔍 Début de la récupération des utilisateurs internes...');
+      
+      // D'abord, essayer la vue optimisée
+      let { data: vueData, error: vueError } = await supabase
         .from('vue_utilisateurs_avec_roles')
         .select('*')
         .order('created_at', { ascending: false });
 
-      if (error) {
-        console.error('Erreur lors du chargement des utilisateurs internes:', error);
-        throw new Error(`Erreur: ${error.message}`);
+      console.log('📊 Résultat vue_utilisateurs_avec_roles:', { vueData, vueError });
+
+      // Si la vue échoue, essayer la table directe avec jointure
+      if (vueError || !vueData || vueData.length === 0) {
+        console.log('⚠️ Vue échoue, tentative avec table directe...');
+        
+        const { data: directData, error: directError } = await supabase
+          .from('utilisateurs_internes')
+          .select(`
+            *,
+            roles!inner(
+              id,
+              name,
+              description
+            )
+          `)
+          .order('created_at', { ascending: false });
+
+        console.log('📋 Résultat table directe:', { directData, directError });
+
+        if (directError) {
+          console.error('❌ Erreur table directe:', directError);
+          
+          // Dernière tentative : table seule sans jointure
+          const { data: simpleData, error: simpleError } = await supabase
+            .from('utilisateurs_internes')
+            .select('*')
+            .order('created_at', { ascending: false });
+
+          console.log('📝 Résultat table simple:', { simpleData, simpleError });
+
+          if (simpleError) {
+            console.error('❌ Erreur finale:', simpleError);
+            throw new Error(`Erreur de récupération: ${simpleError.message}`);
+          }
+
+          // Enrichir avec les rôles séparément
+          const enrichedData = await Promise.all(
+            (simpleData || []).map(async (user) => {
+              if (user.role_id) {
+                const { data: roleData } = await supabase
+                  .from('roles')
+                  .select('name, description')
+                  .eq('id', user.role_id)
+                  .single();
+                
+                return {
+                  ...user,
+                  role_name: roleData?.name,
+                  role_description: roleData?.description
+                };
+              }
+              return user;
+            })
+          );
+
+          return enrichedData as UtilisateurInterne[];
+        }
+
+        // Transformer les données avec jointure
+        const transformedData = (directData || []).map(user => ({
+          ...user,
+          role_name: user.roles?.name,
+          role_description: user.roles?.description
+        }));
+
+        return transformedData as UtilisateurInterne[];
       }
 
-      return data as UtilisateurInterne[];
+      return vueData as UtilisateurInterne[];
     },
-    retry: 2,
-    retryDelay: 1000,
+    retry: 3,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+    staleTime: 30000, // 30 secondes
+    refetchOnWindowFocus: true,
+    refetchOnMount: true,
   });
 };
 
