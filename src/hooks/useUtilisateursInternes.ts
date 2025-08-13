@@ -1,3 +1,4 @@
+
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -39,21 +40,6 @@ export interface CreateUtilisateurInterne {
   password_hash?: string;
 }
 
-// Type definition for auth user
-interface AuthUser {
-  id: string;
-  email?: string;
-  user_metadata?: {
-    prenom?: string;
-    nom?: string;
-    first_name?: string;
-    last_name?: string;
-    telephone?: string;
-    phone?: string;
-    avatar_url?: string;
-  };
-}
-
 export const useUtilisateursInternes = () => {
   return useQuery({
     queryKey: ['utilisateurs-internes'],
@@ -61,89 +47,28 @@ export const useUtilisateursInternes = () => {
       console.log('🔍 Récupération des utilisateurs internes...');
       
       try {
-        // D'abord, récupérer les utilisateurs existants dans utilisateurs_internes
-        console.log('📡 Vérification de la table utilisateurs_internes...');
-        const { data: existingUsers, error: existingError } = await supabase
-          .from('utilisateurs_internes')
-          .select('*');
-
-        console.log('📋 Utilisateurs existants dans utilisateurs_internes:', { existingUsers, existingError });
-
-        // Récupérer tous les utilisateurs auth pour synchronisation
-        console.log('📡 Récupération des utilisateurs auth...');
-        const { data: authData, error: authError } = await supabase.auth.admin.listUsers();
+        // Forcer la synchronisation avant de récupérer les données
+        console.log('🔄 Exécution de la synchronisation...');
+        const { error: syncError } = await supabase.rpc('sync_auth_users_to_internal');
         
-        // Type assertion to ensure proper typing
-        const authUsers = authData?.users as AuthUser[] | undefined;
-        
-        console.log('📋 Utilisateurs auth récupérés:', { 
-          count: authUsers?.length || 0, 
-          authError,
-          users: authUsers?.map(u => ({ id: u.id, email: u.email })) 
-        });
-
-        // Si on a des utilisateurs auth mais pas dans utilisateurs_internes, créer les entrées manquantes
-        if (authUsers && authUsers.length > 0) {
-          const existingUserIds = new Set(existingUsers?.map(u => u.user_id) || []);
-          const missingUsers = authUsers.filter(authUser => 
-            authUser.email && !existingUserIds.has(authUser.id)
-          );
-
-          console.log('📋 Utilisateurs manquants à synchroniser:', missingUsers.length);
-
-          if (missingUsers.length > 0) {
-            console.log('📡 Synchronisation des utilisateurs manquants...');
-            
-            // Créer les enregistrements manquants
-            for (const authUser of missingUsers) {
-              const userMetadata = authUser.user_metadata || {};
-              const emailParts = authUser.email?.split('@') || ['', ''];
-              const defaultName = emailParts[0] || 'Utilisateur';
-              
-              const newUserData = {
-                user_id: authUser.id,
-                email: authUser.email,
-                prenom: userMetadata.prenom || userMetadata.first_name || defaultName,
-                nom: userMetadata.nom || userMetadata.last_name || 'Interne',
-                statut: 'actif' as const,
-                type_compte: 'employe' as const,
-                telephone: userMetadata.telephone || userMetadata.phone || null,
-                matricule: null,
-                role_id: null,
-                photo_url: userMetadata.avatar_url || null,
-                department: null,
-                date_embauche: null
-              };
-
-              console.log('📝 Création utilisateur interne pour:', authUser.email);
-              
-              const { error: insertError } = await supabase
-                .from('utilisateurs_internes')
-                .insert([newUserData]);
-
-              if (insertError) {
-                console.error('❌ Erreur création utilisateur interne:', insertError);
-              } else {
-                console.log('✅ Utilisateur interne créé:', authUser.email);
-              }
-            }
-          }
+        if (syncError) {
+          console.warn('⚠️ Erreur lors de la synchronisation:', syncError);
+        } else {
+          console.log('✅ Synchronisation terminée');
         }
 
-        // Maintenant récupérer tous les utilisateurs avec leurs rôles via la vue
-        console.log('📡 Utilisation de la vue vue_utilisateurs_avec_roles...');
+        // Récupérer les utilisateurs via la vue optimisée
+        console.log('📡 Récupération depuis vue_utilisateurs_avec_roles...');
         const { data: viewData, error: viewError } = await supabase
           .from('vue_utilisateurs_avec_roles')
           .select('*')
           .order('created_at', { ascending: false });
 
-        console.log('📋 Résultat vue après synchronisation:', { viewData, viewError });
-
         if (viewError) {
           console.error('❌ Erreur vue:', viewError);
           
-          // Fallback : requête simple avec LEFT JOIN manuel
-          console.log('📡 Fallback: requête avec LEFT JOIN...');
+          // Fallback : requête directe avec LEFT JOIN
+          console.log('📡 Fallback: requête directe...');
           const { data: fallbackData, error: fallbackError } = await supabase
             .from('utilisateurs_internes')
             .select(`
@@ -155,10 +80,8 @@ export const useUtilisateursInternes = () => {
             `)
             .order('created_at', { ascending: false });
 
-          console.log('📋 Résultat fallback:', { fallbackData, fallbackError });
-
           if (fallbackError) {
-            console.error('❌ Erreur finale:', fallbackError);
+            console.error('❌ Erreur fallback:', fallbackError);
             throw new Error(`Erreur de récupération: ${fallbackError.message}`);
           }
 
@@ -169,21 +92,21 @@ export const useUtilisateursInternes = () => {
             role_description: user.roles?.description
           }));
 
-          console.log('✅ Données transformées (fallback):', transformedFallbackData);
+          console.log('✅ Données récupérées (fallback):', transformedFallbackData.length, 'utilisateurs');
           return transformedFallbackData as UtilisateurInterne[];
         }
 
-        console.log('✅ Données récupérées (vue):', viewData);
+        console.log('✅ Données récupérées (vue):', viewData?.length || 0, 'utilisateurs');
         return viewData as UtilisateurInterne[];
         
       } catch (error) {
-        console.error('❌ Erreur inattendue lors de la récupération des utilisateurs:', error);
+        console.error('❌ Erreur inattendue:', error);
         throw error;
       }
     },
     retry: 2,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 5000),
-    staleTime: 30000,
+    staleTime: 10000, // 10 secondes
     refetchOnWindowFocus: true,
     refetchOnMount: true,
   });
@@ -194,18 +117,19 @@ export const useCreateUtilisateurInterne = () => {
 
   return useMutation({
     mutationFn: async (userData: CreateUtilisateurInterne) => {
-      // Call the Edge Function with service role access
+      console.log('📝 Création utilisateur interne:', userData.email);
+      
       const { data, error } = await supabase.functions.invoke('create-internal-user', {
         body: userData
       });
 
       if (error) {
-        console.error('Erreur Edge Function:', error);
+        console.error('❌ Erreur Edge Function:', error);
         throw new Error(`Erreur lors de la création: ${error.message}`);
       }
 
       if (!data.success) {
-        console.error('Erreur réponse Edge Function:', data);
+        console.error('❌ Erreur réponse Edge Function:', data);
         throw new Error(data.error || 'Erreur lors de la création');
       }
 
@@ -226,26 +150,22 @@ export const useUpdateUtilisateurInterne = () => {
 
   return useMutation({
     mutationFn: async ({ id, ...userData }: Partial<CreateUtilisateurInterne> & { id: string }) => {
-      console.log('▶ Début mise à jour utilisateur:', { id, userData });
+      console.log('📝 Mise à jour utilisateur:', { id, userData });
       
-      // Toujours utiliser l'Edge Function pour garantir la synchronisation Auth/DB
       const { data, error } = await supabase.functions.invoke('update-internal-user', {
         body: { id, ...userData }
       });
 
-      console.log('▶ Réponse Edge Function update:', { data, error });
-
       if (error) {
-        console.error('Erreur Edge Function update:', error);
+        console.error('❌ Erreur Edge Function update:', error);
         throw new Error(`Erreur lors de la mise à jour: ${error.message}`);
       }
 
       if (!data || !data.success) {
-        console.error('Erreur réponse Edge Function update:', data);
+        console.error('❌ Erreur réponse Edge Function update:', data);
         throw new Error(data?.error || 'Erreur lors de la mise à jour');
       }
 
-      console.log('▶ Mise à jour réussie:', data.data);
       return data.data;
     },
     onSuccess: () => {
@@ -263,18 +183,19 @@ export const useDeleteUtilisateurInterne = () => {
 
   return useMutation({
     mutationFn: async (id: string) => {
-      // Call the Edge Function with service role access
+      console.log('🗑️ Suppression utilisateur:', id);
+      
       const { data, error } = await supabase.functions.invoke('delete-internal-user', {
         body: { id }
       });
 
       if (error) {
-        console.error('Erreur Edge Function:', error);
+        console.error('❌ Erreur Edge Function delete:', error);
         throw new Error(`Erreur lors de la suppression: ${error.message}`);
       }
 
       if (!data.success) {
-        console.error('Erreur réponse Edge Function:', data);
+        console.error('❌ Erreur réponse Edge Function delete:', data);
         throw new Error(data.error || 'Erreur lors de la suppression');
       }
 
@@ -286,6 +207,34 @@ export const useDeleteUtilisateurInterne = () => {
     },
     onError: (error: Error) => {
       toast.error(`Erreur: ${error.message}`);
+    }
+  });
+};
+
+// Hook pour forcer la synchronisation manuelle
+export const useSyncUtilisateursInternes = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async () => {
+      console.log('🔄 Synchronisation forcée des utilisateurs...');
+      
+      const { error } = await supabase.rpc('sync_auth_users_to_internal');
+      
+      if (error) {
+        console.error('❌ Erreur synchronisation:', error);
+        throw new Error(`Erreur de synchronisation: ${error.message}`);
+      }
+      
+      console.log('✅ Synchronisation forcée terminée');
+      return true;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['utilisateurs-internes'] });
+      toast.success('Synchronisation terminée avec succès');
+    },
+    onError: (error: Error) => {
+      toast.error(`Erreur de synchronisation: ${error.message}`);
     }
   });
 };

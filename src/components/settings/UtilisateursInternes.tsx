@@ -18,18 +18,19 @@ import {
   RefreshCw,
   AlertTriangle,
   Users,
-  Mail
+  Mail,
+  Sync
 } from 'lucide-react';
 import { 
   useUtilisateursInternes, 
   useCreateUtilisateurInterne, 
   useUpdateUtilisateurInterne, 
   useDeleteUtilisateurInterne,
+  useSyncUtilisateursInternes,
   type CreateUtilisateurInterne,
   type UtilisateurInterne
 } from '@/hooks/useUtilisateursInternes';
 import { useRoles } from '@/hooks/usePermissions';
-import { useQueryClient } from '@tanstack/react-query';
 
 interface UserFormData extends CreateUtilisateurInterne {}
 
@@ -57,7 +58,7 @@ const UtilisateursInternes = () => {
   const createUser = useCreateUtilisateurInterne();
   const updateUser = useUpdateUtilisateurInterne();
   const deleteUser = useDeleteUtilisateurInterne();
-  const queryClient = useQueryClient();
+  const syncUsers = useSyncUtilisateursInternes();
 
   console.log('🔍 État des données utilisateurs:', { 
     users, 
@@ -67,9 +68,19 @@ const UtilisateursInternes = () => {
     usersList: users
   });
 
+  const handleSync = async () => {
+    console.log('🔄 Synchronisation manuelle déclenchée...');
+    try {
+      await syncUsers.mutateAsync();
+      // Recharger les données après synchronisation
+      refetch();
+    } catch (error) {
+      console.error('❌ Erreur lors de la synchronisation:', error);
+    }
+  };
+
   const forceRefresh = () => {
     console.log('🔄 Force refresh des utilisateurs internes...');
-    queryClient.invalidateQueries({ queryKey: ['utilisateurs-internes'] });
     refetch();
   };
 
@@ -206,10 +217,16 @@ const UtilisateursInternes = () => {
             </AlertDescription>
           </Alert>
           
-          <Button onClick={forceRefresh} variant="outline">
-            <RefreshCw className="w-4 h-4 mr-2" />
-            Réessayer
-          </Button>
+          <div className="flex gap-2">
+            <Button onClick={handleSync} variant="default" disabled={syncUsers.isPending}>
+              <Sync className="w-4 h-4 mr-2" />
+              {syncUsers.isPending ? 'Synchronisation...' : 'Synchroniser'}
+            </Button>
+            <Button onClick={forceRefresh} variant="outline">
+              <RefreshCw className="w-4 h-4 mr-2" />
+              Réessayer
+            </Button>
+          </div>
         </CardContent>
       </Card>
     );
@@ -224,6 +241,10 @@ const UtilisateursInternes = () => {
             Utilisateurs Internes ({users?.length || 0})
           </CardTitle>
           <div className="flex items-center gap-2">
+            <Button onClick={handleSync} variant="outline" size="sm" disabled={syncUsers.isPending}>
+              <Sync className="w-4 h-4 mr-2" />
+              {syncUsers.isPending ? 'Synchro...' : 'Synchroniser'}
+            </Button>
             <Button onClick={forceRefresh} variant="outline" size="sm">
               <RefreshCw className="w-4 h-4 mr-2" />
               Actualiser
@@ -303,12 +324,17 @@ const UtilisateursInternes = () => {
         </CardHeader>
         <CardContent>
           {!users || users.length === 0 ? (
-            <Alert>
-              <Users className="h-4 w-4" />
-              <AlertDescription>
-                Aucun utilisateur interne trouvé. Vérifiez que des utilisateurs existent dans la base de données.
-              </AlertDescription>
-            </Alert>
+            <div className="text-center py-8">
+              <Users className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+              <h3 className="text-lg font-medium mb-2">Aucun utilisateur trouvé</h3>
+              <p className="text-muted-foreground mb-4">
+                Les utilisateurs de l'authentification ne sont pas encore synchronisés.
+              </p>
+              <Button onClick={handleSync} disabled={syncUsers.isPending}>
+                <Sync className="w-4 h-4 mr-2" />
+                {syncUsers.isPending ? 'Synchronisation...' : 'Synchroniser maintenant'}
+              </Button>
+            </div>
           ) : (
             <div className="rounded-md border">
               <Table>
