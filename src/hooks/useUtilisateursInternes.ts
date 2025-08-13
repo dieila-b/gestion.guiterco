@@ -1,4 +1,3 @@
-
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -47,16 +46,6 @@ export const useUtilisateursInternes = () => {
       console.log('🔍 Récupération des utilisateurs internes...');
       
       try {
-        // Forcer la synchronisation avant de récupérer les données
-        console.log('🔄 Exécution de la synchronisation...');
-        const { error: syncError } = await supabase.rpc('sync_auth_users_to_internal');
-        
-        if (syncError) {
-          console.warn('⚠️ Erreur lors de la synchronisation:', syncError);
-        } else {
-          console.log('✅ Synchronisation terminée');
-        }
-
         // Récupérer les utilisateurs via la vue optimisée
         console.log('📡 Récupération depuis vue_utilisateurs_avec_roles...');
         const { data: viewData, error: viewError } = await supabase
@@ -211,7 +200,7 @@ export const useDeleteUtilisateurInterne = () => {
   });
 };
 
-// Hook pour forcer la synchronisation manuelle
+// Hook pour forcer la synchronisation manuelle via Edge Function
 export const useSyncUtilisateursInternes = () => {
   const queryClient = useQueryClient();
 
@@ -219,7 +208,7 @@ export const useSyncUtilisateursInternes = () => {
     mutationFn: async () => {
       console.log('🔄 Synchronisation forcée des utilisateurs...');
       
-      const { error } = await supabase.rpc('sync_auth_users_to_internal');
+      const { data, error } = await supabase.functions.invoke('sync-internal-users');
       
       if (error) {
         console.error('❌ Erreur synchronisation:', error);
@@ -227,7 +216,7 @@ export const useSyncUtilisateursInternes = () => {
       }
       
       console.log('✅ Synchronisation forcée terminée');
-      return true;
+      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['utilisateurs-internes'] });

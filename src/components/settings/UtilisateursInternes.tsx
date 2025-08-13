@@ -19,7 +19,7 @@ import {
   AlertTriangle,
   Users,
   Mail,
-  Sync
+  RotateCcw
 } from 'lucide-react';
 import { 
   useUtilisateursInternes, 
@@ -219,7 +219,7 @@ const UtilisateursInternes = () => {
           
           <div className="flex gap-2">
             <Button onClick={handleSync} variant="default" disabled={syncUsers.isPending}>
-              <Sync className="w-4 h-4 mr-2" />
+              <RotateCcw className="w-4 h-4 mr-2" />
               {syncUsers.isPending ? 'Synchronisation...' : 'Synchroniser'}
             </Button>
             <Button onClick={forceRefresh} variant="outline">
@@ -242,7 +242,7 @@ const UtilisateursInternes = () => {
           </CardTitle>
           <div className="flex items-center gap-2">
             <Button onClick={handleSync} variant="outline" size="sm" disabled={syncUsers.isPending}>
-              <Sync className="w-4 h-4 mr-2" />
+              <RotateCcw className="w-4 h-4 mr-2" />
               {syncUsers.isPending ? 'Synchro...' : 'Synchroniser'}
             </Button>
             <Button onClick={forceRefresh} variant="outline" size="sm">
@@ -331,7 +331,7 @@ const UtilisateursInternes = () => {
                 Les utilisateurs de l'authentification ne sont pas encore synchronisés.
               </p>
               <Button onClick={handleSync} disabled={syncUsers.isPending}>
-                <Sync className="w-4 h-4 mr-2" />
+                <RotateCcw className="w-4 h-4 mr-2" />
                 {syncUsers.isPending ? 'Synchronisation...' : 'Synchroniser maintenant'}
               </Button>
             </div>
