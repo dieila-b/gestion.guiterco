@@ -3524,83 +3524,6 @@ export type Database = {
         }
         Returns: string
       }
-      debug_auth_context: {
-        Args: Record<PropertyKey, never>
-        Returns: Json
-      }
-      debug_auth_info: {
-        Args: Record<PropertyKey, never>
-        Returns: {
-          current_email: string
-          current_user_id: string
-          is_authenticated: boolean
-          is_internal_active: boolean
-        }[]
-      }
-      debug_current_user: {
-        Args: Record<PropertyKey, never>
-        Returns: {
-          email: string
-          is_authenticated: boolean
-          raw_jwt: Json
-          user_id: string
-        }[]
-      }
-      debug_frais_articles: {
-        Args: Record<PropertyKey, never>
-        Returns: {
-          article_nom: string
-          bon_commande_numero: string
-          frais_livraison: number
-          frais_logistique: number
-          montant_ht: number
-          montant_ligne: number
-          prix_unitaire: number
-          quantite: number
-          transit_douane: number
-        }[]
-      }
-      debug_frais_articles_detaille: {
-        Args: Record<PropertyKey, never>
-        Returns: {
-          article_id: string
-          article_nom: string
-          bc_statut: string
-          bon_commande_numero: string
-          frais_livraison: number
-          frais_logistique: number
-          frais_total_bc: number
-          montant_ht: number
-          montant_ligne: number
-          part_frais: number
-          prix_unitaire: number
-          quantite: number
-          transit_douane: number
-        }[]
-      }
-      debug_frais_repartition_unitaire: {
-        Args: Record<PropertyKey, never>
-        Returns: {
-          article_id: string
-          article_nom: string
-          bon_commande_numero: string
-          frais_total_article: number
-          frais_total_bc: number
-          frais_unitaire_reparti: number
-          montant_ligne: number
-          part_montant_ligne_pct: number
-          quantite_commandee: number
-        }[]
-      }
-      debug_vue_marges_frais: {
-        Args: Record<PropertyKey, never>
-        Returns: {
-          article_nom: string
-          cout_total_unitaire: number
-          frais_bon_commande: number
-          nb_bons_commande: number
-        }[]
-      }
       diagnostic_permissions_system: {
         Args: Record<PropertyKey, never>
         Returns: {
@@ -3745,6 +3668,15 @@ export type Database = {
           statut_livraison: string
           statut_paiement: string
           total: number
+        }[]
+      }
+      get_margin_debug_data: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          article_nom: string
+          cout_total_unitaire: number
+          frais_bon_commande: number
+          nb_bons_commande: number
         }[]
       }
       get_permissions_structure: {

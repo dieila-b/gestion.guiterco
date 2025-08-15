@@ -7,14 +7,12 @@ interface DiagnosticButtonsProps {
   isLoading: boolean;
   onDiagnosticFraisCalculation: () => void;
   onDebugVueMarges: () => void;
-  onDebugFrais: () => void;
 }
 
 const DiagnosticButtons = ({ 
   isLoading, 
   onDiagnosticFraisCalculation, 
-  onDebugVueMarges, 
-  onDebugFrais 
+  onDebugVueMarges
 }: DiagnosticButtonsProps) => {
   return (
     <>
@@ -37,16 +35,6 @@ const DiagnosticButtons = ({
       >
         <Eye className="h-4 w-4" />
         Debug Vue Marges
-      </Button>
-      <Button 
-        variant="outline" 
-        size="sm" 
-        onClick={onDebugFrais}
-        className="flex items-center gap-2"
-        disabled={isLoading}
-      >
-        <Bug className="h-4 w-4" />
-        Debug Frais BC
       </Button>
     </>
   );
