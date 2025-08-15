@@ -3778,6 +3778,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: boolean
       }
+      log_client_access_attempt: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
       rapport_nettoyage_doublons: {
         Args: Record<PropertyKey, never>
         Returns: {
