@@ -210,7 +210,7 @@ const StockEntrepot = () => {
                             {item.quantite_disponible}
                             {(item.article?.unite_article?.nom || item.article?.unite_mesure) && (
                               <span className="text-muted-foreground ml-1">
-                                {item.article?.unite_article?.nom || item.article.unite_mesure}
+                                {item.article?.unite_article ? item.article.unite_article.nom : item.article.unite_mesure}
                               </span>
                             )}
                           </TableCell>
