@@ -3823,6 +3823,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: boolean
       }
+      log_business_data_access: {
+        Args: { operation: string; table_name: string }
+        Returns: undefined
+      }
       log_client_access_attempt: {
         Args: Record<PropertyKey, never>
         Returns: undefined
