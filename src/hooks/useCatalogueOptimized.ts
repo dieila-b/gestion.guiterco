@@ -29,7 +29,9 @@ export const useCatalogueOptimized = (
   const { data, isLoading, error } = useQuery({
     queryKey: ['catalogue_optimized', page, limit, searchTerm, category],
     queryFn: async () => {
-      console.log('Fetching optimized catalogue data...');
+      console.log('🔍 Fetching optimized catalogue data with params:', {
+        page, limit, searchTerm, category, from, to
+      });
       
       let query = supabase
         .from('catalogue')
@@ -45,35 +47,47 @@ export const useCatalogueOptimized = (
           categorie_id,
           unite_id
         `, { count: 'exact' })
-        // Temporairement désactivé pour debug : .eq('statut', 'actif')
         .range(from, to);
 
       // Filtrage côté serveur
       if (searchTerm) {
         query = query.or(`nom.ilike.%${searchTerm}%,reference.ilike.%${searchTerm}%`);
+        console.log('🔎 Applied search filter:', searchTerm);
       }
       
-      if (category && category !== 'all') {
+      if (category && category !== 'all' && category !== '') {
         query = query.eq('categorie_id', category);
+        console.log('🏷️ Applied category filter:', category);
       }
 
       query = query.order('nom', { ascending: true });
       
       const { data, error, count } = await query;
       
+      console.log('📊 Optimized query result:', {
+        dataLength: data?.length,
+        totalCount: count,
+        error: error?.message
+      });
+      
       if (error) {
-        console.error('Erreur lors du chargement du catalogue optimisé:', error);
+        console.error('❌ Erreur lors du chargement du catalogue optimisé:', error);
         throw error;
       }
       
-      console.log('Optimized catalogue data loaded:', data);
+      // Log détaillé pour diagnostic
+      if (data) {
+        console.log('📋 Premiers articles récupérés:', data.slice(0, 3));
+      }
+      
+      console.log('✅ Optimized catalogue data loaded successfully');
       return { 
         articles: data as ArticleOptimized[], 
         totalCount: count || 0,
         hasMore: (count || 0) > to + 1
       };
     },
-    staleTime: 10 * 60 * 1000, // 10 minutes pour le catalogue
+    staleTime: 10 * 60 * 1000,
     gcTime: 15 * 60 * 1000,
     refetchOnWindowFocus: false,
     refetchOnMount: false
@@ -83,6 +97,7 @@ export const useCatalogueOptimized = (
   const categories = useMemo(() => {
     if (!data?.articles) return [];
     const uniqueCategories = [...new Set(data.articles.map(a => a.categorie).filter(Boolean))];
+    console.log('🏷️ Categories extracted:', uniqueCategories);
     return uniqueCategories;
   }, [data?.articles]);
 
@@ -103,7 +118,7 @@ export const useCatalogueSearch = (searchTerm: string, enabled = false) => {
     queryFn: async () => {
       if (!searchTerm || searchTerm.length < 2) return [];
       
-      console.log('Searching catalogue with term:', searchTerm);
+      console.log('🔍 Searching catalogue with term:', searchTerm);
       
       const { data, error } = await supabase
         .from('catalogue')
@@ -116,16 +131,15 @@ export const useCatalogueSearch = (searchTerm: string, enabled = false) => {
           image_url,
           statut
         `)
-        // Temporairement désactivé pour debug : .eq('statut', 'actif')
         .or(`nom.ilike.%${searchTerm}%,reference.ilike.%${searchTerm}%`)
         .limit(10);
       
       if (error) {
-        console.error('Erreur lors de la recherche dans le catalogue:', error);
+        console.error('❌ Erreur lors de la recherche dans le catalogue:', error);
         throw error;
       }
       
-      console.log('Search results:', data);
+      console.log('🔍 Search results:', data?.length, 'articles found');
       return data as ArticleOptimized[];
     },
     enabled: enabled && searchTerm.length >= 2,

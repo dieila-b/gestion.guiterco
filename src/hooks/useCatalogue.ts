@@ -23,7 +23,7 @@ export const useCatalogue = () => {
   const { data: articles, isLoading, error } = useQuery({
     queryKey: ['catalogue'],
     queryFn: async () => {
-      console.log('Fetching catalogue data...');
+      console.log('🔍 Fetching catalogue data...');
       
       const { data, error } = await supabase
         .from('catalogue')
@@ -45,19 +45,28 @@ export const useCatalogue = () => {
           created_at,
           updated_at
         `)
-        // Temporairement désactivé pour debug : .eq('statut', 'actif')
         .order('nom', { ascending: true });
       
-      console.log('Raw catalogue data from Supabase:', data);
-      console.log('Number of articles:', data?.length);
-      console.log('Articles with status:', data?.map(item => ({ nom: item.nom, statut: item.statut })));
+      console.log('📊 Raw catalogue data from Supabase:', data);
+      console.log('📈 Number of articles:', data?.length);
       
       if (error) {
-        console.error('Erreur lors du chargement du catalogue:', error);
+        console.error('❌ Erreur lors du chargement du catalogue:', error);
         throw error;
       }
       
-      console.log('Catalogue data loaded:', data);
+      // Log détaillé des statuts pour diagnostic
+      if (data) {
+        const statusCount = data.reduce((acc, item) => {
+          const status = item.statut || 'undefined';
+          acc[status] = (acc[status] || 0) + 1;
+          return acc;
+        }, {} as Record<string, number>);
+        console.log('📋 Articles par statut:', statusCount);
+        console.log('🔍 Premiers 3 articles:', data.slice(0, 3));
+      }
+      
+      console.log('✅ Catalogue data loaded successfully:', data?.length, 'articles');
       return data as Article[];
     },
     staleTime: 10 * 60 * 1000, // 10 minutes
