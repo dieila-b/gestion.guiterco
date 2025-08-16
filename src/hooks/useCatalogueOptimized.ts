@@ -1,7 +1,7 @@
 
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { useMemo } from 'react';
+import { useToast } from '@/hooks/use-toast';
 
 export interface ArticleOptimized {
   id: string;
@@ -9,127 +9,126 @@ export interface ArticleOptimized {
   reference: string;
   prix_achat?: number;
   prix_vente?: number;
+  prix_unitaire?: number;
   categorie?: string;
+  unite_mesure?: string;
+  description?: string;
   image_url?: string;
   statut?: string;
+  seuil_alerte?: number;
   categorie_id?: string;
   unite_id?: string;
+  frais_logistique?: number;
+  frais_douane?: number;
+  frais_transport?: number;
+  autres_frais?: number;
+  created_at?: string;
+  updated_at?: string;
+  // Relations
+  categorie_article?: { nom: string } | null;
+  unite_article?: { nom: string } | null;
 }
 
-// Hook optimisé avec pagination et filtrage côté serveur
-export const useCatalogueOptimized = (
-  page = 1, 
-  limit = 20, 
-  searchTerm = '', 
-  category = ''
-) => {
-  const from = (page - 1) * limit;
-  const to = from + limit - 1;
+export const useCatalogueOptimized = () => {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
 
-  const { data, isLoading, error } = useQuery({
-    queryKey: ['catalogue_optimized', page, limit, searchTerm, category],
+  const { data: articles = [], isLoading, error, refetch } = useQuery({
+    queryKey: ['catalogue-optimized'],
     queryFn: async () => {
-      console.log('Fetching optimized catalogue data...');
+      console.log('🔄 Fetching optimized catalogue data...');
       
-      let query = supabase
-        .from('catalogue')
-        .select(`
-          id,
-          nom,
-          reference,
-          prix_achat,
-          prix_vente,
-          categorie,
-          image_url,
-          statut,
-          categorie_id,
-          unite_id
-        `, { count: 'exact' })
-        // Temporairement désactivé pour debug : .eq('statut', 'actif')
-        .range(from, to);
-
-      // Filtrage côté serveur
-      if (searchTerm) {
-        query = query.or(`nom.ilike.%${searchTerm}%,reference.ilike.%${searchTerm}%`);
+      try {
+        const { data, error } = await supabase
+          .from('catalogue')
+          .select(`
+            id,
+            nom,
+            reference,
+            description,
+            prix_achat,
+            prix_vente,
+            prix_unitaire,
+            categorie,
+            unite_mesure,
+            categorie_id,
+            unite_id,
+            seuil_alerte,
+            image_url,
+            statut,
+            frais_logistique,
+            frais_douane,
+            frais_transport,
+            autres_frais,
+            created_at,
+            updated_at,
+            categorie_article:categories_catalogue(nom)
+          `)
+          .order('nom', { ascending: true });
+        
+        if (error) {
+          console.error('❌ Erreur catalogue optimisé:', error);
+          toast({
+            title: "Erreur de chargement",
+            description: `Impossible de charger le catalogue: ${error.message}`,
+            variant: "destructive",
+          });
+          throw error;
+        }
+        
+        console.log('✅ Catalogue optimisé chargé:', data?.length, 'articles');
+        console.log('📊 Premiers articles:', data?.slice(0, 3));
+        
+        // Nettoyer les données pour éviter les erreurs de relation
+        const cleanedData = (data || []).map(article => ({
+          ...article,
+          categorie_article: article.categorie_article && typeof article.categorie_article === 'object' && 'nom' in article.categorie_article 
+            ? article.categorie_article 
+            : null,
+          unite_article: null // Pas de relation unite_article disponible dans la DB
+        }));
+        
+        return cleanedData as ArticleOptimized[];
+      } catch (err) {
+        console.error('❌ Exception catalogue optimisé:', err);
+        throw err;
       }
-      
-      if (category && category !== 'all') {
-        query = query.eq('categorie_id', category);
-      }
-
-      query = query.order('nom', { ascending: true });
-      
-      const { data, error, count } = await query;
-      
-      if (error) {
-        console.error('Erreur lors du chargement du catalogue optimisé:', error);
-        throw error;
-      }
-      
-      console.log('Optimized catalogue data loaded:', data);
-      return { 
-        articles: data as ArticleOptimized[], 
-        totalCount: count || 0,
-        hasMore: (count || 0) > to + 1
-      };
     },
-    staleTime: 10 * 60 * 1000, // 10 minutes pour le catalogue
-    gcTime: 15 * 60 * 1000,
-    refetchOnWindowFocus: false,
-    refetchOnMount: false
+    staleTime: 2 * 60 * 1000, // 2 minutes
+    gcTime: 5 * 60 * 1000, // 5 minutes
+    refetchOnWindowFocus: true,
+    refetchOnMount: true,
+    retry: 2,
+    retryDelay: 1500
   });
 
-  // Mémorisation des catégories pour éviter les re-calculs
-  const categories = useMemo(() => {
-    if (!data?.articles) return [];
-    const uniqueCategories = [...new Set(data.articles.map(a => a.categorie).filter(Boolean))];
-    return uniqueCategories;
-  }, [data?.articles]);
+  // Extraire les catégories uniques - gérer les valeurs nulles
+  const categories = Array.from(new Set(
+    articles
+      .map(article => {
+        const categoryName = article.categorie || (article.categorie_article?.nom);
+        return categoryName || '';
+      })
+      .filter(Boolean)
+  )) as string[];
+
+  const forceRefresh = async () => {
+    console.log('🔄 Force refresh catalogue...');
+    await queryClient.invalidateQueries({ queryKey: ['catalogue-optimized'] });
+    await refetch();
+    
+    toast({
+      title: "Actualisation terminée",
+      description: "Le catalogue a été rechargé avec succès",
+    });
+  };
 
   return {
-    articles: data?.articles || [],
-    totalCount: data?.totalCount || 0,
-    hasMore: data?.hasMore || false,
+    articles,
     categories,
     isLoading,
-    error
+    error,
+    refetch,
+    forceRefresh
   };
-};
-
-// Hook pour recherche en temps réel avec debounce
-export const useCatalogueSearch = (searchTerm: string, enabled = false) => {
-  return useQuery({
-    queryKey: ['catalogue_search', searchTerm],
-    queryFn: async () => {
-      if (!searchTerm || searchTerm.length < 2) return [];
-      
-      console.log('Searching catalogue with term:', searchTerm);
-      
-      const { data, error } = await supabase
-        .from('catalogue')
-        .select(`
-          id,
-          nom,
-          reference,
-          prix_achat,
-          prix_vente,
-          image_url,
-          statut
-        `)
-        // Temporairement désactivé pour debug : .eq('statut', 'actif')
-        .or(`nom.ilike.%${searchTerm}%,reference.ilike.%${searchTerm}%`)
-        .limit(10);
-      
-      if (error) {
-        console.error('Erreur lors de la recherche dans le catalogue:', error);
-        throw error;
-      }
-      
-      console.log('Search results:', data);
-      return data as ArticleOptimized[];
-    },
-    enabled: enabled && searchTerm.length >= 2,
-    staleTime: 5 * 60 * 1000,
-    refetchOnWindowFocus: false
-  });
 };
