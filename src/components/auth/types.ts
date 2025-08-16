@@ -2,13 +2,13 @@
 export interface Role {
   id: string;
   nom?: string;  // Support old format
-  name: string;  // Primary field
+  name?: string; // Support new format
   description: string;
 }
 
 export interface AuthUser {
   id: string;
-  email: string; 
+  email: string;
   role?: Role;
 }
 
@@ -32,7 +32,6 @@ export interface AuthContextType {
   session: any;
   utilisateurInterne: UtilisateurInterne | null;
   loading: boolean;
-  isLoading: boolean; // Alias for compatibility
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
   isInternalUser: boolean;

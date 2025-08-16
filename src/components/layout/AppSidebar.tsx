@@ -140,7 +140,7 @@ const AppSidebar = () => {
                     {displayUser.prenom} {displayUser.nom}
                   </p>
                   <p className="text-slate-400 text-xs truncate">
-                    {getRoleLabel(displayUser.role?.name || displayUser.role?.nom || displayUser.type_compte)}
+                    {getRoleLabel((displayUser.role?.name || displayUser.role?.nom) || displayUser.type_compte)}
                   </p>
                 </div>
               </Button>
@@ -155,7 +155,7 @@ const AppSidebar = () => {
                     {displayUser.email}
                   </p>
                   <p className="text-xs leading-none text-blue-600">
-                    {getRoleLabel(displayUser.role?.name || displayUser.role?.nom || displayUser.type_compte)}
+                    {getRoleLabel((displayUser.role?.name || displayUser.role?.nom) || displayUser.type_compte)}
                   </p>
                 </div>
               </DropdownMenuLabel>

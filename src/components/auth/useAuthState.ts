@@ -184,7 +184,6 @@ export const useAuthState = (
     session,
     utilisateurInterne,
     loading,
-    isLoading: loading,
     signIn,
     signOut,
     isInternalUser,

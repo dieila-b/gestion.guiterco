@@ -18,7 +18,7 @@ const ProtectedRoute = ({ children, requireRole }: ProtectedRouteProps) => {
     hasInternalUser: !!utilisateurInterne,
     isInternalUser,
     userEmail: user?.email,
-    internalUserRole: utilisateurInterne?.role?.name || utilisateurInterne?.role?.nom,
+    internalUserRole: utilisateurInterne?.role?.nom,
     requireRole,
     hostname: window.location.hostname,
     isDev: (() => {
@@ -29,7 +29,7 @@ const ProtectedRoute = ({ children, requireRole }: ProtectedRouteProps) => {
       return hostname === 'localhost' || 
              hostname.includes('127.0.0.1') ||
              hostname.includes('.local') ||
-             isLovablePreview ||
+             isLovablePreview ||  // Tous les aperçus lovable sont considérés comme dev
              isExplicitDev;
     })()
   });
@@ -79,11 +79,10 @@ const ProtectedRoute = ({ children, requireRole }: ProtectedRouteProps) => {
 
   // Vérification des rôles spécifiques si requis
   if (requireRole && utilisateurInterne && user) {
-    const userRole = utilisateurInterne.role?.name || utilisateurInterne.role?.nom;
-    const hasRequiredRole = requireRole.includes(userRole || '');
+    const hasRequiredRole = requireRole.includes(utilisateurInterne.role.nom);
     console.log('🔐 ProtectedRoute - Vérification du rôle:', {
       requiredRoles: requireRole,
-      userRole,
+      userRole: utilisateurInterne.role.nom,
       hasRequiredRole
     });
     
@@ -96,7 +95,7 @@ const ProtectedRoute = ({ children, requireRole }: ProtectedRouteProps) => {
               Vous n'avez pas les permissions nécessaires pour accéder à cette page.
             </p>
             <p className="text-sm text-red-500 mt-2">
-              Rôle requis : {requireRole.join(', ')} | Votre rôle : {userRole}
+              Rôle requis : {requireRole.join(', ')} | Votre rôle : {utilisateurInterne.role.nom}
             </p>
           </div>
         </div>

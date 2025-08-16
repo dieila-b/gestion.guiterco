@@ -6,7 +6,7 @@ import { Shield, ShieldOff, Info, Lock } from 'lucide-react';
 import { useDevMode } from '@/hooks/useDevMode';
 
 export const DevModeToggle = () => {
-  const { isDevMode, bypassAuth, toggleBypassAuth } = useDevMode();
+  const { isDevMode, bypassAuth, toggleBypass } = useDevMode();
   
   if (!isDevMode) return null;
 
@@ -36,7 +36,7 @@ export const DevModeToggle = () => {
         ) : (
           <>
             <Button
-              onClick={toggleBypassAuth}
+              onClick={toggleBypass}
               size="sm"
               variant={bypassAuth ? "destructive" : "default"}
               className="w-full"

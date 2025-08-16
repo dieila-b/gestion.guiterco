@@ -16,7 +16,7 @@ const LoginPage = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const { signIn, user, isInternalUser, loading: authLoading } = useAuth();
-  const { isDevMode, bypassAuth, toggleBypassAuth } = useDevMode();
+  const { isDevMode, bypassAuth, toggleBypass } = useDevMode();
   const navigate = useNavigate();
 
   // Rediriger si l'utilisateur est déjà connecté et autorisé
@@ -96,7 +96,7 @@ const LoginPage = () => {
               Vous êtes en mode développement. L'authentification peut être contournée pour les tests.
             </p>
             <Button
-              onClick={toggleBypassAuth}
+              onClick={toggleBypass}
               size="sm"
               variant={bypassAuth ? "destructive" : "default"}
               className="w-full"
