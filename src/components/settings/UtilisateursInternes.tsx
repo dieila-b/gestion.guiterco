@@ -200,37 +200,6 @@ const UtilisateursInternes = () => {
     );
   }
 
-  if (error) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <User className="w-5 h-5" />
-            Utilisateurs Internes
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Alert className="mb-4">
-            <AlertTriangle className="h-4 w-4" />
-            <AlertDescription>
-              <strong>Erreur de chargement:</strong> {error.message}
-            </AlertDescription>
-          </Alert>
-          
-          <div className="flex gap-2">
-            <Button onClick={handleSync} variant="default" disabled={syncUsers.isPending}>
-              <RotateCcw className="w-4 h-4 mr-2" />
-              {syncUsers.isPending ? 'Synchronisation...' : 'Synchroniser'}
-            </Button>
-            <Button onClick={forceRefresh} variant="outline">
-              <RefreshCw className="w-4 h-4 mr-2" />
-              Réessayer
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
 
   return (
     <div className="space-y-6">
