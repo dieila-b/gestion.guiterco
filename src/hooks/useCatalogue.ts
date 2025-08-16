@@ -1,6 +1,7 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { useCatalogueOptimized } from './useCatalogueOptimized';
 
 export interface Article {
   id: string;
@@ -27,7 +28,7 @@ export const useCatalogue = () => {
   const { data: articles, isLoading, error, refetch } = useQuery({
     queryKey: ['catalogue'],
     queryFn: async () => {
-      console.log('🔍 Fetching catalogue data...');
+      console.log('🔍 Fetching catalogue data (legacy)...');
       
       try {
         const { data, error } = await supabase
@@ -57,20 +58,18 @@ export const useCatalogue = () => {
           .order('nom', { ascending: true });
         
         if (error) {
-          console.error('❌ Erreur lors du chargement du catalogue:', error);
+          console.error('❌ Erreur catalogue legacy:', error);
           throw error;
         }
         
-        console.log('✅ Catalogue data loaded successfully:', data?.length, 'articles');
-        console.log('📊 First 3 articles:', data?.slice(0, 3));
-        
+        console.log('✅ Catalogue legacy data loaded:', data?.length, 'articles');
         return data as Article[];
       } catch (err) {
-        console.error('❌ Exception during catalogue fetch:', err);
+        console.error('❌ Exception catalogue legacy:', err);
         throw err;
       }
     },
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 5 * 60 * 1000,
     refetchOnWindowFocus: false,
     retry: 3,
     retryDelay: 1000
