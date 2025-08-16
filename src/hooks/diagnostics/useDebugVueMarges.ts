@@ -7,7 +7,7 @@ export const useDebugVueMarges = () => {
     try {
       console.log('🔍 Debug de la vue des marges...');
       
-      const { data, error } = await supabase.rpc('get_margin_debug_data');
+      const { data, error } = await supabase.rpc('debug_vue_marges_frais');
       
       if (error) {
         console.error('❌ Erreur lors du debug de la vue:', error);

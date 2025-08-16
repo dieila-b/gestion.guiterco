@@ -1,49 +1,49 @@
 
-import React, { useState, useEffect } from 'react';
-import { useStockPrincipalOptimized } from '@/hooks/useStockOptimized';
-import { useEntrepots } from '@/hooks/stock';
+import React, { useState } from 'react';
+import { useStockPrincipal, useEntrepots } from '@/hooks/stock';
 import { useCatalogueSync } from '@/hooks/useCatalogueSync';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search, RefreshCw, Filter, AlertTriangle, CheckCircle, Zap } from 'lucide-react';
+import { Search, RefreshCw, Filter, AlertTriangle, CheckCircle } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { formatCurrency } from '@/lib/currency';
-import DebugStockData from './DebugStockData';
 
 const StockEntrepot = () => {
-  console.log('🔄 StockEntrepot component render');
-  
-  const { stockEntrepot, isLoading, error, forceRefresh } = useStockPrincipalOptimized();
+  const { stockEntrepot, isLoading, error, refreshStock } = useStockPrincipal();
   const { entrepots } = useEntrepots();
   const { syncCatalogue, checkDataIntegrity } = useCatalogueSync();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedEntrepot, setSelectedEntrepot] = useState<string>('tous');
   const [lastSyncTime, setLastSyncTime] = useState<Date | null>(null);
-  const [showDebug, setShowDebug] = useState(false);
 
-  useEffect(() => {
-    console.log('📊 StockEntrepot - Data changed:', {
-      stockCount: stockEntrepot?.length,
-      isLoading,
-      hasError: !!error
-    });
-  }, [stockEntrepot, isLoading, error]);
+  console.log('StockEntrepot - stockEntrepot data:', stockEntrepot);
+  console.log('StockEntrepot - stockEntrepot length:', stockEntrepot?.length);
 
   const filteredStock = stockEntrepot?.filter(item => {
+    console.log('Filtering item:', item);
+    console.log('Item article:', item.article);
+    console.log('Item entrepot:', item.entrepot);
+    
     const matchesSearch = searchTerm === '' || (
       (item.article?.nom && item.article.nom.toLowerCase().includes(searchTerm.toLowerCase())) || 
       (item.article?.reference && item.article.reference.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (item.entrepot?.nom && item.entrepot.nom.toLowerCase().includes(searchTerm.toLowerCase()))
+      (item.entrepot?.nom && item.entrepot.nom.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (item.article?.categorie && item.article.categorie.toLowerCase().includes(searchTerm.toLowerCase()))
     );
     
-    const matchesEntrepot = selectedEntrepot === 'tous' || item.entrepot?.id === selectedEntrepot;
+    const matchesEntrepot = selectedEntrepot === 'tous' || item.entrepot_id === selectedEntrepot;
+    
+    console.log('matchesSearch:', matchesSearch, 'matchesEntrepot:', matchesEntrepot);
     
     return matchesSearch && matchesEntrepot;
   });
+
+  console.log('Filtered stock result:', filteredStock);
+  console.log('Filtered stock length:', filteredStock?.length);
 
   const calculateTotalValue = (quantity: number, unitPrice: number | null | undefined) => {
     if (!unitPrice) return 0;
@@ -53,26 +53,29 @@ const StockEntrepot = () => {
   const handleSync = async () => {
     try {
       await syncCatalogue.mutateAsync();
-      await forceRefresh();
+      refreshStock();
       setLastSyncTime(new Date());
     } catch (error) {
       console.error('Erreur lors de la synchronisation:', error);
     }
   };
 
+  // Vérification de l'intégrité des données
   const { data: integrityData, isLoading: integrityLoading } = checkDataIntegrity;
   
+  // Calculer s'il y a vraiment des problèmes d'intégrité - correction du type
   const hasRealIntegrityIssues = integrityData && (
     (integrityData.orphanedStock && Array.isArray(integrityData.orphanedStock) && integrityData.orphanedStock.length > 0) ||
-    (integrityData.inactiveWarehousesWithStock && Array.isArray(integrityData.inactiveWarehousesWithStock) && integrityData.inactiveWarehousesWithStock.length > 0)
+    (integrityData.inactiveWarehousesWithStock && Array.isArray(integrityData.inactiveWarehousesWithStock) && integrityData.inactiveWarehousesWithStock.length > 0) ||
+    (integrityData.duplicateStock && Array.isArray(integrityData.duplicateStock) && integrityData.duplicateStock.length > 0)
   );
 
+  // Afficher l'alerte seulement s'il y a de vrais problèmes
   const shouldShowIntegrityAlert = hasRealIntegrityIssues && !integrityLoading;
 
   return (
     <div className="space-y-6">
-      {showDebug && <DebugStockData />}
-      
+      {/* Alerte d'intégrité des données - seulement si nécessaire */}
       {shouldShowIntegrityAlert && (
         <Alert>
           <AlertTriangle className="h-4 w-4" />
@@ -91,6 +94,7 @@ const StockEntrepot = () => {
         </Alert>
       )}
 
+      {/* Message de confirmation après synchronisation réussie */}
       {lastSyncTime && !shouldShowIntegrityAlert && (
         <Alert className="border-green-200 bg-green-50">
           <CheckCircle className="h-4 w-4 text-green-600" />
@@ -103,37 +107,16 @@ const StockEntrepot = () => {
 
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-xl font-bold text-primary flex items-center gap-2">
-            <Zap className="h-5 w-5 text-blue-600" />
-            Stock Entrepôts Optimisé
-          </CardTitle>
-          <div className="flex gap-2">
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={() => setShowDebug(!showDebug)}
-            >
-              Debug
-            </Button>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={forceRefresh}
-              disabled={isLoading}
-            >
-              <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
-              Actualiser
-            </Button>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={handleSync}
-              disabled={syncCatalogue.isPending}
-            >
-              <RefreshCw className={`h-4 w-4 mr-2 ${syncCatalogue.isPending ? 'animate-spin' : ''}`} />
-              Synchroniser
-            </Button>
-          </div>
+          <CardTitle className="text-xl font-bold text-primary">Stock des Entrepôts</CardTitle>
+          <Button 
+            variant="outline" 
+            size="icon" 
+            title="Synchroniser et rafraîchir"
+            onClick={handleSync}
+            disabled={syncCatalogue.isPending}
+          >
+            <RefreshCw className={`h-4 w-4 ${syncCatalogue.isPending ? 'animate-spin' : ''}`} />
+          </Button>
         </CardHeader>
         <CardContent>
           {/* Filtres et recherche */}
@@ -170,6 +153,7 @@ const StockEntrepot = () => {
             </div>
           </div>
 
+          {/* Affichage d'erreur */}
           {error && (
             <Alert className="mb-4">
               <AlertTriangle className="h-4 w-4" />
@@ -193,8 +177,8 @@ const StockEntrepot = () => {
                 <TableHeader>
                   <TableRow className="hover:bg-muted/50">
                     <TableHead className="text-muted-foreground">Référence</TableHead>
-                    <TableHead className="text-muted-foreground">Article</TableHead>
                     <TableHead className="text-muted-foreground">Catégorie</TableHead>
+                    <TableHead className="text-muted-foreground">Article</TableHead>
                     <TableHead className="text-muted-foreground">Entrepôt</TableHead>
                     <TableHead className="text-right text-muted-foreground">Quantité</TableHead>
                     <TableHead className="text-right text-muted-foreground">Prix unitaire</TableHead>
@@ -206,30 +190,29 @@ const StockEntrepot = () => {
                     filteredStock.map((item) => {
                       const unitPrice = item.article?.prix_achat || item.article?.prix_unitaire || 0;
                       const totalValue = calculateTotalValue(item.quantite_disponible, unitPrice);
-                      const uniteNom = item.article?.unite_mesure;
                       
                       return (
                         <TableRow key={item.id} className="hover:bg-muted/50">
-                          <TableCell className="font-mono text-sm text-foreground">
+                          <TableCell className="font-medium text-foreground">
                             {item.article?.reference || 'N/A'}
                           </TableCell>
+                           <TableCell className="text-muted-foreground">
+                             {item.article?.categorie_article?.nom || item.article?.categorie || 'Non classé'}
+                           </TableCell>
                           <TableCell className="font-medium text-foreground">
                             {item.article?.nom || 'N/A'}
                           </TableCell>
                           <TableCell className="text-muted-foreground">
-                            {item.article?.categorie_article?.nom || item.article?.categorie || 'Non classé'}
-                          </TableCell>
-                          <TableCell className="text-muted-foreground">
                             {item.entrepot?.nom || 'N/A'}
                           </TableCell>
-                          <TableCell className="text-right font-medium text-foreground">
-                            {item.quantite_disponible}
-                            {uniteNom && (
-                              <span className="text-muted-foreground ml-1">
-                                {uniteNom}
-                              </span>
-                            )}
-                          </TableCell>
+                           <TableCell className="text-right font-medium text-foreground">
+                             {item.quantite_disponible}
+                             {(item.article?.unite_article?.nom || item.article?.unite_mesure) && (
+                               <span className="text-muted-foreground ml-1">
+                                 {item.article?.unite_article?.nom || item.article.unite_mesure}
+                               </span>
+                             )}
+                           </TableCell>
                           <TableCell className="text-right text-foreground">
                             {formatCurrency(unitPrice)}
                           </TableCell>
@@ -253,6 +236,7 @@ const StockEntrepot = () => {
             </div>
           )}
 
+          {/* Résumé du stock */}
           {filteredStock && filteredStock.length > 0 && (
             <div className="mt-4 p-4 bg-muted/50 rounded-lg">
               <div className="flex justify-between items-center text-sm">

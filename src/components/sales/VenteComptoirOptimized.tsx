@@ -25,8 +25,14 @@ const VenteComptoirOptimized = () => {
   const { 
     articles, 
     categories, 
-    isLoading: loadingArticles
-  } = useCatalogueOptimized();
+    isLoading: loadingArticles,
+    hasMore 
+  } = useCatalogueOptimized(
+    currentPage, 
+    12, 
+    debouncedSearch, 
+    selectedCategory
+  );
 
   // Mémorisation de la fonction de couleur des badges
   const getStatusBadgeColor = useCallback((statut: string) => {
@@ -41,17 +47,12 @@ const VenteComptoirOptimized = () => {
 
   // Mémorisation des produits filtrés
   const filteredArticles = useMemo(() => {
-    return articles.filter(article => {
-      const matchesSearch = !debouncedSearch || 
-        article.nom.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
-        article.reference.toLowerCase().includes(debouncedSearch.toLowerCase());
-      
-      const matchesCategory = selectedCategory === 'all' || 
-        article.categorie === selectedCategory;
-      
-      return matchesSearch && matchesCategory;
-    });
-  }, [articles, debouncedSearch, selectedCategory]);
+    return articles || [];
+  }, [articles]);
+
+  const handleLoadMore = useCallback(() => {
+    setCurrentPage(prev => prev + 1);
+  }, []);
 
   const handleCategoryChange = useCallback((category: string) => {
     setSelectedCategory(category);
@@ -210,6 +211,14 @@ const VenteComptoirOptimized = () => {
                       </div>
                     ))}
                   </div>
+                  
+                  {hasMore && (
+                    <div className="text-center mt-4">
+                      <Button variant="outline" onClick={handleLoadMore}>
+                        Charger plus
+                      </Button>
+                    </div>
+                  )}
                 </>
               )}
             </CardContent>
