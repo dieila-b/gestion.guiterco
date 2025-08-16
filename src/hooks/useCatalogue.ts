@@ -23,45 +23,76 @@ export const useCatalogue = () => {
   const { data: articles, isLoading, error } = useQuery({
     queryKey: ['catalogue'],
     queryFn: async () => {
-      console.log('Fetching catalogue data...');
+      console.log('🔍 Récupération du catalogue...');
       
-      const { data, error } = await supabase
-        .from('catalogue')
-        .select(`
-          id,
-          nom,
-          reference,
-          description,
-          prix_achat,
-          prix_vente,
-          prix_unitaire,
-          categorie,
-          unite_mesure,
-          categorie_id,
-          unite_id,
-          seuil_alerte,
-          image_url,
-          statut,
-          created_at,
-          updated_at
-        `)
-        // Temporairement désactivé pour debug : .eq('statut', 'actif')
-        .order('nom', { ascending: true });
-      
-      console.log('Raw catalogue data from Supabase:', data);
-      console.log('Number of articles:', data?.length);
-      console.log('Articles with status:', data?.map(item => ({ nom: item.nom, statut: item.statut })));
-      
-      if (error) {
-        console.error('Erreur lors du chargement du catalogue:', error);
-        throw error;
+      // Première tentative : requête complète
+      try {
+        const { data, error } = await supabase
+          .from('catalogue')
+          .select(`
+            id,
+            nom,
+            reference,
+            description,
+            prix_achat,
+            prix_vente,
+            prix_unitaire,
+            categorie,
+            unite_mesure,
+            categorie_id,
+            unite_id,
+            seuil_alerte,
+            image_url,
+            statut,
+            created_at,
+            updated_at
+          `)
+          .order('nom', { ascending: true });
+        
+        if (error) {
+          console.error('❌ Erreur catalogue complète:', error);
+          
+          // Tentative simplifiée
+          const { data: simpleData, error: simpleError } = await supabase
+            .from('catalogue')
+            .select('id, nom, reference, prix_vente, statut')
+            .order('nom', { ascending: true });
+          
+          if (simpleError) {
+            console.error('❌ Erreur catalogue simple:', simpleError);
+            throw simpleError;
+          }
+          
+          console.log('✅ Catalogue simple récupéré:', simpleData?.length || 0);
+          return simpleData as Article[];
+        }
+        
+        console.log('✅ Catalogue complet récupéré:', data?.length || 0);
+        console.log('Premier article:', data?.[0]);
+        return data as Article[];
+        
+      } catch (err) {
+        console.error('💥 Erreur lors de la récupération du catalogue:', err);
+        
+        // Dernière tentative : récupération basique
+        try {
+          const { data: basicData, error: basicError } = await supabase
+            .from('catalogue')
+            .select('*');
+          
+          if (basicError) throw basicError;
+          
+          console.log('✅ Catalogue basique récupéré:', basicData?.length || 0);
+          return (basicData as Article[]) || [];
+        } catch (finalErr) {
+          console.error('💥 Toutes les tentatives ont échoué pour le catalogue:', finalErr);
+          return [];
+        }
       }
-      
-      console.log('Catalogue data loaded:', data);
-      return data as Article[];
     },
-    staleTime: 10 * 60 * 1000, // 10 minutes
-    refetchOnWindowFocus: false
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    refetchOnWindowFocus: true,
+    retry: 2,
   });
 
   return {
