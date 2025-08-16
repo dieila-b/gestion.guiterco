@@ -191,7 +191,7 @@ const StockEntrepot = () => {
                     filteredStock.map((item) => {
                       const unitPrice = item.article?.prix_achat || item.article?.prix_unitaire || 0;
                       const totalValue = calculateTotalValue(item.quantite_disponible, unitPrice);
-                      const uniteNom = (item.article?.unite_article && item.article.unite_article.nom) || item.article?.unite_mesure;
+                      const uniteNom = item.article?.unite_article?.nom || item.article?.unite_mesure;
                       
                       return (
                         <TableRow key={item.id} className="hover:bg-muted/50">
