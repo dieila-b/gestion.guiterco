@@ -25,15 +25,15 @@ export interface ArticleOptimized {
   created_at?: string;
   updated_at?: string;
   // Relations
-  categorie_article?: { nom: string };
-  unite_article?: { nom: string };
+  categorie_article?: { nom: string } | null;
+  unite_article?: { nom: string } | null;
 }
 
 export const useCatalogueOptimized = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const { data: articles, isLoading, error, refetch } = useQuery({
+  const { data: articles = [], isLoading, error, refetch } = useQuery({
     queryKey: ['catalogue-optimized'],
     queryFn: async () => {
       console.log('🔄 Fetching optimized catalogue data...');
@@ -80,7 +80,7 @@ export const useCatalogueOptimized = () => {
         console.log('✅ Catalogue optimisé chargé:', data?.length, 'articles');
         console.log('📊 Premiers articles:', data?.slice(0, 3));
         
-        return data as ArticleOptimized[];
+        return (data || []) as ArticleOptimized[];
       } catch (err) {
         console.error('❌ Exception catalogue optimisé:', err);
         throw err;
@@ -93,6 +93,13 @@ export const useCatalogueOptimized = () => {
     retry: 2,
     retryDelay: 1500
   });
+
+  // Extraire les catégories uniques
+  const categories = Array.from(new Set(
+    articles
+      .map(article => article.categorie || article.categorie_article?.nom)
+      .filter(Boolean)
+  )) as string[];
 
   const forceRefresh = async () => {
     console.log('🔄 Force refresh catalogue...');
@@ -107,6 +114,7 @@ export const useCatalogueOptimized = () => {
 
   return {
     articles,
+    categories,
     isLoading,
     error,
     refetch,

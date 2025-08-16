@@ -18,7 +18,6 @@ export const useStockPrincipalOptimized = () => {
           .select(`
             id,
             quantite_disponible,
-            seuil_alerte,
             derniere_entree,
             created_at,
             updated_at,
@@ -33,6 +32,7 @@ export const useStockPrincipalOptimized = () => {
               categorie_id,
               unite_id,
               statut,
+              seuil_alerte,
               categorie_article:categories_catalogue(nom),
               unite_article:unites_catalogue(nom)
             ),
