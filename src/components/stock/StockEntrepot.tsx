@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useStockPrincipalOptimized } from '@/hooks/useStockOptimized';
 import { useEntrepots } from '@/hooks/stock';
 import { useCatalogueSync } from '@/hooks/useCatalogueSync';
@@ -15,6 +15,8 @@ import { formatCurrency } from '@/lib/currency';
 import DebugStockData from './DebugStockData';
 
 const StockEntrepot = () => {
+  console.log('🔄 StockEntrepot component render');
+  
   const { stockEntrepot, isLoading, error, forceRefresh } = useStockPrincipalOptimized();
   const { entrepots } = useEntrepots();
   const { syncCatalogue, checkDataIntegrity } = useCatalogueSync();
@@ -23,11 +25,13 @@ const StockEntrepot = () => {
   const [lastSyncTime, setLastSyncTime] = useState<Date | null>(null);
   const [showDebug, setShowDebug] = useState(false);
 
-  console.log('StockEntrepot Optimized - Data:', {
-    stockCount: stockEntrepot?.length,
-    isLoading,
-    hasError: !!error
-  });
+  useEffect(() => {
+    console.log('📊 StockEntrepot - Data changed:', {
+      stockCount: stockEntrepot?.length,
+      isLoading,
+      hasError: !!error
+    });
+  }, [stockEntrepot, isLoading, error]);
 
   const filteredStock = stockEntrepot?.filter(item => {
     const matchesSearch = searchTerm === '' || (
