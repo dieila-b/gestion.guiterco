@@ -3328,6 +3328,51 @@ export type Database = {
         }
         Relationships: []
       }
+      vue_mon_profil_employe: {
+        Row: {
+          created_at: string | null
+          department: string | null
+          email: string | null
+          id: string | null
+          matricule: string | null
+          nom: string | null
+          photo_url: string | null
+          prenom: string | null
+          statut: string | null
+          telephone: string | null
+          type_compte: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          department?: string | null
+          email?: string | null
+          id?: string | null
+          matricule?: string | null
+          nom?: string | null
+          photo_url?: string | null
+          prenom?: string | null
+          statut?: string | null
+          telephone?: string | null
+          type_compte?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          department?: string | null
+          email?: string | null
+          id?: string | null
+          matricule?: string | null
+          nom?: string | null
+          photo_url?: string | null
+          prenom?: string | null
+          statut?: string | null
+          telephone?: string | null
+          type_compte?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       vue_permissions_utilisateurs: {
         Row: {
           action: string | null
