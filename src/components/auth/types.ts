@@ -32,6 +32,7 @@ export interface AuthContextType {
   session: any;
   utilisateurInterne: UtilisateurInterne | null;
   loading: boolean;
+  isLoading: boolean; // Alias for compatibility
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
   isInternalUser: boolean;

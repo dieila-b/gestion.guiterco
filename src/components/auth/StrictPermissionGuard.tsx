@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useHasPermission } from '@/hooks/useStrictPermissions';
 import { useAuth } from '@/components/auth/AuthContext';
@@ -77,7 +76,7 @@ export const StrictPermissionGuard: React.FC<StrictPermissionGuardProps> = ({
             </p>
             {utilisateurInterne?.role && (
               <p className="text-xs text-red-600 mt-1">
-                Votre rôle : {utilisateurInterne.role.nom || utilisateurInterne.role.name}
+                Votre rôle : {utilisateurInterne.role.name || utilisateurInterne.role.nom}
               </p>
             )}
             <p className="text-xs text-blue-600 mt-1">

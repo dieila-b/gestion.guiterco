@@ -3,31 +3,10 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { useDevMode } from '@/hooks/useDevMode';
+import { AuthContextType, UtilisateurInterne } from './types';
 
-interface UtilisateurInterne {
-  id: string;
-  email: string;
-  prenom: string;
-  nom: string;
-  matricule?: string;
-  statut: string;
-  type_compte: string;
-  role?: {
-    id: string;
-    name: string;
-    description?: string;
-  };
-}
-
-interface AuthContextType {
-  user: User | null;
-  utilisateurInterne: UtilisateurInterne | null;
-  isLoading: boolean;
-  isDevMode: boolean;
-  signOut: () => Promise<void>;
-}
-
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+// Create and export the AuthContext
+export const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
@@ -43,22 +22,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.log('🚀 Mode dev avec bypass - Utilisateur mock créé');
       setUser({
         id: 'dev-user-123',
-        email: 'dev@example.com',
+        email: 'admin@dev.local',
       } as User);
       
       setUtilisateurInterne({
         id: 'dev-internal-123',
-        email: 'dev@example.com',
-        prenom: 'Dev',
-        nom: 'User',
+        email: 'admin@dev.local',
+        prenom: 'Admin',
+        nom: 'Dev',
         matricule: 'DEV-01',
         statut: 'actif',
         type_compte: 'admin',
         role: {
           id: 'admin-role',
-          name: 'Admin',
-          description: 'Administrateur'
-        }
+          name: 'Super Administrateur',
+          nom: 'Super Administrateur',
+          description: 'Administrateur avec accès complet'
+        },
+        role_id: 'admin-role',
+        photo_url: undefined,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
       });
       
       setIsLoading(false);
@@ -134,7 +118,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (data) {
         console.log('✅ Utilisateur interne chargé:', data.email);
-        setUtilisateurInterne(data);
+        // Ensure role has both nom and name for compatibility
+        const utilisateur: UtilisateurInterne = {
+          ...data,
+          role: {
+            ...data.role,
+            nom: data.role?.name || data.role?.nom,
+            name: data.role?.name || data.role?.nom
+          }
+        };
+        setUtilisateurInterne(utilisateur);
       } else {
         console.warn('⚠️ Aucun utilisateur interne trouvé pour:', userId);
         setUtilisateurInterne(null);
@@ -142,6 +135,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch (error) {
       console.error('💥 Erreur critique chargement utilisateur:', error);
       setUtilisateurInterne(null);
+    }
+  };
+
+  const signIn = async (email: string, password: string) => {
+    try {
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      return { error };
+    } catch (error) {
+      return { error };
     }
   };
 
@@ -156,12 +158,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const value = {
+  const isInternalUser = !!(user && utilisateurInterne);
+
+  const value: AuthContextType = {
     user,
+    session: null, // Could be added later if needed
     utilisateurInterne,
+    loading: isLoading,
     isLoading,
-    isDevMode,
+    signIn,
     signOut,
+    isInternalUser,
+    isDevMode,
   };
 
   return (
