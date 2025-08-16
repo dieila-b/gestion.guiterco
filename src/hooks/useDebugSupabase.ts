@@ -46,30 +46,116 @@ export const useDebugSupabase = () => {
     try {
       console.log('🔍 Checking RLS policies...');
       
-      const tables = ['catalogue', 'clients', 'factures_vente', 'stock_principal', 'entrepots'];
       const results = [];
       
-      for (const table of tables) {
-        try {
-          const { data, error } = await supabase
-            .from(table)
-            .select('*')
-            .limit(1);
-          
-          results.push({
-            table,
-            accessible: !error,
-            error: error?.message,
-            count: data?.length || 0
-          });
-        } catch (err) {
-          results.push({
-            table,
-            accessible: false,
-            error: (err as Error).message,
-            count: 0
-          });
-        }
+      // Test catalogue table
+      try {
+        const { data, error } = await supabase
+          .from('catalogue')
+          .select('*')
+          .limit(1);
+        
+        results.push({
+          table: 'catalogue',
+          accessible: !error,
+          error: error?.message,
+          count: data?.length || 0
+        });
+      } catch (err) {
+        results.push({
+          table: 'catalogue',
+          accessible: false,
+          error: (err as Error).message,
+          count: 0
+        });
+      }
+
+      // Test clients table
+      try {
+        const { data, error } = await supabase
+          .from('clients')
+          .select('*')
+          .limit(1);
+        
+        results.push({
+          table: 'clients',
+          accessible: !error,
+          error: error?.message,
+          count: data?.length || 0
+        });
+      } catch (err) {
+        results.push({
+          table: 'clients',
+          accessible: false,
+          error: (err as Error).message,
+          count: 0
+        });
+      }
+
+      // Test factures_vente table
+      try {
+        const { data, error } = await supabase
+          .from('factures_vente')
+          .select('*')
+          .limit(1);
+        
+        results.push({
+          table: 'factures_vente',
+          accessible: !error,
+          error: error?.message,
+          count: data?.length || 0
+        });
+      } catch (err) {
+        results.push({
+          table: 'factures_vente',
+          accessible: false,
+          error: (err as Error).message,
+          count: 0
+        });
+      }
+
+      // Test stock_principal table
+      try {
+        const { data, error } = await supabase
+          .from('stock_principal')
+          .select('*')
+          .limit(1);
+        
+        results.push({
+          table: 'stock_principal',
+          accessible: !error,
+          error: error?.message,
+          count: data?.length || 0
+        });
+      } catch (err) {
+        results.push({
+          table: 'stock_principal',
+          accessible: false,
+          error: (err as Error).message,
+          count: 0
+        });
+      }
+
+      // Test entrepots table
+      try {
+        const { data, error } = await supabase
+          .from('entrepots')
+          .select('*')
+          .limit(1);
+        
+        results.push({
+          table: 'entrepots',
+          accessible: !error,
+          error: error?.message,
+          count: data?.length || 0
+        });
+      } catch (err) {
+        results.push({
+          table: 'entrepots',
+          accessible: false,
+          error: (err as Error).message,
+          count: 0
+        });
       }
       
       console.log('📊 RLS Policy Check Results:', results);
