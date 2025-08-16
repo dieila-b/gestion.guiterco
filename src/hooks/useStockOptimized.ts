@@ -33,8 +33,7 @@ export const useStockPrincipalOptimized = () => {
               unite_id,
               statut,
               seuil_alerte,
-              categorie_article:categories_catalogue(nom),
-              unite_article:unites_catalogue(nom)
+              categorie_article:categories_catalogue(nom)
             ),
             entrepot:entrepots!inner(
               id,
@@ -60,9 +59,7 @@ export const useStockPrincipalOptimized = () => {
             categorie_article: item.article.categorie_article && typeof item.article.categorie_article === 'object' && 'nom' in item.article.categorie_article 
               ? item.article.categorie_article 
               : null,
-            unite_article: item.article.unite_article && typeof item.article.unite_article === 'object' && 'nom' in item.article.unite_article 
-              ? item.article.unite_article 
-              : null
+            unite_article: null // Pas de relation unite_article disponible
           } : null
         }));
         
@@ -120,8 +117,7 @@ export const useStockPDVOptimized = () => {
               categorie,
               unite_mesure,
               statut,
-              categorie_article:categories_catalogue(nom),
-              unite_article:unites_catalogue(nom)
+              categorie_article:categories_catalogue(nom)
             ),
             point_vente:points_de_vente!inner(
               id,
@@ -147,9 +143,7 @@ export const useStockPDVOptimized = () => {
             categorie_article: item.article.categorie_article && typeof item.article.categorie_article === 'object' && 'nom' in item.article.categorie_article 
               ? item.article.categorie_article 
               : null,
-            unite_article: item.article.unite_article && typeof item.article.unite_article === 'object' && 'nom' in item.article.unite_article 
-              ? item.article.unite_article 
-              : null
+            unite_article: null // Pas de relation unite_article disponible
           } : null
         }));
         

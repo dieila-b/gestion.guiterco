@@ -9,7 +9,6 @@ const DebugStockData = () => {
   const [catalogueCount, setCatalogueCount] = useState<number>(0);
   const [stockCount, setStockCount] = useState<number>(0);
   const [categoriesCount, setCategoriesCount] = useState<number>(0);
-  const [unitesCount, setUnitesCount] = useState<number>(0);
   const [sampleData, setSampleData] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -34,12 +33,6 @@ const DebugStockData = () => {
         .select('*', { count: 'exact', head: true });
       setCategoriesCount(categoriesCountResult || 0);
 
-      // Compter les unités
-      const { count: unitesCountResult } = await supabase
-        .from('unites_catalogue')
-        .select('*', { count: 'exact', head: true });
-      setUnitesCount(unitesCountResult || 0);
-
       // Récupérer un échantillon de données avec relations
       const { data: sampleDataResult } = await supabase
         .from('stock_principal')
@@ -50,8 +43,7 @@ const DebugStockData = () => {
             id,
             nom,
             reference,
-            categorie_article:categories_catalogue(nom),
-            unite_article:unites_catalogue(nom)
+            categorie_article:categories_catalogue(nom)
           ),
           entrepot:entrepots(
             id,
@@ -66,7 +58,6 @@ const DebugStockData = () => {
         catalogue: catalogueCountResult,
         stock: stockCountResult,
         categories: categoriesCountResult,
-        unites: unitesCountResult,
         sample: sampleDataResult
       });
       
@@ -98,7 +89,7 @@ const DebugStockData = () => {
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-4">
           <div className="text-center p-3 bg-blue-50 rounded">
             <div className="text-2xl font-bold text-blue-600">{catalogueCount}</div>
             <div className="text-sm text-blue-800">Articles catalogue</div>
@@ -110,10 +101,6 @@ const DebugStockData = () => {
           <div className="text-center p-3 bg-purple-50 rounded">
             <div className="text-2xl font-bold text-purple-600">{categoriesCount}</div>
             <div className="text-sm text-purple-800">Catégories</div>
-          </div>
-          <div className="text-center p-3 bg-orange-50 rounded">
-            <div className="text-2xl font-bold text-orange-600">{unitesCount}</div>
-            <div className="text-sm text-orange-800">Unités</div>
           </div>
         </div>
         

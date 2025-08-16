@@ -62,8 +62,7 @@ export const useCatalogueOptimized = () => {
             autres_frais,
             created_at,
             updated_at,
-            categorie_article:categories_catalogue(nom),
-            unite_article:unites_catalogue(nom)
+            categorie_article:categories_catalogue(nom)
           `)
           .order('nom', { ascending: true });
         
@@ -86,9 +85,7 @@ export const useCatalogueOptimized = () => {
           categorie_article: article.categorie_article && typeof article.categorie_article === 'object' && 'nom' in article.categorie_article 
             ? article.categorie_article 
             : null,
-          unite_article: article.unite_article && typeof article.unite_article === 'object' && 'nom' in article.unite_article 
-            ? article.unite_article 
-            : null
+          unite_article: null // Pas de relation unite_article disponible dans la DB
         }));
         
         return cleanedData as ArticleOptimized[];
