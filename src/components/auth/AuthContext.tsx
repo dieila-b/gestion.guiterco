@@ -122,9 +122,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const utilisateur: UtilisateurInterne = {
           ...data,
           role: {
-            ...data.role,
-            nom: data.role?.name || data.role?.nom,
-            name: data.role?.name || data.role?.nom
+            id: data.role?.id || 'no-role',
+            name: data.role?.name || 'Aucun rôle',
+            nom: data.role?.name || 'Aucun rôle',
+            description: data.role?.description || 'Utilisateur sans rôle assigné'
           }
         };
         setUtilisateurInterne(utilisateur);

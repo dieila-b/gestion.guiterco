@@ -2,13 +2,13 @@
 export interface Role {
   id: string;
   nom?: string;  // Support old format
-  name?: string; // Support new format
+  name: string;  // Primary field
   description: string;
 }
 
 export interface AuthUser {
   id: string;
-  email: string;
+  email: string; 
   role?: Role;
 }
 
