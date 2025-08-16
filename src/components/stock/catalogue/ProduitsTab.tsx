@@ -4,7 +4,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Search, Image, TrendingUp, AlertCircle } from 'lucide-react';
+import { Search, Image, TrendingUp, AlertCircle, RefreshCw } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { useCatalogue } from '@/hooks/useCatalogue';
 import { useDebounce } from '@/hooks/useDebounce';
 import { formatCurrency } from '@/lib/currency';
@@ -16,8 +17,7 @@ const ProduitsTab = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const debouncedSearch = useDebounce(searchTerm, 300);
   
-  // Utilisation du hook principal pour plus de fiabilité
-  const { articles, isLoading, error } = useCatalogue();
+  const { articles, isLoading, error, refetch } = useCatalogue();
   
   console.log('🎯 ProduitsTab - Hook results:', {
     articlesLength: articles?.length,
@@ -80,11 +80,19 @@ const ProduitsTab = () => {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="text-red-600">
+          <div className="text-red-600 space-y-4">
             <p>Une erreur est survenue lors du chargement du catalogue :</p>
-            <p className="text-sm mt-2 font-mono bg-red-50 p-2 rounded">
+            <p className="text-sm font-mono bg-red-50 p-3 rounded border">
               {error.message}
             </p>
+            <Button 
+              onClick={() => refetch()}
+              variant="outline"
+              size="sm"
+            >
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Réessayer
+            </Button>
           </div>
         </CardContent>
       </Card>
@@ -99,6 +107,13 @@ const ProduitsTab = () => {
             <CardTitle className="flex items-center gap-2">
               Produits du Catalogue
               <TrendingUp className="h-4 w-4 text-muted-foreground" />
+              <Button 
+                onClick={() => refetch()}
+                variant="ghost"
+                size="sm"
+              >
+                <RefreshCw className="h-4 w-4" />
+              </Button>
             </CardTitle>
             <p className="text-sm text-muted-foreground">
               Gérez vos produits avec calcul automatique des marges
@@ -203,7 +218,7 @@ const ProduitsTab = () => {
 
         {!isLoading && filteredArticles.length === 0 && (
           <div className="text-center py-8 text-gray-500">
-            <div className="flex flex-col items-center gap-2">
+            <div className="flex flex-col items-center gap-4">
               <AlertCircle className="h-12 w-12 text-gray-300" />
               {searchTerm ? (
                 <div>
@@ -214,6 +229,15 @@ const ProduitsTab = () => {
                 <div>
                   <p className="font-medium">Aucun produit dans le catalogue</p>
                   <p className="text-sm">Ajoutez votre premier produit en cliquant sur "Nouveau Produit"</p>
+                  <Button 
+                    onClick={() => refetch()}
+                    variant="outline"
+                    size="sm"
+                    className="mt-2"
+                  >
+                    <RefreshCw className="h-4 w-4 mr-2" />
+                    Actualiser
+                  </Button>
                 </div>
               )}
             </div>
