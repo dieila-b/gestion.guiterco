@@ -80,7 +80,18 @@ export const useCatalogueOptimized = () => {
         console.log('✅ Catalogue optimisé chargé:', data?.length, 'articles');
         console.log('📊 Premiers articles:', data?.slice(0, 3));
         
-        return (data || []) as ArticleOptimized[];
+        // Nettoyer les données pour éviter les erreurs de relation
+        const cleanedData = (data || []).map(article => ({
+          ...article,
+          categorie_article: article.categorie_article && typeof article.categorie_article === 'object' && 'nom' in article.categorie_article 
+            ? article.categorie_article 
+            : null,
+          unite_article: article.unite_article && typeof article.unite_article === 'object' && 'nom' in article.unite_article 
+            ? article.unite_article 
+            : null
+        }));
+        
+        return cleanedData as ArticleOptimized[];
       } catch (err) {
         console.error('❌ Exception catalogue optimisé:', err);
         throw err;

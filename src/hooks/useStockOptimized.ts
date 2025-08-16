@@ -51,7 +51,22 @@ export const useStockPrincipalOptimized = () => {
         }
         
         console.log('✅ Stock principal chargé:', data?.length, 'entrées');
-        return data || [];
+        
+        // Nettoyer les données pour éviter les erreurs de relation
+        const cleanedData = (data || []).map(item => ({
+          ...item,
+          article: item.article ? {
+            ...item.article,
+            categorie_article: item.article.categorie_article && typeof item.article.categorie_article === 'object' && 'nom' in item.article.categorie_article 
+              ? item.article.categorie_article 
+              : null,
+            unite_article: item.article.unite_article && typeof item.article.unite_article === 'object' && 'nom' in item.article.unite_article 
+              ? item.article.unite_article 
+              : null
+          } : null
+        }));
+        
+        return cleanedData;
       } catch (err) {
         console.error('❌ Exception stock principal:', err);
         throw err;
@@ -123,7 +138,22 @@ export const useStockPDVOptimized = () => {
         }
         
         console.log('✅ Stock PDV chargé:', data?.length, 'entrées');
-        return data || [];
+        
+        // Nettoyer les données pour éviter les erreurs de relation
+        const cleanedData = (data || []).map(item => ({
+          ...item,
+          article: item.article ? {
+            ...item.article,
+            categorie_article: item.article.categorie_article && typeof item.article.categorie_article === 'object' && 'nom' in item.article.categorie_article 
+              ? item.article.categorie_article 
+              : null,
+            unite_article: item.article.unite_article && typeof item.article.unite_article === 'object' && 'nom' in item.article.unite_article 
+              ? item.article.unite_article 
+              : null
+          } : null
+        }));
+        
+        return cleanedData;
       } catch (err) {
         console.error('❌ Exception stock PDV:', err);
         throw err;
