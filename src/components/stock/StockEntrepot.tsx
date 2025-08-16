@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useStockPrincipalOptimized } from '@/hooks/useStockOptimized';
 import { useEntrepots } from '@/hooks/stock';
