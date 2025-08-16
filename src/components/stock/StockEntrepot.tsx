@@ -12,6 +12,7 @@ import { Search, RefreshCw, Filter, AlertTriangle, CheckCircle, Zap } from 'luci
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { formatCurrency } from '@/lib/currency';
+import DebugStockData from './DebugStockData';
 
 const StockEntrepot = () => {
   const { stockEntrepot, isLoading, error, forceRefresh } = useStockPrincipalOptimized();
@@ -20,6 +21,7 @@ const StockEntrepot = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedEntrepot, setSelectedEntrepot] = useState<string>('tous');
   const [lastSyncTime, setLastSyncTime] = useState<Date | null>(null);
+  const [showDebug, setShowDebug] = useState(false);
 
   console.log('StockEntrepot Optimized - Data:', {
     stockCount: stockEntrepot?.length,
@@ -65,6 +67,8 @@ const StockEntrepot = () => {
 
   return (
     <div className="space-y-6">
+      {showDebug && <DebugStockData />}
+      
       {shouldShowIntegrityAlert && (
         <Alert>
           <AlertTriangle className="h-4 w-4" />
@@ -100,6 +104,13 @@ const StockEntrepot = () => {
             Stock Entrepôts Optimisé
           </CardTitle>
           <div className="flex gap-2">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => setShowDebug(!showDebug)}
+            >
+              Debug
+            </Button>
             <Button 
               variant="outline" 
               size="sm" 

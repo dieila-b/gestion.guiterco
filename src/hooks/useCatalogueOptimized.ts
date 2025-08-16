@@ -105,10 +105,13 @@ export const useCatalogueOptimized = () => {
     retryDelay: 1500
   });
 
-  // Extraire les catégories uniques
+  // Extraire les catégories uniques - gérer les valeurs nulles
   const categories = Array.from(new Set(
     articles
-      .map(article => article.categorie || (article.categorie_article?.nom ?? ''))
+      .map(article => {
+        const categoryName = article.categorie || (article.categorie_article?.nom);
+        return categoryName || '';
+      })
       .filter(Boolean)
   )) as string[];
 
