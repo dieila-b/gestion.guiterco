@@ -108,7 +108,7 @@ export const useCatalogueOptimized = () => {
   // Extraire les catégories uniques
   const categories = Array.from(new Set(
     articles
-      .map(article => article.categorie || (article.categorie_article?.nom || ''))
+      .map(article => article.categorie || (article.categorie_article?.nom ?? ''))
       .filter(Boolean)
   )) as string[];
 
