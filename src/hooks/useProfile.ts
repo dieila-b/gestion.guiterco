@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/components/auth/AuthContext';
@@ -16,33 +15,13 @@ export interface Profile {
 }
 
 export const useProfile = () => {
-  const { user, isDevMode } = useAuth();
+  const { user } = useAuth();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!user) {
       setProfile(null);
-      setLoading(false);
-      return;
-    }
-
-    // En mode développement, créer un profil mock complet avec rôle valide
-    if (isDevMode) {
-      const mockProfile: Profile = {
-        id: user.id,
-        user_id: user.id,
-        prenom: user.user_metadata?.prenom || 'Admin',
-        nom: user.user_metadata?.nom || 'Dev',
-        avatar_url: user.user_metadata?.avatar_url,
-        bio: 'Profil administrateur de développement avec accès complet',
-        telephone: '+33123456789',
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      };
-      
-      console.log('🚀 Profile mock créé en mode dev:', mockProfile);
-      setProfile(mockProfile);
       setLoading(false);
       return;
     }
@@ -61,7 +40,7 @@ export const useProfile = () => {
         } else if (data) {
           setProfile(data);
         } else {
-          // En production, essayer de créer un profil seulement si on n'est pas en mode dev
+          // Créer un profil par défaut si aucun n'existe
           const newProfile = {
             user_id: user.id,
             prenom: user.user_metadata?.prenom || user.user_metadata?.first_name || 'Utilisateur',
@@ -91,18 +70,10 @@ export const useProfile = () => {
     };
 
     fetchProfile();
-  }, [user, isDevMode]);
+  }, [user]);
 
   const updateProfile = async (updates: Partial<Profile>) => {
     if (!user || !profile) return;
-
-    // En mode développement, simuler la mise à jour
-    if (isDevMode) {
-      const updatedProfile = { ...profile, ...updates };
-      setProfile(updatedProfile);
-      console.log('🚀 Profile mock mis à jour:', updatedProfile);
-      return { error: null };
-    }
 
     try {
       const { data, error } = await supabase

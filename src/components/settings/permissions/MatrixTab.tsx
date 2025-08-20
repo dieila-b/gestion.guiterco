@@ -1,193 +1,152 @@
-
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Checkbox } from '@/components/ui/checkbox';
-import { 
-  useRoles, 
-  usePermissions, 
-  useRolePermissions, 
-  useUpdateRolePermission 
-} from '@/hooks/usePermissionsSystem';
-import { Check, X, Eye, Edit, Trash2 } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Grid3x3, Save } from 'lucide-react';
+import { useRoles, usePermissions, useRolePermissions, useUpdateRolePermission } from '@/hooks/usePermissionsSystem';
+import { Button } from '@/components/ui/button';
+import { toast } from 'sonner';
 
 export default function MatrixTab() {
+  const [selectedRole, setSelectedRole] = useState<string>('');
+  const [pendingChanges, setPendingChanges] = useState<{[key: string]: boolean}>({});
+  
   const { data: roles = [], isLoading: rolesLoading } = useRoles();
   const { data: permissions = [], isLoading: permissionsLoading } = usePermissions();
-  const { data: rolePermissions = [], isLoading: rpLoading } = useRolePermissions();
+  const { data: rolePermissions = [], isLoading: rolePermissionsLoading } = useRolePermissions();
   const updateRolePermission = useUpdateRolePermission();
 
-  const isLoading = rolesLoading || permissionsLoading || rpLoading;
+  const isLoading = rolesLoading || permissionsLoading || rolePermissionsLoading;
 
-  // Grouper les permissions par menu et submenu
+  const handlePermissionChange = async (roleId: string, permissionId: string, canAccess: boolean) => {
+    const key = `${roleId}-${permissionId}`;
+    setPendingChanges(prev => ({ ...prev, [key]: canAccess }));
+    
+    try {
+      await updateRolePermission.mutateAsync({
+        roleId,
+        permissionId,
+        canAccess
+      });
+      
+      // Retirer du pending après succès
+      setPendingChanges(prev => {
+        const newPending = { ...prev };
+        delete newPending[key];
+        return newPending;
+      });
+      
+      toast.success('Permission mise à jour');
+    } catch (error) {
+      console.error('Erreur lors de la mise à jour:', error);
+      toast.error('Erreur lors de la mise à jour');
+      
+      // Retirer du pending en cas d'erreur
+      setPendingChanges(prev => {
+        const newPending = { ...prev };
+        delete newPending[key];
+        return newPending;
+      });
+    }
+  };
+
+  const hasPermission = (roleId: string, permissionId: string) => {
+    const key = `${roleId}-${permissionId}`;
+    if (key in pendingChanges) {
+      return pendingChanges[key];
+    }
+    
+    const rolePermission = rolePermissions.find(
+      rp => rp.role_id === roleId && rp.permission_id === permissionId
+    );
+    return rolePermission?.can_access || false;
+  };
+
   const groupedPermissions = permissions.reduce((acc, permission) => {
-    const key = `${permission.menu}${permission.submenu ? ` > ${permission.submenu}` : ''}`;
+    const key = permission.submenu ? `${permission.menu} > ${permission.submenu}` : permission.menu;
     if (!acc[key]) {
       acc[key] = [];
     }
     acc[key].push(permission);
     return acc;
-  }, {} as Record<string, typeof permissions>);
-
-  // Vérifier si un rôle a une permission
-  const hasPermission = (roleId: string, permissionId: string) => {
-    return rolePermissions.some(rp => 
-      rp.role_id === roleId && 
-      rp.permission_id === permissionId && 
-      rp.can_access
-    );
-  };
-
-  // Basculer une permission pour un rôle
-  const togglePermission = async (roleId: string, permissionId: string, currentValue: boolean) => {
-    await updateRolePermission.mutateAsync({
-      roleId,
-      permissionId,
-      canAccess: !currentValue
-    });
-  };
-
-  const getActionIcon = (action: string) => {
-    switch (action) {
-      case 'read':
-        return <Eye className="h-3 w-3" />;
-      case 'write':
-        return <Edit className="h-3 w-3" />;
-      case 'delete':
-        return <Trash2 className="h-3 w-3" />;
-      default:
-        return null;
-    }
-  };
-
-  const getActionColor = (action: string) => {
-    switch (action) {
-      case 'read':
-        return 'text-green-600 bg-green-50';
-      case 'write':
-        return 'text-blue-600 bg-blue-50';
-      case 'delete':
-        return 'text-red-600 bg-red-50';
-      default:
-        return 'text-gray-600 bg-gray-50';
-    }
-  };
-
-  const getRoleColor = (roleName: string) => {
-    switch (roleName.toLowerCase()) {
-      case 'administrateur':
-        return 'bg-red-100 text-red-800';
-      case 'manager':
-        return 'bg-blue-100 text-blue-800';
-      case 'vendeur':
-        return 'bg-green-100 text-green-800';
-      case 'caissier':
-        return 'bg-purple-100 text-purple-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
-  };
+  }, {} as {[key: string]: typeof permissions});
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center p-8">
+      <div className="flex items-center justify-center h-64">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-        <span className="ml-2">Chargement de la matrice...</span>
       </div>
     );
   }
 
   return (
     <div className="space-y-6">
-      <div>
-        <h3 className="text-lg font-medium">Matrice des permissions</h3>
-        <p className="text-sm text-muted-foreground">
-          Vue d'ensemble des permissions accordées à chaque rôle
-        </p>
-      </div>
-
       <Card>
         <CardHeader>
-          <CardTitle>Matrice Rôles × Permissions</CardTitle>
+          <CardTitle className="flex items-center gap-2">
+            <Grid3x3 className="w-5 h-5" />
+            Matrice des Permissions
+          </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto">
-            <table className="w-full border-collapse">
-              <thead>
-                <tr>
-                  <th className="text-left p-3 border-b font-medium min-w-[200px]">
-                    Permissions
-                  </th>
-                  {roles.map(role => (
-                    <th key={role.id} className="text-center p-3 border-b min-w-[120px]">
-                      <Badge className={getRoleColor(role.name)}>
-                        {role.name}
-                      </Badge>
-                    </th>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-64">Fonctionnalité</TableHead>
+                  <TableHead className="w-32">Action</TableHead>
+                  {roles.map((role) => (
+                    <TableHead key={role.id} className="text-center min-w-24">
+                      <div className="flex flex-col items-center gap-1">
+                        <span className="font-medium">{role.name}</span>
+                        {role.is_system && (
+                          <Badge variant="secondary" className="text-xs">Système</Badge>
+                        )}
+                      </div>
+                    </TableHead>
                   ))}
-                </tr>
-              </thead>
-              <tbody>
-                {Object.entries(groupedPermissions).map(([groupKey, groupPermissions]) => (
-                  <React.Fragment key={groupKey}>
-                    <tr className="bg-muted/30">
-                      <td colSpan={roles.length + 1} className="p-3 font-medium text-sm">
-                        {groupKey}
-                      </td>
-                    </tr>
-                    {groupPermissions.map(permission => (
-                      <tr key={permission.id} className="hover:bg-muted/20">
-                        <td className="p-3 border-b">
-                          <div className="flex items-center space-x-2">
-                            <Badge 
-                              variant="outline" 
-                              className={`${getActionColor(permission.action)} text-xs`}
-                            >
-                              <div className="flex items-center space-x-1">
-                                {getActionIcon(permission.action)}
-                                <span className="capitalize">{permission.action}</span>
-                              </div>
-                            </Badge>
-                            <span className="text-sm">
-                              {permission.description}
-                            </span>
-                          </div>
-                        </td>
-                        {roles.map(role => {
-                          const hasAccess = hasPermission(role.id, permission.id);
-                          const isSystemRole = role.is_system;
-                          
-                          return (
-                            <td key={role.id} className="p-3 border-b text-center">
-                              {isSystemRole ? (
-                                <div className="flex justify-center">
-                                  {hasAccess ? (
-                                    <Check className="h-5 w-5 text-green-600" />
-                                  ) : (
-                                    <X className="h-5 w-5 text-gray-400" />
-                                  )}
-                                </div>
-                              ) : (
-                                <Checkbox
-                                  checked={hasAccess}
-                                  onCheckedChange={() => 
-                                    togglePermission(role.id, permission.id, hasAccess)
-                                  }
-                                />
-                              )}
-                            </td>
-                          );
-                        })}
-                      </tr>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {Object.entries(groupedPermissions).map(([groupName, groupPermissions]) => (
+                  <React.Fragment key={groupName}>
+                    <TableRow>
+                      <TableCell colSpan={2 + roles.length} className="bg-muted/50 font-medium">
+                        {groupName}
+                      </TableCell>
+                    </TableRow>
+                    {groupPermissions.map((permission) => (
+                      <TableRow key={permission.id}>
+                        <TableCell className="pl-8">
+                          {permission.description || `${permission.menu}${permission.submenu ? ` > ${permission.submenu}` : ''}`}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline">
+                            {permission.action === 'read' ? 'Lecture' : 
+                             permission.action === 'write' ? 'Écriture' : 
+                             permission.action === 'delete' ? 'Suppression' : 
+                             permission.action === 'export' ? 'Export' : 
+                             permission.action === 'import' ? 'Import' : permission.action}
+                          </Badge>
+                        </TableCell>
+                        {roles.map((role) => (
+                          <TableCell key={role.id} className="text-center">
+                            <Checkbox
+                              checked={hasPermission(role.id, permission.id)}
+                              onCheckedChange={(checked) => 
+                                handlePermissionChange(role.id, permission.id, checked as boolean)
+                              }
+                              disabled={updateRolePermission.isPending}
+                            />
+                          </TableCell>
+                        ))}
+                      </TableRow>
                     ))}
                   </React.Fragment>
                 ))}
-              </tbody>
-            </table>
-          </div>
-          
-          <div className="mt-4 text-xs text-muted-foreground">
-            <p>* Les rôles système (marqués comme système) ont des permissions prédéfinies</p>
+              </TableBody>
+            </Table>
           </div>
         </CardContent>
       </Card>
