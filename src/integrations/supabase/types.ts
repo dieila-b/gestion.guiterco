@@ -3219,12 +3219,7 @@ export type Database = {
         Row: {
           action: string | null
           can_access: boolean | null
-          email: string | null
-          internal_user_id: string | null
           menu: string | null
-          nom: string | null
-          prenom: string | null
-          role_name: string | null
           submenu: string | null
           user_id: string | null
         }
@@ -3376,6 +3371,10 @@ export type Database = {
           p_submenu?: string
           p_action?: string
         }
+        Returns: boolean
+      }
+      check_user_permission_strict: {
+        Args: { p_menu: string; p_submenu?: string; p_action?: string }
         Returns: boolean
       }
       complete_precommande_payment: {
@@ -3574,6 +3573,10 @@ export type Database = {
           statut_paiement: string
         }[]
       }
+      get_current_user_role: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
       get_factures_avec_marges: {
         Args: Record<PropertyKey, never>
         Returns: {
@@ -3671,10 +3674,6 @@ export type Database = {
           created_at: string
         }[]
       }
-      is_admin: {
-        Args: Record<PropertyKey, never>
-        Returns: boolean
-      }
       is_admin_or_manager: {
         Args: Record<PropertyKey, never>
         Returns: boolean
@@ -3685,6 +3684,10 @@ export type Database = {
       }
       is_internal_user_active: {
         Args: { user_id: string }
+        Returns: boolean
+      }
+      is_user_admin: {
+        Args: Record<PropertyKey, never>
         Returns: boolean
       }
       rapport_nettoyage_doublons: {
@@ -3787,7 +3790,6 @@ export type Database = {
       }
       user_has_permission: {
         Args:
-          | { p_menu: string; p_submenu?: string; p_action?: string }
           | { user_id: string; permission_name: string }
           | {
               user_uuid: string
