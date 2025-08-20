@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useHasPermission } from '@/hooks/useStrictPermissions';
 import { useAuth } from '@/components/auth/AuthContext';
@@ -21,6 +22,7 @@ export const StrictPermissionGuard: React.FC<StrictPermissionGuardProps> = ({
   fallback = null,
   showLoader = true
 }) => {
+  const { hasPermission, isLoading } = useHasPermission();
   const { isDevMode, user, utilisateurInterne } = useAuth();
   const { bypassAuth } = useDevMode();
 
@@ -29,11 +31,9 @@ export const StrictPermissionGuard: React.FC<StrictPermissionGuardProps> = ({
     bypassAuth,
     hasUser: !!user,
     hasUtilisateurInterne: !!utilisateurInterne,
+    isLoading,
     userEmail: user?.email
   });
-
-  // Always call the hook (React requirement)
-  const { hasPermission, isLoading } = useHasPermission();
 
   // EN MODE DÉVELOPPEMENT - ACCÈS IMMÉDIAT ET INCONDITIONNEL
   if (isDevMode) {
