@@ -25,43 +25,46 @@ export const useCatalogue = () => {
     queryFn: async () => {
       console.log('Fetching catalogue data...');
       
-      const { data, error } = await supabase
-        .from('catalogue')
-        .select(`
-          id,
-          nom,
-          reference,
-          description,
-          prix_achat,
-          prix_vente,
-          prix_unitaire,
-          categorie,
-          unite_mesure,
-          categorie_id,
-          unite_id,
-          seuil_alerte,
-          image_url,
-          statut,
-          created_at,
-          updated_at
-        `)
-        // Temporairement désactivé pour debug : .eq('statut', 'actif')
-        .order('nom', { ascending: true });
-      
-      console.log('Raw catalogue data from Supabase:', data);
-      console.log('Number of articles:', data?.length);
-      console.log('Articles with status:', data?.map(item => ({ nom: item.nom, statut: item.statut })));
-      
-      if (error) {
-        console.error('Erreur lors du chargement du catalogue:', error);
+      try {
+        const { data, error } = await supabase
+          .from('catalogue')
+          .select(`
+            id,
+            nom,
+            reference,
+            description,
+            prix_achat,
+            prix_vente,
+            prix_unitaire,
+            categorie,
+            unite_mesure,
+            categorie_id,
+            unite_id,
+            seuil_alerte,
+            image_url,
+            statut,
+            created_at,
+            updated_at
+          `)
+          .eq('statut', 'actif')
+          .order('nom', { ascending: true });
+        
+        if (error) {
+          console.error('Erreur lors du chargement du catalogue:', error);
+          throw error;
+        }
+        
+        console.log('Catalogue data loaded:', data?.length, 'articles');
+        return data as Article[];
+      } catch (error) {
+        console.error('Error in catalogue query:', error);
         throw error;
       }
-      
-      console.log('Catalogue data loaded:', data);
-      return data as Article[];
     },
-    staleTime: 10 * 60 * 1000, // 10 minutes
-    refetchOnWindowFocus: false
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    refetchOnWindowFocus: false,
+    retry: 2,
+    retryDelay: 1000,
   });
 
   return {

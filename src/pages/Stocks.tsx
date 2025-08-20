@@ -10,6 +10,7 @@ import Entrepots from '@/components/stock/Entrepots';
 import PointsDeVente from '@/components/stock/PointsDeVente';
 import Transferts from '@/components/stock/Transferts';
 import Catalogue from '@/components/stock/Catalogue';
+import SyncButton from '@/components/stock/SyncButton';
 
 const Stocks = () => {
   const [activeTab, setActiveTab] = useState("stock-entrepot");
@@ -17,6 +18,9 @@ const Stocks = () => {
   return (
     <AppLayout title="Gestion des stocks">
       <div className="space-y-4">
+        <div className="flex justify-end">
+          <SyncButton />
+        </div>
         <Tabs 
           defaultValue="stock-entrepot" 
           value={activeTab}

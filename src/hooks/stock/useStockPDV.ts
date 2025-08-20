@@ -7,29 +7,39 @@ export const useStockPDV = () => {
   const { data: stockPDV, isLoading, error } = useQuery({
     queryKey: ['stock-pdv'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('stock_pdv')
-        .select(`
-          *,
-          article:catalogue(
+      try {
+        const { data, error } = await supabase
+          .from('stock_pdv')
+          .select(`
             *,
-            categorie_article:categories_catalogue(nom),
-            unite_article:unites(nom)
-          ),
-          point_vente:points_de_vente(*)
-        `)
-        .order('updated_at', { ascending: false });
-      
-      if (error) {
+            article:catalogue!inner(
+              *,
+              categorie_article:categories_catalogue(nom),
+              unite_article:unites(nom)
+            ),
+            point_vente:points_de_vente!inner(*)
+          `)
+          .gt('quantite_disponible', 0)
+          .eq('article.statut', 'actif')
+          .eq('point_vente.statut', 'actif')
+          .order('updated_at', { ascending: false });
+        
+        if (error) {
+          console.error('Erreur lors du chargement du stock PDV:', error);
+          throw error;
+        }
+        
+        console.log('Stock PDV data loaded:', data?.length, 'items');
+        return data as StockPointDeVente[];
+      } catch (error) {
+        console.error('Error in stock PDV query:', error);
         throw error;
       }
-      console.log('Stock PDV data loaded:', data);
-      console.log('Number of PDV items:', data?.length);
-      console.log('First PDV item:', data?.[0]);
-      console.log('Article relation in PDV:', data?.[0]?.article);
-      console.log('Point vente relation:', data?.[0]?.point_vente);
-      return data as StockPointDeVente[];
-    }
+    },
+    staleTime: 2 * 60 * 1000, // 2 minutes
+    refetchOnWindowFocus: false,
+    retry: 2,
+    retryDelay: 1000,
   });
 
   return {
