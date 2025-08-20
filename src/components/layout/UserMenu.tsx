@@ -1,5 +1,4 @@
-
-import React, { useMemo } from 'react';
+import React from 'react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -25,21 +24,17 @@ const UserMenu = ({ user: propUser }: UserMenuProps) => {
 
   const user = propUser || authUser;
 
-  // Memoize the displayUser object to prevent recreation on every render
-  const displayUser = useMemo(() => ({
+  // Utiliser les données du profil ou données par défaut
+  const displayUser = {
     prenom: profile?.prenom || user?.user_metadata?.prenom || user?.user_metadata?.first_name || 'Utilisateur',
     nom: profile?.nom || user?.user_metadata?.nom || user?.user_metadata?.last_name || '',
     email: user?.email || '',
     photo_url: profile?.avatar_url || user?.user_metadata?.avatar_url
-  }), [profile, user]);
+  };
 
-  // Memoize the initials calculation
-  const initials = useMemo(() => {
-    if (displayUser.prenom && displayUser.nom) {
-      return `${displayUser.prenom.charAt(0)}${displayUser.nom.charAt(0)}`.toUpperCase();
-    }
-    return displayUser.email?.charAt(0).toUpperCase() || 'U';
-  }, [displayUser.prenom, displayUser.nom, displayUser.email]);
+  const initials = displayUser.prenom && displayUser.nom 
+    ? `${displayUser.prenom.charAt(0)}${displayUser.nom.charAt(0)}`.toUpperCase()
+    : displayUser.email?.charAt(0).toUpperCase() || 'U';
 
   const handleSignOut = async () => {
     try {
