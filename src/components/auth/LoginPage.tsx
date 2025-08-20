@@ -6,8 +6,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Loader2, Lock, Mail, Shield } from 'lucide-react';
+import { Loader2, Lock, Mail, Shield, Settings } from 'lucide-react';
 import { useAuth } from './AuthContext';
+import { useDevMode } from '@/hooks/useDevMode';
 
 const LoginPage = () => {
   const [email, setEmail] = useState('');
@@ -15,6 +16,7 @@ const LoginPage = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const { signIn, user, isInternalUser, loading: authLoading } = useAuth();
+  const { isDevMode, bypassAuth, toggleBypass } = useDevMode();
   const navigate = useNavigate();
 
   // Rediriger si l'utilisateur est déjà connecté et autorisé
@@ -48,7 +50,7 @@ const LoginPage = () => {
         }
       } else {
         console.log('✅ Connexion réussie depuis LoginPage');
-        // La redirection se fera automatiquement via useEffect quand l'état auth sera mis à jour
+        // La redirection se fera automatiquement via useEffect
       }
     } catch (err) {
       console.error('❌ Erreur inattendue lors de la connexion:', err);
@@ -82,6 +84,37 @@ const LoginPage = () => {
             Accès réservé aux utilisateurs autorisés
           </p>
         </div>
+
+        {/* Informations du mode développement */}
+        {isDevMode && (
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <Settings className="h-4 w-4 text-yellow-600" />
+              <span className="font-medium text-yellow-800">Mode Développement</span>
+            </div>
+            <p className="text-sm text-yellow-700 mb-3">
+              Vous êtes en mode développement. L'authentification peut être contournée pour les tests.
+            </p>
+            <Button
+              onClick={toggleBypass}
+              size="sm"
+              variant={bypassAuth ? "destructive" : "default"}
+              className="w-full"
+            >
+              {bypassAuth ? (
+                <>
+                  <Lock className="w-4 h-4 mr-2" />
+                  Désactiver le bypass (Mode normal)
+                </>
+              ) : (
+                <>
+                  <Shield className="w-4 h-4 mr-2" />
+                  Activer le bypass (Accès libre)
+                </>
+              )}
+            </Button>
+          </div>
+        )}
 
         <Card>
           <CardHeader>

@@ -59,7 +59,11 @@ export const checkInternalUser = async (userId: string): Promise<UtilisateurInte
         nom,
         statut,
         type_compte,
+        matricule,
         photo_url,
+        created_at,
+        updated_at,
+        role_id,
         roles!inner(id, name, description)
       `)
       .eq('user_id', userId)
@@ -78,7 +82,11 @@ export const checkInternalUser = async (userId: string): Promise<UtilisateurInte
           nom,
           statut,
           type_compte,
+          matricule,
           photo_url,
+          created_at,
+          updated_at,
+          role_id,
           roles!inner(id, name, description)
         `)
         .eq('id', userId)
@@ -113,7 +121,11 @@ export const checkInternalUser = async (userId: string): Promise<UtilisateurInte
       nom: internalUser.nom,
       statut: internalUser.statut,
       type_compte: internalUser.type_compte,
+      matricule: internalUser.matricule,
       photo_url: internalUser.photo_url,
+      created_at: internalUser.created_at,
+      updated_at: internalUser.updated_at,
+      role_id: internalUser.role_id,
       role: {
         id: internalUser.roles.id,
         name: internalUser.roles.name,
