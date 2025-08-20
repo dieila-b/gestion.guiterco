@@ -1,29 +1,30 @@
 
-import React from 'react';
+import React, { useState, Suspense, lazy } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { FileText, BarChart, Package } from 'lucide-react';
-import ArticleMarginTable from './ArticleMarginTable';
-import FactureMarginTable from './FactureMarginTable';
-import GlobalMarginAnalysis from './GlobalMarginAnalysis';
-import GlobalStockMarginAnalysis from './GlobalStockMarginAnalysis';
-import type { ArticleWithMargin, FactureWithMargin } from '@/types/margins';
+import { useArticlesWithMargins, useFacturesWithMargins } from '@/hooks/useMargins';
 
-interface MarginReportsTabsProps {
-  articles: ArticleWithMargin[];
-  factures: FactureWithMargin[];
-  articlesLoading: boolean;
-  facturesLoading: boolean;
-}
+// Lazy load components to improve initial load time
+const GlobalMarginAnalysis = lazy(() => import('./GlobalMarginAnalysis'));
+const GlobalStockMarginAnalysis = lazy(() => import('./GlobalStockMarginAnalysis'));
+const ArticleMarginTable = lazy(() => import('./ArticleMarginTable'));
+const FactureMarginTable = lazy(() => import('./FactureMarginTable'));
 
-const MarginReportsTabs = ({ 
-  articles, 
-  factures, 
-  articlesLoading, 
-  facturesLoading 
-}: MarginReportsTabsProps) => {
+const LoadingSpinner = () => (
+  <div className="flex items-center justify-center p-8">
+    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+  </div>
+);
+
+const MarginReportsTabs = () => {
+  const [activeTab, setActiveTab] = useState("global");
+  
+  // Only load data when the corresponding tab is active
+  const { data: articles, isLoading: articlesLoading } = useArticlesWithMargins();
+  const { data: factures, isLoading: facturesLoading } = useFacturesWithMargins();
   return (
-    <Tabs defaultValue="global" className="w-full">
+    <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
       <TabsList className="grid w-full grid-cols-4">
         <TabsTrigger value="global">Analyse Globale</TabsTrigger>
         <TabsTrigger value="stock">Marges Globale Stock</TabsTrigger>
@@ -32,11 +33,15 @@ const MarginReportsTabs = ({
       </TabsList>
 
       <TabsContent value="global" className="mt-6">
-        <GlobalMarginAnalysis />
+        <Suspense fallback={<LoadingSpinner />}>
+          <GlobalMarginAnalysis />
+        </Suspense>
       </TabsContent>
 
       <TabsContent value="stock" className="mt-6">
-        <GlobalStockMarginAnalysis />
+        <Suspense fallback={<LoadingSpinner />}>
+          <GlobalStockMarginAnalysis />
+        </Suspense>
       </TabsContent>
 
       <TabsContent value="articles" className="mt-6">
@@ -51,7 +56,11 @@ const MarginReportsTabs = ({
             </p>
           </CardHeader>
           <CardContent>
-            <ArticleMarginTable articles={articles || []} isLoading={articlesLoading} />
+            <Suspense fallback={<LoadingSpinner />}>
+              {activeTab === "articles" && (
+                <ArticleMarginTable articles={articles || []} isLoading={articlesLoading} />
+              )}
+            </Suspense>
           </CardContent>
         </Card>
       </TabsContent>
@@ -68,7 +77,11 @@ const MarginReportsTabs = ({
             </p>
           </CardHeader>
           <CardContent>
-            <FactureMarginTable factures={factures || []} isLoading={facturesLoading} />
+            <Suspense fallback={<LoadingSpinner />}>
+              {activeTab === "factures" && (
+                <FactureMarginTable factures={factures || []} isLoading={facturesLoading} />
+              )}
+            </Suspense>
           </CardContent>
         </Card>
       </TabsContent>

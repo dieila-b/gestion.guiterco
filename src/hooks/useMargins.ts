@@ -42,7 +42,10 @@ export const useMargesArticles = () => {
         created_at: item.created_at,
         updated_at: item.updated_at,
       })) as MargeArticle[];
-    }
+    },
+    staleTime: 10 * 60 * 1000, // 10 minutes
+    gcTime: 15 * 60 * 1000,
+    refetchOnWindowFocus: false,
   });
 };
 
@@ -144,7 +147,10 @@ export const useArticlesWithMargins = () => {
         created_at: item.created_at,
         updated_at: item.updated_at,
       })) as ArticleWithMargin[];
-    }
+    },
+    staleTime: 10 * 60 * 1000, // 10 minutes
+    gcTime: 15 * 60 * 1000,
+    refetchOnWindowFocus: false,
   });
 };
 
@@ -157,7 +163,10 @@ export const useFacturesWithMargins = () => {
       if (error) throw error;
       
       return (data || []) as FactureWithMargin[];
-    }
+    },
+    staleTime: 10 * 60 * 1000, // 10 minutes
+    gcTime: 15 * 60 * 1000,
+    refetchOnWindowFocus: false,
   });
 };
 
