@@ -20,6 +20,7 @@ import Reports from "./pages/Reports";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 import AppNotification from "@/components/AppNotification";
+import DataRestoredNotification from "@/components/DataRestoredNotification";
 
 const queryClient = new QueryClient();
 
@@ -98,6 +99,7 @@ const App = () => (
             <Route path="*" element={<NotFound />} />
           </Routes>
           <AppNotification />
+          <DataRestoredNotification />
           <DevModeToggle />
         </AuthProvider>
       </BrowserRouter>
