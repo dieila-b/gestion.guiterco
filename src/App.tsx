@@ -19,6 +19,7 @@ import Margins from "./pages/Margins";
 import Reports from "./pages/Reports";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
+import AppNotification from "@/components/AppNotification";
 
 const queryClient = new QueryClient();
 
@@ -96,6 +97,7 @@ const App = () => (
             } />
             <Route path="*" element={<NotFound />} />
           </Routes>
+          <AppNotification />
           <DevModeToggle />
         </AuthProvider>
       </BrowserRouter>

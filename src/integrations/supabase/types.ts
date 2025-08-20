@@ -3536,6 +3536,14 @@ export type Database = {
           rapport: string
         }[]
       }
+      check_orphaned_stock: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          article_id: string
+          entrepot_id: string
+          quantite_disponible: number
+        }[]
+      }
       check_user_permission: {
         Args: {
           p_action?: string
