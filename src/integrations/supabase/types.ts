@@ -3783,7 +3783,7 @@ export type Database = {
         Returns: number
       }
       get_user_permissions: {
-        Args: { user_uuid?: string }
+        Args: { user_uuid: string }
         Returns: {
           action: string
           can_access: boolean
