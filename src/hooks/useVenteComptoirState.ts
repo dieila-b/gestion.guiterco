@@ -21,8 +21,13 @@ export const useVenteComptoirState = () => {
   // Hook vente comptoir avec gestion du stock PDV et stock local
   const venteComptoir = useVenteComptoir(selectedPDV);
 
-  // Hook catalogue optimisé
-  const catalogue = useCatalogueOptimized();
+  // Hook catalogue optimisé avec pagination
+  const catalogue = useCatalogueOptimized(
+    currentPage, 
+    productsPerPage, 
+    debouncedSearch, 
+    selectedCategory === 'Tous' ? '' : selectedCategory
+  );
 
   // Éliminer les doublons de catégories basés sur le stock PDV avec les relations correctes
   const uniqueCategories = useMemo(() => {
@@ -57,7 +62,7 @@ export const useVenteComptoirState = () => {
     };
   }, [venteComptoir.cart]);
 
-  const totalPages = Math.ceil((catalogue.articles?.length || 0) / productsPerPage);
+  const totalPages = Math.ceil(catalogue.totalCount / productsPerPage);
 
   // Sélectionner automatiquement le premier PDV disponible
   useEffect(() => {

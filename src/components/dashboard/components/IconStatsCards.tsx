@@ -24,10 +24,10 @@ const IconStatsCards: React.FC<IconStatsCardsProps> = ({ stats, isLoading }) => 
               </div>
             </div>
             <div className="flex-1 min-w-0">
-              <div className="text-sm font-medium text-gray-600 mb-1">Nombre d'article</div>
-              <div className="text-2xl font-bold text-gray-900">
+              <p className="text-sm font-medium text-gray-600 mb-1">Nombre d'article</p>
+              <p className="text-2xl font-bold text-gray-900">
                 {isLoading ? <Skeleton className="h-7 w-16" /> : formatNumber(stats?.nombreArticles || 0)}
-              </div>
+              </p>
             </div>
           </div>
         </CardContent>
@@ -43,10 +43,10 @@ const IconStatsCards: React.FC<IconStatsCardsProps> = ({ stats, isLoading }) => 
               </div>
             </div>
             <div className="flex-1 min-w-0">
-              <div className="text-sm font-medium text-gray-600 mb-1">Règlement fournisseur</div>
-              <div className="text-2xl font-bold text-gray-900">
+              <p className="text-sm font-medium text-gray-600 mb-1">Règlement fournisseur</p>
+              <p className="text-2xl font-bold text-gray-900">
                 {isLoading ? <Skeleton className="h-7 w-16" /> : formatNumber(stats?.reglementsFournisseurs || 0)}
-              </div>
+              </p>
             </div>
           </div>
         </CardContent>
@@ -62,10 +62,10 @@ const IconStatsCards: React.FC<IconStatsCardsProps> = ({ stats, isLoading }) => 
               </div>
             </div>
             <div className="flex-1 min-w-0">
-              <div className="text-sm font-medium text-gray-600 mb-1">Nombre de client</div>
-              <div className="text-2xl font-bold text-gray-900">
+              <p className="text-sm font-medium text-gray-600 mb-1">Nombre de client</p>
+              <p className="text-2xl font-bold text-gray-900">
                 {isLoading ? <Skeleton className="h-7 w-16" /> : formatNumber(stats?.nombreClients || 0)}
-              </div>
+              </p>
             </div>
           </div>
         </CardContent>
@@ -81,10 +81,10 @@ const IconStatsCards: React.FC<IconStatsCardsProps> = ({ stats, isLoading }) => 
               </div>
             </div>
             <div className="flex-1 min-w-0">
-              <div className="text-sm font-medium text-gray-600 mb-1">Stock Global</div>
-              <div className="text-2xl font-bold text-gray-900">
+              <p className="text-sm font-medium text-gray-600 mb-1">Stock Global</p>
+              <p className="text-2xl font-bold text-gray-900">
                 {isLoading ? <Skeleton className="h-7 w-16" /> : formatNumber(stats?.stockGlobal || 0)}
-              </div>
+              </p>
             </div>
           </div>
         </CardContent>

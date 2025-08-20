@@ -4,9 +4,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Search, Image, TrendingUp, AlertCircle, RefreshCw } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { useCatalogue } from '@/hooks/useCatalogue';
+import { Search, Image, TrendingUp } from 'lucide-react';
+import { useCatalogueOptimized } from '@/hooks/useCatalogueOptimized';
 import { useDebounce } from '@/hooks/useDebounce';
 import { formatCurrency } from '@/lib/currency';
 import CreateProductDialog from './forms/CreateProductDialog';
@@ -17,35 +16,11 @@ const ProduitsTab = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const debouncedSearch = useDebounce(searchTerm, 300);
   
-  const { articles, isLoading, error, refetch } = useCatalogue();
+  const { articles, isLoading } = useCatalogueOptimized(1, 50, debouncedSearch);
   
-  console.log('🎯 ProduitsTab - Hook results:', {
-    articlesLength: articles?.length,
-    isLoading,
-    errorMessage: error?.message,
-    searchTerm: debouncedSearch
-  });
-
-  // Filter articles based on search term
-  const filteredArticles = React.useMemo(() => {
-    if (!articles) {
-      console.log('⚠️ No articles to filter');
-      return [];
-    }
-    
-    if (!debouncedSearch) {
-      console.log('✅ Returning all articles:', articles.length);
-      return articles;
-    }
-    
-    const filtered = articles.filter(article => 
-      article.nom?.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
-      article.reference?.toLowerCase().includes(debouncedSearch.toLowerCase())
-    );
-    
-    console.log('🔍 Filtered articles:', filtered.length, 'from', articles.length);
-    return filtered;
-  }, [articles, debouncedSearch]);
+  console.log('ProduitsTab - articles:', articles);
+  console.log('ProduitsTab - isLoading:', isLoading);
+  console.log('ProduitsTab - articles length:', articles?.length);
 
   const calculateMargin = (article: any) => {
     const prixAchat = article.prix_achat || 0;
@@ -68,37 +43,6 @@ const ProduitsTab = () => {
     return 'bg-red-100 text-red-800';
   };
 
-  // Afficher l'erreur si elle existe
-  if (error) {
-    console.error('❌ Error in ProduitsTab:', error);
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-red-600">
-            <AlertCircle className="h-5 w-5" />
-            Erreur de chargement
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="text-red-600 space-y-4">
-            <p>Une erreur est survenue lors du chargement du catalogue :</p>
-            <p className="text-sm font-mono bg-red-50 p-3 rounded border">
-              {error.message}
-            </p>
-            <Button 
-              onClick={() => refetch()}
-              variant="outline"
-              size="sm"
-            >
-              <RefreshCw className="h-4 w-4 mr-2" />
-              Réessayer
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
-
   return (
     <Card>
       <CardHeader>
@@ -107,21 +51,9 @@ const ProduitsTab = () => {
             <CardTitle className="flex items-center gap-2">
               Produits du Catalogue
               <TrendingUp className="h-4 w-4 text-muted-foreground" />
-              <Button 
-                onClick={() => refetch()}
-                variant="ghost"
-                size="sm"
-              >
-                <RefreshCw className="h-4 w-4" />
-              </Button>
             </CardTitle>
             <p className="text-sm text-muted-foreground">
               Gérez vos produits avec calcul automatique des marges
-              {articles && (
-                <span className="ml-2 font-medium text-blue-600">
-                  ({filteredArticles.length} produit{filteredArticles.length > 1 ? 's' : ''})
-                </span>
-              )}
             </p>
           </div>
           <CreateProductDialog />
@@ -140,7 +72,6 @@ const ProduitsTab = () => {
         {isLoading ? (
           <div className="flex justify-center py-8">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-            <span className="ml-2 text-gray-600">Chargement du catalogue...</span>
           </div>
         ) : (
           <Table>
@@ -159,7 +90,7 @@ const ProduitsTab = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredArticles?.map((article) => {
+              {articles?.map((article) => {
                 const { coutTotal, marge, tauxMarge } = calculateMargin(article);
                 
                 return (
@@ -199,9 +130,7 @@ const ProduitsTab = () => {
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      <Badge variant={article.statut === 'actif' ? 'default' : 'secondary'}>
-                        {article.statut || 'Non défini'}
-                      </Badge>
+                      <Badge variant="default">Actif</Badge>
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
@@ -216,31 +145,9 @@ const ProduitsTab = () => {
           </Table>
         )}
 
-        {!isLoading && filteredArticles.length === 0 && (
+        {!isLoading && (!articles || articles.length === 0) && (
           <div className="text-center py-8 text-gray-500">
-            <div className="flex flex-col items-center gap-4">
-              <AlertCircle className="h-12 w-12 text-gray-300" />
-              {searchTerm ? (
-                <div>
-                  <p className="font-medium">Aucun produit trouvé</p>
-                  <p className="text-sm">Aucun produit ne correspond à votre recherche "{searchTerm}"</p>
-                </div>
-              ) : (
-                <div>
-                  <p className="font-medium">Aucun produit dans le catalogue</p>
-                  <p className="text-sm">Ajoutez votre premier produit en cliquant sur "Nouveau Produit"</p>
-                  <Button 
-                    onClick={() => refetch()}
-                    variant="outline"
-                    size="sm"
-                    className="mt-2"
-                  >
-                    <RefreshCw className="h-4 w-4 mr-2" />
-                    Actualiser
-                  </Button>
-                </div>
-              )}
-            </div>
+            {searchTerm ? 'Aucun produit trouvé pour cette recherche' : 'Aucun produit dans le catalogue'}
           </div>
         )}
       </CardContent>
