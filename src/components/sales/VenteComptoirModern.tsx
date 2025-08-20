@@ -33,12 +33,21 @@ const VenteComptoirModern = () => {
     articles, 
     categories, 
     isLoading: loadingArticles
-  } = useCatalogueOptimized(
-    1, 
-    20, 
-    debouncedSearch, 
-    selectedCategory === 'Tous' ? '' : selectedCategory
-  );
+  } = useCatalogueOptimized();
+
+  // Filtrer les articles
+  const filteredArticles = useMemo(() => {
+    return articles.filter(article => {
+      const matchesSearch = !debouncedSearch || 
+        article.nom.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+        article.reference.toLowerCase().includes(debouncedSearch.toLowerCase());
+      
+      const matchesCategory = selectedCategory === 'Tous' || 
+        article.categorie === selectedCategory;
+      
+      return matchesSearch && matchesCategory;
+    });
+  }, [articles, debouncedSearch, selectedCategory]);
 
   // Calculer les totaux du panier
   const cartTotals = useMemo(() => {
@@ -143,13 +152,6 @@ const VenteComptoirModern = () => {
                 >
                   Tous
                 </Button>
-                <Button
-                  variant={selectedCategory === 'Biscuits' ? 'default' : 'outline'}
-                  onClick={() => setSelectedCategory('Biscuits')}
-                  size="sm"
-                >
-                  Biscuits
-                </Button>
                 {categories.map((category) => (
                   <Button
                     key={category}
@@ -177,7 +179,7 @@ const VenteComptoirModern = () => {
                 </div>
               ) : (
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                  {articles.map((article) => (
+                  {filteredArticles.map((article) => (
                     <div 
                       key={article.id}
                       className="border rounded-lg p-3 hover:shadow-md transition-all cursor-pointer bg-background"

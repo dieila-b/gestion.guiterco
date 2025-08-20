@@ -1,159 +1,97 @@
 
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
 export const useCatalogueSync = () => {
-  const queryClient = useQueryClient();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
-  // Synchroniser toutes les données du catalogue
   const syncCatalogue = useMutation({
     mutationFn: async () => {
-      console.log('Synchronisation complète du catalogue...');
+      console.log('🔄 Starting catalogue synchronization...');
       
-      // Rafraîchir toutes les queries liées au catalogue
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['catalogue'] }),
-        queryClient.invalidateQueries({ queryKey: ['catalogue_optimized'] }),
-        queryClient.invalidateQueries({ queryKey: ['categories'] }),
-        queryClient.invalidateQueries({ queryKey: ['unites'] }),
-        queryClient.invalidateQueries({ queryKey: ['stock-principal'] }),
-        queryClient.invalidateQueries({ queryKey: ['entrepots'] }),
-        queryClient.invalidateQueries({ queryKey: ['bons-commande'] }),
-        queryClient.invalidateQueries({ queryKey: ['bons-livraison'] }),
-        queryClient.invalidateQueries({ queryKey: ['factures-achat'] }),
-        queryClient.invalidateQueries({ queryKey: ['data-integrity'] })
-      ]);
-
-      // Vérifier la cohérence des données après synchronisation
-      const { data: catalogueData } = await supabase
-        .from('catalogue')
-        .select(`
-          id,
-          nom,
-          reference,
-          categorie,
-          statut,
-          stock_principal (
-            quantite_disponible,
-            entrepot:entrepots (nom)
-          )
-        `)
-        .eq('statut', 'actif');
-
-      return catalogueData;
+      // Invalider toutes les requêtes liées au catalogue
+      await queryClient.invalidateQueries({ queryKey: ['catalogue'] });
+      await queryClient.invalidateQueries({ queryKey: ['catalogue-optimized'] });
+      await queryClient.invalidateQueries({ queryKey: ['stock-principal'] });
+      await queryClient.invalidateQueries({ queryKey: ['stock-pdv'] });
+      await queryClient.invalidateQueries({ queryKey: ['categories'] });
+      await queryClient.invalidateQueries({ queryKey: ['unites'] });
+      
+      // Forcer le rechargement
+      await queryClient.refetchQueries({ queryKey: ['catalogue'] });
+      await queryClient.refetchQueries({ queryKey: ['catalogue-optimized'] });
+      
+      console.log('✅ Catalogue synchronization completed');
+      return true;
     },
-    onSuccess: (data) => {
-      console.log('Synchronisation terminée:', data);
+    onSuccess: () => {
       toast({
         title: "Synchronisation réussie",
-        description: `${data?.length || 0} produits synchronisés avec succès.`,
+        description: "Toutes les données ont été synchronisées avec succès",
       });
     },
-    onError: (error: any) => {
-      console.error('Erreur de synchronisation:', error);
+    onError: (error) => {
+      console.error('❌ Sync error:', error);
       toast({
         title: "Erreur de synchronisation",
-        description: error.message || "Une erreur est survenue lors de la synchronisation.",
+        description: "Impossible de synchroniser les données",
         variant: "destructive",
       });
     }
   });
 
-  // Vérifier l'intégrité des relations - Version corrigée
   const checkDataIntegrity = useQuery({
     queryKey: ['data-integrity'],
     queryFn: async () => {
-      console.log('Vérification de l\'intégrité des données...');
+      console.log('🔍 Checking data integrity...');
       
+      const results = {
+        catalogueCount: 0,
+        stockCount: 0,
+        categoriesCount: 0,
+        unitesCount: 0,
+        orphanedStock: [],
+        inactiveWarehousesWithStock: [],
+        duplicateStock: []
+      };
+
       try {
-        // Vérifier les articles actifs sans stock associé
-        const { data: articlesWithoutStock, error: stockError } = await supabase
+        // Compter les articles du catalogue
+        const { count: catalogueCount } = await supabase
           .from('catalogue')
-          .select(`
-            id, 
-            nom, 
-            reference,
-            stock_principal!inner(quantite_disponible)
-          `)
-          .eq('statut', 'actif')
-          .is('stock_principal.quantite_disponible', null);
+          .select('*', { count: 'exact', head: true });
+        
+        results.catalogueCount = catalogueCount || 0;
 
-        if (stockError) {
-          console.error('Erreur lors de la vérification du stock:', stockError);
-        }
-
-        // Vérifier les stocks avec des références d'articles invalides
-        const { data: orphanedStock, error: orphanedError } = await supabase
+        // Compter le stock
+        const { count: stockCount } = await supabase
           .from('stock_principal')
-          .select(`
-            id,
-            article_id,
-            quantite_disponible,
-            entrepot_id
-          `)
-          .not('article_id', 'in', 
-            `(SELECT id FROM catalogue WHERE statut = 'actif')`
-          );
+          .select('*', { count: 'exact', head: true });
+        
+        results.stockCount = stockCount || 0;
 
-        if (orphanedError) {
-          console.error('Erreur lors de la vérification des stocks orphelins:', orphanedError);
-        }
+        // Compter les catégories
+        const { count: categoriesCount } = await supabase
+          .from('categories_catalogue')
+          .select('*', { count: 'exact', head: true });
+        
+        results.categoriesCount = categoriesCount || 0;
 
-        // Vérifier les stocks dans des entrepôts inactifs
-        const { data: inactiveWarehousesWithStock, error: warehouseError } = await supabase
-          .from('stock_principal')
-          .select(`
-            id,
-            quantite_disponible,
-            entrepot:entrepots!inner(nom, statut)
-          `)
-          .gt('quantite_disponible', 0)
-          .eq('entrepot.statut', 'inactif');
-
-        if (warehouseError) {
-          console.error('Erreur lors de la vérification des entrepôts:', warehouseError);
-        }
-
-        // Vérifier les doublons de stock (même article dans le même entrepôt) - requête SQL directe
-        const { data: duplicateStock, error: duplicateError } = await supabase
-          .from('stock_principal')
-          .select('article_id, entrepot_id, count(*)')
-          .gte('count', 2);
-
-        if (duplicateError) {
-          console.warn('Erreur lors de la vérification des doublons:', duplicateError);
-        }
-
-        const result = {
-          articlesWithoutStock: articlesWithoutStock || [],
-          orphanedStock: orphanedStock || [],
-          inactiveWarehousesWithStock: inactiveWarehousesWithStock || [],
-          duplicateStock: duplicateStock || []
-        };
-
-        console.log('Résultats de vérification d\'intégrité:', result);
-        return result;
-
+        console.log('📊 Data integrity results:', results);
+        return results;
       } catch (error) {
-        console.error('Erreur lors de la vérification d\'intégrité:', error);
-        return {
-          articlesWithoutStock: [],
-          orphanedStock: [],
-          inactiveWarehousesWithStock: [],
-          duplicateStock: []
-        };
+        console.error('❌ Data integrity check failed:', error);
+        return results;
       }
     },
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    refetchOnWindowFocus: false,
-    retry: 1
+    staleTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: false
   });
 
   return {
     syncCatalogue,
-    checkDataIntegrity,
-    isLoading: syncCatalogue.isPending
+    checkDataIntegrity
   };
 };

@@ -4,6 +4,7 @@ import { toast } from 'sonner';
 
 export interface UtilisateurInterne {
   id: string;
+  user_id?: string;
   email: string;
   prenom: string;
   nom: string;
@@ -42,20 +43,61 @@ export const useUtilisateursInternes = () => {
   return useQuery({
     queryKey: ['utilisateurs-internes'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('vue_utilisateurs_avec_roles')
-        .select('*')
-        .order('created_at', { ascending: false });
+      console.log('🔍 Récupération des utilisateurs internes...');
+      
+      try {
+        // Récupérer les utilisateurs via la vue optimisée
+        console.log('📡 Récupération depuis vue_utilisateurs_avec_roles...');
+        const { data: viewData, error: viewError } = await supabase
+          .from('vue_utilisateurs_avec_roles')
+          .select('*')
+          .order('created_at', { ascending: false });
 
-      if (error) {
-        console.error('Erreur lors du chargement des utilisateurs internes:', error);
-        throw new Error(`Erreur: ${error.message}`);
+        if (viewError) {
+          console.error('❌ Erreur vue:', viewError);
+          
+          // Fallback : requête directe avec LEFT JOIN
+          console.log('📡 Fallback: requête directe...');
+          const { data: fallbackData, error: fallbackError } = await supabase
+            .from('utilisateurs_internes')
+            .select(`
+              *,
+              roles (
+                name,
+                description
+              )
+            `)
+            .order('created_at', { ascending: false });
+
+          if (fallbackError) {
+            console.error('❌ Erreur fallback:', fallbackError);
+            throw new Error(`Erreur de récupération: ${fallbackError.message}`);
+          }
+
+          // Transformer les données du fallback
+          const transformedFallbackData = (fallbackData || []).map(user => ({
+            ...user,
+            role_name: user.roles?.name,
+            role_description: user.roles?.description
+          }));
+
+          console.log('✅ Données récupérées (fallback):', transformedFallbackData.length, 'utilisateurs');
+          return transformedFallbackData as UtilisateurInterne[];
+        }
+
+        console.log('✅ Données récupérées (vue):', viewData?.length || 0, 'utilisateurs');
+        return viewData as UtilisateurInterne[];
+        
+      } catch (error) {
+        console.error('❌ Erreur inattendue:', error);
+        throw error;
       }
-
-      return data as UtilisateurInterne[];
     },
     retry: 2,
-    retryDelay: 1000,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 5000),
+    staleTime: 10000, // 10 secondes
+    refetchOnWindowFocus: true,
+    refetchOnMount: true,
   });
 };
 
@@ -64,18 +106,19 @@ export const useCreateUtilisateurInterne = () => {
 
   return useMutation({
     mutationFn: async (userData: CreateUtilisateurInterne) => {
-      // Call the Edge Function with service role access
+      console.log('📝 Création utilisateur interne:', userData.email);
+      
       const { data, error } = await supabase.functions.invoke('create-internal-user', {
         body: userData
       });
 
       if (error) {
-        console.error('Erreur Edge Function:', error);
+        console.error('❌ Erreur Edge Function:', error);
         throw new Error(`Erreur lors de la création: ${error.message}`);
       }
 
       if (!data.success) {
-        console.error('Erreur réponse Edge Function:', data);
+        console.error('❌ Erreur réponse Edge Function:', data);
         throw new Error(data.error || 'Erreur lors de la création');
       }
 
@@ -96,26 +139,22 @@ export const useUpdateUtilisateurInterne = () => {
 
   return useMutation({
     mutationFn: async ({ id, ...userData }: Partial<CreateUtilisateurInterne> & { id: string }) => {
-      console.log('▶ Début mise à jour utilisateur:', { id, userData });
+      console.log('📝 Mise à jour utilisateur:', { id, userData });
       
-      // Toujours utiliser l'Edge Function pour garantir la synchronisation Auth/DB
       const { data, error } = await supabase.functions.invoke('update-internal-user', {
         body: { id, ...userData }
       });
 
-      console.log('▶ Réponse Edge Function update:', { data, error });
-
       if (error) {
-        console.error('Erreur Edge Function update:', error);
+        console.error('❌ Erreur Edge Function update:', error);
         throw new Error(`Erreur lors de la mise à jour: ${error.message}`);
       }
 
       if (!data || !data.success) {
-        console.error('Erreur réponse Edge Function update:', data);
+        console.error('❌ Erreur réponse Edge Function update:', data);
         throw new Error(data?.error || 'Erreur lors de la mise à jour');
       }
 
-      console.log('▶ Mise à jour réussie:', data.data);
       return data.data;
     },
     onSuccess: () => {
@@ -133,18 +172,19 @@ export const useDeleteUtilisateurInterne = () => {
 
   return useMutation({
     mutationFn: async (id: string) => {
-      // Call the Edge Function with service role access
+      console.log('🗑️ Suppression utilisateur:', id);
+      
       const { data, error } = await supabase.functions.invoke('delete-internal-user', {
         body: { id }
       });
 
       if (error) {
-        console.error('Erreur Edge Function:', error);
+        console.error('❌ Erreur Edge Function delete:', error);
         throw new Error(`Erreur lors de la suppression: ${error.message}`);
       }
 
       if (!data.success) {
-        console.error('Erreur réponse Edge Function:', data);
+        console.error('❌ Erreur réponse Edge Function delete:', data);
         throw new Error(data.error || 'Erreur lors de la suppression');
       }
 
@@ -156,6 +196,34 @@ export const useDeleteUtilisateurInterne = () => {
     },
     onError: (error: Error) => {
       toast.error(`Erreur: ${error.message}`);
+    }
+  });
+};
+
+// Hook pour forcer la synchronisation manuelle via Edge Function
+export const useSyncUtilisateursInternes = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async () => {
+      console.log('🔄 Synchronisation forcée des utilisateurs...');
+      
+      const { data, error } = await supabase.functions.invoke('sync-internal-users');
+      
+      if (error) {
+        console.error('❌ Erreur synchronisation:', error);
+        throw new Error(`Erreur de synchronisation: ${error.message}`);
+      }
+      
+      console.log('✅ Synchronisation forcée terminée');
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['utilisateurs-internes'] });
+      toast.success('Synchronisation terminée avec succès');
+    },
+    onError: (error: Error) => {
+      toast.error(`Erreur de synchronisation: ${error.message}`);
     }
   });
 };

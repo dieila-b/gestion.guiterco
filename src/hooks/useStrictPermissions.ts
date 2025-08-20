@@ -16,7 +16,7 @@ export const useUserPermissions = () => {
   const { bypassAuth } = useDevMode();
 
   return useQuery({
-    queryKey: ['user-permissions', user?.id, utilisateurInterne?.role?.id, isDevMode],
+    queryKey: ['user-permissions', user?.id, utilisateurInterne?.role?.id],
     queryFn: async () => {
       console.log('🔐 Chargement des permissions pour:', {
         userId: user?.id,
@@ -98,7 +98,7 @@ export const useUserPermissions = () => {
         return [];
       }
     },
-    enabled: !!user?.id && !isDevMode, // Disable query in dev mode
+    enabled: !!user?.id,
     retry: 1,
     staleTime: 5 * 60 * 1000,
     refetchOnWindowFocus: false,

@@ -10,6 +10,8 @@ import Entrepots from '@/components/stock/Entrepots';
 import PointsDeVente from '@/components/stock/PointsDeVente';
 import Transferts from '@/components/stock/Transferts';
 import Catalogue from '@/components/stock/Catalogue';
+import QuickDataFix from '@/components/debug/QuickDataFix';
+import DataDiagnostic from '@/components/debug/DataDiagnostic';
 
 const Stocks = () => {
   const [activeTab, setActiveTab] = useState("stock-entrepot");
@@ -17,6 +19,22 @@ const Stocks = () => {
   return (
     <AppLayout title="Gestion des stocks">
       <div className="space-y-4">
+        <QuickDataFix />
+        
+        <Tabs 
+          defaultValue="diagnostic" 
+          className="w-full"
+        >
+          <TabsList className="grid grid-cols-2 w-full mb-4">
+            <TabsTrigger value="diagnostic">Diagnostic</TabsTrigger>
+            <TabsTrigger value="stocks">Gestion des Stocks</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="diagnostic" className="mt-6">
+            <DataDiagnostic />
+          </TabsContent>
+
+          <TabsContent value="stocks" className="mt-6">
         <Tabs 
           defaultValue="stock-entrepot" 
           value={activeTab}
@@ -64,6 +82,8 @@ const Stocks = () => {
 
           <TabsContent value="catalogue" className="mt-6">
             <Catalogue />
+          </TabsContent>
+          </Tabs>
           </TabsContent>
         </Tabs>
       </div>
