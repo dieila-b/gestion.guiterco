@@ -6,13 +6,13 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Grid3x3, Save, RefreshCw } from 'lucide-react';
-import { useRoles, usePermissions, useAllRolePermissions, useUpdateRolePermission } from '@/hooks/usePermissionsSystem';
+import { useRoles, usePermissions, useRolePermissions, useUpdateRolePermission } from '@/hooks/usePermissionsSystem';
 import { toast } from 'sonner';
 
 export default function PermissionsMatrixTable() {
   const { data: roles = [], isLoading: rolesLoading, refetch: refetchRoles } = useRoles();
   const { data: permissions = [], isLoading: permissionsLoading, refetch: refetchPermissions } = usePermissions();
-  const { data: rolePermissions = [], isLoading: rolePermissionsLoading, refetch: refetchRolePermissions } = useAllRolePermissions();
+  const { data: rolePermissions = [], isLoading: rolePermissionsLoading, refetch: refetchRolePermissions } = useRolePermissions();
   const updateRolePermission = useUpdateRolePermission();
 
   const isLoading = rolesLoading || permissionsLoading || rolePermissionsLoading;

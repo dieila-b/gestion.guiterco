@@ -7,7 +7,6 @@ export interface MenuStructure {
   menu_nom: string;
   menu_icone: string;
   menu_ordre: number;
-  menu_description?: string;
   sous_menu_id?: string;
   sous_menu_nom?: string;
   sous_menu_description?: string;
@@ -22,7 +21,6 @@ export interface GroupedMenuStructure {
   menu_nom: string;
   menu_icone: string;
   menu_ordre: number;
-  description?: string;
   sous_menus: {
     sous_menu_id?: string;
     sous_menu_nom?: string;
@@ -40,7 +38,7 @@ export const useMenusStructure = () => {
   return useQuery({
     queryKey: ['menus-structure'],
     queryFn: async () => {
-      console.log('🔍 Récupération de la structure complète des menus...');
+      console.log('🔍 Récupération de la structure des menus...');
       
       const { data, error } = await supabase.rpc('get_permissions_structure');
 
@@ -49,7 +47,7 @@ export const useMenusStructure = () => {
         throw error;
       }
 
-      console.log('✅ Structure complète récupérée:', data?.length || 0, 'éléments');
+      console.log('✅ Structure récupérée:', data?.length || 0, 'éléments');
       return data as MenuStructure[];
     }
   });
@@ -77,7 +75,6 @@ function groupMenusStructure(data: MenuStructure[]): GroupedMenuStructure[] {
         menu_nom: item.menu_nom,
         menu_icone: item.menu_icone,
         menu_ordre: item.menu_ordre,
-        description: item.menu_description,
         sous_menus: []
       });
     }
@@ -124,14 +121,8 @@ function groupMenusStructure(data: MenuStructure[]): GroupedMenuStructure[] {
         .map(sousMenu => ({
           ...sousMenu,
           permissions: sousMenu.permissions.sort((a, b) => {
-            const order = { 
-              read: 1, write: 2, delete: 3, validate: 4, cancel: 5, 
-              convert: 6, export: 7, import: 8, print: 9, close: 10,
-              reopen: 11, transfer: 12, receive: 13, deliver: 14,
-              invoice: 15, payment: 16
-            };
-            return (order[a.action as keyof typeof order] || 99) - 
-                   (order[b.action as keyof typeof order] || 99);
+            const order = { read: 1, write: 2, delete: 3, export: 4, import: 5 };
+            return (order[a.action as keyof typeof order] || 99) - (order[b.action as keyof typeof order] || 99);
           })
         }))
     }));
