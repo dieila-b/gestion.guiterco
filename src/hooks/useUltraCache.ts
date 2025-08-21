@@ -40,32 +40,31 @@ export const useUltraCache = () => {
   };
 };
 
-// Fonction qui récupère TOUTES les données avec fallback
+// Fonction qui récupère TOUTES les données avec les vues matérialisées optimisées
 const fetchAllData = async () => {
-  console.log('🚀 Chargement ultra-rapide de toutes les données...');
+  console.log('🚀 Chargement ultra-rapide depuis les vues matérialisées synchronisées...');
   
   try {
-    // Essayer d'abord les vues optimisées avec fallback vers les tables normales
     const [
       catalogueResult,
       stockResult,
       configResult,
       clientsResult
     ] = await Promise.allSettled([
-      // Catalogue avec fallback
-      fetchCatalogueWithFallback(),
+      // Catalogue depuis la vue matérialisée optimisée
+      fetchCatalogueFromView(),
       
-      // Stock avec fallback
-      fetchStockWithFallback(),
+      // Stock depuis la vue matérialisée complète
+      fetchStockFromView(),
       
-      // Configuration avec fallback
+      // Configuration
       fetchConfigWithFallback(),
       
-      // Clients avec fallback
+      // Clients
       fetchClientsWithFallback()
     ]);
 
-    console.log('✅ Résultats du chargement:', {
+    console.log('✅ Résultats du chargement depuis vues matérialisées:', {
       catalogue: catalogueResult.status === 'fulfilled' ? catalogueResult.value?.length : 0,
       stock: stockResult.status === 'fulfilled' ? stockResult.value?.length : 0,
       config: configResult.status === 'fulfilled' ? 'OK' : 'ERROR',
@@ -85,44 +84,23 @@ const fetchAllData = async () => {
   }
 };
 
-// Catalogue avec fallback
-const fetchCatalogueWithFallback = async () => {
+// Catalogue depuis la vue matérialisée optimisée
+const fetchCatalogueFromView = async () => {
   try {
-    console.log('📦 Chargement du catalogue...');
+    console.log('📦 Chargement du catalogue depuis vue_catalogue_optimise...');
     
-    // Essayer la vue optimisée d'abord
-    const { data: vueData, error: vueError } = await supabase
+    const { data, error } = await supabase
       .from('vue_catalogue_optimise')
       .select('*')
-      .limit(500);
+      .limit(1000);
     
-    if (!vueError && vueData && vueData.length > 0) {
-      console.log('✅ Catalogue chargé depuis vue_catalogue_optimise:', vueData.length, 'articles');
-      return vueData;
+    if (error) {
+      console.error('❌ Erreur vue catalogue:', error);
+      throw error;
     }
     
-    console.log('⚠️ Vue catalogue vide/erreur, fallback vers table normale');
-    
-    // Fallback vers la table catalogue normale
-    const { data: catalogueData, error: catalogueError } = await supabase
-      .from('catalogue')
-      .select(`
-        id, reference, nom, description, prix_achat, prix_vente, 
-        statut, seuil_alerte, created_at, updated_at,
-        categorie_id, unite_id,
-        categories(nom),
-        unites(nom, symbole)
-      `)
-      .eq('statut', 'actif')
-      .limit(500);
-    
-    if (catalogueError) {
-      console.error('❌ Erreur catalogue fallback:', catalogueError);
-      return [];
-    }
-    
-    console.log('✅ Catalogue chargé depuis table normale:', catalogueData?.length || 0, 'articles');
-    return catalogueData || [];
+    console.log('✅ Catalogue chargé depuis vue matérialisée:', data?.length || 0, 'articles');
+    return data || [];
     
   } catch (error) {
     console.error('❌ Erreur catalogue:', error);
@@ -130,77 +108,23 @@ const fetchCatalogueWithFallback = async () => {
   }
 };
 
-// Stock avec fallback
-const fetchStockWithFallback = async () => {
+// Stock depuis la vue matérialisée complète
+const fetchStockFromView = async () => {
   try {
-    console.log('📊 Chargement du stock...');
+    console.log('📊 Chargement du stock depuis vue_stock_complet...');
     
-    // Essayer la vue optimisée d'abord
-    const { data: vueData, error: vueError } = await supabase
+    const { data, error } = await supabase
       .from('vue_stock_complet')
       .select('*')
-      .limit(1000);
+      .limit(2000);
     
-    if (!vueError && vueData && vueData.length > 0) {
-      console.log('✅ Stock chargé depuis vue_stock_complet:', vueData.length, 'entrées');
-      return vueData;
+    if (error) {
+      console.error('❌ Erreur vue stock:', error);
+      throw error;
     }
     
-    console.log('⚠️ Vue stock vide/erreur, fallback vers tables normales');
-    
-    // Fallback vers les tables stock normales
-    const [entrepotResult, pdvResult] = await Promise.allSettled([
-      supabase
-        .from('stock_principal')
-        .select(`
-          id, article_id, entrepot_id, quantite_disponible, quantite_reservee,
-          emplacement, derniere_entree, derniere_sortie, created_at, updated_at,
-          catalogue!inner(id, reference, nom, prix_vente, prix_achat, statut),
-          entrepots(id, nom, statut)
-        `)
-        .gt('quantite_disponible', 0)
-        .limit(500),
-      
-      supabase
-        .from('stock_pdv')
-        .select(`
-          id, article_id, point_vente_id, quantite_disponible, quantite_minimum,
-          derniere_livraison, created_at, updated_at,
-          catalogue!inner(id, reference, nom, prix_vente, prix_achat, statut),
-          points_de_vente(id, nom, statut)
-        `)
-        .gt('quantite_disponible', 0)
-        .limit(500)
-    ]);
-    
-    const stockEntrepot = entrepotResult.status === 'fulfilled' ? entrepotResult.value.data || [] : [];
-    const stockPdv = pdvResult.status === 'fulfilled' ? pdvResult.value.data || [] : [];
-    
-    console.log('✅ Stock fallback - Entrepôt:', stockEntrepot.length, 'PDV:', stockPdv.length);
-    
-    // Transformer au format attendu
-    const stockFormatted = [
-      ...stockEntrepot.map(item => ({
-        ...item,
-        type_stock: 'entrepot',
-        article_reference: item.catalogue?.reference,
-        article_nom: item.catalogue?.nom,
-        prix_vente: item.catalogue?.prix_vente,
-        article_statut: item.catalogue?.statut,
-        location_nom: item.entrepots?.nom
-      })),
-      ...stockPdv.map(item => ({
-        ...item,
-        type_stock: 'point_vente',
-        article_reference: item.catalogue?.reference,
-        article_nom: item.catalogue?.nom,
-        prix_vente: item.catalogue?.prix_vente,
-        article_statut: item.catalogue?.statut,
-        location_nom: item.points_de_vente?.nom
-      }))
-    ];
-    
-    return stockFormatted;
+    console.log('✅ Stock chargé depuis vue matérialisée:', data?.length || 0, 'entrées');
+    return data || [];
     
   } catch (error) {
     console.error('❌ Erreur stock:', error);
@@ -278,7 +202,7 @@ const getDefaultConfig = () => ({
   unites: []
 });
 
-// Hooks spécialisés ultra-rapides
+// Hooks spécialisés ultra-rapides utilisant les vues matérialisées
 export const useUltraFastCatalogue = () => {
   const { data, isLoading } = useUltraCache();
   return {
@@ -290,65 +214,70 @@ export const useUltraFastCatalogue = () => {
 export const useUltraFastStock = () => {
   const { data, isLoading } = useUltraCache();
   
-  const stockEntrepot = data.stock.filter(s => s.type_stock === 'entrepot').map(s => ({
-    id: s.id,
-    article_id: s.article_id,
-    entrepot_id: s.entrepot_id,
-    quantite_disponible: s.quantite_disponible,
-    quantite_reservee: s.quantite_reservee || 0,
-    emplacement: s.emplacement,
-    derniere_entree: s.derniere_entree,
-    derniere_sortie: s.derniere_sortie,
-    created_at: s.created_at,
-    updated_at: s.updated_at,
-    article: {
-      id: s.article_id,
-      reference: s.article_reference,
-      nom: s.article_nom,
-      prix_vente: s.prix_vente,
-      prix_achat: s.prix_vente * 0.8,
-      prix_unitaire: s.prix_vente,
-      statut: s.article_statut,
-      categorie: s.categories?.nom || 'Général',
-      unite_mesure: s.unites?.nom || 'U',
-      categorie_article: { nom: s.categories?.nom || 'Général' },
-      unite_article: { nom: s.unites?.nom || 'U' }
-    },
-    entrepot: {
-      id: s.entrepot_id,
-      nom: s.location_nom,
-      statut: 'actif'
-    }
-  }));
+  // Séparer le stock par type depuis la vue matérialisée
+  const stockEntrepot = data.stock
+    .filter(s => s.type_stock === 'entrepot')
+    .map(s => ({
+      id: s.id,
+      article_id: s.article_id,
+      entrepot_id: s.entrepot_id,
+      quantite_disponible: s.quantite_disponible,
+      quantite_reservee: s.quantite_reservee || 0,
+      emplacement: s.emplacement,
+      derniere_entree: s.derniere_entree,
+      derniere_sortie: s.derniere_sortie,
+      created_at: s.created_at,
+      updated_at: s.updated_at,
+      article: {
+        id: s.article_id,
+        reference: s.article_reference,
+        nom: s.article_nom,
+        prix_vente: s.prix_vente,
+        prix_achat: s.prix_achat,
+        prix_unitaire: s.prix_vente,
+        statut: s.article_statut,
+        categorie: s.categorie_nom || 'Général',
+        unite_mesure: s.unite_nom || 'U',
+        categorie_article: { nom: s.categorie_nom || 'Général' },
+        unite_article: { nom: s.unite_nom || 'U', symbole: s.unite_symbole || 'U' }
+      },
+      entrepot: {
+        id: s.entrepot_id,
+        nom: s.location_nom,
+        statut: 'actif'
+      }
+    }));
 
-  const stockPDV = data.stock.filter(s => s.type_stock === 'point_vente').map(s => ({
-    id: s.id,
-    article_id: s.article_id,
-    point_vente_id: s.point_vente_id,
-    quantite_disponible: s.quantite_disponible,
-    quantite_minimum: 0,
-    derniere_livraison: s.derniere_entree,
-    created_at: s.created_at,
-    updated_at: s.updated_at,
-    article: {
-      id: s.article_id,
-      reference: s.article_reference,
-      nom: s.article_nom,
-      prix_vente: s.prix_vente,
-      prix_achat: s.prix_vente * 0.8,
-      prix_unitaire: s.prix_vente,
-      statut: s.article_statut,
-      categorie: s.categories?.nom || 'Général',
-      unite_mesure: s.unites?.nom || 'U',
-      categorie_article: { nom: s.categories?.nom || 'Général' },
-      unite_article: { nom: s.unites?.nom || 'U' }
-    },
-    point_vente: {
-      id: s.point_vente_id,
-      nom: s.location_nom,
-      statut: 'actif'
-    }
-  }));
+  const stockPDV = data.stock
+    .filter(s => s.type_stock === 'point_vente')
+    .map(s => ({
+      id: s.id,
+      article_id: s.article_id,
+      point_vente_id: s.point_vente_id,
+      quantite_disponible: s.quantite_disponible,
+      quantite_minimum: 0,
+      derniere_livraison: s.derniere_entree,
+      created_at: s.created_at,
+      updated_at: s.updated_at,
+      article: {
+        id: s.article_id,
+        reference: s.article_reference,
+        nom: s.article_nom,
+        prix_vente: s.prix_vente,
+        prix_achat: s.prix_achat,
+        prix_unitaire: s.prix_vente,
+        statut: s.article_statut,
+        categorie: s.categorie_nom || 'Général',
+        unite_mesure: s.unite_nom || 'U',
+        categorie_article: { nom: s.categorie_nom || 'Général' },
+        unite_article: { nom: s.unite_nom || 'U', symbole: s.unite_symbole || 'U' }
+      },
+      point_vente: {
+        id: s.point_vente_id,
+        nom: s.location_nom,
+        statut: 'actif'
+      }
+    }));
 
   return {
     stockEntrepot,

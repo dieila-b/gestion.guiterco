@@ -12,12 +12,14 @@ export interface ArticleOptimized {
   categorie?: string;
   categories?: {
     nom: string;
+    couleur?: string;
   };
   unite?: string;
   unites?: {
     nom: string;
     symbole: string;
   };
+  unite_mesure?: string;
   seuil_alerte?: number;
   image_url?: string;
   statut?: string;
@@ -34,7 +36,7 @@ export const useCatalogueOptimized = (
   const { articles, isLoading } = useUltraFastCatalogue();
 
   const { paginatedArticles, categories, hasMore } = useMemo(() => {
-    console.log('📦 Traitement catalogue optimisé:', {
+    console.log('📦 Traitement catalogue optimisé avec données synchronisées:', {
       totalArticles: articles?.length || 0,
       page,
       limit,
@@ -58,7 +60,8 @@ export const useCatalogueOptimized = (
       const search = searchTerm.toLowerCase();
       filteredArticles = filteredArticles.filter(article =>
         article.nom?.toLowerCase().includes(search) ||
-        article.reference?.toLowerCase().includes(search)
+        article.reference?.toLowerCase().includes(search) ||
+        article.categorie?.toLowerCase().includes(search)
       );
     }
 
@@ -70,20 +73,21 @@ export const useCatalogueOptimized = (
       });
     }
 
-    // Extraire les catégories uniques
+    // Extraire les catégories uniques depuis les données synchronisées
     const uniqueCategories = [...new Set(
       articles.map(article => article.categories?.nom || article.categorie || 'Général')
-    )].sort();
+    )].filter(Boolean).sort();
 
     // Pagination
     const startIndex = (page - 1) * limit;
     const endIndex = startIndex + limit;
     const paginatedResults = filteredArticles.slice(startIndex, endIndex);
 
-    console.log('📊 Résultats filtrage:', {
+    console.log('📊 Résultats filtrage avec données synchronisées:', {
       filteredCount: filteredArticles.length,
       paginatedCount: paginatedResults.length,
-      categories: uniqueCategories.length
+      categories: uniqueCategories.length,
+      categoriesFound: uniqueCategories
     });
 
     return {

@@ -651,6 +651,20 @@ export type Database = {
             referencedRelation: "unites"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "fk_catalogue_categorie"
+            columns: ["categorie_id"]
+            isOneToOne: false
+            referencedRelation: "categories_catalogue"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_catalogue_unite"
+            columns: ["unite_id"]
+            isOneToOne: false
+            referencedRelation: "unites"
+            referencedColumns: ["id"]
+          },
         ]
       }
       categories_catalogue: {
@@ -2722,6 +2736,48 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "fk_stock_pdv_article"
+            columns: ["article_id"]
+            isOneToOne: false
+            referencedRelation: "catalogue"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_stock_pdv_article"
+            columns: ["article_id"]
+            isOneToOne: false
+            referencedRelation: "vue_catalogue_optimise"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_stock_pdv_article"
+            columns: ["article_id"]
+            isOneToOne: false
+            referencedRelation: "vue_marges_articles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_stock_pdv_article"
+            columns: ["article_id"]
+            isOneToOne: false
+            referencedRelation: "vue_marges_frais"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_stock_pdv_article"
+            columns: ["article_id"]
+            isOneToOne: false
+            referencedRelation: "vue_marges_globales_stock"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_stock_pdv_point_vente"
+            columns: ["point_vente_id"]
+            isOneToOne: false
+            referencedRelation: "points_de_vente"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "stock_pdv_article_id_fkey"
             columns: ["article_id"]
             isOneToOne: false
@@ -2803,6 +2859,48 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "fk_stock_principal_article"
+            columns: ["article_id"]
+            isOneToOne: false
+            referencedRelation: "catalogue"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_stock_principal_article"
+            columns: ["article_id"]
+            isOneToOne: false
+            referencedRelation: "vue_catalogue_optimise"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_stock_principal_article"
+            columns: ["article_id"]
+            isOneToOne: false
+            referencedRelation: "vue_marges_articles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_stock_principal_article"
+            columns: ["article_id"]
+            isOneToOne: false
+            referencedRelation: "vue_marges_frais"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_stock_principal_article"
+            columns: ["article_id"]
+            isOneToOne: false
+            referencedRelation: "vue_marges_globales_stock"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_stock_principal_entrepot"
+            columns: ["entrepot_id"]
+            isOneToOne: false
+            referencedRelation: "entrepots"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "stock_principal_article_id_fkey"
             columns: ["article_id"]
@@ -3298,25 +3396,61 @@ export type Database = {
       }
       vue_catalogue_optimise: {
         Row: {
+          autres_frais: number | null
           categorie: string | null
           categorie_couleur: string | null
-          categorie_nom: string | null
+          categorie_id: string | null
+          categories: Json | null
           created_at: string | null
           description: string | null
+          frais_douane: number | null
+          frais_logistique: number | null
+          frais_transport: number | null
           id: string | null
           image_url: string | null
           nom: string | null
           prix_achat: number | null
+          prix_unitaire: number | null
           prix_vente: number | null
           reference: string | null
           seuil_alerte: number | null
           statut: string | null
+          unite_id: string | null
           unite_mesure: string | null
-          unite_nom: string | null
           unite_symbole: string | null
+          unites: Json | null
           updated_at: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "catalogue_categorie_id_fkey"
+            columns: ["categorie_id"]
+            isOneToOne: false
+            referencedRelation: "categories_catalogue"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "catalogue_unite_id_fkey"
+            columns: ["unite_id"]
+            isOneToOne: false
+            referencedRelation: "unites"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_catalogue_categorie"
+            columns: ["categorie_id"]
+            isOneToOne: false
+            referencedRelation: "categories_catalogue"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_catalogue_unite"
+            columns: ["unite_id"]
+            isOneToOne: false
+            referencedRelation: "unites"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       vue_facture_vente_detaillee: {
         Row: {
@@ -3600,6 +3734,8 @@ export type Database = {
           article_nom: string | null
           article_reference: string | null
           article_statut: string | null
+          categorie_nom: string | null
+          categories: Json | null
           created_at: string | null
           derniere_entree: string | null
           derniere_sortie: string | null
@@ -3608,10 +3744,14 @@ export type Database = {
           id: string | null
           location_nom: string | null
           point_vente_id: string | null
+          prix_achat: number | null
           prix_vente: number | null
           quantite_disponible: number | null
           quantite_reservee: number | null
           type_stock: string | null
+          unite_nom: string | null
+          unite_symbole: string | null
+          unites: Json | null
           updated_at: string | null
         }
         Relationships: []
@@ -4004,6 +4144,10 @@ export type Database = {
         Returns: undefined
       }
       refresh_materialized_views: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
+      refresh_stock_views: {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
