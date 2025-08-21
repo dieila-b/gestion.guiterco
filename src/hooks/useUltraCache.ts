@@ -134,7 +134,10 @@ export const useUltraFastStock = () => {
       prix_unitaire: s.prix_vente,
       statut: s.article_statut,
       categorie: 'Général',
-      unite_mesure: 'U'
+      unite_mesure: 'U',
+      // Ajouter les propriétés manquantes pour éviter les erreurs TypeScript
+      categorie_article: { nom: 'Général' },
+      unite_article: { nom: 'U' }
     },
     entrepot: {
       id: s.entrepot_id,
@@ -161,7 +164,10 @@ export const useUltraFastStock = () => {
       prix_unitaire: s.prix_vente,
       statut: s.article_statut,
       categorie: 'Général',
-      unite_mesure: 'U'
+      unite_mesure: 'U',
+      // Ajouter les propriétés manquantes pour éviter les erreurs TypeScript
+      categorie_article: { nom: 'Général' },
+      unite_article: { nom: 'U' }
     },
     point_vente: {
       id: s.point_vente_id,
