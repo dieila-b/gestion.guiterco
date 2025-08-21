@@ -54,6 +54,13 @@ export type Database = {
             foreignKeyName: "articles_bon_commande_article_id_fkey"
             columns: ["article_id"]
             isOneToOne: false
+            referencedRelation: "vue_catalogue_optimise"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "articles_bon_commande_article_id_fkey"
+            columns: ["article_id"]
+            isOneToOne: false
             referencedRelation: "vue_marges_articles"
             referencedColumns: ["id"]
           },
@@ -133,6 +140,13 @@ export type Database = {
             foreignKeyName: "articles_bon_livraison_article_id_fkey"
             columns: ["article_id"]
             isOneToOne: false
+            referencedRelation: "vue_catalogue_optimise"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "articles_bon_livraison_article_id_fkey"
+            columns: ["article_id"]
+            isOneToOne: false
             referencedRelation: "vue_marges_articles"
             referencedColumns: ["id"]
           },
@@ -206,6 +220,13 @@ export type Database = {
             foreignKeyName: "articles_facture_achat_article_id_fkey"
             columns: ["article_id"]
             isOneToOne: false
+            referencedRelation: "vue_catalogue_optimise"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "articles_facture_achat_article_id_fkey"
+            columns: ["article_id"]
+            isOneToOne: false
             referencedRelation: "vue_marges_articles"
             referencedColumns: ["id"]
           },
@@ -269,6 +290,13 @@ export type Database = {
             columns: ["article_id"]
             isOneToOne: false
             referencedRelation: "catalogue"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "articles_retour_client_article_id_fkey"
+            columns: ["article_id"]
+            isOneToOne: false
+            referencedRelation: "vue_catalogue_optimise"
             referencedColumns: ["id"]
           },
           {
@@ -1045,6 +1073,13 @@ export type Database = {
             foreignKeyName: "entrees_stock_article_id_fkey"
             columns: ["article_id"]
             isOneToOne: false
+            referencedRelation: "vue_catalogue_optimise"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entrees_stock_article_id_fkey"
+            columns: ["article_id"]
+            isOneToOne: false
             referencedRelation: "vue_marges_articles"
             referencedColumns: ["id"]
           },
@@ -1525,6 +1560,13 @@ export type Database = {
             foreignKeyName: "lignes_commande_article_id_fkey"
             columns: ["article_id"]
             isOneToOne: false
+            referencedRelation: "vue_catalogue_optimise"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lignes_commande_article_id_fkey"
+            columns: ["article_id"]
+            isOneToOne: false
             referencedRelation: "vue_marges_articles"
             referencedColumns: ["id"]
           },
@@ -1585,6 +1627,13 @@ export type Database = {
             columns: ["article_id"]
             isOneToOne: false
             referencedRelation: "catalogue"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lignes_devis_article_id_fkey"
+            columns: ["article_id"]
+            isOneToOne: false
+            referencedRelation: "vue_catalogue_optimise"
             referencedColumns: ["id"]
           },
           {
@@ -1660,6 +1709,13 @@ export type Database = {
             columns: ["article_id"]
             isOneToOne: false
             referencedRelation: "catalogue"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lignes_facture_vente_article_id_fkey"
+            columns: ["article_id"]
+            isOneToOne: false
+            referencedRelation: "vue_catalogue_optimise"
             referencedColumns: ["id"]
           },
           {
@@ -1749,6 +1805,13 @@ export type Database = {
             columns: ["article_id"]
             isOneToOne: false
             referencedRelation: "catalogue"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lignes_precommande_article_id_fkey"
+            columns: ["article_id"]
+            isOneToOne: false
+            referencedRelation: "vue_catalogue_optimise"
             referencedColumns: ["id"]
           },
           {
@@ -2552,6 +2615,13 @@ export type Database = {
             foreignKeyName: "sorties_stock_article_id_fkey"
             columns: ["article_id"]
             isOneToOne: false
+            referencedRelation: "vue_catalogue_optimise"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sorties_stock_article_id_fkey"
+            columns: ["article_id"]
+            isOneToOne: false
             referencedRelation: "vue_marges_articles"
             referencedColumns: ["id"]
           },
@@ -2662,6 +2732,13 @@ export type Database = {
             foreignKeyName: "stock_pdv_article_id_fkey"
             columns: ["article_id"]
             isOneToOne: false
+            referencedRelation: "vue_catalogue_optimise"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_pdv_article_id_fkey"
+            columns: ["article_id"]
+            isOneToOne: false
             referencedRelation: "vue_marges_articles"
             referencedColumns: ["id"]
           },
@@ -2731,6 +2808,13 @@ export type Database = {
             columns: ["article_id"]
             isOneToOne: false
             referencedRelation: "catalogue"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_principal_article_id_fkey"
+            columns: ["article_id"]
+            isOneToOne: false
+            referencedRelation: "vue_catalogue_optimise"
             referencedColumns: ["id"]
           },
           {
@@ -2881,6 +2965,13 @@ export type Database = {
             columns: ["article_id"]
             isOneToOne: false
             referencedRelation: "catalogue"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transferts_article_id_fkey"
+            columns: ["article_id"]
+            isOneToOne: false
+            referencedRelation: "vue_catalogue_optimise"
             referencedColumns: ["id"]
           },
           {
@@ -3179,6 +3270,13 @@ export type Database = {
             foreignKeyName: "lignes_commande_article_id_fkey"
             columns: ["article_id"]
             isOneToOne: false
+            referencedRelation: "vue_catalogue_optimise"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lignes_commande_article_id_fkey"
+            columns: ["article_id"]
+            isOneToOne: false
             referencedRelation: "vue_marges_articles"
             referencedColumns: ["id"]
           },
@@ -3197,6 +3295,28 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      vue_catalogue_optimise: {
+        Row: {
+          categorie: string | null
+          categorie_couleur: string | null
+          categorie_nom: string | null
+          created_at: string | null
+          description: string | null
+          id: string | null
+          image_url: string | null
+          nom: string | null
+          prix_achat: number | null
+          prix_vente: number | null
+          reference: string | null
+          seuil_alerte: number | null
+          statut: string | null
+          unite_mesure: string | null
+          unite_nom: string | null
+          unite_symbole: string | null
+          updated_at: string | null
+        }
+        Relationships: []
       }
       vue_facture_vente_detaillee: {
         Row: {
@@ -3471,6 +3591,28 @@ export type Database = {
           derniere_operation: string | null
           nombre_operations: number | null
           solde_actif: number | null
+        }
+        Relationships: []
+      }
+      vue_stock_complet: {
+        Row: {
+          article_id: string | null
+          article_nom: string | null
+          article_reference: string | null
+          article_statut: string | null
+          created_at: string | null
+          derniere_entree: string | null
+          derniere_sortie: string | null
+          emplacement: string | null
+          entrepot_id: string | null
+          id: string | null
+          location_nom: string | null
+          point_vente_id: string | null
+          prix_vente: number | null
+          quantite_disponible: number | null
+          quantite_reservee: number | null
+          type_stock: string | null
+          updated_at: string | null
         }
         Relationships: []
       }
@@ -3848,6 +3990,10 @@ export type Database = {
         }[]
       }
       refresh_marges_view: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
+      refresh_materialized_views: {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }

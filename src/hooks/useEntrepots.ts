@@ -14,13 +14,13 @@ export interface Entrepot {
 
 export const useEntrepots = () => {
   return useQuery({
-    queryKey: ['entrepots'],
+    queryKey: ['entrepots-simple'],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('entrepots')
-        .select('*')
+        .select('id, nom, statut')
         .eq('statut', 'actif')
-        .order('nom', { ascending: true });
+        .order('nom');
       
       if (error) {
         console.error('Erreur lors du chargement des entrepôts:', error);
@@ -29,7 +29,7 @@ export const useEntrepots = () => {
       
       return data as Entrepot[];
     },
-    staleTime: 5 * 60 * 1000,
+    staleTime: 15 * 60 * 1000, // 15 minutes - données de configuration
     refetchOnWindowFocus: false
   });
 };

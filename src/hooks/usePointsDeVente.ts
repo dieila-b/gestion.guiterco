@@ -14,13 +14,13 @@ export interface PointDeVente {
 
 export const usePointsDeVente = () => {
   return useQuery({
-    queryKey: ['points-de-vente'],
+    queryKey: ['points-de-vente-simple'],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('points_de_vente')
-        .select('*')
+        .select('id, nom, statut')
         .eq('statut', 'actif')
-        .order('nom', { ascending: true });
+        .order('nom');
       
       if (error) {
         console.error('Erreur lors du chargement des points de vente:', error);
@@ -29,7 +29,7 @@ export const usePointsDeVente = () => {
       
       return data as PointDeVente[];
     },
-    staleTime: 5 * 60 * 1000,
+    staleTime: 15 * 60 * 1000, // 15 minutes - données de configuration
     refetchOnWindowFocus: false
   });
 };

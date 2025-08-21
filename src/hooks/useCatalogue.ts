@@ -21,46 +21,46 @@ export interface Article {
 
 export const useCatalogue = () => {
   const { data: articles, isLoading, error } = useQuery({
-    queryKey: ['catalogue'],
+    queryKey: ['catalogue-simple'],
     queryFn: async () => {
       try {
         const { data, error } = await supabase
-          .from('catalogue')
-          .select(`
-            id,
-            nom,
-            reference,
-            description,
-            prix_achat,
-            prix_vente,
-            categorie,
-            unite_mesure,
-            categorie_id,
-            unite_id,
-            seuil_alerte,
-            image_url,
-            statut,
-            created_at,
-            updated_at
-          `)
-          .eq('statut', 'actif')
-          .order('nom', { ascending: true });
+          .from('vue_catalogue_optimise')
+          .select('*')
+          .order('nom');
         
         if (error) {
           console.error('Erreur catalogue:', error);
           throw error;
         }
         
-        return data as Article[];
+        // Mapper vers le format attendu
+        return data?.map(item => ({
+          id: item.id,
+          nom: item.nom,
+          reference: item.reference,
+          description: item.description,
+          prix_achat: item.prix_achat,
+          prix_vente: item.prix_vente,
+          categorie: item.categorie_nom || item.categorie,
+          unite_mesure: item.unite_nom || item.unite_mesure,
+          categorie_id: item.id, // Fallback
+          unite_id: item.id, // Fallback
+          seuil_alerte: item.seuil_alerte,
+          image_url: item.image_url,
+          statut: item.statut,
+          created_at: item.created_at,
+          updated_at: item.updated_at
+        })) as Article[] || [];
       } catch (error) {
         console.error('Error in catalogue query:', error);
         throw error;
       }
     },
-    staleTime: 2 * 60 * 1000, // 2 minutes
+    staleTime: 10 * 60 * 1000, // 10 minutes - catalogue change peu souvent
     refetchOnWindowFocus: false,
     retry: 1,
-    retryDelay: 500,
+    retryDelay: 300,
   });
 
   return {

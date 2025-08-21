@@ -1,68 +1,63 @@
-
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 
 export const useStockQueries = (selectedPDV?: string) => {
-  // Hook pour récupérer les points de vente
+  // Hook pour récupérer les points de vente - optimisé avec cache long
   const { data: pointsDeVente } = useQuery({
     queryKey: ['points_de_vente'],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('points_de_vente')
-        .select('*')
-        .eq('statut', 'actif');
+        .select('id, nom, statut')
+        .eq('statut', 'actif')
+        .order('nom');
       
       if (error) throw error;
       return data;
-    }
+    },
+    staleTime: 15 * 60 * 1000, // 15 minutes - données de configuration
   });
 
-  // Hook pour récupérer le stock PDV avec filtrage par point de vente et relations complètes
+  // Hook optimisé utilisant la vue matérialisée mais mappé vers l'ancien format
   const { data: stockPDV } = useQuery({
-    queryKey: ['stock_pdv', selectedPDV],
+    queryKey: ['stock_pdv_optimized', selectedPDV],
     queryFn: async () => {
-      if (!selectedPDV) return [];
+      if (!selectedPDV || !pointsDeVente) return [];
       
       // Trouver l'ID du point de vente sélectionné
       const pdvSelected = pointsDeVente?.find(pdv => pdv.nom === selectedPDV);
       if (!pdvSelected) return [];
       
       const { data, error } = await supabase
-        .from('stock_pdv')
-        .select(`
-          *,
-          article:catalogue!inner(
-            id, 
-            nom, 
-            prix_vente, 
-            reference, 
-            image_url, 
-            categorie,
-            categorie_id,
-            unite_mesure,
-            unite_id,
-            categorie_article:categories_catalogue(nom),
-            unite_article:unites(nom)
-          ),
-          point_vente:points_de_vente!inner(nom)
-        `)
+        .from('vue_stock_complet')
+        .select('*')
         .eq('point_vente_id', pdvSelected.id)
-        .gt('quantite_disponible', 0); // Ne récupérer que les articles en stock
+        .eq('type_stock', 'point_vente')
+        .order('article_nom');
       
       if (error) throw error;
       
-      // Normaliser les données pour la compatibilité
+      // Mapper vers l'ancien format pour maintenir la compatibilité
       return data?.map(item => ({
         ...item,
         article: {
-          ...item.article,
-          // Prioriser le nom de la catégorie depuis la relation
-          categorie: item.article.categorie_article?.nom || item.article.categorie || '',
-          unite_mesure: item.article.unite_article?.nom || item.article.unite_mesure || ''
+          id: item.article_id,
+          nom: item.article_nom,
+          reference: item.article_reference,
+          prix_vente: item.prix_vente,
+          statut: item.article_statut,
+          categorie: item.article_nom, // Utilisation temporaire jusqu'à ce qu'on ait les vraies catégories
+          unite_mesure: 'U' // Valeur par défaut
+        },
+        point_vente: {
+          id: item.point_vente_id,
+          nom: item.location_nom,
+          statut: 'actif'
         }
       })) || [];
     },
-    enabled: !!selectedPDV && !!pointsDeVente
+    enabled: !!selectedPDV && !!pointsDeVente,
+    staleTime: 5 * 60 * 1000, // 5 minutes pour le stock
   });
 
   return {

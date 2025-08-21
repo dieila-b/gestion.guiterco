@@ -3,20 +3,22 @@ import { QueryClient } from '@tanstack/react-query';
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      // Réduire le stale time par défaut pour éviter les données obsolètes
-      staleTime: 30 * 1000, // 30 seconds
-      gcTime: 2 * 60 * 1000, // 2 minutes
+      // Configuration optimisée pour des performances maximales
+      staleTime: 10 * 60 * 1000, // 10 minutes - données statiques plus longtemps en cache
+      gcTime: 30 * 60 * 1000, // 30 minutes - garder en mémoire plus longtemps
       refetchOnWindowFocus: false,
-      refetchOnMount: true,
+      refetchOnMount: false, // Ne pas refetch automatiquement
       retry: 1,
-      retryDelay: 500,
-      // Éviter les refetch automatiques excessifs
+      retryDelay: 300,
       refetchInterval: false,
       refetchIntervalInBackground: false,
+      // Réduire les requêtes réseau pour améliorer les performances
+      networkMode: 'online',
     },
     mutations: {
       retry: 1,
-      retryDelay: 500,
+      retryDelay: 300,
+      networkMode: 'online',
     }
   }
 });

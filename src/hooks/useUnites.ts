@@ -14,12 +14,12 @@ export interface Unite {
 
 export const useUnites = () => {
   return useQuery({
-    queryKey: ['unites'],
+    queryKey: ['unites-simple'],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('unites')
-        .select('*')
-        .order('nom', { ascending: true });
+        .select('id, nom, symbole, statut')
+        .order('nom');
       
       if (error) {
         console.error('Erreur lors du chargement des unités:', error);
@@ -28,7 +28,7 @@ export const useUnites = () => {
       
       return data as Unite[];
     },
-    staleTime: 10 * 60 * 1000,
+    staleTime: 20 * 60 * 1000, // 20 minutes - données de référence
     refetchOnWindowFocus: false
   });
 };
@@ -48,7 +48,7 @@ export const useCreateUnite = () => {
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['unites'] });
+      queryClient.invalidateQueries({ queryKey: ['unites-simple'] });
     }
   });
 };
@@ -69,7 +69,7 @@ export const useUpdateUnite = () => {
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['unites'] });
+      queryClient.invalidateQueries({ queryKey: ['unites-simple'] });
     }
   });
 };
@@ -87,7 +87,7 @@ export const useDeleteUnite = () => {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['unites'] });
+      queryClient.invalidateQueries({ queryKey: ['unites-simple'] });
     }
   });
 };
