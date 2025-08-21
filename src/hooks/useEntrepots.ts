@@ -1,5 +1,5 @@
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+// Import hook ultra-optimisé
+import { useFastEntrepots } from './useUltraOptimizedHooks';
 
 export interface Entrepot {
   id: string;
@@ -8,28 +8,9 @@ export interface Entrepot {
   capacite_max?: number;
   gestionnaire?: string;
   statut: string;
-  created_at: string;
-  updated_at: string;
+  created_at?: string;
+  updated_at?: string;
 }
 
-export const useEntrepots = () => {
-  return useQuery({
-    queryKey: ['entrepots-simple'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('entrepots')
-        .select('id, nom, statut')
-        .eq('statut', 'actif')
-        .order('nom');
-      
-      if (error) {
-        console.error('Erreur lors du chargement des entrepôts:', error);
-        throw error;
-      }
-      
-      return data as Entrepot[];
-    },
-    staleTime: 15 * 60 * 1000, // 15 minutes - données de configuration
-    refetchOnWindowFocus: false
-  });
-};
+// Utiliser le hook ultra-optimisé
+export const useEntrepots = useFastEntrepots;
