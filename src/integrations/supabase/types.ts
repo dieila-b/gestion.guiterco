@@ -3908,6 +3908,16 @@ export type Database = {
           total_en_precommande: number
         }[]
       }
+      get_quick_stats: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          total_articles: number
+          total_entrepots: number
+          total_pdv: number
+          total_stock_entrepots: number
+          total_stock_pdv: number
+        }[]
+      }
       get_rapport_marges_periode: {
         Args: { date_debut: string; date_fin: string }
         Returns: {

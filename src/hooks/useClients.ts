@@ -22,12 +22,12 @@ export interface Client {
 
 export const useClients = () => {
   return useQuery({
-    queryKey: ['clients'],
+    queryKey: ['clients-ultra'],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('clients')
-        .select('*')
-        .order('nom', { ascending: true });
+        .select('id, nom, prenom, email, telephone')
+        .order('nom');
       
       if (error) {
         console.error('Erreur lors du chargement des clients:', error);
@@ -36,8 +36,9 @@ export const useClients = () => {
       
       return data as Client[];
     },
-    staleTime: 2 * 60 * 1000, // 2 minutes
-    refetchOnWindowFocus: false
+    staleTime: 30 * 60 * 1000, // 30 minutes - clients changent peu souvent
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
   });
 };
 
@@ -56,7 +57,7 @@ export const useCreateClient = () => {
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['clients'] });
+      queryClient.invalidateQueries({ queryKey: ['clients-ultra'] });
     }
   });
 };
@@ -77,7 +78,7 @@ export const useUpdateClient = () => {
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['clients'] });
+      queryClient.invalidateQueries({ queryKey: ['clients-ultra'] });
     }
   });
 };
@@ -95,7 +96,7 @@ export const useDeleteClient = () => {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['clients'] });
+      queryClient.invalidateQueries({ queryKey: ['clients-ultra'] });
     }
   });
 };
