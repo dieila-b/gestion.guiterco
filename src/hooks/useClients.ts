@@ -1,4 +1,7 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+
+// Utiliser le nouveau système ultra-rapide
+import { useUltraFastClients } from './useUltraCache';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 
 export interface Client {
@@ -12,36 +15,16 @@ export interface Client {
   code_postal?: string;
   pays?: string;
   type_client?: string;
-  nom_entreprise?: string;
-  limite_credit?: number;
   statut_client?: string;
-  whatsapp?: string;
-  created_at: string;
-  updated_at: string;
+  limite_credit?: number;
+  created_at?: string;
+  updated_at?: string;
 }
 
-export const useClients = () => {
-  return useQuery({
-    queryKey: ['clients-ultra'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('clients')
-        .select('id, nom, prenom, email, telephone')
-        .order('nom');
-      
-      if (error) {
-        console.error('Erreur lors du chargement des clients:', error);
-        throw error;
-      }
-      
-      return data as Client[];
-    },
-    staleTime: 30 * 60 * 1000, // 30 minutes - clients changent peu souvent
-    refetchOnWindowFocus: false,
-    refetchOnMount: false,
-  });
-};
+// Utiliser le cache ultra-rapide
+export const useClients = useUltraFastClients;
 
+// Mutations restent identiques mais avec nouvelle clé de cache
 export const useCreateClient = () => {
   const queryClient = useQueryClient();
   
@@ -57,7 +40,7 @@ export const useCreateClient = () => {
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['clients-ultra'] });
+      queryClient.invalidateQueries({ queryKey: ['ultra-all-data'] });
     }
   });
 };
@@ -78,7 +61,7 @@ export const useUpdateClient = () => {
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['clients-ultra'] });
+      queryClient.invalidateQueries({ queryKey: ['ultra-all-data'] });
     }
   });
 };
@@ -96,7 +79,7 @@ export const useDeleteClient = () => {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['clients-ultra'] });
+      queryClient.invalidateQueries({ queryKey: ['ultra-all-data'] });
     }
   });
 };
