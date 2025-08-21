@@ -1,46 +1,54 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 
-export interface Unite {
+export interface Client {
   id: string;
   nom: string;
-  symbole: string;
-  type_unite?: string;
-  description?: string;
-  statut?: string;
-  created_at?: string;
-  updated_at?: string;
+  prenom?: string;
+  email?: string;
+  telephone?: string;
+  adresse?: string;
+  ville?: string;
+  code_postal?: string;
+  pays?: string;
+  type_client?: string;
+  nom_entreprise?: string;
+  limite_credit?: number;
+  statut_client?: string;
+  whatsapp?: string;
+  created_at: string;
+  updated_at: string;
 }
 
-export const useUnites = () => {
+export const useClients = () => {
   return useQuery({
-    queryKey: ['unites'],
+    queryKey: ['clients'],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('unites')
+        .from('clients')
         .select('*')
         .order('nom', { ascending: true });
       
       if (error) {
-        console.error('Erreur lors du chargement des unités:', error);
+        console.error('Erreur lors du chargement des clients:', error);
         throw error;
       }
       
-      return data as Unite[];
+      return data as Client[];
     },
-    staleTime: 10 * 60 * 1000,
+    staleTime: 2 * 60 * 1000, // 2 minutes
     refetchOnWindowFocus: false
   });
 };
 
-export const useCreateUnite = () => {
+export const useCreateClient = () => {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: async (unite: Omit<Unite, 'id' | 'created_at' | 'updated_at'>) => {
+    mutationFn: async (client: Omit<Client, 'id' | 'created_at' | 'updated_at'>) => {
       const { data, error } = await supabase
-        .from('unites')
-        .insert(unite)
+        .from('clients')
+        .insert(client)
         .select()
         .single();
       
@@ -48,18 +56,18 @@ export const useCreateUnite = () => {
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['unites'] });
+      queryClient.invalidateQueries({ queryKey: ['clients'] });
     }
   });
 };
 
-export const useUpdateUnite = () => {
+export const useUpdateClient = () => {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: async ({ id, ...updates }: Partial<Unite> & { id: string }) => {
+    mutationFn: async ({ id, ...updates }: Partial<Client> & { id: string }) => {
       const { data, error } = await supabase
-        .from('unites')
+        .from('clients')
         .update(updates)
         .eq('id', id)
         .select()
@@ -69,25 +77,25 @@ export const useUpdateUnite = () => {
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['unites'] });
+      queryClient.invalidateQueries({ queryKey: ['clients'] });
     }
   });
 };
 
-export const useDeleteUnite = () => {
+export const useDeleteClient = () => {
   const queryClient = useQueryClient();
   
   return useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase
-        .from('unites')
+        .from('clients')
         .delete()
         .eq('id', id);
       
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['unites'] });
+      queryClient.invalidateQueries({ queryKey: ['clients'] });
     }
   });
 };

@@ -11,35 +11,45 @@ export const useStockPDV = () => {
         const { data, error } = await supabase
           .from('stock_pdv')
           .select(`
-            *,
-            article:catalogue!inner(
-              *,
-              categorie_article:categories_catalogue(nom),
-              unite_article:unites(nom)
+            id,
+            article_id,
+            point_vente_id,
+            quantite_disponible,
+            quantite_minimum,
+            derniere_livraison,
+            created_at,
+            updated_at,
+            article:catalogue(
+              id,
+              reference,
+              nom,
+              prix_vente,
+              statut
             ),
-            point_vente:points_de_vente!inner(*)
+            point_vente:points_de_vente(
+              id,
+              nom,
+              statut
+            )
           `)
           .gt('quantite_disponible', 0)
-          .eq('article.statut', 'actif')
-          .eq('point_vente.statut', 'actif')
           .order('updated_at', { ascending: false });
         
         if (error) {
-          console.error('Erreur lors du chargement du stock PDV:', error);
+          console.error('Erreur stock PDV:', error);
           throw error;
         }
         
-        console.log('Stock PDV data loaded:', data?.length, 'items');
         return data as StockPointDeVente[];
       } catch (error) {
         console.error('Error in stock PDV query:', error);
         throw error;
       }
     },
-    staleTime: 2 * 60 * 1000, // 2 minutes
+    staleTime: 30 * 1000, // 30 seconds
     refetchOnWindowFocus: false,
-    retry: 2,
-    retryDelay: 1000,
+    retry: 1,
+    retryDelay: 500,
   });
 
   return {

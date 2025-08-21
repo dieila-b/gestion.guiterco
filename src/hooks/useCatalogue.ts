@@ -23,8 +23,6 @@ export const useCatalogue = () => {
   const { data: articles, isLoading, error } = useQuery({
     queryKey: ['catalogue'],
     queryFn: async () => {
-      console.log('Fetching catalogue data...');
-      
       try {
         const { data, error } = await supabase
           .from('catalogue')
@@ -35,7 +33,6 @@ export const useCatalogue = () => {
             description,
             prix_achat,
             prix_vente,
-            prix_unitaire,
             categorie,
             unite_mesure,
             categorie_id,
@@ -50,21 +47,20 @@ export const useCatalogue = () => {
           .order('nom', { ascending: true });
         
         if (error) {
-          console.error('Erreur lors du chargement du catalogue:', error);
+          console.error('Erreur catalogue:', error);
           throw error;
         }
         
-        console.log('Catalogue data loaded:', data?.length, 'articles');
         return data as Article[];
       } catch (error) {
         console.error('Error in catalogue query:', error);
         throw error;
       }
     },
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 2 * 60 * 1000, // 2 minutes
     refetchOnWindowFocus: false,
-    retry: 2,
-    retryDelay: 1000,
+    retry: 1,
+    retryDelay: 500,
   });
 
   return {
