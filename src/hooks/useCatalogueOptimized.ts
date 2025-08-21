@@ -2,6 +2,29 @@
 import { useUltraFastCatalogue } from './useUltraCache';
 import { useMemo } from 'react';
 
+export interface ArticleOptimized {
+  id: string;
+  nom: string;
+  reference?: string;
+  description?: string;
+  prix_vente?: number;
+  prix_achat?: number;
+  categorie?: string;
+  categories?: {
+    nom: string;
+  };
+  unite?: string;
+  unites?: {
+    nom: string;
+    symbole: string;
+  };
+  seuil_alerte?: number;
+  image_url?: string;
+  statut?: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
 export const useCatalogueOptimized = (
   page = 1, 
   limit = 20, 
