@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -279,7 +280,7 @@ const VenteComptoirOptimized = () => {
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
-            {commandes?.map((commande) => (
+            {commandes && commandes.map((commande) => (
               <div key={commande.id} className="flex items-center justify-between p-3 border rounded-lg">
                 <div className="flex items-center gap-4">
                   <div>
