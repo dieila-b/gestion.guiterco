@@ -95,7 +95,10 @@ export const useFastPointsDeVente = () => {
 
 export const useFastUnites = () => {
   const { data: configData, isLoading } = useUltraFastConfig();
-  return { data: configData?.unites || [], isLoading };
+  return { 
+    data: configData?.unites || [], 
+    isLoading 
+  };
 };
 
 // Remplacer aussi les hooks de clients

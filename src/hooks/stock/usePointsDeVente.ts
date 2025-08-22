@@ -1,12 +1,11 @@
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { useUltraFastConfig } from '../useUltraCache';
+import { useFastPointsDeVente } from '../useUltraOptimizedHooks';
 import { useToast } from '@/hooks/use-toast';
 
 export const usePointsDeVente = () => {
-  const { data: configData, isLoading } = useUltraFastConfig();
-  const pointsDeVente = configData?.pointsDeVente || [];
+  const { data: pointsDeVente, isLoading } = useFastPointsDeVente();
   const queryClient = useQueryClient();
   const { toast } = useToast();
 

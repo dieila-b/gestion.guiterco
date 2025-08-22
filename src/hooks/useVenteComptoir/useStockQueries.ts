@@ -1,10 +1,10 @@
 
-import { useUltraFastConfig, useUltraFastStock } from '../useUltraCache';
+import { useFastConfig, useFastStock } from '../useUltraOptimizedHooks';
 import { useMemo } from 'react';
 
 export const useStockQueries = (selectedPDV?: string) => {
-  const { data: configData } = useUltraFastConfig();
-  const { data: stockData } = useUltraFastStock();
+  const { data: configData } = useFastConfig();
+  const { data: stockData } = useFastStock();
 
   const pointsDeVente = configData?.pointsDeVente || [];
   const allStockPDV = stockData?.stockPDV || [];
