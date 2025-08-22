@@ -34,7 +34,7 @@ export const useCatalogueOptimized = (
   searchTerm = '', 
   selectedCategory = 'all'
 ) => {
-  const { articles, isLoading } = useUltraFastCatalogue();
+  const { data: articles, isLoading } = useUltraFastCatalogue();
 
   const { paginatedArticles, categories, hasMore } = useMemo(() => {
     console.log('📦 Traitement catalogue optimisé avec données synchronisées:', {

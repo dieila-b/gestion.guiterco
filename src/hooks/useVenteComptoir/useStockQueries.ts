@@ -3,8 +3,11 @@ import { useUltraFastConfig, useUltraFastStock } from '../useUltraCache';
 import { useMemo } from 'react';
 
 export const useStockQueries = (selectedPDV?: string) => {
-  const { pointsDeVente } = useUltraFastConfig();
-  const { stockPDV: allStockPDV } = useUltraFastStock();
+  const { data: configData } = useUltraFastConfig();
+  const { data: stockData } = useUltraFastStock();
+
+  const pointsDeVente = configData?.pointsDeVente || [];
+  const allStockPDV = stockData?.stockPDV || [];
 
   // Filtrer le stock pour le PDV sélectionné - ultra-rapide en mémoire
   const stockPDV = useMemo(() => {

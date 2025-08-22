@@ -77,12 +77,20 @@ export const useFastStockPDV = () => {
 
 export const useFastEntrepots = () => {
   const { data: configData, isLoading } = useUltraFastConfig();
-  return { data: configData?.entrepots || [], isLoading };
+  return { 
+    data: configData?.entrepots || [], 
+    entrepots: configData?.entrepots || [], 
+    isLoading 
+  };
 };
 
 export const useFastPointsDeVente = () => {
   const { data: configData, isLoading } = useUltraFastConfig();
-  return { data: configData?.pointsDeVente || [], isLoading };
+  return { 
+    data: configData?.pointsDeVente || [], 
+    pointsDeVente: configData?.pointsDeVente || [], 
+    isLoading 
+  };
 };
 
 export const useFastUnites = () => {

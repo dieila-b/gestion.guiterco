@@ -121,9 +121,9 @@ const VenteComptoirOptimized = () => {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Toutes catégories</SelectItem>
-              {categories.map((cat) => (
-                <SelectItem key={cat} value={cat}>
-                  {cat}
+              {categories.map((cat: string) => (
+                <SelectItem key={cat as string} value={cat as string}>
+                  {cat as string}
                 </SelectItem>
               ))}
             </SelectContent>
