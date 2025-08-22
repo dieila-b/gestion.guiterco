@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { RefreshCw } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
@@ -7,28 +7,33 @@ import { toast } from 'sonner';
 
 const SyncButton = () => {
   const queryClient = useQueryClient();
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleSync = async () => {
+    if (isLoading) return;
+    
+    setIsLoading(true);
     try {
-      console.log('🔄 Début de la synchronisation...');
+      console.log('🔄 Synchronisation ultra-rapide...');
       
-      // Invalider tous les caches de façon ciblée
+      // Invalidation ciblée et rapide
       await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['catalogue-simple'] }),
-        queryClient.invalidateQueries({ queryKey: ['stock-principal-simple'] }),
-        queryClient.invalidateQueries({ queryKey: ['stock-pdv-simple'] }),
-        queryClient.invalidateQueries({ queryKey: ['entrepots-simple'] }),
-        queryClient.invalidateQueries({ queryKey: ['points-de-vente-simple'] }),
-        queryClient.invalidateQueries({ queryKey: ['clients-simple'] }),
-        queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] }),
-        queryClient.invalidateQueries({ queryKey: ['unites-simple'] })
+        queryClient.invalidateQueries({ queryKey: ['catalogue-ultra-fast'] }),
+        queryClient.invalidateQueries({ queryKey: ['stock-principal-ultra-fast'] }),
+        queryClient.invalidateQueries({ queryKey: ['stock-pdv-ultra-fast'] }),
+        queryClient.invalidateQueries({ queryKey: ['entrepots-ultra-fast'] }),
+        queryClient.invalidateQueries({ queryKey: ['points-de-vente-ultra-fast'] }),
+        queryClient.invalidateQueries({ queryKey: ['clients-ultra-fast'] }),
+        queryClient.invalidateQueries({ queryKey: ['unites-ultra-fast'] })
       ]);
       
-      console.log('✅ Synchronisation terminée');
-      toast.success('Données synchronisées avec succès');
+      console.log('✅ Synchronisation terminée en mode ultra-rapide');
+      toast.success('Données actualisées (mode ultra-rapide)');
     } catch (error) {
       console.error('❌ Erreur de synchronisation:', error);
-      toast.error('Erreur lors de la synchronisation des données');
+      toast.error('Erreur lors de la synchronisation');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -36,10 +41,11 @@ const SyncButton = () => {
     <Button
       variant="outline"
       onClick={handleSync}
+      disabled={isLoading}
       className="flex items-center gap-2"
     >
-      <RefreshCw className="h-4 w-4" />
-      Actualiser les données
+      <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+      {isLoading ? 'Actualisation...' : 'Actualiser (Rapide)'}
     </Button>
   );
 };
