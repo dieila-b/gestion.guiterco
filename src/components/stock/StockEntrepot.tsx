@@ -197,7 +197,7 @@ const StockEntrepot = () => {
                             {item.article?.reference || 'N/A'}
                           </TableCell>
                            <TableCell className="text-muted-foreground">
-                             {item.article?.categorie_article?.nom || item.article?.categorie || 'Non classé'}
+                             {item.article?.categories?.nom || item.article?.categorie || 'Non classé'}
                            </TableCell>
                           <TableCell className="font-medium text-foreground">
                             {item.article?.nom || 'N/A'}
@@ -207,9 +207,9 @@ const StockEntrepot = () => {
                           </TableCell>
                            <TableCell className="text-right font-medium text-foreground">
                              {item.quantite_disponible}
-                             {(item.article?.unite_article?.nom || item.article?.unite_mesure) && (
+                             {(item.article?.unites?.nom || item.article?.unite_mesure) && (
                                <span className="text-muted-foreground ml-1">
-                                 {item.article?.unite_article?.nom || item.article.unite_mesure}
+                                 {item.article?.unites?.nom || item.article.unite_mesure}
                                </span>
                              )}
                            </TableCell>
