@@ -41,13 +41,14 @@ export const useDashboardStats = () => {
           { data: stockPDV }
         ] = await Promise.all([
           supabase.from('catalogue').select('*', { count: 'exact', head: true }).eq('statut', 'actif'),
+          // CORRECTION: Utilisation des clés étrangères explicites
           supabase.from('stock_principal').select(`
             quantite_disponible,
-            article:article_id(prix_achat, prix_vente, prix_unitaire)
+            article:catalogue!stock_principal_article_id_fkey(prix_achat, prix_vente, prix_unitaire)
           `).gt('quantite_disponible', 0),
           supabase.from('stock_pdv').select(`
             quantite_disponible,
-            article:article_id(prix_achat, prix_vente, prix_unitaire)
+            article:catalogue!stock_pdv_article_id_fkey(prix_achat, prix_vente, prix_unitaire)
           `).gt('quantite_disponible', 0)
         ]);
         

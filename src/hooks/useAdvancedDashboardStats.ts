@@ -182,18 +182,19 @@ export const useAdvancedDashboardStats = () => {
         // Calcul de fallback si les marges globales ne sont pas disponibles
         console.log('⚠️ Utilisation du calcul de fallback pour les marges globales de stock');
         
+        // CORRECTION: Utilisation des clés étrangères explicites
         const { data: stockData, error: stockError } = await supabase
           .from('stock_principal')
           .select(`
             quantite_disponible,
-            article:article_id(prix_unitaire)
+            article:catalogue!stock_principal_article_id_fkey(prix_unitaire)
           `);
         
         const { data: stockPDV, error: stockPDVError } = await supabase
           .from('stock_pdv')
           .select(`
             quantite_disponible,
-            article:article_id(prix_unitaire)
+            article:catalogue!stock_pdv_article_id_fkey(prix_unitaire)
           `);
         
         if (!stockError && !stockPDVError) {
