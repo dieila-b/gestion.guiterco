@@ -98,7 +98,7 @@ const fetchAllRealData = async () => {
   }
 };
 
-// Catalogue avec toutes les relations
+// Catalogue avec toutes les relations - CORRIGÉ
 const fetchCatalogueData = async () => {
   try {
     console.log('📦 Chargement du catalogue complet...');
@@ -107,8 +107,8 @@ const fetchCatalogueData = async () => {
       .from('catalogue')
       .select(`
         *,
-        categories:categorie_id(nom, couleur),
-        unites:unite_id(nom, symbole, type_unite)
+        categories:categories_catalogue!catalogue_categorie_id_fkey(nom, couleur),
+        unites:unites!catalogue_unite_id_fkey(nom, symbole, type_unite)
       `)
       .eq('statut', 'actif')
       .order('nom');
@@ -127,7 +127,7 @@ const fetchCatalogueData = async () => {
   }
 };
 
-// Stock principal avec toutes les relations
+// Stock principal avec toutes les relations - CORRIGÉ
 const fetchStockPrincipalData = async () => {
   try {
     console.log('📊 Chargement du stock principal...');
@@ -136,13 +136,13 @@ const fetchStockPrincipalData = async () => {
       .from('stock_principal')
       .select(`
         *,
-        article:article_id(
+        article:catalogue!stock_principal_article_id_fkey(
           id, reference, nom, prix_vente, prix_achat, prix_unitaire, 
           statut, categorie, unite_mesure,
-          categories:categorie_id(nom),
-          unites:unite_id(nom, symbole)
+          categories:categories_catalogue!catalogue_categorie_id_fkey(nom),
+          unites:unites!catalogue_unite_id_fkey(nom, symbole)
         ),
-        entrepot:entrepot_id(id, nom, statut)
+        entrepot:entrepots!stock_principal_entrepot_id_fkey(id, nom, statut)
       `)
       .gt('quantite_disponible', 0)
       .order('updated_at', { ascending: false });
@@ -161,7 +161,7 @@ const fetchStockPrincipalData = async () => {
   }
 };
 
-// Stock PDV avec toutes les relations
+// Stock PDV avec toutes les relations - CORRIGÉ
 const fetchStockPDVData = async () => {
   try {
     console.log('📊 Chargement du stock PDV...');
@@ -170,13 +170,13 @@ const fetchStockPDVData = async () => {
       .from('stock_pdv')
       .select(`
         *,
-        article:article_id(
+        article:catalogue!stock_pdv_article_id_fkey(
           id, reference, nom, prix_vente, prix_achat, prix_unitaire, 
           statut, categorie, unite_mesure,
-          categories:categorie_id(nom),
-          unites:unite_id(nom, symbole)
+          categories:categories_catalogue!catalogue_categorie_id_fkey(nom),
+          unites:unites!catalogue_unite_id_fkey(nom, symbole)
         ),
-        point_vente:point_vente_id(id, nom, statut)
+        point_vente:points_de_vente!stock_pdv_point_vente_id_fkey(id, nom, statut)
       `)
       .gt('quantite_disponible', 0)
       .order('updated_at', { ascending: false });
