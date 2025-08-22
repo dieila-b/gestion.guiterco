@@ -3,113 +3,26 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useEffect } from 'react';
 
-// Cache ultra-agressif - 30 minutes pour tout
-const ULTRA_CACHE_TIME = 30 * 60 * 1000;
+// Cache réduit à 5 minutes pour éviter les données obsolètes
+const CACHE_TIME = 5 * 60 * 1000;
 
-// Hook principal qui charge TOUT en une seule fois avec les vraies données
+// Hook principal simplifié avec requêtes séparées
 export const useUltraCache = () => {
-  const queryClient = useQueryClient();
-
-  // Précharger immédiatement toutes les données essentielles
-  useEffect(() => {
-    // Précharger en arrière-plan
-    queryClient.prefetchQuery({
-      queryKey: ['ultra-all-data'],
-      queryFn: fetchAllRealData,
-      staleTime: ULTRA_CACHE_TIME,
-    });
-  }, [queryClient]);
-
-  const { data, isLoading } = useQuery({
-    queryKey: ['ultra-all-data'],
-    queryFn: fetchAllRealData,
-    staleTime: ULTRA_CACHE_TIME,
-    gcTime: ULTRA_CACHE_TIME,
-    refetchOnWindowFocus: false,
-    refetchOnMount: false,
-    refetchOnReconnect: false,
-    retry: 3,
-    retryDelay: 1000,
-  });
-
   return {
-    data: data || getDefaultData(),
-    isLoading,
     refreshAll: () => {
-      queryClient.invalidateQueries({ queryKey: ['ultra-all-data'] });
+      // Fonction de rafraîchissement simple
     }
   };
 };
 
-// Fonction qui récupère TOUTES les données directement depuis les tables principales
-const fetchAllRealData = async () => {
-  console.log('🚀 Chargement synchronisé des données réelles depuis Supabase...');
-  
-  try {
-    // D'abord, rafraîchir les vues matérialisées
-    await supabase.rpc('refresh_stock_views');
-
-    const [
-      catalogueResult,
-      stockPrincipalResult,
-      stockPDVResult,
-      configResult,
-      clientsResult
-    ] = await Promise.allSettled([
-      // Catalogue depuis la vue optimisée
-      fetchCatalogueData(),
-      
-      // Stock principal avec relations complètes
-      fetchStockPrincipalData(),
-      
-      // Stock PDV avec relations complètes
-      fetchStockPDVData(),
-      
-      // Configuration
-      fetchConfigData(),
-      
-      // Clients
-      fetchClientsData()
-    ]);
-
-    console.log('✅ Résultats du chargement des données réelles:', {
-      catalogue: catalogueResult.status === 'fulfilled' ? catalogueResult.value?.length : 0,
-      stockPrincipal: stockPrincipalResult.status === 'fulfilled' ? stockPrincipalResult.value?.length : 0,
-      stockPDV: stockPDVResult.status === 'fulfilled' ? stockPDVResult.value?.length : 0,
-      config: configResult.status === 'fulfilled' ? 'OK' : 'ERROR',
-      clients: clientsResult.status === 'fulfilled' ? clientsResult.value?.length : 0
-    });
-
-    return {
-      catalogue: catalogueResult.status === 'fulfilled' ? catalogueResult.value || [] : [],
-      stockPrincipal: stockPrincipalResult.status === 'fulfilled' ? stockPrincipalResult.value || [] : [],
-      stockPDV: stockPDVResult.status === 'fulfilled' ? stockPDVResult.value || [] : [],
-      stock: [
-        ...(stockPrincipalResult.status === 'fulfilled' ? stockPrincipalResult.value || [] : []).map(s => ({ ...s, type_stock: 'entrepot' })),
-        ...(stockPDVResult.status === 'fulfilled' ? stockPDVResult.value || [] : []).map(s => ({ ...s, type_stock: 'point_vente' }))
-      ],
-      config: configResult.status === 'fulfilled' ? configResult.value || getDefaultConfig() : getDefaultConfig(),
-      clients: clientsResult.status === 'fulfilled' ? clientsResult.value || [] : [],
-      timestamp: Date.now()
-    };
-  } catch (error) {
-    console.error('❌ Erreur chargement données:', error);
-    return getDefaultData();
-  }
-};
-
-// Catalogue avec toutes les relations - CORRIGÉ
+// Fonction de chargement du catalogue - SIMPLIFIÉE
 const fetchCatalogueData = async () => {
   try {
-    console.log('📦 Chargement du catalogue complet...');
+    console.log('📦 Chargement du catalogue...');
     
     const { data, error } = await supabase
       .from('catalogue')
-      .select(`
-        *,
-        categories:categories_catalogue!catalogue_categorie_id_fkey(nom, couleur),
-        unites:unites!catalogue_unite_id_fkey(nom, symbole, type_unite)
-      `)
+      .select('*')
       .eq('statut', 'actif')
       .order('nom');
     
@@ -127,7 +40,7 @@ const fetchCatalogueData = async () => {
   }
 };
 
-// Stock principal avec toutes les relations - CORRIGÉ
+// Fonction de chargement du stock principal - SIMPLIFIÉE
 const fetchStockPrincipalData = async () => {
   try {
     console.log('📊 Chargement du stock principal...');
@@ -136,16 +49,11 @@ const fetchStockPrincipalData = async () => {
       .from('stock_principal')
       .select(`
         *,
-        article:catalogue!stock_principal_article_id_fkey(
-          id, reference, nom, prix_vente, prix_achat, prix_unitaire, 
-          statut, categorie, unite_mesure,
-          categories:categories_catalogue!catalogue_categorie_id_fkey(nom),
-          unites:unites!catalogue_unite_id_fkey(nom, symbole)
-        ),
-        entrepot:entrepots!stock_principal_entrepot_id_fkey(id, nom, statut)
+        article:catalogue!stock_principal_article_id_fkey(id, nom, reference, prix_vente, prix_achat),
+        entrepot:entrepots!stock_principal_entrepot_id_fkey(id, nom)
       `)
       .gt('quantite_disponible', 0)
-      .order('updated_at', { ascending: false });
+      .limit(100); // Limiter pour éviter les requêtes trop lourdes
     
     if (error) {
       console.error('❌ Erreur stock principal:', error);
@@ -161,7 +69,7 @@ const fetchStockPrincipalData = async () => {
   }
 };
 
-// Stock PDV avec toutes les relations - CORRIGÉ
+// Fonction de chargement du stock PDV - SIMPLIFIÉE
 const fetchStockPDVData = async () => {
   try {
     console.log('📊 Chargement du stock PDV...');
@@ -170,16 +78,11 @@ const fetchStockPDVData = async () => {
       .from('stock_pdv')
       .select(`
         *,
-        article:catalogue!stock_pdv_article_id_fkey(
-          id, reference, nom, prix_vente, prix_achat, prix_unitaire, 
-          statut, categorie, unite_mesure,
-          categories:categories_catalogue!catalogue_categorie_id_fkey(nom),
-          unites:unites!catalogue_unite_id_fkey(nom, symbole)
-        ),
-        point_vente:points_de_vente!stock_pdv_point_vente_id_fkey(id, nom, statut)
+        article:catalogue!stock_pdv_article_id_fkey(id, nom, reference, prix_vente, prix_achat),
+        point_vente:points_de_vente!stock_pdv_point_vente_id_fkey(id, nom)
       `)
       .gt('quantite_disponible', 0)
-      .order('updated_at', { ascending: false });
+      .limit(100); // Limiter pour éviter les requêtes trop lourdes
     
     if (error) {
       console.error('❌ Erreur stock PDV:', error);
@@ -195,115 +98,139 @@ const fetchStockPDVData = async () => {
   }
 };
 
-// Configuration avec toutes les données
-const fetchConfigData = async () => {
-  try {
-    console.log('⚙️ Chargement de la configuration...');
-    
-    const [entrepotResult, pdvResult, unitesResult] = await Promise.allSettled([
-      supabase.from('entrepots').select('*').eq('statut', 'actif').order('nom'),
-      supabase.from('points_de_vente').select('*').eq('statut', 'actif').order('nom'),
-      supabase.from('unites').select('*').order('nom')
-    ]);
-    
-    const config = {
-      entrepots: entrepotResult.status === 'fulfilled' ? entrepotResult.value.data || [] : [],
-      pointsDeVente: pdvResult.status === 'fulfilled' ? pdvResult.value.data || [] : [],
-      unites: unitesResult.status === 'fulfilled' ? unitesResult.value.data || [] : []
-    };
-    
-    console.log('✅ Configuration chargée:', {
-      entrepots: config.entrepots.length,
-      pdv: config.pointsDeVente.length,
-      unites: config.unites.length
-    });
-    
-    return config;
-    
-  } catch (error) {
-    console.error('❌ Erreur configuration:', error);
-    return getDefaultConfig();
-  }
-};
-
-// Clients complets
-const fetchClientsData = async () => {
-  try {
-    console.log('👥 Chargement des clients...');
-    
-    const { data, error } = await supabase
-      .from('clients')
-      .select('*')
-      .eq('statut_client', 'actif')
-      .order('nom');
-    
-    if (error) {
-      console.error('❌ Erreur clients:', error);
-      return [];
-    }
-    
-    console.log('✅ Clients chargés:', data?.length || 0);
-    return data || [];
-    
-  } catch (error) {
-    console.error('❌ Erreur clients:', error);
-    return [];
-  }
-};
-
-const getDefaultData = () => ({
-  catalogue: [],
-  stockPrincipal: [],
-  stockPDV: [],
-  stock: [],
-  config: getDefaultConfig(),
-  clients: [],
-  timestamp: Date.now()
-});
-
-const getDefaultConfig = () => ({
-  entrepots: [],
-  pointsDeVente: [],
-  unites: []
-});
-
-// Hooks spécialisés ultra-rapides utilisant les données réelles
+// Hooks spécialisés avec cache réduit et requêtes individuelles
 export const useUltraFastCatalogue = () => {
-  const { data, isLoading } = useUltraCache();
-  return {
-    articles: data.catalogue,
-    isLoading
-  };
+  return useQuery({
+    queryKey: ['catalogue-simple'],
+    queryFn: fetchCatalogueData,
+    staleTime: CACHE_TIME,
+    gcTime: CACHE_TIME,
+    refetchOnWindowFocus: false,
+    refetchOnMount: true, // Permettre le rafraîchissement au montage
+    retry: 1,
+    retryDelay: 500,
+  });
 };
 
 export const useUltraFastStock = () => {
-  const { data, isLoading } = useUltraCache();
-  
+  const stockPrincipal = useQuery({
+    queryKey: ['stock-principal-simple'],
+    queryFn: fetchStockPrincipalData,
+    staleTime: CACHE_TIME,
+    gcTime: CACHE_TIME,
+    refetchOnWindowFocus: false,
+    refetchOnMount: true,
+    retry: 1,
+    retryDelay: 500,
+  });
+
+  const stockPDV = useQuery({
+    queryKey: ['stock-pdv-simple'],
+    queryFn: fetchStockPDVData,
+    staleTime: CACHE_TIME,
+    gcTime: CACHE_TIME,
+    refetchOnWindowFocus: false,
+    refetchOnMount: true,
+    retry: 1,
+    retryDelay: 500,
+  });
+
   return {
-    stockEntrepot: data.stockPrincipal,
-    stockPDV: data.stockPDV,
-    isLoading,
-    error: null
+    stockEntrepot: stockPrincipal.data || [],
+    stockPDV: stockPDV.data || [],
+    isLoading: stockPrincipal.isLoading || stockPDV.isLoading,
+    error: stockPrincipal.error || stockPDV.error
   };
 };
 
 export const useUltraFastConfig = () => {
-  const { data, isLoading } = useUltraCache();
+  const entrepots = useQuery({
+    queryKey: ['entrepots-simple'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('entrepots')
+        .select('*')
+        .eq('statut', 'actif')
+        .order('nom');
+      if (error) throw error;
+      return data || [];
+    },
+    staleTime: CACHE_TIME,
+    gcTime: CACHE_TIME,
+    refetchOnWindowFocus: false,
+    retry: 1,
+  });
+
+  const pointsDeVente = useQuery({
+    queryKey: ['points-de-vente-simple'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('points_de_vente')
+        .select('*')
+        .eq('statut', 'actif')
+        .order('nom');
+      if (error) throw error;
+      return data || [];
+    },
+    staleTime: CACHE_TIME,
+    gcTime: CACHE_TIME,
+    refetchOnWindowFocus: false,
+    retry: 1,
+  });
+
+  const unites = useQuery({
+    queryKey: ['unites-simple'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('unites')
+        .select('*')
+        .order('nom');
+      if (error) throw error;
+      return data || [];
+    },
+    staleTime: CACHE_TIME,
+    gcTime: CACHE_TIME,
+    refetchOnWindowFocus: false,
+    retry: 1,
+  });
+
   return {
-    entrepots: data.config.entrepots,
-    pointsDeVente: data.config.pointsDeVente,
-    unites: data.config.unites.map(u => ({
+    entrepots: entrepots.data || [],
+    pointsDeVente: pointsDeVente.data || [],
+    unites: (unites.data || []).map(u => ({
       ...u,
       type_unite: u.type_unite || 'quantite'
     })),
-    isLoading
+    isLoading: entrepots.isLoading || pointsDeVente.isLoading || unites.isLoading
   };
 };
 
 export const useUltraFastClients = () => {
-  const { data, isLoading } = useUltraCache();
-  return {
-    data: data.clients,
-    isLoading
-  };
+  return useQuery({
+    queryKey: ['clients-simple'],
+    queryFn: async () => {
+      console.log('👥 Chargement des clients...');
+      
+      const { data, error } = await supabase
+        .from('clients')
+        .select('*')
+        .eq('statut_client', 'actif')
+        .order('nom')
+        .limit(50); // Limiter pour éviter les requêtes trop lourdes
+      
+      if (error) {
+        console.error('❌ Erreur clients:', error);
+        return [];
+      }
+      
+      console.log('✅ Clients chargés:', data?.length || 0);
+      return data || [];
+    },
+    staleTime: CACHE_TIME,
+    gcTime: CACHE_TIME,
+    refetchOnWindowFocus: false,
+    refetchOnMount: true,
+    retry: 1,
+    retryDelay: 500,
+  });
 };

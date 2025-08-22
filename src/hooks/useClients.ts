@@ -1,5 +1,4 @@
 
-// Utiliser le nouveau système ultra-rapide
 import { useUltraFastClients } from './useUltraCache';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -21,10 +20,17 @@ export interface Client {
   updated_at?: string;
 }
 
-// Utiliser le cache ultra-rapide
-export const useClients = useUltraFastClients;
+// Utiliser le hook simplifié
+export const useClients = () => {
+  const { data, isLoading, error } = useUltraFastClients();
+  return {
+    data: data || [],
+    isLoading,
+    error
+  };
+};
 
-// Mutations restent identiques mais avec nouvelle clé de cache
+// Mutations optimisées
 export const useCreateClient = () => {
   const queryClient = useQueryClient();
   
@@ -40,7 +46,8 @@ export const useCreateClient = () => {
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['ultra-all-data'] });
+      // Invalider seulement les caches pertinents
+      queryClient.invalidateQueries({ queryKey: ['clients-simple'] });
     }
   });
 };
@@ -61,7 +68,7 @@ export const useUpdateClient = () => {
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['ultra-all-data'] });
+      queryClient.invalidateQueries({ queryKey: ['clients-simple'] });
     }
   });
 };
@@ -79,7 +86,7 @@ export const useDeleteClient = () => {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['ultra-all-data'] });
+      queryClient.invalidateQueries({ queryKey: ['clients-simple'] });
     }
   });
 };

@@ -4,23 +4,21 @@ import { QueryClient } from '@tanstack/react-query';
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      // Configuration ULTRA MEGA agressive - priorité absolue aux performances
-      staleTime: 2 * 60 * 60 * 1000, // 2 HEURES - données ultra-stables
-      gcTime: 4 * 60 * 60 * 1000, // 4 HEURES - garder en mémoire très très longtemps
+      // Configuration normale et performante
+      staleTime: 2 * 60 * 1000, // 2 minutes
+      gcTime: 5 * 60 * 1000, // 5 minutes
       refetchOnWindowFocus: false,
-      refetchOnMount: false, // JAMAIS refetch automatiquement
-      refetchOnReconnect: false, // Ne pas refetch sur reconnection
-      refetchInterval: false,
+      refetchOnMount: true, // Permettre le rafraîchissement
+      refetchOnReconnect: true,
+      refetchInterval: false, // Pas de polling automatique
       refetchIntervalInBackground: false,
-      retry: 0, // Pas de retry pour être plus rapide
-      retryDelay: 50,
+      retry: 1, // Un seul retry
+      retryDelay: 500, // Délai court
       networkMode: 'online',
-      // Cache ultra agressif - priorité absolue aux performances
-      structuralSharing: false, // Désactiver pour être plus rapide
     },
     mutations: {
-      retry: 0, // Pas de retry pour les mutations aussi
-      retryDelay: 100,
+      retry: 1,
+      retryDelay: 500,
       networkMode: 'online',
     }
   }
