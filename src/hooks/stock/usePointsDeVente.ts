@@ -1,11 +1,12 @@
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { useUltraFastConfig } from '../useUltraOptimizedHooks';
+import { useUltraFastConfig } from '../useUltraCache';
 import { useToast } from '@/hooks/use-toast';
 
 export const usePointsDeVente = () => {
-  const { pointsDeVente, isLoading } = useUltraFastConfig();
+  const { data: configData, isLoading } = useUltraFastConfig();
+  const pointsDeVente = configData?.pointsDeVente || [];
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
@@ -27,7 +28,7 @@ export const usePointsDeVente = () => {
       return result;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['ultra-all-data'] });
+      queryClient.invalidateQueries({ queryKey: ['ultra-config'] });
       toast({
         title: "Succès",
         description: "Point de vente créé avec succès",
@@ -63,7 +64,7 @@ export const usePointsDeVente = () => {
       return result;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['ultra-all-data'] });
+      queryClient.invalidateQueries({ queryKey: ['ultra-config'] });
       toast({
         title: "Succès",
         description: "Point de vente mis à jour avec succès",
@@ -88,7 +89,7 @@ export const usePointsDeVente = () => {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['ultra-all-data'] });
+      queryClient.invalidateQueries({ queryKey: ['ultra-config'] });
       toast({
         title: "Succès",
         description: "Point de vente supprimé avec succès",

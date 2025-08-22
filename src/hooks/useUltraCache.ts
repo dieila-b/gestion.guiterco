@@ -25,7 +25,7 @@ export const useUltraFastCatalogue = () => {
             categorie_id,
             unite_id,
             categories:categories_catalogue!categorie_id(nom),
-            unites:unites!unite_id(nom)
+            unites:unites!unite_id(nom, symbole)
           `)
           .eq('statut', 'actif')
           .limit(100);
@@ -67,7 +67,7 @@ export const useUltraFastStock = () => {
             derniere_sortie,
             created_at,
             updated_at,
-            article:catalogue!article_id(
+            article:catalogue!stock_principal_article_id_fkey(
               id,
               nom,
               reference,
@@ -81,9 +81,9 @@ export const useUltraFastStock = () => {
               categorie_id,
               unite_id,
               categories:categories_catalogue!categorie_id(nom),
-              unites:unites!unite_id(nom)
+              unites:unites!unite_id(nom, symbole)
             ),
-            entrepot:entrepots!entrepot_id(
+            entrepot:entrepots!stock_principal_entrepot_id_fkey(
               id,
               nom,
               adresse,
@@ -109,7 +109,7 @@ export const useUltraFastStock = () => {
             derniere_livraison,
             created_at,
             updated_at,
-            article:catalogue!article_id(
+            article:catalogue!stock_pdv_article_id_fkey(
               id,
               nom,
               reference,
@@ -123,9 +123,9 @@ export const useUltraFastStock = () => {
               categorie_id,
               unite_id,
               categories:categories_catalogue!categorie_id(nom),
-              unites:unites!unite_id(nom)
+              unites:unites!unite_id(nom, symbole)
             ),
-            point_vente:points_de_vente!point_vente_id(
+            point_vente:points_de_vente!stock_pdv_point_vente_id_fkey(
               id,
               nom,
               adresse,
@@ -203,10 +203,16 @@ export const useUltraFastConfig = () => {
           .eq('statut', 'actif')
           .limit(20);
 
-        // Unités
+        // Unités avec tous les champs nécessaires
         const { data: unites, error: errorUnites } = await supabase
           .from('unites')
-          .select('id, nom, symbole')
+          .select(`
+            id,
+            nom,
+            symbole,
+            type_unite,
+            statut
+          `)
           .limit(20);
 
         if (errorEntrepots) console.error('Entrepots error:', errorEntrepots);
