@@ -99,13 +99,13 @@ const fetchCatalogueWithFallback = async () => {
     if (error || !data || data.length === 0) {
       console.log('⚠️ Vue optimisée vide, fallback vers table normale...');
       
-      // Fallback vers la table normale avec jointures
+      // Fallback vers la table normale avec jointures explicites
       const result = await supabase
         .from('catalogue')
         .select(`
           *,
-          categories:categories_catalogue(nom, couleur),
-          unites:unites(nom, symbole)
+          categories:categories_catalogue!categorie_id(nom, couleur),
+          unites:unites!unite_id(nom, symbole)
         `)
         .eq('statut', 'actif')
         .limit(1000);
@@ -145,17 +145,17 @@ const fetchStockWithFallback = async () => {
     if (error || !data || data.length === 0) {
       console.log('⚠️ Vue stock vide, fallback vers tables normales...');
       
-      // Fallback vers les tables normales avec jointures
+      // Fallback vers les tables normales avec jointures explicites
       const [stockEntrepotResult, stockPDVResult] = await Promise.all([
         supabase
           .from('stock_principal')
           .select(`
             *,
-            article:catalogue(*,
-              categories:categories_catalogue(nom),
-              unites:unites(nom, symbole)
+            article:catalogue!article_id(*,
+              categories:categories_catalogue!categorie_id(nom),
+              unites:unites!unite_id(nom, symbole)
             ),
-            entrepot:entrepots(nom)
+            entrepot:entrepots!entrepot_id(nom)
           `)
           .gt('quantite_disponible', 0)
           .limit(1000),
@@ -164,11 +164,11 @@ const fetchStockWithFallback = async () => {
           .from('stock_pdv')
           .select(`
             *,
-            article:catalogue(*,
-              categories:categories_catalogue(nom),
-              unites:unites(nom, symbole)
+            article:catalogue!article_id(*,
+              categories:categories_catalogue!categorie_id(nom),
+              unites:unites!unite_id(nom, symbole)
             ),
-            point_vente:points_de_vente(nom)
+            point_vente:points_de_vente!point_vente_id(nom)
           `)
           .gt('quantite_disponible', 0)
           .limit(1000)
@@ -190,7 +190,9 @@ const fetchStockWithFallback = async () => {
           categorie_nom: item.article?.categories?.nom || item.article?.categorie,
           unite_nom: item.article?.unites?.nom || item.article?.unite_mesure,
           unite_symbole: item.article?.unites?.symbole,
-          location_nom: item.entrepot?.nom
+          location_nom: item.entrepot?.nom,
+          categories: item.article?.categories ? { nom: item.article.categories.nom } : null,
+          unites: item.article?.unites ? { nom: item.article.unites.nom, symbole: item.article.unites.symbole } : null
         })),
         ...(stockPDVResult.data || []).map(item => ({
           ...item,
@@ -203,7 +205,9 @@ const fetchStockWithFallback = async () => {
           categorie_nom: item.article?.categories?.nom || item.article?.categorie,
           unite_nom: item.article?.unites?.nom || item.article?.unite_mesure,
           unite_symbole: item.article?.unites?.symbole,
-          location_nom: item.point_vente?.nom
+          location_nom: item.point_vente?.nom,
+          categories: item.article?.categories ? { nom: item.article.categories.nom } : null,
+          unites: item.article?.unites ? { nom: item.article.unites.nom, symbole: item.article.unites.symbole } : null
         }))
       ];
     }

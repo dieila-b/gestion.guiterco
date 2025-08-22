@@ -27,12 +27,12 @@ export const useDashboardStats = () => {
           };
         }
 
-        // 2. Stock Global et calculs de valeur - optimisé
+        // 2. Stock Global et calculs de valeur - avec jointures explicites
         const { data: stockData, error: stockError } = await supabase
           .from('stock_principal')
           .select(`
             quantite_disponible,
-            article:catalogue!inner (
+            article:catalogue!article_id (
               prix_achat,
               prix_vente,
               prix_unitaire
@@ -44,12 +44,12 @@ export const useDashboardStats = () => {
           console.error('Error fetching stock data:', stockError);
         }
 
-        // 3. Stock PDV - optimisé
+        // 3. Stock PDV - avec jointures explicites
         const { data: stockPDV, error: stockPDVError } = await supabase
           .from('stock_pdv')
           .select(`
             quantite_disponible,
-            article:catalogue!inner (
+            article:catalogue!article_id (
               prix_achat,
               prix_vente,
               prix_unitaire
