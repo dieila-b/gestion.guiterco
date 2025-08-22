@@ -3,8 +3,8 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useEffect } from 'react';
 
-// Cache ultra-agressif - 30 minutes pour éviter les requêtes excessives
-const ULTRA_CACHE_TIME = 30 * 60 * 1000;
+// Cache ultra-agressif - 2 heures pour tout
+const ULTRA_CACHE_TIME = 2 * 60 * 60 * 1000;
 
 // Hook principal qui charge TOUT en une seule fois
 export const useUltraCache = () => {
@@ -20,7 +20,7 @@ export const useUltraCache = () => {
     });
   }, [queryClient]);
 
-  const { data, isLoading, error } = useQuery({
+  const { data, isLoading } = useQuery({
     queryKey: ['ultra-all-data'],
     queryFn: fetchAllData,
     staleTime: ULTRA_CACHE_TIME,
@@ -28,22 +28,21 @@ export const useUltraCache = () => {
     refetchOnWindowFocus: false,
     refetchOnMount: false,
     refetchOnReconnect: false,
-    retry: 1,
+    retry: false,
   });
 
   return {
     data: data || getDefaultData(),
     isLoading,
-    error,
     refreshAll: () => {
       queryClient.invalidateQueries({ queryKey: ['ultra-all-data'] });
     }
   };
 };
 
-// Fonction qui récupère TOUTES les données avec fallback sur les tables normales
+// Fonction qui récupère TOUTES les données avec les vues matérialisées optimisées
 const fetchAllData = async () => {
-  console.log('🚀 Chargement ultra-rapide des données...');
+  console.log('🚀 Chargement ultra-rapide depuis les vues matérialisées synchronisées...');
   
   try {
     const [
@@ -52,11 +51,11 @@ const fetchAllData = async () => {
       configResult,
       clientsResult
     ] = await Promise.allSettled([
-      // Catalogue avec fallback
-      fetchCatalogueWithFallback(),
+      // Catalogue depuis la vue matérialisée optimisée
+      fetchCatalogueFromView(),
       
-      // Stock avec fallback
-      fetchStockWithFallback(),
+      // Stock depuis la vue matérialisée complète
+      fetchStockFromView(),
       
       // Configuration
       fetchConfigWithFallback(),
@@ -65,7 +64,7 @@ const fetchAllData = async () => {
       fetchClientsWithFallback()
     ]);
 
-    console.log('✅ Résultats du chargement:', {
+    console.log('✅ Résultats du chargement depuis vues matérialisées:', {
       catalogue: catalogueResult.status === 'fulfilled' ? catalogueResult.value?.length : 0,
       stock: stockResult.status === 'fulfilled' ? stockResult.value?.length : 0,
       config: configResult.status === 'fulfilled' ? 'OK' : 'ERROR',
@@ -85,44 +84,22 @@ const fetchAllData = async () => {
   }
 };
 
-// Catalogue avec fallback sur table normale
-const fetchCatalogueWithFallback = async () => {
+// Catalogue depuis la vue matérialisée optimisée
+const fetchCatalogueFromView = async () => {
   try {
-    console.log('📦 Tentative de chargement du catalogue depuis vue optimisée...');
+    console.log('📦 Chargement du catalogue depuis vue_catalogue_optimise...');
     
-    // Essayer la vue matérialisée d'abord
-    let { data, error } = await supabase
+    const { data, error } = await supabase
       .from('vue_catalogue_optimise')
       .select('*')
       .limit(1000);
     
-    if (error || !data || data.length === 0) {
-      console.log('⚠️ Vue optimisée vide, fallback vers table normale...');
-      
-      // Fallback vers la table normale avec jointures explicites
-      const result = await supabase
-        .from('catalogue')
-        .select(`
-          *,
-          categories:categories_catalogue!categorie_id(nom, couleur),
-          unites:unites!unite_id(nom, symbole)
-        `)
-        .eq('statut', 'actif')
-        .limit(1000);
-      
-      if (result.error) throw result.error;
-      
-      // Transformer les données pour correspondre au format attendu
-      data = result.data?.map(item => ({
-        ...item,
-        categorie: item.categories?.nom || item.categorie || 'Général',
-        unite_mesure: item.unites?.nom || item.unite_mesure || 'U',
-        categorie_couleur: item.categories?.couleur,
-        unite_symbole: item.unites?.symbole
-      }));
+    if (error) {
+      console.error('❌ Erreur vue catalogue:', error);
+      throw error;
     }
     
-    console.log('✅ Catalogue chargé:', data?.length || 0, 'articles');
+    console.log('✅ Catalogue chargé depuis vue matérialisée:', data?.length || 0, 'articles');
     return data || [];
     
   } catch (error) {
@@ -131,112 +108,22 @@ const fetchCatalogueWithFallback = async () => {
   }
 };
 
-// Stock avec fallback sur tables normales
-const fetchStockWithFallback = async () => {
+// Stock depuis la vue matérialisée complète
+const fetchStockFromView = async () => {
   try {
-    console.log('📊 Tentative de chargement du stock depuis vue optimisée...');
+    console.log('📊 Chargement du stock depuis vue_stock_complet...');
     
-    // Essayer la vue matérialisée d'abord
-    let { data, error } = await supabase
+    const { data, error } = await supabase
       .from('vue_stock_complet')
       .select('*')
       .limit(2000);
     
-    if (error || !data || data.length === 0) {
-      console.log('⚠️ Vue stock vide, fallback vers tables normales...');
-      
-      // Fallback vers les tables normales avec jointures explicites
-      const [stockEntrepotResult, stockPDVResult] = await Promise.all([
-        supabase
-          .from('stock_principal')
-          .select(`
-            *,
-            article:catalogue!article_id(*,
-              categories:categories_catalogue!categorie_id(nom),
-              unites:unites!unite_id(nom, symbole)
-            ),
-            entrepot:entrepots!entrepot_id(nom)
-          `)
-          .gt('quantite_disponible', 0)
-          .limit(1000),
-        
-        supabase
-          .from('stock_pdv')
-          .select(`
-            *,
-            article:catalogue!article_id(*,
-              categories:categories_catalogue!categorie_id(nom),
-              unites:unites!unite_id(nom, symbole)
-            ),
-            point_vente:points_de_vente!point_vente_id(nom)
-          `)
-          .gt('quantite_disponible', 0)
-          .limit(1000)
-      ]);
-      
-      if (stockEntrepotResult.error) throw stockEntrepotResult.error;
-      if (stockPDVResult.error) throw stockPDVResult.error;
-      
-      // Transformer en format unifié compatible avec la vue matérialisée
-      data = [
-        ...(stockEntrepotResult.data || []).map(item => ({
-          id: item.id,
-          article_id: item.article_id || '',
-          entrepot_id: item.entrepot_id,
-          point_vente_id: null, // Requis par le type
-          quantite_disponible: item.quantite_disponible,
-          quantite_reservee: item.quantite_reservee || 0,
-          quantite_minimum: 0,
-          emplacement: item.emplacement,
-          derniere_entree: item.derniere_entree,
-          derniere_sortie: item.derniere_sortie,
-          derniere_livraison: null,
-          created_at: item.created_at,
-          updated_at: item.updated_at,
-          type_stock: 'entrepot',
-          article_reference: item.article?.reference || '',
-          article_nom: item.article?.nom || '',
-          prix_vente: item.article?.prix_vente || 0,
-          prix_achat: item.article?.prix_achat || 0,
-          article_statut: item.article?.statut || '',
-          categorie_nom: item.article?.categories?.nom || item.article?.categorie || 'Général',
-          unite_nom: item.article?.unites?.nom || item.article?.unite_mesure || 'U',
-          unite_symbole: item.article?.unites?.symbole || 'U',
-          location_nom: item.entrepot?.nom || '',
-          categories: item.article?.categories ? { nom: item.article.categories.nom } : null,
-          unites: item.article?.unites ? { nom: item.article.unites.nom, symbole: item.article.unites.symbole } : null
-        })),
-        ...(stockPDVResult.data || []).map(item => ({
-          id: item.id,
-          article_id: item.article_id || '',
-          entrepot_id: null,
-          point_vente_id: item.point_vente_id, // Requis par le type
-          quantite_disponible: item.quantite_disponible,
-          quantite_reservee: 0,
-          quantite_minimum: item.quantite_minimum || 0,
-          emplacement: null,
-          derniere_entree: null,
-          derniere_sortie: null,
-          derniere_livraison: item.derniere_livraison,
-          created_at: item.created_at,
-          updated_at: item.updated_at,
-          type_stock: 'point_vente',
-          article_reference: item.article?.reference || '',
-          article_nom: item.article?.nom || '',
-          prix_vente: item.article?.prix_vente || 0,
-          prix_achat: item.article?.prix_achat || 0,
-          article_statut: item.article?.statut || '',
-          categorie_nom: item.article?.categories?.nom || item.article?.categorie || 'Général',
-          unite_nom: item.article?.unites?.nom || item.article?.unite_mesure || 'U',
-          unite_symbole: item.article?.unites?.symbole || 'U',
-          location_nom: item.point_vente?.nom || '',
-          categories: item.article?.categories ? { nom: item.article.categories.nom } : null,
-          unites: item.article?.unites ? { nom: item.article.unites.nom, symbole: item.article.unites.symbole } : null
-        }))
-      ];
+    if (error) {
+      console.error('❌ Erreur vue stock:', error);
+      throw error;
     }
     
-    console.log('✅ Stock chargé:', data?.length || 0, 'entrées');
+    console.log('✅ Stock chargé depuis vue matérialisée:', data?.length || 0, 'entrées');
     return data || [];
     
   } catch (error) {
@@ -315,20 +202,19 @@ const getDefaultConfig = () => ({
   unites: []
 });
 
-// Hooks spécialisés ultra-rapides
+// Hooks spécialisés ultra-rapides utilisant les vues matérialisées
 export const useUltraFastCatalogue = () => {
-  const { data, isLoading, error } = useUltraCache();
+  const { data, isLoading } = useUltraCache();
   return {
     articles: data.catalogue,
-    isLoading,
-    error
+    isLoading
   };
 };
 
 export const useUltraFastStock = () => {
-  const { data, isLoading, error } = useUltraCache();
+  const { data, isLoading } = useUltraCache();
   
-  // Séparer le stock par type
+  // Séparer le stock par type depuis la vue matérialisée
   const stockEntrepot = data.stock
     .filter(s => s.type_stock === 'entrepot')
     .map(s => ({
@@ -369,8 +255,8 @@ export const useUltraFastStock = () => {
       article_id: s.article_id,
       point_vente_id: s.point_vente_id,
       quantite_disponible: s.quantite_disponible,
-      quantite_minimum: s.quantite_minimum || 0,
-      derniere_livraison: s.derniere_livraison,
+      quantite_minimum: 0,
+      derniere_livraison: s.derniere_entree,
       created_at: s.created_at,
       updated_at: s.updated_at,
       article: {
@@ -397,12 +283,12 @@ export const useUltraFastStock = () => {
     stockEntrepot,
     stockPDV,
     isLoading,
-    error
+    error: null
   };
 };
 
 export const useUltraFastConfig = () => {
-  const { data, isLoading, error } = useUltraCache();
+  const { data, isLoading } = useUltraCache();
   return {
     entrepots: data.config.entrepots,
     pointsDeVente: data.config.pointsDeVente,
@@ -410,16 +296,14 @@ export const useUltraFastConfig = () => {
       ...u,
       type_unite: u.type_unite || 'quantite'
     })),
-    isLoading,
-    error
+    isLoading
   };
 };
 
 export const useUltraFastClients = () => {
-  const { data, isLoading, error } = useUltraCache();
+  const { data, isLoading } = useUltraCache();
   return {
     data: data.clients,
-    isLoading,
-    error
+    isLoading
   };
 };

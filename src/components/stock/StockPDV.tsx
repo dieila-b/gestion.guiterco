@@ -6,15 +6,12 @@ import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search, RefreshCw, AlertTriangle } from 'lucide-react';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Search, RefreshCw } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
 import { formatCurrency } from '@/lib/currency';
-import { DataTableSkeleton } from '@/components/ui/data-table-skeleton';
-import { LoadingSpinner } from '@/components/ui/loading-spinner';
-import SyncButton from './SyncButton';
 
 const StockPDV = () => {
-  const { stockPDV, isLoading, error } = useStockPDV();
+  const { stockPDV, isLoading } = useStockPDV();
   const { pointsDeVente } = usePointsDeVente();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedPDV, setSelectedPDV] = useState<string>('all');
@@ -48,17 +45,9 @@ const StockPDV = () => {
       <div className="flex flex-col space-y-4">
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold text-foreground">Gestion du stock point de vente</h1>
-          <div className="flex gap-2">
-            <SyncButton />
-            <Button 
-              variant="outline" 
-              size="icon" 
-              title="Rafraîchir"
-              onClick={() => window.location.reload()}
-            >
-              <RefreshCw className="h-4 w-4" />
-            </Button>
-          </div>
+          <Button variant="outline" size="icon" title="Rafraîchir">
+            <RefreshCw className="h-4 w-4" />
+          </Button>
         </div>
         
         {/* Liste des Articles Header */}
@@ -101,23 +90,13 @@ const StockPDV = () => {
       {/* Table */}
       <Card className="bg-card border-border">
         <CardContent className="p-0">
-          {/* Affichage d'erreur */}
-          {error && (
-            <Alert className="m-4">
-              <AlertTriangle className="h-4 w-4" />
-              <AlertDescription>
-                Erreur lors du chargement des données. Les données sont rechargées automatiquement.
-              </AlertDescription>
-            </Alert>
-          )}
-
           {isLoading ? (
-            <div className="p-6 space-y-4">
-              <div className="flex items-center justify-center py-8">
-                <LoadingSpinner size="lg" />
-                <span className="ml-2 text-muted-foreground">Chargement des données PDV...</span>
-              </div>
-              <DataTableSkeleton columns={7} rows={5} />
+            <div className="p-6 space-y-2">
+              <Skeleton className="h-8 w-full" />
+              <Skeleton className="h-8 w-full" />
+              <Skeleton className="h-8 w-full" />
+              <Skeleton className="h-8 w-full" />
+              <Skeleton className="h-8 w-full" />
             </div>
           ) : (
             <div className="rounded-md border border-border">
@@ -147,20 +126,20 @@ const StockPDV = () => {
                           <TableCell className="text-muted-foreground">
                             {item.article?.reference || 'N/A'}
                           </TableCell>
-                          <TableCell className="text-muted-foreground">
-                            {item.article?.categorie_article?.nom || item.article?.categorie || 'N/A'}
-                          </TableCell>
+                           <TableCell className="text-muted-foreground">
+                             {item.article?.categorie_article?.nom || item.article?.categorie || 'N/A'}
+                           </TableCell>
                           <TableCell className="text-muted-foreground">
                             {item.point_vente?.nom || 'N/A'}
                           </TableCell>
-                          <TableCell className="text-center text-foreground font-medium">
-                            {item.quantite_disponible}
-                            {(item.article?.unite_article?.nom || item.article?.unite_mesure) && (
-                              <span className="text-muted-foreground ml-1">
-                                {item.article?.unite_article?.nom || item.article.unite_mesure}
-                              </span>
-                            )}
-                          </TableCell>
+                           <TableCell className="text-center text-foreground font-medium">
+                             {item.quantite_disponible}
+                             {(item.article?.unite_article?.nom || item.article?.unite_mesure) && (
+                               <span className="text-muted-foreground ml-1">
+                                 {item.article?.unite_article?.nom || item.article.unite_mesure}
+                               </span>
+                             )}
+                           </TableCell>
                           <TableCell className="text-right text-foreground">
                             {formatCurrency(prixUnitaire)}
                           </TableCell>
@@ -182,25 +161,6 @@ const StockPDV = () => {
                   )}
                 </TableBody>
               </Table>
-            </div>
-          )}
-
-          {/* Résumé du stock */}
-          {filteredStock && filteredStock.length > 0 && (
-            <div className="m-4 p-4 bg-muted/50 rounded-lg">
-              <div className="flex justify-between items-center text-sm">
-                <span className="text-muted-foreground">
-                  Total articles: {filteredStock.length}
-                </span>
-                <span className="font-medium text-foreground">
-                  Valeur totale du stock: {formatCurrency(
-                    filteredStock.reduce((total, item) => {
-                      const prixUnitaire = item.article?.prix_vente || item.article?.prix_unitaire || 0;
-                      return total + (item.quantite_disponible * prixUnitaire);
-                    }, 0)
-                  )}
-                </span>
-              </div>
             </div>
           )}
         </CardContent>

@@ -6,26 +6,33 @@ export const useDashboardStats = () => {
   return useQuery({
     queryKey: ['dashboard-stats'],
     queryFn: async () => {
-      console.log('🔄 Récupération des statistiques du tableau de bord...');
+      console.log('Fetching dashboard statistics...');
       
       try {
-        // 1. Articles en Catalogue - compter les articles actifs
+        // 1. Articles en Catalogue - utiliser count pour obtenir un nombre
         const { count: catalogueCount, error: catalogueError } = await supabase
           .from('catalogue')
           .select('*', { count: 'exact', head: true })
           .eq('statut', 'actif');
         
         if (catalogueError) {
-          console.error('❌ Erreur catalogue:', catalogueError);
+          console.error('Error fetching catalogue count:', catalogueError);
+          return {
+            totalCatalogue: 0,
+            stockGlobal: 0,
+            valeurStockAchat: 0,
+            valeurStockVente: 0,
+            margeGlobaleStock: 0,
+            margePourcentage: 0
+          };
         }
 
-        // 2. Stock Principal avec données article - requête simplifiée
-        const { data: stockPrincipal, error: stockPrincipalError } = await supabase
+        // 2. Stock Global et calculs de valeur - optimisé
+        const { data: stockData, error: stockError } = await supabase
           .from('stock_principal')
           .select(`
             quantite_disponible,
-            article_id,
-            catalogue!article_id (
+            article:catalogue!inner (
               prix_achat,
               prix_vente,
               prix_unitaire
@@ -33,17 +40,16 @@ export const useDashboardStats = () => {
           `)
           .gt('quantite_disponible', 0);
         
-        if (stockPrincipalError) {
-          console.warn('⚠️ Erreur stock principal:', stockPrincipalError);
+        if (stockError) {
+          console.error('Error fetching stock data:', stockError);
         }
 
-        // 3. Stock PDV avec données article - requête simplifiée
+        // 3. Stock PDV - optimisé
         const { data: stockPDV, error: stockPDVError } = await supabase
           .from('stock_pdv')
           .select(`
             quantite_disponible,
-            article_id,
-            catalogue!article_id (
+            article:catalogue!inner (
               prix_achat,
               prix_vente,
               prix_unitaire
@@ -52,48 +58,51 @@ export const useDashboardStats = () => {
           .gt('quantite_disponible', 0);
         
         if (stockPDVError) {
-          console.warn('⚠️ Erreur stock PDV:', stockPDVError);
+          console.error('Error fetching PDV stock data:', stockPDVError);
         }
 
-        // Calculs avec gestion d'erreur robuste
+        // Calculs des indicateurs - avec gestion d'erreur
         const totalCatalogue = catalogueCount || 0;
         
-        // Stock global (additionner toutes les quantités)
-        const stockGlobal = (stockPrincipal?.reduce((sum, item) => 
-          sum + (item.quantite_disponible || 0), 0) || 0) + 
-          (stockPDV?.reduce((sum, item) => 
-          sum + (item.quantite_disponible || 0), 0) || 0);
+        // Stock global (stock principal + stock PDV)
+        const stockPrincipalTotal = stockData?.reduce((sum, item) => sum + (item.quantite_disponible || 0), 0) || 0;
+        const stockPDVTotal = stockPDV?.reduce((sum, item) => sum + (item.quantite_disponible || 0), 0) || 0;
+        const stockGlobal = stockPrincipalTotal + stockPDVTotal;
         
-        // Valeurs stock avec fallback sur prix_unitaire
-        const valeurStockAchat = (stockPrincipal?.reduce((sum, item) => {
-          if (!item.catalogue) return sum;
-          const article = Array.isArray(item.catalogue) ? item.catalogue[0] : item.catalogue;
-          const prix = article?.prix_achat || article?.prix_unitaire || 0;
-          return sum + (prix * (item.quantite_disponible || 0));
+        // Valeurs stock avec prix_achat/prix_vente ou fallback sur prix_unitaire
+        const valeurStockAchat = (stockData?.reduce((sum, item) => {
+          const prix = item.article?.prix_achat || item.article?.prix_unitaire || 0;
+          const quantite = item.quantite_disponible || 0;
+          return sum + (prix * quantite);
         }, 0) || 0) + (stockPDV?.reduce((sum, item) => {
-          if (!item.catalogue) return sum;
-          const article = Array.isArray(item.catalogue) ? item.catalogue[0] : item.catalogue;
-          const prix = article?.prix_achat || article?.prix_unitaire || 0;
-          return sum + (prix * (item.quantite_disponible || 0));
+          const prix = item.article?.prix_achat || item.article?.prix_unitaire || 0;
+          const quantite = item.quantite_disponible || 0;
+          return sum + (prix * quantite);
         }, 0) || 0);
         
-        const valeurStockVente = (stockPrincipal?.reduce((sum, item) => {
-          if (!item.catalogue) return sum;
-          const article = Array.isArray(item.catalogue) ? item.catalogue[0] : item.catalogue;
-          const prix = article?.prix_vente || article?.prix_unitaire || 0;
-          return sum + (prix * (item.quantite_disponible || 0));
+        const valeurStockVente = (stockData?.reduce((sum, item) => {
+          const prix = item.article?.prix_vente || item.article?.prix_unitaire || 0;
+          const quantite = item.quantite_disponible || 0;
+          return sum + (prix * quantite);
         }, 0) || 0) + (stockPDV?.reduce((sum, item) => {
-          if (!item.catalogue) return sum;
-          const article = Array.isArray(item.catalogue) ? item.catalogue[0] : item.catalogue;
-          const prix = article?.prix_vente || article?.prix_unitaire || 0;
-          return sum + (prix * (item.quantite_disponible || 0));
+          const prix = item.article?.prix_vente || item.article?.prix_unitaire || 0;
+          const quantite = item.quantite_disponible || 0;
+          return sum + (prix * quantite);
         }, 0) || 0);
         
         const margeGlobaleStock = valeurStockVente - valeurStockAchat;
-        const margePourcentage = valeurStockAchat > 0 ? 
-          ((margeGlobaleStock / valeurStockAchat) * 100) : 0;
+        const margePourcentage = valeurStockAchat > 0 ? ((margeGlobaleStock / valeurStockAchat) * 100) : 0;
 
-        const stats = {
+        console.log('Dashboard stats calculated:', {
+          totalCatalogue,
+          stockGlobal,
+          valeurStockAchat,
+          valeurStockVente,
+          margeGlobaleStock,
+          margePourcentage
+        });
+
+        return {
           totalCatalogue,
           stockGlobal,
           valeurStockAchat,
@@ -101,13 +110,8 @@ export const useDashboardStats = () => {
           margeGlobaleStock,
           margePourcentage
         };
-
-        console.log('✅ Statistiques calculées:', stats);
-        return stats;
-        
       } catch (error) {
-        console.error('❌ Erreur dans useDashboardStats:', error);
-        // Retourner des valeurs par défaut en cas d'erreur
+        console.error('Error in dashboard stats:', error);
         return {
           totalCatalogue: 0,
           stockGlobal: 0,
@@ -118,10 +122,9 @@ export const useDashboardStats = () => {
         };
       }
     },
-    staleTime: 30000, // 30 secondes
-    refetchInterval: 60000, // Actualisation toutes les minutes
-    retry: 3,
-    retryDelay: 2000,
-    refetchOnWindowFocus: true, // Actualiser quand la fenêtre reprend le focus
+    staleTime: 60000, // 1 minute
+    refetchInterval: 300000, // Actualisation toutes les 5 minutes au lieu de 30 secondes
+    retry: 2,
+    retryDelay: 1000,
   });
 };

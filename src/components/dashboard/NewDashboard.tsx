@@ -9,7 +9,6 @@ import MainStatsCards from './components/MainStatsCards';
 import IconStatsCards from './components/IconStatsCards';
 import BottomStatsCards from './components/BottomStatsCards';
 import SituationCard from './components/SituationCard';
-import SyncDashboardButton from './SyncDashboardButton';
 
 const NewDashboard = () => {
   const { data: stats, isLoading, error } = useAdvancedDashboardStats();
@@ -39,15 +38,6 @@ const NewDashboard = () => {
 
   return (
     <div className="space-y-8 p-6 bg-gray-50 min-h-screen">
-      {/* Header avec bouton de synchronisation */}
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Tableau de bord</h1>
-          <p className="text-gray-600">Bienvenue sur votre tableau de bord GulTerCo</p>
-        </div>
-        <SyncDashboardButton />
-      </div>
-
       {/* Ligne du haut - 4 cartes principales colorées */}
       <MainStatsCards
         stats={stats}
