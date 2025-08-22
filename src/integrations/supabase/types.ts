@@ -3962,6 +3962,21 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: string
       }
+      get_dashboard_complete_stats: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          marge_globale_stock: number
+          marge_pourcentage: number
+          nb_clients: number
+          nb_entrepots: number
+          nb_fournisseurs: number
+          nb_pdv: number
+          stock_global: number
+          total_catalogue: number
+          valeur_stock_achat: number
+          valeur_stock_vente: number
+        }[]
+      }
       get_factures_avec_marges: {
         Args: Record<PropertyKey, never>
         Returns: {

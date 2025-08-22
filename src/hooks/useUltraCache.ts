@@ -3,10 +3,10 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useEffect } from 'react';
 
-// Cache ultra-agressif - 2 heures pour tout
-const ULTRA_CACHE_TIME = 2 * 60 * 60 * 1000;
+// Cache ultra-agressif - 30 minutes pour tout
+const ULTRA_CACHE_TIME = 30 * 60 * 1000;
 
-// Hook principal qui charge TOUT en une seule fois
+// Hook principal qui charge TOUT en une seule fois avec les vraies données
 export const useUltraCache = () => {
   const queryClient = useQueryClient();
 
@@ -15,20 +15,21 @@ export const useUltraCache = () => {
     // Précharger en arrière-plan
     queryClient.prefetchQuery({
       queryKey: ['ultra-all-data'],
-      queryFn: fetchAllData,
+      queryFn: fetchAllRealData,
       staleTime: ULTRA_CACHE_TIME,
     });
   }, [queryClient]);
 
   const { data, isLoading } = useQuery({
     queryKey: ['ultra-all-data'],
-    queryFn: fetchAllData,
+    queryFn: fetchAllRealData,
     staleTime: ULTRA_CACHE_TIME,
     gcTime: ULTRA_CACHE_TIME,
     refetchOnWindowFocus: false,
     refetchOnMount: false,
     refetchOnReconnect: false,
-    retry: false,
+    retry: 3,
+    retryDelay: 1000,
   });
 
   return {
@@ -40,40 +41,53 @@ export const useUltraCache = () => {
   };
 };
 
-// Fonction qui récupère TOUTES les données avec les vues matérialisées optimisées
-const fetchAllData = async () => {
-  console.log('🚀 Chargement ultra-rapide depuis les vues matérialisées synchronisées...');
+// Fonction qui récupère TOUTES les données directement depuis les tables principales
+const fetchAllRealData = async () => {
+  console.log('🚀 Chargement synchronisé des données réelles depuis Supabase...');
   
   try {
+    // D'abord, rafraîchir les vues matérialisées
+    await supabase.rpc('refresh_stock_views');
+
     const [
       catalogueResult,
-      stockResult,
+      stockPrincipalResult,
+      stockPDVResult,
       configResult,
       clientsResult
     ] = await Promise.allSettled([
-      // Catalogue depuis la vue matérialisée optimisée
-      fetchCatalogueFromView(),
+      // Catalogue depuis la vue optimisée
+      fetchCatalogueData(),
       
-      // Stock depuis la vue matérialisée complète
-      fetchStockFromView(),
+      // Stock principal avec relations complètes
+      fetchStockPrincipalData(),
+      
+      // Stock PDV avec relations complètes
+      fetchStockPDVData(),
       
       // Configuration
-      fetchConfigWithFallback(),
+      fetchConfigData(),
       
       // Clients
-      fetchClientsWithFallback()
+      fetchClientsData()
     ]);
 
-    console.log('✅ Résultats du chargement depuis vues matérialisées:', {
+    console.log('✅ Résultats du chargement des données réelles:', {
       catalogue: catalogueResult.status === 'fulfilled' ? catalogueResult.value?.length : 0,
-      stock: stockResult.status === 'fulfilled' ? stockResult.value?.length : 0,
+      stockPrincipal: stockPrincipalResult.status === 'fulfilled' ? stockPrincipalResult.value?.length : 0,
+      stockPDV: stockPDVResult.status === 'fulfilled' ? stockPDVResult.value?.length : 0,
       config: configResult.status === 'fulfilled' ? 'OK' : 'ERROR',
       clients: clientsResult.status === 'fulfilled' ? clientsResult.value?.length : 0
     });
 
     return {
       catalogue: catalogueResult.status === 'fulfilled' ? catalogueResult.value || [] : [],
-      stock: stockResult.status === 'fulfilled' ? stockResult.value || [] : [],
+      stockPrincipal: stockPrincipalResult.status === 'fulfilled' ? stockPrincipalResult.value || [] : [],
+      stockPDV: stockPDVResult.status === 'fulfilled' ? stockPDVResult.value || [] : [],
+      stock: [
+        ...(stockPrincipalResult.status === 'fulfilled' ? stockPrincipalResult.value || [] : []).map(s => ({ ...s, type_stock: 'entrepot' })),
+        ...(stockPDVResult.status === 'fulfilled' ? stockPDVResult.value || [] : []).map(s => ({ ...s, type_stock: 'point_vente' }))
+      ],
       config: configResult.status === 'fulfilled' ? configResult.value || getDefaultConfig() : getDefaultConfig(),
       clients: clientsResult.status === 'fulfilled' ? clientsResult.value || [] : [],
       timestamp: Date.now()
@@ -84,22 +98,27 @@ const fetchAllData = async () => {
   }
 };
 
-// Catalogue depuis la vue matérialisée optimisée
-const fetchCatalogueFromView = async () => {
+// Catalogue avec toutes les relations
+const fetchCatalogueData = async () => {
   try {
-    console.log('📦 Chargement du catalogue depuis vue_catalogue_optimise...');
+    console.log('📦 Chargement du catalogue complet...');
     
     const { data, error } = await supabase
-      .from('vue_catalogue_optimise')
-      .select('*')
-      .limit(1000);
+      .from('catalogue')
+      .select(`
+        *,
+        categories:categorie_id(nom, couleur),
+        unites:unite_id(nom, symbole, type_unite)
+      `)
+      .eq('statut', 'actif')
+      .order('nom');
     
     if (error) {
-      console.error('❌ Erreur vue catalogue:', error);
+      console.error('❌ Erreur catalogue:', error);
       throw error;
     }
     
-    console.log('✅ Catalogue chargé depuis vue matérialisée:', data?.length || 0, 'articles');
+    console.log('✅ Catalogue chargé:', data?.length || 0, 'articles');
     return data || [];
     
   } catch (error) {
@@ -108,39 +127,83 @@ const fetchCatalogueFromView = async () => {
   }
 };
 
-// Stock depuis la vue matérialisée complète
-const fetchStockFromView = async () => {
+// Stock principal avec toutes les relations
+const fetchStockPrincipalData = async () => {
   try {
-    console.log('📊 Chargement du stock depuis vue_stock_complet...');
+    console.log('📊 Chargement du stock principal...');
     
     const { data, error } = await supabase
-      .from('vue_stock_complet')
-      .select('*')
-      .limit(2000);
+      .from('stock_principal')
+      .select(`
+        *,
+        article:article_id(
+          id, reference, nom, prix_vente, prix_achat, prix_unitaire, 
+          statut, categorie, unite_mesure,
+          categories:categorie_id(nom),
+          unites:unite_id(nom, symbole)
+        ),
+        entrepot:entrepot_id(id, nom, statut)
+      `)
+      .gt('quantite_disponible', 0)
+      .order('updated_at', { ascending: false });
     
     if (error) {
-      console.error('❌ Erreur vue stock:', error);
+      console.error('❌ Erreur stock principal:', error);
       throw error;
     }
     
-    console.log('✅ Stock chargé depuis vue matérialisée:', data?.length || 0, 'entrées');
+    console.log('✅ Stock principal chargé:', data?.length || 0, 'entrées');
     return data || [];
     
   } catch (error) {
-    console.error('❌ Erreur stock:', error);
+    console.error('❌ Erreur stock principal:', error);
     return [];
   }
 };
 
-// Configuration avec fallback
-const fetchConfigWithFallback = async () => {
+// Stock PDV avec toutes les relations
+const fetchStockPDVData = async () => {
+  try {
+    console.log('📊 Chargement du stock PDV...');
+    
+    const { data, error } = await supabase
+      .from('stock_pdv')
+      .select(`
+        *,
+        article:article_id(
+          id, reference, nom, prix_vente, prix_achat, prix_unitaire, 
+          statut, categorie, unite_mesure,
+          categories:categorie_id(nom),
+          unites:unite_id(nom, symbole)
+        ),
+        point_vente:point_vente_id(id, nom, statut)
+      `)
+      .gt('quantite_disponible', 0)
+      .order('updated_at', { ascending: false });
+    
+    if (error) {
+      console.error('❌ Erreur stock PDV:', error);
+      throw error;
+    }
+    
+    console.log('✅ Stock PDV chargé:', data?.length || 0, 'entrées');
+    return data || [];
+    
+  } catch (error) {
+    console.error('❌ Erreur stock PDV:', error);
+    return [];
+  }
+};
+
+// Configuration avec toutes les données
+const fetchConfigData = async () => {
   try {
     console.log('⚙️ Chargement de la configuration...');
     
     const [entrepotResult, pdvResult, unitesResult] = await Promise.allSettled([
-      supabase.from('entrepots').select('id, nom, statut').eq('statut', 'actif').limit(50),
-      supabase.from('points_de_vente').select('id, nom, statut').eq('statut', 'actif').limit(50),
-      supabase.from('unites').select('id, nom, symbole, type_unite').limit(50)
+      supabase.from('entrepots').select('*').eq('statut', 'actif').order('nom'),
+      supabase.from('points_de_vente').select('*').eq('statut', 'actif').order('nom'),
+      supabase.from('unites').select('*').order('nom')
     ]);
     
     const config = {
@@ -163,16 +226,16 @@ const fetchConfigWithFallback = async () => {
   }
 };
 
-// Clients avec fallback
-const fetchClientsWithFallback = async () => {
+// Clients complets
+const fetchClientsData = async () => {
   try {
     console.log('👥 Chargement des clients...');
     
     const { data, error } = await supabase
       .from('clients')
-      .select('id, nom, prenom, email, telephone, statut_client')
+      .select('*')
       .eq('statut_client', 'actif')
-      .limit(200);
+      .order('nom');
     
     if (error) {
       console.error('❌ Erreur clients:', error);
@@ -190,6 +253,8 @@ const fetchClientsWithFallback = async () => {
 
 const getDefaultData = () => ({
   catalogue: [],
+  stockPrincipal: [],
+  stockPDV: [],
   stock: [],
   config: getDefaultConfig(),
   clients: [],
@@ -202,7 +267,7 @@ const getDefaultConfig = () => ({
   unites: []
 });
 
-// Hooks spécialisés ultra-rapides utilisant les vues matérialisées
+// Hooks spécialisés ultra-rapides utilisant les données réelles
 export const useUltraFastCatalogue = () => {
   const { data, isLoading } = useUltraCache();
   return {
@@ -214,74 +279,9 @@ export const useUltraFastCatalogue = () => {
 export const useUltraFastStock = () => {
   const { data, isLoading } = useUltraCache();
   
-  // Séparer le stock par type depuis la vue matérialisée
-  const stockEntrepot = data.stock
-    .filter(s => s.type_stock === 'entrepot')
-    .map(s => ({
-      id: s.id,
-      article_id: s.article_id,
-      entrepot_id: s.entrepot_id,
-      quantite_disponible: s.quantite_disponible,
-      quantite_reservee: s.quantite_reservee || 0,
-      emplacement: s.emplacement,
-      derniere_entree: s.derniere_entree,
-      derniere_sortie: s.derniere_sortie,
-      created_at: s.created_at,
-      updated_at: s.updated_at,
-      article: {
-        id: s.article_id,
-        reference: s.article_reference,
-        nom: s.article_nom,
-        prix_vente: s.prix_vente,
-        prix_achat: s.prix_achat,
-        prix_unitaire: s.prix_vente,
-        statut: s.article_statut,
-        categorie: s.categorie_nom || 'Général',
-        unite_mesure: s.unite_nom || 'U',
-        categorie_article: { nom: s.categorie_nom || 'Général' },
-        unite_article: { nom: s.unite_nom || 'U', symbole: s.unite_symbole || 'U' }
-      },
-      entrepot: {
-        id: s.entrepot_id,
-        nom: s.location_nom,
-        statut: 'actif'
-      }
-    }));
-
-  const stockPDV = data.stock
-    .filter(s => s.type_stock === 'point_vente')
-    .map(s => ({
-      id: s.id,
-      article_id: s.article_id,
-      point_vente_id: s.point_vente_id,
-      quantite_disponible: s.quantite_disponible,
-      quantite_minimum: 0,
-      derniere_livraison: s.derniere_entree,
-      created_at: s.created_at,
-      updated_at: s.updated_at,
-      article: {
-        id: s.article_id,
-        reference: s.article_reference,
-        nom: s.article_nom,
-        prix_vente: s.prix_vente,
-        prix_achat: s.prix_achat,
-        prix_unitaire: s.prix_vente,
-        statut: s.article_statut,
-        categorie: s.categorie_nom || 'Général',
-        unite_mesure: s.unite_nom || 'U',
-        categorie_article: { nom: s.categorie_nom || 'Général' },
-        unite_article: { nom: s.unite_nom || 'U', symbole: s.unite_symbole || 'U' }
-      },
-      point_vente: {
-        id: s.point_vente_id,
-        nom: s.location_nom,
-        statut: 'actif'
-      }
-    }));
-
   return {
-    stockEntrepot,
-    stockPDV,
+    stockEntrepot: data.stockPrincipal,
+    stockPDV: data.stockPDV,
     isLoading,
     error: null
   };
