@@ -37,9 +37,13 @@ export const useVenteComptoirState = () => {
     
     const categorySet = new Set<string>();
     venteComptoir.stockPDV.forEach(stockItem => {
-      if (stockItem.article?.categorie && stockItem.article.categorie.trim()) {
-        categorySet.add(stockItem.article.categorie);
-        console.log('Added category:', stockItem.article.categorie);
+      if (stockItem.article) {
+        // Utiliser la nouvelle structure avec categories
+        const categoryName = stockItem.article.categories?.nom || stockItem.article.categorie;
+        if (categoryName && categoryName.trim()) {
+          categorySet.add(categoryName);
+          console.log('Added category:', categoryName);
+        }
       }
     });
     

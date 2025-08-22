@@ -15,14 +15,18 @@ export const useUltraCache = () => {
   };
 };
 
-// Fonction de chargement du catalogue - SIMPLIFIÉE
+// Fonction de chargement du catalogue - AVEC TOUTES LES PROPRIÉTÉS
 const fetchCatalogueData = async () => {
   try {
     console.log('📦 Chargement du catalogue...');
     
     const { data, error } = await supabase
       .from('catalogue')
-      .select('*')
+      .select(`
+        *,
+        categories:categories_catalogue!catalogue_categorie_id_fkey(nom, couleur),
+        unites:unites!catalogue_unite_id_fkey(nom, symbole, type_unite)
+      `)
       .eq('statut', 'actif')
       .order('nom');
     
@@ -40,7 +44,7 @@ const fetchCatalogueData = async () => {
   }
 };
 
-// Fonction de chargement du stock principal - SIMPLIFIÉE
+// Fonction de chargement du stock principal - AVEC RELATIONS COMPLÈTES
 const fetchStockPrincipalData = async () => {
   try {
     console.log('📊 Chargement du stock principal...');
@@ -49,11 +53,16 @@ const fetchStockPrincipalData = async () => {
       .from('stock_principal')
       .select(`
         *,
-        article:catalogue!stock_principal_article_id_fkey(id, nom, reference, prix_vente, prix_achat),
+        article:catalogue!stock_principal_article_id_fkey(
+          id, nom, reference, prix_vente, prix_achat, prix_unitaire, 
+          categorie, unite_mesure, seuil_alerte, image_url,
+          categories:categories_catalogue!catalogue_categorie_id_fkey(nom),
+          unites:unites!catalogue_unite_id_fkey(nom, symbole)
+        ),
         entrepot:entrepots!stock_principal_entrepot_id_fkey(id, nom)
       `)
       .gt('quantite_disponible', 0)
-      .limit(100); // Limiter pour éviter les requêtes trop lourdes
+      .limit(100);
     
     if (error) {
       console.error('❌ Erreur stock principal:', error);
@@ -69,7 +78,7 @@ const fetchStockPrincipalData = async () => {
   }
 };
 
-// Fonction de chargement du stock PDV - SIMPLIFIÉE
+// Fonction de chargement du stock PDV - AVEC RELATIONS COMPLÈTES
 const fetchStockPDVData = async () => {
   try {
     console.log('📊 Chargement du stock PDV...');
@@ -78,11 +87,16 @@ const fetchStockPDVData = async () => {
       .from('stock_pdv')
       .select(`
         *,
-        article:catalogue!stock_pdv_article_id_fkey(id, nom, reference, prix_vente, prix_achat),
+        article:catalogue!stock_pdv_article_id_fkey(
+          id, nom, reference, prix_vente, prix_achat, prix_unitaire,
+          categorie, unite_mesure, seuil_alerte, image_url,
+          categories:categories_catalogue!catalogue_categorie_id_fkey(nom),
+          unites:unites!catalogue_unite_id_fkey(nom, symbole)
+        ),
         point_vente:points_de_vente!stock_pdv_point_vente_id_fkey(id, nom)
       `)
       .gt('quantite_disponible', 0)
-      .limit(100); // Limiter pour éviter les requêtes trop lourdes
+      .limit(100);
     
     if (error) {
       console.error('❌ Erreur stock PDV:', error);
@@ -100,16 +114,21 @@ const fetchStockPDVData = async () => {
 
 // Hooks spécialisés avec cache réduit et requêtes individuelles
 export const useUltraFastCatalogue = () => {
-  return useQuery({
+  const query = useQuery({
     queryKey: ['catalogue-simple'],
     queryFn: fetchCatalogueData,
     staleTime: CACHE_TIME,
     gcTime: CACHE_TIME,
     refetchOnWindowFocus: false,
-    refetchOnMount: true, // Permettre le rafraîchissement au montage
+    refetchOnMount: true,
     retry: 1,
     retryDelay: 500,
   });
+
+  return {
+    ...query,
+    articles: query.data || []
+  };
 };
 
 export const useUltraFastStock = () => {
@@ -216,7 +235,7 @@ export const useUltraFastClients = () => {
         .select('*')
         .eq('statut_client', 'actif')
         .order('nom')
-        .limit(50); // Limiter pour éviter les requêtes trop lourdes
+        .limit(50);
       
       if (error) {
         console.error('❌ Erreur clients:', error);

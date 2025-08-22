@@ -9,6 +9,7 @@ export interface ArticleOptimized {
   description?: string;
   prix_vente?: number;
   prix_achat?: number;
+  prix_unitaire?: number;
   categorie?: string;
   categories?: {
     nom: string;

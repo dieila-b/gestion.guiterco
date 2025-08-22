@@ -150,7 +150,7 @@ const VenteComptoirModern = () => {
                 >
                   Biscuits
                 </Button>
-                {categories.map((category) => (
+                {categories.map((category: string) => (
                   <Button
                     key={category}
                     variant={selectedCategory === category ? 'default' : 'outline'}
@@ -177,7 +177,7 @@ const VenteComptoirModern = () => {
                 </div>
               ) : (
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                  {articles.map((article) => (
+                  {articles.map((article: any) => (
                     <div 
                       key={article.id}
                       className="border rounded-lg p-3 hover:shadow-md transition-all cursor-pointer bg-background"
