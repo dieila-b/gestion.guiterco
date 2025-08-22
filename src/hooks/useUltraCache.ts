@@ -1,247 +1,219 @@
 
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { useEffect } from 'react';
 
-// Cache ultra-court pour des données fraîches - 30 secondes seulement
-const CACHE_TIME = 30 * 1000;
-
-// Hook principal ultra-simplifié
-export const useUltraCache = () => {
-  return {
-    refreshAll: () => {
-      console.log('🔄 Rafraîchissement global demandé');
-    }
-  };
-};
-
-// Fonction de chargement du catalogue - VERSION ULTRA-SIMPLE
-const fetchCatalogueData = async () => {
-  try {
-    console.log('📦 Chargement catalogue ultra-rapide...');
-    
-    const { data, error } = await supabase
-      .from('catalogue')
-      .select('id, nom, reference, prix_vente, prix_achat, prix_unitaire, categorie, unite_mesure, seuil_alerte, image_url, statut')
-      .eq('statut', 'actif')
-      .order('nom')
-      .limit(100); // Limite stricte
-    
-    if (error) {
-      console.error('❌ Erreur catalogue:', error);
-      return [];
-    }
-    
-    console.log('✅ Catalogue chargé ultra-rapide:', data?.length || 0, 'articles');
-    return data || [];
-    
-  } catch (error) {
-    console.error('❌ Erreur catalogue:', error);
-    return [];
-  }
-};
-
-// Fonction de chargement du stock principal - VERSION ULTRA-SIMPLE
-const fetchStockPrincipalData = async () => {
-  try {
-    console.log('📊 Chargement stock principal ultra-rapide...');
-    
-    const { data, error } = await supabase
-      .from('stock_principal')
-      .select(`
-        id, article_id, entrepot_id, quantite_disponible, quantite_reservee, seuil_alerte,
-        article:catalogue!stock_principal_article_id_fkey(id, nom, reference, prix_vente, prix_achat, prix_unitaire),
-        entrepot:entrepots!stock_principal_entrepot_id_fkey(id, nom)
-      `)
-      .gt('quantite_disponible', 0)
-      .limit(50); // Limite très stricte
-    
-    if (error) {
-      console.error('❌ Erreur stock principal:', error);
-      return [];
-    }
-    
-    console.log('✅ Stock principal chargé ultra-rapide:', data?.length || 0, 'entrées');
-    return data || [];
-    
-  } catch (error) {
-    console.error('❌ Erreur stock principal:', error);
-    return [];
-  }
-};
-
-// Fonction de chargement du stock PDV - VERSION ULTRA-SIMPLE
-const fetchStockPDVData = async () => {
-  try {
-    console.log('📊 Chargement stock PDV ultra-rapide...');
-    
-    const { data, error } = await supabase
-      .from('stock_pdv')
-      .select(`
-        id, article_id, point_vente_id, quantite_disponible, quantite_reservee, seuil_alerte,
-        article:catalogue!stock_pdv_article_id_fkey(id, nom, reference, prix_vente, prix_achat, prix_unitaire),
-        point_vente:points_de_vente!stock_pdv_point_vente_id_fkey(id, nom)
-      `)
-      .gt('quantite_disponible', 0)
-      .limit(50); // Limite très stricte
-    
-    if (error) {
-      console.error('❌ Erreur stock PDV:', error);
-      return [];
-    }
-    
-    console.log('✅ Stock PDV chargé ultra-rapide:', data?.length || 0, 'entrées');
-    return data || [];
-    
-  } catch (error) {
-    console.error('❌ Erreur stock PDV:', error);
-    return [];
-  }
-};
-
-// Hooks spécialisés ultra-rapides avec cache minimal
+// Optimisation ultra-rapide avec limite stricte de données
 export const useUltraFastCatalogue = () => {
-  const query = useQuery({
-    queryKey: ['catalogue-ultra-fast'],
-    queryFn: fetchCatalogueData,
-    staleTime: CACHE_TIME,
-    gcTime: CACHE_TIME * 2,
+  return useQuery({
+    queryKey: ['ultra-catalogue'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('catalogue')
+        .select(`
+          id,
+          nom,
+          reference,
+          prix_vente,
+          prix_achat,
+          prix_unitaire,
+          categorie,
+          unite_mesure,
+          seuil_alerte,
+          image_url,
+          statut,
+          categories:categories_catalogue(nom),
+          unites:unites(nom)
+        `)
+        .eq('statut', 'actif')
+        .limit(100); // Limite stricte
+      
+      if (error) throw error;
+      return data || [];
+    },
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes
     refetchOnWindowFocus: false,
-    refetchOnMount: false, // Pas de refetch automatique
-    retry: 0, // Pas de retry
-    networkMode: 'online',
+    refetchOnMount: false,
+    retry: false
   });
-
-  return {
-    ...query,
-    articles: query.data || []
-  };
 };
 
 export const useUltraFastStock = () => {
-  const stockPrincipal = useQuery({
-    queryKey: ['stock-principal-ultra-fast'],
-    queryFn: fetchStockPrincipalData,
-    staleTime: CACHE_TIME,
-    gcTime: CACHE_TIME * 2,
+  return useQuery({
+    queryKey: ['ultra-stock'],
+    queryFn: async () => {
+      // Stock entrepôt avec toutes les colonnes nécessaires
+      const { data: stockEntrepot, error: errorEntrepot } = await supabase
+        .from('stock_principal')
+        .select(`
+          id,
+          article_id,
+          entrepot_id,
+          quantite_disponible,
+          quantite_reservee,
+          emplacement,
+          derniere_entree,
+          derniere_sortie,
+          created_at,
+          updated_at,
+          article:catalogue(
+            id,
+            nom,
+            reference,
+            prix_vente,
+            prix_achat,
+            prix_unitaire,
+            categorie,
+            unite_mesure,
+            seuil_alerte,
+            image_url,
+            categories:categories_catalogue(nom),
+            unites:unites(nom)
+          ),
+          entrepot:entrepots(
+            id,
+            nom,
+            adresse,
+            capacite_max,
+            gestionnaire,
+            statut,
+            created_at,
+            updated_at
+          )
+        `)
+        .gt('quantite_disponible', 0)
+        .limit(50);
+
+      // Stock PDV avec toutes les colonnes nécessaires
+      const { data: stockPDV, error: errorPDV } = await supabase
+        .from('stock_pdv')
+        .select(`
+          id,
+          article_id,
+          point_vente_id,
+          quantite_disponible,
+          quantite_minimum,
+          derniere_livraison,
+          created_at,
+          updated_at,
+          article:catalogue(
+            id,
+            nom,
+            reference,
+            prix_vente,
+            prix_achat,
+            prix_unitaire,
+            categorie,
+            unite_mesure,
+            seuil_alerte,
+            image_url,
+            categories:categories_catalogue(nom),
+            unites:unites(nom)
+          ),
+          point_vente:points_de_vente(
+            id,
+            nom,
+            adresse,
+            type_pdv,
+            responsable,
+            statut,
+            created_at,
+            updated_at
+          )
+        `)
+        .gt('quantite_disponible', 0)
+        .limit(50);
+
+      // Gérer les erreurs potentielles mais retourner les données disponibles
+      const stockEntrepotData = errorEntrepot ? [] : (stockEntrepot || []);
+      const stockPDVData = errorPDV ? [] : (stockPDV || []);
+
+      return {
+        stockEntrepot: stockEntrepotData,
+        stockPDV: stockPDVData
+      };
+    },
+    staleTime: 3 * 60 * 1000, // 3 minutes
+    gcTime: 6 * 60 * 1000, // 6 minutes
     refetchOnWindowFocus: false,
     refetchOnMount: false,
-    retry: 0,
-    networkMode: 'online',
+    retry: false
   });
-
-  const stockPDV = useQuery({
-    queryKey: ['stock-pdv-ultra-fast'],
-    queryFn: fetchStockPDVData,
-    staleTime: CACHE_TIME,
-    gcTime: CACHE_TIME * 2,
-    refetchOnWindowFocus: false,
-    refetchOnMount: false,
-    retry: 0,
-    networkMode: 'online',
-  });
-
-  return {
-    stockEntrepot: stockPrincipal.data || [],
-    stockPDV: stockPDV.data || [],
-    isLoading: stockPrincipal.isLoading || stockPDV.isLoading,
-    error: stockPrincipal.error || stockPDV.error
-  };
 };
 
 export const useUltraFastConfig = () => {
-  const entrepots = useQuery({
-    queryKey: ['entrepots-ultra-fast'],
+  return useQuery({
+    queryKey: ['ultra-config'],
     queryFn: async () => {
-      const { data, error } = await supabase
+      // Entrepôts avec toutes les colonnes
+      const { data: entrepots, error: errorEntrepots } = await supabase
         .from('entrepots')
-        .select('id, nom, adresse, statut')
+        .select(`
+          id,
+          nom,
+          adresse,
+          capacite_max,
+          gestionnaire,
+          statut,
+          created_at,
+          updated_at
+        `)
         .eq('statut', 'actif')
-        .order('nom')
         .limit(20);
-      if (error) return [];
-      return data || [];
-    },
-    staleTime: CACHE_TIME * 2, // Plus long car moins volatile
-    gcTime: CACHE_TIME * 4,
-    refetchOnWindowFocus: false,
-    refetchOnMount: false,
-    retry: 0,
-  });
 
-  const pointsDeVente = useQuery({
-    queryKey: ['points-de-vente-ultra-fast'],
-    queryFn: async () => {
-      const { data, error } = await supabase
+      // Points de vente avec toutes les colonnes
+      const { data: pointsDeVente, error: errorPDV } = await supabase
         .from('points_de_vente')
-        .select('id, nom, adresse, statut')
+        .select(`
+          id,
+          nom,
+          adresse,
+          type_pdv,
+          responsable,
+          statut,
+          created_at,
+          updated_at
+        `)
         .eq('statut', 'actif')
-        .order('nom')
         .limit(20);
-      if (error) return [];
-      return data || [];
-    },
-    staleTime: CACHE_TIME * 2,
-    gcTime: CACHE_TIME * 4,
-    refetchOnWindowFocus: false,
-    refetchOnMount: false,
-    retry: 0,
-  });
 
-  const unites = useQuery({
-    queryKey: ['unites-ultra-fast'],
-    queryFn: async () => {
-      const { data, error } = await supabase
+      // Unités
+      const { data: unites, error: errorUnites } = await supabase
         .from('unites')
-        .select('id, nom, symbole, type_unite')
-        .order('nom')
-        .limit(50);
-      if (error) return [];
-      return data || [];
+        .select('id, nom, symbole')
+        .limit(20);
+
+      return {
+        entrepots: errorEntrepots ? [] : (entrepots || []),
+        pointsDeVente: errorPDV ? [] : (pointsDeVente || []),
+        unites: errorUnites ? [] : (unites || [])
+      };
     },
-    staleTime: CACHE_TIME * 4, // Très long car très stable
-    gcTime: CACHE_TIME * 8,
+    staleTime: 10 * 60 * 1000, // 10 minutes
+    gcTime: 20 * 60 * 1000, // 20 minutes
     refetchOnWindowFocus: false,
     refetchOnMount: false,
-    retry: 0,
+    retry: false
   });
-
-  return {
-    entrepots: entrepots.data || [],
-    pointsDeVente: pointsDeVente.data || [],
-    unites: (unites.data || []).map(u => ({
-      ...u,
-      type_unite: u.type_unite || 'quantite'
-    })),
-    isLoading: entrepots.isLoading || pointsDeVente.isLoading || unites.isLoading
-  };
 };
 
 export const useUltraFastClients = () => {
   return useQuery({
-    queryKey: ['clients-ultra-fast'],
+    queryKey: ['ultra-clients'],
     queryFn: async () => {
-      console.log('👥 Chargement clients ultra-rapide...');
-      
       const { data, error } = await supabase
         .from('clients')
-        .select('id, nom, prenom, email, telephone, type_client, statut_client')
+        .select('id, nom, prenom, email, telephone, statut_client')
         .eq('statut_client', 'actif')
-        .order('nom')
-        .limit(30); // Limite très stricte
+        .limit(30);
       
-      if (error) {
-        console.error('❌ Erreur clients:', error);
-        return [];
-      }
-      
-      console.log('✅ Clients chargés ultra-rapide:', data?.length || 0);
+      if (error) return [];
       return data || [];
     },
-    staleTime: CACHE_TIME,
-    gcTime: CACHE_TIME * 2,
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
     refetchOnWindowFocus: false,
     refetchOnMount: false,
-    retry: 0,
+    retry: false
   });
 };
