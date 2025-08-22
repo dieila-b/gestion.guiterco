@@ -10,19 +10,24 @@ export const useEntreesStock = () => {
   const { data: entrees, isLoading, error } = useQuery({
     queryKey: ['entrees-stock'],
     queryFn: async () => {
+      console.log('🔄 Chargement des entrées de stock...');
+      
       const { data, error } = await supabase
         .from('entrees_stock')
         .select(`
           *,
-          article:article_id(*),
-          entrepot:entrepot_id(*),
-          point_vente:point_vente_id(*)
+          article:catalogue!entrees_stock_article_id_fkey(*),
+          entrepot:entrepots!entrees_stock_entrepot_id_fkey(*),
+          point_vente:points_de_vente!entrees_stock_point_vente_id_fkey(*)
         `)
         .order('created_at', { ascending: false });
       
       if (error) {
+        console.error('❌ Erreur lors du chargement des entrées de stock:', error);
         throw error;
       }
+      
+      console.log('✅ Entrées de stock chargées:', data?.length || 0);
       return data as EntreeStock[];
     }
   });
@@ -98,9 +103,9 @@ export const useEntreesStock = () => {
         .insert(newEntree)
         .select(`
           *,
-          article:article_id(*),
-          entrepot:entrepot_id(*),
-          point_vente:point_vente_id(*)
+          article:catalogue!entrees_stock_article_id_fkey(*),
+          entrepot:entrepots!entrees_stock_entrepot_id_fkey(*),
+          point_vente:points_de_vente!entrees_stock_point_vente_id_fkey(*)
         `)
         .single();
       
@@ -109,6 +114,7 @@ export const useEntreesStock = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['entrees-stock'] });
+      queryClient.invalidateQueries({ queryKey: ['ultra-all-data'] });
       queryClient.invalidateQueries({ queryKey: ['stock-principal'] });
       queryClient.invalidateQueries({ queryKey: ['stock-pdv'] });
       toast({

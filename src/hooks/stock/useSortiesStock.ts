@@ -10,18 +10,23 @@ export const useSortiesStock = () => {
   const { data: sorties, isLoading, error } = useQuery({
     queryKey: ['sorties-stock'],
     queryFn: async () => {
+      console.log('🔄 Chargement des sorties de stock...');
+      
       const { data, error } = await supabase
         .from('sorties_stock')
         .select(`
           *,
-          article:article_id(*),
-          entrepot:entrepot_id(*)
+          article:catalogue!sorties_stock_article_id_fkey(*),
+          entrepot:entrepots!sorties_stock_entrepot_id_fkey(*)
         `)
         .order('created_at', { ascending: false });
       
       if (error) {
+        console.error('❌ Erreur lors du chargement des sorties de stock:', error);
         throw error;
       }
+      
+      console.log('✅ Sorties de stock chargées:', data?.length || 0);
       return data as SortieStock[];
     }
   });
@@ -31,7 +36,11 @@ export const useSortiesStock = () => {
       const { data, error } = await supabase
         .from('sorties_stock')
         .insert(newSortie)
-        .select()
+        .select(`
+          *,
+          article:catalogue!sorties_stock_article_id_fkey(*),
+          entrepot:entrepots!sorties_stock_entrepot_id_fkey(*)
+        `)
         .single();
       
       if (error) throw error;
@@ -39,6 +48,7 @@ export const useSortiesStock = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['sorties-stock'] });
+      queryClient.invalidateQueries({ queryKey: ['ultra-all-data'] });
       queryClient.invalidateQueries({ queryKey: ['stock-principal'] });
       toast({
         title: "Sortie de stock créée avec succès",
@@ -46,6 +56,7 @@ export const useSortiesStock = () => {
       });
     },
     onError: (error) => {
+      console.error('Erreur lors de la création de la sortie:', error);
       toast({
         title: "Erreur lors de la création de la sortie de stock",
         description: error.message,

@@ -27,7 +27,10 @@ const SyncButton = () => {
         queryClient.invalidateQueries({ queryKey: ['stock-pdv'] }),
         queryClient.invalidateQueries({ queryKey: ['entrepots'] }),
         queryClient.invalidateQueries({ queryKey: ['points-de-vente'] }),
-        queryClient.invalidateQueries({ queryKey: ['clients'] })
+        queryClient.invalidateQueries({ queryKey: ['clients'] }),
+        queryClient.invalidateQueries({ queryKey: ['entrees-stock'] }),
+        queryClient.invalidateQueries({ queryKey: ['sorties-stock'] }),
+        queryClient.invalidateQueries({ queryKey: ['transferts'] })
       ]);
       
       console.log('✅ Synchronisation complète terminée');
