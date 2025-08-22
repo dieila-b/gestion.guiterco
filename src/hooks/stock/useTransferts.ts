@@ -1,70 +1,89 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from '@/hooks/use-toast';
-import { Transfert } from '@/components/stock/types';
+import { useToast } from '@/hooks/use-toast';
+import type { Transfert } from '@/components/stock/types';
 
 export const useTransferts = () => {
   const queryClient = useQueryClient();
-  
-  const { data: transferts, isLoading, error } = useQuery({
+  const { toast } = useToast();
+
+  const { data: transferts = [], isLoading, error } = useQuery({
     queryKey: ['transferts'],
     queryFn: async () => {
-      console.log('🔄 Chargement des transferts...');
-      
       const { data, error } = await supabase
         .from('transferts')
         .select(`
           *,
-          article:catalogue!transferts_article_id_fkey(*),
-          entrepot_source:entrepots!transferts_entrepot_source_id_fkey(*),
-          entrepot_destination:entrepots!transferts_entrepot_destination_id_fkey(*),
-          pdv_destination:points_de_vente!transferts_pdv_destination_id_fkey(*)
+          article:catalogue!transferts_article_id_fkey(
+            id, reference, nom, prix_vente, prix_achat, prix_unitaire, 
+            statut, categorie, unite_mesure
+          ),
+          entrepot_source:entrepots!transferts_entrepot_source_id_fkey(id, nom, statut),
+          entrepot_destination:entrepots!transferts_entrepot_destination_id_fkey(id, nom, statut),
+          pdv_destination:points_de_vente!transferts_pdv_destination_id_fkey(id, nom, statut)
         `)
         .order('created_at', { ascending: false });
-      
-      if (error) {
-        console.error('❌ Erreur lors du chargement des transferts:', error);
-        throw error;
-      }
-      
-      console.log('✅ Transferts chargés:', data?.length || 0);
+
+      if (error) throw error;
       return data as Transfert[];
-    }
+    },
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
   });
 
   const createTransfert = useMutation({
-    mutationFn: async (newTransfert: Omit<Transfert, 'id' | 'created_at'>) => {
+    mutationFn: async (transfert: Omit<Transfert, 'id' | 'created_at'>) => {
       const { data, error } = await supabase
         .from('transferts')
-        .insert(newTransfert)
-        .select(`
-          *,
-          article:catalogue!transferts_article_id_fkey(*),
-          entrepot_source:entrepots!transferts_entrepot_source_id_fkey(*),
-          entrepot_destination:entrepots!transferts_entrepot_destination_id_fkey(*),
-          pdv_destination:points_de_vente!transferts_pdv_destination_id_fkey(*)
-        `)
+        .insert([transfert])
+        .select()
         .single();
-      
+
       if (error) throw error;
-      return data as Transfert;
+      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['transferts'] });
       queryClient.invalidateQueries({ queryKey: ['ultra-all-data'] });
-      queryClient.invalidateQueries({ queryKey: ['stock-principal'] });
-      queryClient.invalidateQueries({ queryKey: ['stock-pdv'] });
       toast({
-        title: "Transfert créé avec succès",
-        variant: "default",
+        title: "Succès",
+        description: "Transfert créé avec succès",
       });
     },
     onError: (error) => {
-      console.error('Erreur lors de la création du transfert:', error);
       toast({
-        title: "Erreur lors de la création du transfert",
-        description: error.message,
+        title: "Erreur",
+        description: "Erreur lors de la création du transfert",
+        variant: "destructive",
+      });
+    }
+  });
+
+  const updateTransfert = useMutation({
+    mutationFn: async (data: { id: string; statut: string }) => {
+      const { data: result, error } = await supabase
+        .from('transferts')
+        .update({ statut: data.statut })
+        .eq('id', data.id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return result;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['transferts'] });
+      queryClient.invalidateQueries({ queryKey: ['ultra-all-data'] });
+      toast({
+        title: "Succès",
+        description: "Transfert mis à jour avec succès",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Erreur",
+        description: "Erreur lors de la mise à jour du transfert",
         variant: "destructive",
       });
     }
@@ -73,7 +92,8 @@ export const useTransferts = () => {
   return {
     transferts,
     isLoading,
-    error,
-    createTransfert
+    error: error as Error,
+    createTransfert,
+    updateTransfert
   };
 };

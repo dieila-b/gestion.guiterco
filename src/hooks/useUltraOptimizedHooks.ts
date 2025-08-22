@@ -7,6 +7,9 @@ import {
   useUltraFastClients 
 } from './useUltraCache';
 
+// Export the ultra-fast hooks so they can be used by other hooks
+export { useUltraFastCatalogue, useUltraFastConfig, useUltraFastClients };
+
 // Remplacer COMPLÈTEMENT l'ancien système par le cache ultra-rapide
 export const useConsolidatedData = () => {
   const { articles, isLoading: catalogueLoading } = useUltraFastCatalogue();
