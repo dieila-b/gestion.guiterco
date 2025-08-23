@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -7,7 +8,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { 
   Plus, 
@@ -41,7 +41,7 @@ import { useFixExistingUsers } from '@/hooks/useFixExistingUsers';
 import { validatePassword, validatePasswordMatch, hashPassword } from '@/utils/passwordValidation';
 import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { useDiagnosticUtilisateurs } from '@/hooks/useDiagnosticUtilisateurs';
 
 interface UserFormData extends CreateUtilisateurInterne {}
 
@@ -82,6 +82,9 @@ const UtilisateursInternes = () => {
   const fixExistingUsers = useFixExistingUsers();
   const { uploadFile, uploading } = useFileUpload();
   const queryClient = useQueryClient();
+  
+  // Diagnostic hook
+  const diagnostic = useDiagnosticUtilisateurs();
   
   // Fonction de réinitialisation des mots de passe pour tous les utilisateurs
   const handleResetAllPasswords = async () => {
@@ -313,9 +316,10 @@ const UtilisateursInternes = () => {
       users: users?.length || 0,
       isLoading,
       error: error?.message,
-      roles: roles?.length || 0
+      roles: roles?.length || 0,
+      diagnostic: diagnostic.data
     });
-  }, [users, isLoading, error, roles]);
+  }, [users, isLoading, error, roles, diagnostic.data]);
 
   if (isLoading) {
     return (
@@ -332,8 +336,8 @@ const UtilisateursInternes = () => {
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
               <p className="text-muted-foreground">Chargement des utilisateurs...</p>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </CardContent>
       </Card>
     );
   }
@@ -358,10 +362,16 @@ const UtilisateursInternes = () => {
                 </p>
               </div>
             </div>
-            <Button onClick={() => refetch()} variant="outline">
-              <Shield className="w-4 h-4 mr-2" />
-              Réessayer
-            </Button>
+            <div className="flex gap-2">
+              <Button onClick={() => refetch()} variant="outline">
+                <Shield className="w-4 h-4 mr-2" />
+                Réessayer
+              </Button>
+              <Button onClick={() => diagnostic.refetch()} variant="outline">
+                <Shield className="w-4 h-4 mr-2" />
+                Diagnostic
+              </Button>
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -386,6 +396,14 @@ const UtilisateursInternes = () => {
               >
                 <Shield className="w-4 h-4 mr-2" />
                 Actualiser
+              </Button>
+              <Button 
+                variant="outline" 
+                onClick={() => diagnostic.refetch()}
+                className="text-purple-600 border-purple-200 hover:bg-purple-50"
+              >
+                <Shield className="w-4 h-4 mr-2" />
+                Diagnostic
               </Button>
               <Button 
                 variant="outline" 
@@ -667,6 +685,14 @@ const UtilisateursInternes = () => {
                   Créer le premier utilisateur
                 </Button>
               </div>
+              {diagnostic.data && (
+                <div className="mt-4 p-4 bg-muted/50 rounded-lg text-left">
+                  <h4 className="font-medium mb-2">Diagnostic:</h4>
+                  <pre className="text-xs text-muted-foreground">
+                    {JSON.stringify(diagnostic.data, null, 2)}
+                  </pre>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
