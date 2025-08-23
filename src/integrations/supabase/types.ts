@@ -3774,6 +3774,7 @@ export type Database = {
           telephone: string | null
           type_compte: string | null
           updated_at: string | null
+          user_id: string | null
         }
         Relationships: [
           {

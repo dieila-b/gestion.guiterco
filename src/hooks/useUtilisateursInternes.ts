@@ -17,6 +17,7 @@ export interface UtilisateurInterne {
   department?: string;
   created_at: string;
   updated_at: string;
+  user_id?: string;
   role_name?: string;
   role_description?: string;
 }
@@ -42,20 +43,50 @@ export const useUtilisateursInternes = () => {
   return useQuery({
     queryKey: ['utilisateurs-internes'],
     queryFn: async () => {
-      const { data, error } = await supabase
+      console.log('🔍 Chargement des utilisateurs internes...');
+      
+      // Essayer d'abord la vue optimisée
+      let { data, error } = await supabase
         .from('vue_utilisateurs_avec_roles')
         .select('*')
         .order('created_at', { ascending: false });
 
-      if (error) {
-        console.error('Erreur lors du chargement des utilisateurs internes:', error);
-        throw new Error(`Erreur: ${error.message}`);
+      // Si la vue ne fonctionne pas, essayer la requête directe
+      if (error || !data || data.length === 0) {
+        console.log('🔄 Essai avec requête directe sur utilisateurs_internes...');
+        
+        const { data: directData, error: directError } = await supabase
+          .from('utilisateurs_internes')
+          .select(`
+            *,
+            roles:role_id(
+              id,
+              name,
+              description
+            )
+          `)
+          .order('created_at', { ascending: false });
+
+        if (directError) {
+          console.error('❌ Erreur requête directe:', directError);
+          throw new Error(`Erreur: ${directError.message}`);
+        }
+
+        // Reformater les données pour correspondre à l'interface attendue
+        data = directData?.map(user => ({
+          ...user,
+          role_name: user.roles?.name,
+          role_description: user.roles?.description
+        })) || [];
       }
 
+      console.log('✅ Utilisateurs internes chargés:', data.length, 'utilisateurs');
+      
       return data as UtilisateurInterne[];
     },
-    retry: 2,
-    retryDelay: 1000,
+    retry: 3,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+    staleTime: 30000, // Les données restent fraîches pendant 30 secondes
   });
 };
 
