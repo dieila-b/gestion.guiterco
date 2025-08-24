@@ -1,4 +1,3 @@
-
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -38,6 +37,19 @@ export interface RolePermission {
   permission_id: string;
   can_access: boolean;
   created_at?: string;
+}
+
+export interface MenuPermissionStructure {
+  menu_id: string;
+  menu_nom: string;
+  menu_icone: string;
+  menu_ordre: number;
+  sous_menu_id: string | null;
+  sous_menu_nom: string | null;
+  sous_menu_ordre: number | null;
+  permission_id: string;
+  action: string;
+  permission_description: string | null;
 }
 
 export const useRoles = () => {
@@ -387,40 +399,33 @@ export const useMenusPermissionsStructure = () => {
     queryFn: async () => {
       console.log('🔍 Chargement de la structure des menus et permissions...');
       
-      const { data, error } = await supabase
+      // First get all permissions with their menu/submenu info
+      const { data: permissionsData, error: permissionsError } = await supabase
         .from('permissions')
-        .select('menu, submenu')
-        .order('menu, submenu');
+        .select('*')
+        .order('menu, submenu, action');
 
-      if (error) {
-        console.error('❌ Erreur lors du chargement de la structure:', error);
-        throw new Error(`Erreur: ${error.message}`);
+      if (permissionsError) {
+        console.error('❌ Erreur lors du chargement des permissions:', permissionsError);
+        throw new Error(`Erreur: ${permissionsError.message}`);
       }
 
-      // Group permissions by menu and submenu
-      const structure = data?.reduce((acc: any, permission: any) => {
-        const menu = permission.menu;
-        if (!acc[menu]) {
-          acc[menu] = {
-            menu_nom: menu,
-            menu_id: menu.toLowerCase().replace(/\s+/g, '_'),
-            menu_ordre: 0,
-            sous_menus: []
-          };
-        }
-        
-        if (permission.submenu && !acc[menu].sous_menus.find((sm: any) => sm.nom === permission.submenu)) {
-          acc[menu].sous_menus.push({
-            nom: permission.submenu,
-            id: permission.submenu.toLowerCase().replace(/\s+/g, '_')
-          });
-        }
-        
-        return acc;
-      }, {});
+      // Transform the data to match the expected structure
+      const structuredData = permissionsData?.map(permission => ({
+        menu_id: permission.menu.toLowerCase().replace(/\s+/g, '_'),
+        menu_nom: permission.menu,
+        menu_icone: 'Settings', // Default icon
+        menu_ordre: 0, // Default order
+        sous_menu_id: permission.submenu ? permission.submenu.toLowerCase().replace(/\s+/g, '_') : null,
+        sous_menu_nom: permission.submenu || null,
+        sous_menu_ordre: 0, // Default order
+        permission_id: permission.id,
+        action: permission.action,
+        permission_description: permission.description || null
+      })) || [];
 
-      console.log('✅ Structure chargée:', Object.keys(structure || {}).length, 'menus');
-      return Object.values(structure || {});
+      console.log('✅ Structure complète récupérée:', structuredData.length, 'éléments');
+      return structuredData as MenuPermissionStructure[];
     },
     retry: 2,
     retryDelay: 1000,
