@@ -61,7 +61,7 @@ const StockEntrepot = () => {
   };
 
   // Vérification de l'intégrité des données
-  const { data: integrityData, isLoading: integrityLoading } = checkDataIntegrity;
+  const { data: integrityData, isPending: integrityPending } = checkDataIntegrity;
   
   // Calculer s'il y a vraiment des problèmes d'intégrité - correction du type
   const hasRealIntegrityIssues = integrityData && (
@@ -71,7 +71,7 @@ const StockEntrepot = () => {
   );
 
   // Afficher l'alerte seulement s'il y a de vrais problèmes
-  const shouldShowIntegrityAlert = hasRealIntegrityIssues && !integrityLoading;
+  const shouldShowIntegrityAlert = hasRealIntegrityIssues && !integrityPending;
 
   return (
     <div className="space-y-6">
