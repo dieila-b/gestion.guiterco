@@ -1,64 +1,54 @@
 
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Search, Plus, AlertCircle } from 'lucide-react';
-import { useFacturesVenteQuery } from '@/hooks/useSales';
+import { Search, Plus, AlertTriangle } from 'lucide-react';
+import { useFacturesImpayeesQuery } from '@/hooks/useSales';
 import FacturesVenteTable from './FacturesVenteTable';
-import { formatCurrency } from '@/lib/currency';
 
 interface FacturesImpayeesProps {
   onNavigateToVenteComptoir?: () => void;
 }
 
 const FacturesImpayees: React.FC<FacturesImpayeesProps> = ({ onNavigateToVenteComptoir }) => {
-  const { data: factures, isLoading } = useFacturesVenteQuery();
+  const { data: factures, isLoading, error } = useFacturesImpayeesQuery();
   const [searchTerm, setSearchTerm] = useState('');
 
-  // Filtrer uniquement les factures impayées (non payées ou partiellement payées)
-  const facturesImpayees = useMemo(() => {
-    if (!factures) return [];
-    
-    return factures.filter(facture => {
-      const paidAmount = (facture.versements ?? []).reduce((sum, v) => sum + (v.montant || 0), 0);
-      const remainingAmount = (facture.montant_ttc || 0) - paidAmount;
-      
-      // Ne garder que les factures avec un montant restant > 0
-      return remainingAmount > 0;
-    });
-  }, [factures]);
+  const filteredFactures = factures?.filter(facture => 
+    facture.numero_facture.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (facture.client?.nom && facture.client.nom.toLowerCase().includes(searchTerm.toLowerCase()))
+  );
 
-  // Appliquer le filtre de recherche
-  const filteredFactures = useMemo(() => {
-    if (!facturesImpayees) return [];
-    
-    return facturesImpayees.filter(facture => 
-      facture.numero_facture.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (facture.client?.nom && facture.client.nom.toLowerCase().includes(searchTerm.toLowerCase()))
+  const totalImpaye = factures?.reduce((sum, facture) => sum + (facture.montant_restant_calcule || 0), 0) || 0;
+
+  if (error) {
+    console.error('Erreur chargement factures impayées:', error);
+    return (
+      <Card>
+        <CardContent className="p-6">
+          <div className="flex items-center gap-2 text-destructive">
+            <AlertTriangle className="h-5 w-5" />
+            <span>Erreur lors du chargement des factures impayées</span>
+          </div>
+        </CardContent>
+      </Card>
     );
-  }, [facturesImpayees, searchTerm]);
-
-  // Calculer le total dû
-  const totalDu = useMemo(() => {
-    return filteredFactures.reduce((total, facture) => {
-      const paidAmount = (facture.versements ?? []).reduce((sum, v) => sum + (v.montant || 0), 0);
-      const remainingAmount = (facture.montant_ttc || 0) - paidAmount;
-      return total + remainingAmount;
-    }, 0);
-  }, [filteredFactures]);
+  }
 
   return (
     <div className="space-y-6">
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
           <div>
-            <CardTitle className="text-xl font-bold flex items-center gap-2">
-              <AlertCircle className="h-5 w-5 text-orange-600" />
-              Factures Impayées
-            </CardTitle>
+            <CardTitle className="text-xl font-bold">Factures Impayées</CardTitle>
             <p className="text-sm text-muted-foreground">
-              Gérez vos factures en attente de paiement
+              Gérez les factures en attente de paiement
+              {totalImpaye > 0 && (
+                <span className="block text-destructive font-medium mt-1">
+                  Total impayé: {totalImpaye.toFixed(2)} €
+                </span>
+              )}
             </p>
           </div>
           <div className="flex items-center space-x-4">
@@ -83,29 +73,10 @@ const FacturesImpayees: React.FC<FacturesImpayeesProps> = ({ onNavigateToVenteCo
           </div>
         </CardHeader>
         <CardContent>
-          {/* Indicateur du total dû */}
-          <div className="mb-4 p-4 bg-orange-50 border border-orange-200 rounded-lg">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <AlertCircle className="h-5 w-5 text-orange-600" />
-                <span className="font-semibold text-orange-800">
-                  Total des montants dus
-                </span>
-              </div>
-              <div className="text-right">
-                <div className="text-2xl font-bold text-orange-800">
-                  {formatCurrency(totalDu)}
-                </div>
-                <div className="text-sm text-orange-600">
-                  {filteredFactures.length} facture{filteredFactures.length > 1 ? 's' : ''} impayée{filteredFactures.length > 1 ? 's' : ''}
-                </div>
-              </div>
-            </div>
-          </div>
-
           <FacturesVenteTable 
             factures={filteredFactures || []} 
-            isLoading={isLoading} 
+            isLoading={isLoading}
+            showOnlyUnpaid={true}
           />
         </CardContent>
       </Card>
