@@ -24,8 +24,8 @@ export const useUltraFastCatalogue = () => {
             statut,
             categorie_id,
             unite_id,
-            categories:categories_catalogue!categorie_id(nom),
-            unites:unites!unite_id(nom, symbole)
+            categories:categories_catalogue!catalogue_categorie_id_fkey(nom),
+            unites:unites!catalogue_unite_id_fkey(nom, symbole)
           `)
           .eq('statut', 'actif')
           .limit(100);
@@ -53,7 +53,7 @@ export const useUltraFastStock = () => {
     queryKey: ['ultra-stock'],
     queryFn: async () => {
       try {
-        // Stock entrepôt avec relation spécifiée
+        // Stock entrepôt avec relations spécifiées explicitement
         const { data: stockEntrepot, error: errorEntrepot } = await supabase
           .from('stock_principal')
           .select(`
@@ -80,8 +80,8 @@ export const useUltraFastStock = () => {
               image_url,
               categorie_id,
               unite_id,
-              categories:categories_catalogue!categorie_id(nom),
-              unites:unites!unite_id(nom, symbole)
+              categories:categories_catalogue!catalogue_categorie_id_fkey(nom),
+              unites:unites!catalogue_unite_id_fkey(nom, symbole)
             ),
             entrepot:entrepots!stock_principal_entrepot_id_fkey(
               id,
@@ -97,7 +97,7 @@ export const useUltraFastStock = () => {
           .gt('quantite_disponible', 0)
           .limit(50);
 
-        // Stock PDV avec relation spécifiée
+        // Stock PDV avec relations spécifiées explicitement
         const { data: stockPDV, error: errorPDV } = await supabase
           .from('stock_pdv')
           .select(`
@@ -122,8 +122,8 @@ export const useUltraFastStock = () => {
               image_url,
               categorie_id,
               unite_id,
-              categories:categories_catalogue!categorie_id(nom),
-              unites:unites!unite_id(nom, symbole)
+              categories:categories_catalogue!catalogue_categorie_id_fkey(nom),
+              unites:unites!catalogue_unite_id_fkey(nom, symbole)
             ),
             point_vente:points_de_vente!stock_pdv_point_vente_id_fkey(
               id,

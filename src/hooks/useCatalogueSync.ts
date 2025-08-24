@@ -1,141 +1,86 @@
 
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 
 export const useCatalogueSync = () => {
   const queryClient = useQueryClient();
-  const { toast } = useToast();
 
-  // Synchroniser toutes les données du catalogue
   const syncCatalogue = useMutation({
     mutationFn: async () => {
-      console.log('Synchronisation complète du catalogue...');
+      console.log('🔄 Synchronisation complète du catalogue et des stocks...');
       
-      // Rafraîchir toutes les queries liées au catalogue
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['catalogue'] }),
-        queryClient.invalidateQueries({ queryKey: ['catalogue_optimized'] }),
-        queryClient.invalidateQueries({ queryKey: ['categories'] }),
-        queryClient.invalidateQueries({ queryKey: ['unites'] }),
-        queryClient.invalidateQueries({ queryKey: ['stock-principal'] }),
-        queryClient.invalidateQueries({ queryKey: ['entrepots'] }),
-        queryClient.invalidateQueries({ queryKey: ['bons-commande'] }),
-        queryClient.invalidateQueries({ queryKey: ['bons-livraison'] }),
-        queryClient.invalidateQueries({ queryKey: ['factures-achat'] }),
-        queryClient.invalidateQueries({ queryKey: ['data-integrity'] })
-      ]);
-
-      // Vérifier la cohérence des données après synchronisation
-      const { data: catalogueData } = await supabase
+      // Test des connexions de base
+      const { data: testCatalogue, error: testError } = await supabase
         .from('catalogue')
-        .select(`
-          id,
-          nom,
-          reference,
-          categorie,
-          statut,
-          stock_principal (
-            quantite_disponible,
-            entrepot:entrepots (nom)
-          )
-        `)
-        .eq('statut', 'actif');
+        .select('id, nom, reference')
+        .eq('statut', 'actif')
+        .limit(5);
 
-      return catalogueData;
+      if (testError) {
+        throw new Error(`Erreur de connexion catalogue: ${testError.message}`);
+      }
+
+      console.log('✅ Connexion catalogue OK, articles trouvés:', testCatalogue?.length);
+      
+      // Invalider tous les caches
+      queryClient.invalidateQueries({ queryKey: ['ultra-catalogue'] });
+      queryClient.invalidateQueries({ queryKey: ['ultra-stock'] });
+      queryClient.invalidateQueries({ queryKey: ['ultra-config'] });
+      queryClient.invalidateQueries({ queryKey: ['ultra-clients'] });
+      
+      // Forcer le rechargement
+      await queryClient.refetchQueries({ queryKey: ['ultra-catalogue'] });
+      await queryClient.refetchQueries({ queryKey: ['ultra-stock'] });
+      await queryClient.refetchQueries({ queryKey: ['ultra-config'] });
+      
+      console.log('✅ Synchronisation terminée avec succès');
+      return { success: true, articlesCount: testCatalogue?.length || 0 };
     },
-    onSuccess: (data) => {
-      console.log('Synchronisation terminée:', data);
-      toast({
-        title: "Synchronisation réussie",
-        description: `${data?.length || 0} produits synchronisés avec succès.`,
-      });
+    onSuccess: (result) => {
+      toast.success(`Synchronisation réussie! ${result.articlesCount} articles trouvés`);
     },
-    onError: (error: any) => {
-      console.error('Erreur de synchronisation:', error);
-      toast({
-        title: "Erreur de synchronisation",
-        description: error.message || "Une erreur est survenue lors de la synchronisation.",
-        variant: "destructive",
-      });
+    onError: (error) => {
+      console.error('❌ Erreur de synchronisation:', error);
+      toast.error(`Erreur de synchronisation: ${error.message}`);
     }
   });
 
-  // Vérifier l'intégrité des relations - Version simplifiée
-  const checkDataIntegrity = useQuery({
-    queryKey: ['data-integrity'],
-    queryFn: async () => {
-      console.log('Vérification de l\'intégrité des données...');
+  const checkDataIntegrity = useMutation({
+    mutationFn: async () => {
+      console.log('🔍 Vérification de l\'intégrité des données...');
       
-      try {
-        // Vérifier les articles actifs sans stock associé - requête simple
-        const { data: allArticles, error: articlesError } = await supabase
-          .from('catalogue')
-          .select('id, nom, reference')
-          .eq('statut', 'actif');
+      // Vérifier les relations orphelines dans le stock
+      const { data: orphanedStock } = await supabase
+        .from('stock_principal')
+        .select('id, quantite_disponible')
+        .is('article_id', null)
+        .gt('quantite_disponible', 0);
 
-        if (articlesError) {
-          console.error('Erreur lors de la récupération des articles:', articlesError);
-        }
+      // Vérifier les entrepôts inactifs avec du stock
+      const { data: inactiveWarehousesWithStock } = await supabase
+        .from('stock_principal')
+        .select('id, quantite_disponible, entrepot:entrepots!stock_principal_entrepot_id_fkey(nom, statut)')
+        .gt('quantite_disponible', 0);
 
-        const { data: stockData, error: stockError } = await supabase
-          .from('stock_principal')
-          .select('article_id, quantite_disponible')
-          .gt('quantite_disponible', 0);
+      const issues = {
+        orphanedStock: orphanedStock || [],
+        inactiveWarehousesWithStock: (inactiveWarehousesWithStock || [])
+          .filter(item => item.entrepot?.statut === 'inactif'),
+        duplicateStock: [] // Placeholder for future checks
+      };
 
-        if (stockError) {
-          console.error('Erreur lors de la récupération du stock:', stockError);
-        }
+      console.log('🔍 Problèmes détectés:', {
+        orphaned: issues.orphanedStock.length,
+        inactive: issues.inactiveWarehousesWithStock.length
+      });
 
-        // Vérifier côté client
-        const articlesWithStock = new Set(stockData?.map(s => s.article_id) || []);
-        const articlesWithoutStock = allArticles?.filter(article => 
-          !articlesWithStock.has(article.id)
-        ) || [];
-
-        // Vérifier les entrepôts inactifs avec du stock
-        const { data: inactiveWarehousesWithStock, error: warehouseError } = await supabase
-          .from('stock_principal')
-          .select(`
-            id,
-            quantite_disponible,
-            entrepot:entrepots!inner(nom, statut)
-          `)
-          .gt('quantite_disponible', 0)
-          .eq('entrepot.statut', 'inactif');
-
-        if (warehouseError) {
-          console.error('Erreur lors de la vérification des entrepôts:', warehouseError);
-        }
-
-        const result = {
-          articlesWithoutStock: articlesWithoutStock || [],
-          orphanedStock: [], // Désactivé temporairement
-          inactiveWarehousesWithStock: inactiveWarehousesWithStock || [],
-          duplicateStock: [] // Désactivé temporairement
-        };
-
-        console.log('Résultats de vérification d\'intégrité:', result);
-        return result;
-
-      } catch (error) {
-        console.error('Erreur lors de la vérification d\'intégrité:', error);
-        return {
-          articlesWithoutStock: [],
-          orphanedStock: [],
-          inactiveWarehousesWithStock: [],
-          duplicateStock: []
-        };
-      }
-    },
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    refetchOnWindowFocus: false,
-    retry: 1
+      return issues;
+    }
   });
 
   return {
     syncCatalogue,
-    checkDataIntegrity,
-    isLoading: syncCatalogue.isPending
+    checkDataIntegrity
   };
 };
