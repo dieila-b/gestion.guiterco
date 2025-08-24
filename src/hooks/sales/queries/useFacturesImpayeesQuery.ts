@@ -52,10 +52,22 @@ export const useFacturesImpayeesQuery = () => {
             .eq('id', facture.client_id)
             .maybeSingle();
 
-          // Versements pour calculer le montant payé
+          // Versements avec tous les champs requis pour calculer le montant payé
           const { data: versements } = await supabase
             .from('versements_clients')
-            .select('montant')
+            .select(`
+              id,
+              numero_versement,
+              client_id,
+              facture_id,
+              date_versement,
+              montant,
+              mode_paiement,
+              reference_paiement,
+              observations,
+              created_at,
+              updated_at
+            `)
             .eq('facture_id', facture.id);
 
           const montantPaye = versements?.reduce((sum, v) => sum + Number(v.montant || 0), 0) || 0;

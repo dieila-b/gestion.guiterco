@@ -54,7 +54,7 @@ export const useFacturesVenteQuery = () => {
             .eq('id', facture.client_id)
             .maybeSingle();
 
-          // Récupérer les lignes de facture
+          // Récupérer les lignes de facture avec tous les champs requis
           const { data: lignes } = await supabase
             .from('lignes_facture_vente')
             .select(`
@@ -66,22 +66,26 @@ export const useFacturesVenteQuery = () => {
               prix_unitaire_brut,
               remise_unitaire,
               montant_ligne,
-              statut_livraison
+              statut_livraison,
+              created_at
             `)
             .eq('facture_vente_id', facture.id);
 
-          // Récupérer les versements
+          // Récupérer les versements avec tous les champs requis
           const { data: versements } = await supabase
             .from('versements_clients')
             .select(`
               id,
+              numero_versement,
+              client_id,
               facture_id,
+              date_versement,
               montant,
               mode_paiement,
-              date_versement,
-              numero_versement,
               reference_paiement,
-              observations
+              observations,
+              created_at,
+              updated_at
             `)
             .eq('facture_id', facture.id);
 
