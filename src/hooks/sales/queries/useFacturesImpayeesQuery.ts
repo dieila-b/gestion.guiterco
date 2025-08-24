@@ -23,11 +23,12 @@ export const useFacturesImpayeesQuery = () => {
           statut_paiement,
           mode_paiement,
           observations,
-          created_at
+          created_at,
+          updated_at
         `)
         .in('statut_paiement', ['en_attente', 'partiellement_payee'])
         .order('date_facture', { ascending: false })
-        .limit(100);
+        .limit(50);
 
       if (error) {
         console.error('❌ Erreur factures impayées:', error);
@@ -44,12 +45,12 @@ export const useFacturesImpayeesQuery = () => {
       // Enrichir avec clients et versements
       const enrichedFactures = await Promise.all(
         factures.map(async (facture) => {
-          // Client
+          // Client avec tous les champs requis
           const { data: client } = await supabase
             .from('clients')
-            .select('id, nom, prenom, email, telephone')
+            .select('id, nom, prenom, email, telephone, created_at, updated_at')
             .eq('id', facture.client_id)
-            .single();
+            .maybeSingle();
 
           // Versements pour calculer le montant payé
           const { data: versements } = await supabase
@@ -66,14 +67,14 @@ export const useFacturesImpayeesQuery = () => {
             versements: versements || [],
             montant_paye_calcule: montantPaye,
             montant_restant_calcule: Math.max(0, montantRestant)
-          };
+          } as FactureVente;
         })
       );
 
       // Filtrer les factures qui ont vraiment un montant restant
-      const facturesVraimentImpayees = enrichedFactures.filter(f => f.montant_restant_calcule > 0);
+      const facturesVraimentImpayees = enrichedFactures.filter(f => f.montant_restant_calcule! > 0);
 
-      return facturesVraimentImpayees as FactureVente[];
+      return facturesVraimentImpayees;
     },
     staleTime: 1000 * 60 * 2, // 2 minutes
     gcTime: 1000 * 60 * 5, // 5 minutes

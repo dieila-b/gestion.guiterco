@@ -30,7 +30,7 @@ export const useFacturesVenteQuery = () => {
           updated_at
         `)
         .order('date_facture', { ascending: false })
-        .limit(100); // Limiter pour éviter les surcharges
+        .limit(50);
 
       if (facturesError) {
         console.error('❌ Erreur factures:', facturesError);
@@ -47,12 +47,12 @@ export const useFacturesVenteQuery = () => {
       // Enrichir avec les données client, lignes et versements séparément
       const enrichedFactures = await Promise.all(
         facturesData.map(async (facture) => {
-          // Récupérer le client
+          // Récupérer le client avec tous les champs requis
           const { data: client } = await supabase
             .from('clients')
-            .select('id, nom, prenom, nom_entreprise, email, telephone')
+            .select('id, nom, prenom, nom_entreprise, email, telephone, created_at, updated_at')
             .eq('id', facture.client_id)
-            .single();
+            .maybeSingle();
 
           // Récupérer les lignes de facture
           const { data: lignes } = await supabase
@@ -95,17 +95,17 @@ export const useFacturesVenteQuery = () => {
             nb_articles: lignes?.length || 0,
             montant_paye_calcule: montantPaye,
             montant_restant_calcule: Math.max(0, facture.montant_ttc - montantPaye)
-          };
+          } as FactureVente;
         })
       );
 
-      return enrichedFactures as FactureVente[];
+      return enrichedFactures;
     },
-    staleTime: 1000 * 60 * 2, // 2 minutes
-    gcTime: 1000 * 60 * 5, // 5 minutes
+    staleTime: 1000 * 60 * 5, // 5 minutes
+    gcTime: 1000 * 60 * 10, // 10 minutes
     refetchOnWindowFocus: false,
     refetchOnMount: false,
     retry: 1,
-    retryDelay: 1000
+    retryDelay: 2000
   });
 };

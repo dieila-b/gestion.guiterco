@@ -1,4 +1,3 @@
-
 export interface Client {
   id: string;
   nom: string;
@@ -84,6 +83,9 @@ export interface FactureVente {
   versements?: VersementClient[];
   nb_articles?: number;
   statut_livraison?: string;
+  // Calculated fields
+  montant_paye_calcule?: number;
+  montant_restant_calcule?: number;
 }
 
 export interface Precommande {

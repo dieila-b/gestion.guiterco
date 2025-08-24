@@ -7,9 +7,10 @@ import type { FactureVente } from '@/types/sales';
 interface FacturesVenteTableProps {
   factures: FactureVente[];
   isLoading: boolean;
+  showOnlyUnpaid?: boolean;
 }
 
-const FacturesVenteTable = ({ factures, isLoading }: FacturesVenteTableProps) => {
+const FacturesVenteTable = ({ factures, isLoading, showOnlyUnpaid = false }: FacturesVenteTableProps) => {
   if (isLoading) {
     return (
       <div className="rounded-md border">
@@ -46,7 +47,10 @@ const FacturesVenteTable = ({ factures, isLoading }: FacturesVenteTableProps) =>
             <TableRow>
               <TableCell colSpan={10} className="text-center py-8">
                 <div className="text-muted-foreground">
-                  Aucune facture de vente trouvée
+                  {showOnlyUnpaid 
+                    ? "Aucune facture impayée trouvée"
+                    : "Aucune facture de vente trouvée"
+                  }
                 </div>
               </TableCell>
             </TableRow>
