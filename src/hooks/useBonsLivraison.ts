@@ -14,7 +14,7 @@ export const useBonsLivraison = () => {
         .from('bons_de_livraison')
         .select(`
           *,
-          bon_commande:bons_de_commande!fk_bons_livraison_bon_commande_id(
+          bon_commande:bons_de_commande!bon_commande_id(
             id,
             numero_bon,
             fournisseur,
@@ -37,8 +37,8 @@ export const useBonsLivraison = () => {
             updated_at,
             created_by
           ),
-          entrepot_destination:entrepots!bons_de_livraison_entrepot_destination_id_fkey(*),
-          point_vente_destination:points_de_vente!bons_de_livraison_point_vente_destination_id_fkey(*)
+          entrepot_destination:entrepots!entrepot_destination_id(*),
+          point_vente_destination:points_de_vente!point_vente_destination_id(*)
         `)
         .order('created_at', { ascending: false });
       

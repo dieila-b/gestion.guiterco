@@ -15,12 +15,12 @@ export const useFacturesAchat = () => {
         .from('factures_achat')
         .select(`
           *,
-          bon_commande:bons_de_commande!factures_achat_bon_commande_id_fkey(
+          bon_commande:bons_de_commande!bon_commande_id(
             *,
             montant_paye,
             remise
           ),
-          bon_livraison:bons_de_livraison!factures_achat_bon_livraison_id_fkey(*),
+          bon_livraison:bons_de_livraison!bon_livraison_id(*),
           reglements:reglements_achat(
             id,
             montant,
