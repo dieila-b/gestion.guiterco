@@ -54,8 +54,8 @@ const ProductGrid: React.FC<ProductGridProps> = ({
         article.nom.toLowerCase().includes(searchProduct.toLowerCase()) ||
         article.reference.toLowerCase().includes(searchProduct.toLowerCase());
 
-      // Filtre par catégorie - utiliser la catégorie normalisée
-      const articleCategory = article.categorie || '';
+      // Filtre par catégorie - utiliser la catégorie depuis la relation ou le champ direct
+      const articleCategory = article.categorie_article?.nom || article.categorie || 'Sans catégorie';
       const matchesCategory = selectedCategory === 'Tous' || 
         !selectedCategory || 
         selectedCategory === '' ||
@@ -170,9 +170,9 @@ const ProductGrid: React.FC<ProductGridProps> = ({
                       </div>
                       
                       {/* Affichage de la catégorie pour debug */}
-                      {article.categorie && (
+                      {(article.categorie_article?.nom || article.categorie) && (
                         <div className="text-xs text-gray-400 mb-1">
-                          {article.categorie}
+                          {article.categorie_article?.nom || article.categorie}
                         </div>
                       )}
                       
