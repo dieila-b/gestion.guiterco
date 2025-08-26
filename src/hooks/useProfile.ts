@@ -28,6 +28,25 @@ export const useProfile = () => {
 
     const fetchProfile = async () => {
       try {
+        // Vérifier si c'est l'utilisateur mock de développement
+        if (user.id === '00000000-0000-0000-0000-000000000123') {
+          // Créer un profil mock pour le développement
+          const mockProfile: Profile = {
+            id: '00000000-0000-0000-0000-000000000124',
+            user_id: user.id,
+            prenom: user.prenom || 'Admin',
+            nom: user.nom || 'Développement',
+            avatar_url: null,
+            bio: 'Utilisateur de développement',
+            telephone: null,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          };
+          setProfile(mockProfile);
+          setLoading(false);
+          return;
+        }
+
         const { data, error } = await supabase
           .from('profiles')
           .select('*')
