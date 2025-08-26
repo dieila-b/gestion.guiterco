@@ -1,5 +1,4 @@
-
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -8,6 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { 
   Plus, 
@@ -41,7 +41,7 @@ import { useFixExistingUsers } from '@/hooks/useFixExistingUsers';
 import { validatePassword, validatePasswordMatch, hashPassword } from '@/utils/passwordValidation';
 import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
-import { useDiagnosticUtilisateurs } from '@/hooks/useDiagnosticUtilisateurs';
+import { supabase } from '@/integrations/supabase/client';
 
 interface UserFormData extends CreateUtilisateurInterne {}
 
@@ -72,7 +72,7 @@ const UtilisateursInternes = () => {
     confirmPassword: ''
   });
 
-  const { data: users, isLoading, error, refetch } = useUtilisateursInternes();
+  const { data: users, isLoading, error } = useUtilisateursInternes();
   const { data: roles } = useRoles();
   const createUser = useCreateUtilisateurInterne();
   const updateUser = useUpdateUtilisateurInterne();
@@ -82,9 +82,6 @@ const UtilisateursInternes = () => {
   const fixExistingUsers = useFixExistingUsers();
   const { uploadFile, uploading } = useFileUpload();
   const queryClient = useQueryClient();
-  
-  // Diagnostic hook
-  const diagnostic = useDiagnosticUtilisateurs();
   
   // Fonction de réinitialisation des mots de passe pour tous les utilisateurs
   const handleResetAllPasswords = async () => {
@@ -310,17 +307,6 @@ const UtilisateursInternes = () => {
     );
   };
 
-  // Debug: Log des données reçues
-  useEffect(() => {
-    console.log('📊 État des utilisateurs internes:', {
-      users: users?.length || 0,
-      isLoading,
-      error: error?.message,
-      roles: roles?.length || 0,
-      diagnostic: diagnostic.data
-    });
-  }, [users, isLoading, error, roles, diagnostic.data]);
-
   if (isLoading) {
     return (
       <Card>
@@ -352,351 +338,17 @@ const UtilisateursInternes = () => {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="flex flex-col items-center gap-4 p-8">
-            <div className="flex items-center gap-3 p-4 bg-destructive/10 border border-destructive/20 rounded-lg w-full">
-              <Shield className="w-5 h-5 text-destructive" />
-              <div className="flex-1">
-                <p className="font-medium text-destructive">Erreur de chargement</p>
-                <p className="text-sm text-destructive/80">
-                  {error.message || 'Impossible de charger les données des utilisateurs.'}
-                </p>
-              </div>
-            </div>
-            <div className="flex gap-2">
-              <Button onClick={() => refetch()} variant="outline">
-                <Shield className="w-4 h-4 mr-2" />
-                Réessayer
-              </Button>
-              <Button onClick={() => diagnostic.refetch()} variant="outline">
-                <Shield className="w-4 h-4 mr-2" />
-                Diagnostic
-              </Button>
+          <div className="flex items-center gap-3 p-4 bg-destructive/10 border border-destructive/20 rounded-lg">
+            <Shield className="w-5 h-5 text-destructive" />
+            <div>
+              <p className="font-medium text-destructive">Erreur de chargement</p>
+              <p className="text-sm text-destructive/80">
+                {error.message || 'Impossible de charger les données des utilisateurs.'}
+              </p>
             </div>
           </div>
         </CardContent>
       </Card>
-    );
-  }
-
-  // Affichage des données vides
-  if (!users || users.length === 0) {
-    return (
-      <div className="space-y-6">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="flex items-center gap-2">
-              <User className="w-5 h-5" />
-              Utilisateurs Internes
-            </CardTitle>
-            <div className="flex items-center gap-2">
-              <Button 
-                variant="outline" 
-                onClick={() => refetch()}
-                className="text-blue-600 border-blue-200 hover:bg-blue-50"
-              >
-                <Shield className="w-4 h-4 mr-2" />
-                Actualiser
-              </Button>
-              <Button 
-                variant="outline" 
-                onClick={() => diagnostic.refetch()}
-                className="text-purple-600 border-purple-200 hover:bg-purple-50"
-              >
-                <Shield className="w-4 h-4 mr-2" />
-                Diagnostic
-              </Button>
-              <Button 
-                variant="outline" 
-                onClick={() => fixExistingUsers.mutate()}
-                disabled={fixExistingUsers.isPending}
-                className="text-blue-600 border-blue-200 hover:bg-blue-50"
-              >
-                <Shield className="w-4 h-4 mr-2" />
-                Nettoyer utilisateurs
-              </Button>
-              <Button 
-                variant="outline" 
-                onClick={handleResetAllPasswords}
-                disabled={resetAllPasswords.isPending}
-                className="text-orange-600 border-orange-200 hover:bg-orange-50"
-              >
-                <Key className="w-4 h-4 mr-2" />
-                Réinitialiser mots de passe
-              </Button>
-              <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
-                <DialogTrigger asChild>
-                  <Button onClick={resetForm}>
-                    <Plus className="w-4 h-4 mr-2" />
-                    Nouvel utilisateur
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="max-w-2xl max-h-[90vh]">
-                  <DialogHeader>
-                    <DialogTitle>Créer un nouvel utilisateur interne</DialogTitle>
-                  </DialogHeader>
-                  <div className="space-y-4 py-4 overflow-y-auto max-h-[70vh]">
-                    {/* Photo de profil */}
-                    <div className="space-y-2">
-                      <Label>Photo de profil</Label>
-                      <div className="flex items-center gap-4">
-                        <Avatar className="w-16 h-16">
-                          <AvatarImage src={previewUrl || formData.photo_url} />
-                          <AvatarFallback>
-                            <User className="w-8 h-8" />
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="flex flex-col gap-2">
-                          <Input
-                            type="file"
-                            accept="image/*"
-                            onChange={handleFileChange}
-                            className="hidden"
-                            id="photo-upload"
-                          />
-                          <Label htmlFor="photo-upload" className="cursor-pointer">
-                            <Button type="button" variant="outline" size="sm" asChild>
-                              <span>
-                                <Upload className="w-4 h-4 mr-2" />
-                                Choisir une photo
-                              </span>
-                            </Button>
-                          </Label>
-                          {uploading && <p className="text-sm text-muted-foreground">Upload en cours...</p>}
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="prenom">Prénom *</Label>
-                        <Input
-                          id="prenom"
-                          value={formData.prenom}
-                          onChange={(e) => setFormData({ ...formData, prenom: e.target.value })}
-                          placeholder="Prénom"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="nom">Nom *</Label>
-                        <Input
-                          id="nom"
-                          value={formData.nom}
-                          onChange={(e) => setFormData({ ...formData, nom: e.target.value })}
-                          placeholder="Nom"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="email">Email *</Label>
-                        <Input
-                          id="email"
-                          type="email"
-                          value={formData.email}
-                          onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                          placeholder="email@exemple.com"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="matricule">Matricule</Label>
-                        <Input
-                          id="matricule"
-                          value={formData.matricule}
-                          onChange={(e) => setFormData({ ...formData, matricule: e.target.value })}
-                          placeholder="Généré automatiquement si vide"
-                          className="bg-muted/50"
-                        />
-                        <p className="text-xs text-muted-foreground">
-                          Format: {formData.prenom && formData.nom ? 
-                            `${formData.prenom.charAt(0).toUpperCase()}${formData.nom.substring(0, 3).toUpperCase()}-01` : 
-                            'XAAA-01'
-                          }
-                        </p>
-                      </div>
-                    </div>
-
-                    {/* Mots de passe */}
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="password">Mot de passe *</Label>
-                        <div className="relative">
-                          <Input
-                            id="password"
-                            type={showPassword ? "text" : "password"}
-                            value={formData.password}
-                            onChange={(e) => handlePasswordChange(e.target.value)}
-                            placeholder="Mot de passe"
-                            className={!passwordValidation.isValid && formData.password ? "border-destructive" : ""}
-                          />
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                            onClick={() => setShowPassword(!showPassword)}
-                          >
-                            {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                          </Button>
-                        </div>
-                        {!passwordValidation.isValid && formData.password && (
-                          <div className="text-xs text-destructive space-y-1">
-                            {passwordValidation.errors.map((error, index) => (
-                              <p key={index}>• {error}</p>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="confirmPassword">Confirmer le mot de passe *</Label>
-                        <div className="relative">
-                          <Input
-                            id="confirmPassword"
-                            type={showConfirmPassword ? "text" : "password"}
-                            value={formData.confirmPassword}
-                            onChange={(e) => handleConfirmPasswordChange(e.target.value)}
-                            placeholder="Confirmer le mot de passe"
-                            className={!passwordMatch && formData.confirmPassword ? "border-destructive" : ""}
-                          />
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                          >
-                            {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                          </Button>
-                        </div>
-                        {!passwordMatch && formData.confirmPassword && (
-                          <p className="text-xs text-destructive">Les mots de passe ne correspondent pas</p>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Critères de validation du mot de passe */}
-                    <div className="bg-muted/50 p-3 rounded-lg">
-                      <p className="text-sm font-medium mb-2">Critères du mot de passe :</p>
-                      <ul className="text-xs text-muted-foreground space-y-1">
-                        <li>• Minimum 8 caractères</li>
-                        <li>• Au moins une majuscule (A-Z)</li>
-                        <li>• Au moins une minuscule (a-z)</li>
-                        <li>• Au moins un chiffre (0-9)</li>
-                        <li>• Au moins un caractère spécial (!@#$%^&*)</li>
-                      </ul>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="role">Rôle</Label>
-                        <Select value={formData.role_id} onValueChange={(value) => setFormData({ ...formData, role_id: value })}>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Sélectionner un rôle" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {roles?.map((role) => (
-                              <SelectItem key={role.id} value={role.id}>
-                                {role.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="statut">Statut</Label>
-                        <Select value={formData.statut} onValueChange={(value: any) => setFormData({ ...formData, statut: value })}>
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="actif">Actif</SelectItem>
-                            <SelectItem value="inactif">Inactif</SelectItem>
-                            <SelectItem value="suspendu">Suspendu</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="type_compte">Type de compte</Label>
-                        <Select value={formData.type_compte} onValueChange={(value: any) => setFormData({ ...formData, type_compte: value })}>
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="employe">Employé</SelectItem>
-                            <SelectItem value="gestionnaire">Gestionnaire</SelectItem>
-                            <SelectItem value="admin">Administrateur</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="telephone">Téléphone</Label>
-                        <Input
-                          id="telephone"
-                          value={formData.telephone}
-                          onChange={(e) => setFormData({ ...formData, telephone: e.target.value })}
-                          placeholder="Téléphone"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="date_embauche">Date d'embauche</Label>
-                        <Input
-                          id="date_embauche"
-                          type="date"
-                          value={formData.date_embauche}
-                          onChange={(e) => setFormData({ ...formData, date_embauche: e.target.value })}
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="department">Adresse</Label>
-                        <Input
-                          id="department"
-                          value={formData.department}
-                          onChange={(e) => setFormData({ ...formData, department: e.target.value })}
-                          placeholder="Adresse"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex justify-end gap-2">
-                    <Button variant="outline" onClick={() => setShowCreateDialog(false)}>
-                      Annuler
-                    </Button>
-                    <Button 
-                      onClick={handleCreate}
-                      disabled={createUser.isPending || !formData.email || !formData.prenom || !formData.nom}
-                    >
-                      {createUser.isPending ? 'Création...' : 'Créer'}
-                    </Button>
-                  </div>
-                </DialogContent>
-              </Dialog>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-center py-12">
-              <User className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50" />
-              <h3 className="text-lg font-semibold mb-2">Aucun utilisateur interne trouvé</h3>
-              <p className="text-muted-foreground mb-4">
-                Les utilisateurs internes n'apparaissent pas. Vérifiez la configuration de la base de données.
-              </p>
-              <div className="flex gap-2 justify-center">
-                <Button onClick={() => refetch()} variant="outline">
-                  Actualiser les données
-                </Button>
-                <Button onClick={resetForm}>
-                  <Plus className="w-4 h-4 mr-2" />
-                  Créer le premier utilisateur
-                </Button>
-              </div>
-              {diagnostic.data && (
-                <div className="mt-4 p-4 bg-muted/50 rounded-lg text-left">
-                  <h4 className="font-medium mb-2">Diagnostic:</h4>
-                  <pre className="text-xs text-muted-foreground">
-                    {JSON.stringify(diagnostic.data, null, 2)}
-                  </pre>
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
     );
   }
 
@@ -706,17 +358,9 @@ const UtilisateursInternes = () => {
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="flex items-center gap-2">
             <User className="w-5 h-5" />
-            Utilisateurs Internes ({users.length})
+            Utilisateurs Internes
           </CardTitle>
           <div className="flex items-center gap-2">
-            <Button 
-              variant="outline" 
-              onClick={() => refetch()}
-              className="text-blue-600 border-blue-200 hover:bg-blue-50"
-            >
-              <Shield className="w-4 h-4 mr-2" />
-              Actualiser
-            </Button>
             <Button 
               variant="outline" 
               onClick={() => fixExistingUsers.mutate()}
@@ -724,7 +368,7 @@ const UtilisateursInternes = () => {
               className="text-blue-600 border-blue-200 hover:bg-blue-50"
             >
               <Shield className="w-4 h-4 mr-2" />
-              Nettoyer utilisateurs
+              {fixExistingUsers.isPending ? 'Nettoyage...' : 'Nettoyer utilisateurs'}
             </Button>
             <Button 
               variant="outline" 
@@ -733,7 +377,7 @@ const UtilisateursInternes = () => {
               className="text-orange-600 border-orange-200 hover:bg-orange-50"
             >
               <Key className="w-4 h-4 mr-2" />
-              Réinitialiser mots de passe
+              {resetAllPasswords.isPending ? 'Réinitialisation...' : 'Réinitialiser mots de passe'}
             </Button>
             <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
               <DialogTrigger asChild>
@@ -743,242 +387,242 @@ const UtilisateursInternes = () => {
                 </Button>
               </DialogTrigger>
               <DialogContent className="max-w-2xl max-h-[90vh]">
-                <DialogHeader>
-                  <DialogTitle>Créer un nouvel utilisateur interne</DialogTitle>
-                </DialogHeader>
-                <div className="space-y-4 py-4 overflow-y-auto max-h-[70vh]">
-                  {/* Photo de profil */}
+              <DialogHeader>
+                <DialogTitle>Créer un nouvel utilisateur interne</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4 py-4 overflow-y-auto max-h-[70vh]">
+                {/* Photo de profil */}
+                <div className="space-y-2">
+                  <Label>Photo de profil</Label>
+                  <div className="flex items-center gap-4">
+                    <Avatar className="w-16 h-16">
+                      <AvatarImage src={previewUrl || formData.photo_url} />
+                      <AvatarFallback>
+                        <User className="w-8 h-8" />
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex flex-col gap-2">
+                      <Input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleFileChange}
+                        className="hidden"
+                        id="photo-upload"
+                      />
+                      <Label htmlFor="photo-upload" className="cursor-pointer">
+                        <Button type="button" variant="outline" size="sm" asChild>
+                          <span>
+                            <Upload className="w-4 h-4 mr-2" />
+                            Choisir une photo
+                          </span>
+                        </Button>
+                      </Label>
+                      {uploading && <p className="text-sm text-muted-foreground">Upload en cours...</p>}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label>Photo de profil</Label>
-                    <div className="flex items-center gap-4">
-                      <Avatar className="w-16 h-16">
-                        <AvatarImage src={previewUrl || formData.photo_url} />
-                        <AvatarFallback>
-                          <User className="w-8 h-8" />
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className="flex flex-col gap-2">
-                        <Input
-                          type="file"
-                          accept="image/*"
-                          onChange={handleFileChange}
-                          className="hidden"
-                          id="photo-upload"
-                        />
-                        <Label htmlFor="photo-upload" className="cursor-pointer">
-                          <Button type="button" variant="outline" size="sm" asChild>
-                            <span>
-                              <Upload className="w-4 h-4 mr-2" />
-                              Choisir une photo
-                            </span>
-                          </Button>
-                        </Label>
-                        {uploading && <p className="text-sm text-muted-foreground">Upload en cours...</p>}
-                      </div>
-                    </div>
+                    <Label htmlFor="prenom">Prénom *</Label>
+                    <Input
+                      id="prenom"
+                      value={formData.prenom}
+                      onChange={(e) => setFormData({ ...formData, prenom: e.target.value })}
+                      placeholder="Prénom"
+                    />
                   </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="prenom">Prénom *</Label>
-                      <Input
-                        id="prenom"
-                        value={formData.prenom}
-                        onChange={(e) => setFormData({ ...formData, prenom: e.target.value })}
-                        placeholder="Prénom"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="nom">Nom *</Label>
-                      <Input
-                        id="nom"
-                        value={formData.nom}
-                        onChange={(e) => setFormData({ ...formData, nom: e.target.value })}
-                        placeholder="Nom"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="email">Email *</Label>
-                      <Input
-                        id="email"
-                        type="email"
-                        value={formData.email}
-                        onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                        placeholder="email@exemple.com"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="matricule">Matricule</Label>
-                      <Input
-                        id="matricule"
-                        value={formData.matricule}
-                        onChange={(e) => setFormData({ ...formData, matricule: e.target.value })}
-                        placeholder="Généré automatiquement si vide"
-                        className="bg-muted/50"
-                      />
-                      <p className="text-xs text-muted-foreground">
-                        Format: {formData.prenom && formData.nom ? 
-                          `${formData.prenom.charAt(0).toUpperCase()}${formData.nom.substring(0, 3).toUpperCase()}-01` : 
-                          'XAAA-01'
-                        }
-                      </p>
-                    </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="nom">Nom *</Label>
+                    <Input
+                      id="nom"
+                      value={formData.nom}
+                      onChange={(e) => setFormData({ ...formData, nom: e.target.value })}
+                      placeholder="Nom"
+                    />
                   </div>
-
-                  {/* Mots de passe */}
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="password">Mot de passe *</Label>
-                      <div className="relative">
-                        <Input
-                          id="password"
-                          type={showPassword ? "text" : "password"}
-                          value={formData.password}
-                          onChange={(e) => handlePasswordChange(e.target.value)}
-                          placeholder="Mot de passe"
-                          className={!passwordValidation.isValid && formData.password ? "border-destructive" : ""}
-                        />
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                          onClick={() => setShowPassword(!showPassword)}
-                        >
-                          {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                        </Button>
-                      </div>
-                      {!passwordValidation.isValid && formData.password && (
-                        <div className="text-xs text-destructive space-y-1">
-                          {passwordValidation.errors.map((error, index) => (
-                            <p key={index}>• {error}</p>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="confirmPassword">Confirmer le mot de passe *</Label>
-                      <div className="relative">
-                        <Input
-                          id="confirmPassword"
-                          type={showConfirmPassword ? "text" : "password"}
-                          value={formData.confirmPassword}
-                          onChange={(e) => handleConfirmPasswordChange(e.target.value)}
-                          placeholder="Confirmer le mot de passe"
-                          className={!passwordMatch && formData.confirmPassword ? "border-destructive" : ""}
-                        />
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                          onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                        >
-                          {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                        </Button>
-                      </div>
-                      {!passwordMatch && formData.confirmPassword && (
-                        <p className="text-xs text-destructive">Les mots de passe ne correspondent pas</p>
-                      )}
-                    </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="email">Email *</Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      value={formData.email}
+                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                      placeholder="email@exemple.com"
+                    />
                   </div>
-
-                  {/* Critères de validation du mot de passe */}
-                  <div className="bg-muted/50 p-3 rounded-lg">
-                    <p className="text-sm font-medium mb-2">Critères du mot de passe :</p>
-                    <ul className="text-xs text-muted-foreground space-y-1">
-                      <li>• Minimum 8 caractères</li>
-                      <li>• Au moins une majuscule (A-Z)</li>
-                      <li>• Au moins une minuscule (a-z)</li>
-                      <li>• Au moins un chiffre (0-9)</li>
-                      <li>• Au moins un caractère spécial (!@#$%^&*)</li>
-                    </ul>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="role">Rôle</Label>
-                      <Select value={formData.role_id} onValueChange={(value) => setFormData({ ...formData, role_id: value })}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Sélectionner un rôle" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {roles?.map((role) => (
-                            <SelectItem key={role.id} value={role.id}>
-                              {role.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="statut">Statut</Label>
-                      <Select value={formData.statut} onValueChange={(value: any) => setFormData({ ...formData, statut: value })}>
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="actif">Actif</SelectItem>
-                          <SelectItem value="inactif">Inactif</SelectItem>
-                          <SelectItem value="suspendu">Suspendu</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="type_compte">Type de compte</Label>
-                      <Select value={formData.type_compte} onValueChange={(value: any) => setFormData({ ...formData, type_compte: value })}>
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="employe">Employé</SelectItem>
-                          <SelectItem value="gestionnaire">Gestionnaire</SelectItem>
-                          <SelectItem value="admin">Administrateur</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="telephone">Téléphone</Label>
-                      <Input
-                        id="telephone"
-                        value={formData.telephone}
-                        onChange={(e) => setFormData({ ...formData, telephone: e.target.value })}
-                        placeholder="Téléphone"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="date_embauche">Date d'embauche</Label>
-                      <Input
-                        id="date_embauche"
-                        type="date"
-                        value={formData.date_embauche}
-                        onChange={(e) => setFormData({ ...formData, date_embauche: e.target.value })}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="department">Adresse</Label>
-                      <Input
-                        id="department"
-                        value={formData.department}
-                        onChange={(e) => setFormData({ ...formData, department: e.target.value })}
-                        placeholder="Adresse"
-                      />
-                    </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="matricule">Matricule</Label>
+                    <Input
+                      id="matricule"
+                      value={formData.matricule}
+                      onChange={(e) => setFormData({ ...formData, matricule: e.target.value })}
+                      placeholder="Généré automatiquement si vide"
+                      className="bg-muted/50"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Format: {formData.prenom && formData.nom ? 
+                        `${formData.prenom.charAt(0).toUpperCase()}${formData.nom.substring(0, 3).toUpperCase()}-01` : 
+                        'XAAA-01'
+                      }
+                    </p>
                   </div>
                 </div>
-                <div className="flex justify-end gap-2">
-                  <Button variant="outline" onClick={() => setShowCreateDialog(false)}>
-                    Annuler
-                  </Button>
-                  <Button 
-                    onClick={handleCreate}
-                    disabled={createUser.isPending || !formData.email || !formData.prenom || !formData.nom}
-                  >
-                    {createUser.isPending ? 'Création...' : 'Créer'}
-                  </Button>
+
+                {/* Mots de passe */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="password">Mot de passe *</Label>
+                    <div className="relative">
+                      <Input
+                        id="password"
+                        type={showPassword ? "text" : "password"}
+                        value={formData.password}
+                        onChange={(e) => handlePasswordChange(e.target.value)}
+                        placeholder="Mot de passe"
+                        className={!passwordValidation.isValid && formData.password ? "border-destructive" : ""}
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                        onClick={() => setShowPassword(!showPassword)}
+                      >
+                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </Button>
+                    </div>
+                    {!passwordValidation.isValid && formData.password && (
+                      <div className="text-xs text-destructive space-y-1">
+                        {passwordValidation.errors.map((error, index) => (
+                          <p key={index}>• {error}</p>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="confirmPassword">Confirmer le mot de passe *</Label>
+                    <div className="relative">
+                      <Input
+                        id="confirmPassword"
+                        type={showConfirmPassword ? "text" : "password"}
+                        value={formData.confirmPassword}
+                        onChange={(e) => handleConfirmPasswordChange(e.target.value)}
+                        placeholder="Confirmer le mot de passe"
+                        className={!passwordMatch && formData.confirmPassword ? "border-destructive" : ""}
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      >
+                        {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </Button>
+                    </div>
+                    {!passwordMatch && formData.confirmPassword && (
+                      <p className="text-xs text-destructive">Les mots de passe ne correspondent pas</p>
+                    )}
+                  </div>
                 </div>
-              </DialogContent>
-            </Dialog>
+
+                {/* Critères de validation du mot de passe */}
+                <div className="bg-muted/50 p-3 rounded-lg">
+                  <p className="text-sm font-medium mb-2">Critères du mot de passe :</p>
+                  <ul className="text-xs text-muted-foreground space-y-1">
+                    <li>• Minimum 8 caractères</li>
+                    <li>• Au moins une majuscule (A-Z)</li>
+                    <li>• Au moins une minuscule (a-z)</li>
+                    <li>• Au moins un chiffre (0-9)</li>
+                    <li>• Au moins un caractère spécial (!@#$%^&*)</li>
+                  </ul>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="role">Rôle</Label>
+                    <Select value={formData.role_id} onValueChange={(value) => setFormData({ ...formData, role_id: value })}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Sélectionner un rôle" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {roles?.map((role) => (
+                          <SelectItem key={role.id} value={role.id}>
+                            {role.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="statut">Statut</Label>
+                    <Select value={formData.statut} onValueChange={(value: any) => setFormData({ ...formData, statut: value })}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="actif">Actif</SelectItem>
+                        <SelectItem value="inactif">Inactif</SelectItem>
+                        <SelectItem value="suspendu">Suspendu</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="type_compte">Type de compte</Label>
+                    <Select value={formData.type_compte} onValueChange={(value: any) => setFormData({ ...formData, type_compte: value })}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="employe">Employé</SelectItem>
+                        <SelectItem value="gestionnaire">Gestionnaire</SelectItem>
+                        <SelectItem value="admin">Administrateur</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="telephone">Téléphone</Label>
+                    <Input
+                      id="telephone"
+                      value={formData.telephone}
+                      onChange={(e) => setFormData({ ...formData, telephone: e.target.value })}
+                      placeholder="Téléphone"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="date_embauche">Date d'embauche</Label>
+                    <Input
+                      id="date_embauche"
+                      type="date"
+                      value={formData.date_embauche}
+                      onChange={(e) => setFormData({ ...formData, date_embauche: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="department">Adresse</Label>
+                    <Input
+                      id="department"
+                      value={formData.department}
+                      onChange={(e) => setFormData({ ...formData, department: e.target.value })}
+                      placeholder="Adresse"
+                    />
+                  </div>
+                </div>
+              </div>
+              <div className="flex justify-end gap-2">
+                <Button variant="outline" onClick={() => setShowCreateDialog(false)}>
+                  Annuler
+                </Button>
+                <Button 
+                  onClick={handleCreate}
+                  disabled={createUser.isPending || !formData.email || !formData.prenom || !formData.nom}
+                >
+                  {createUser.isPending ? 'Création...' : 'Créer'}
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
           </div>
         </CardHeader>
         <CardContent>

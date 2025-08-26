@@ -1,20 +1,18 @@
 
 import React, { useState } from 'react';
 import { useStockPDV, usePointsDeVente } from '@/hooks/stock';
-import { useStockRefresh } from '@/hooks/useStockRefresh';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search, RefreshCw, RotateCcw } from 'lucide-react';
+import { Search, RefreshCw } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { formatCurrency } from '@/lib/currency';
 
 const StockPDV = () => {
   const { stockPDV, isLoading } = useStockPDV();
   const { pointsDeVente } = usePointsDeVente();
-  const { refreshAllStock } = useStockRefresh();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedPDV, setSelectedPDV] = useState<string>('all');
 
@@ -47,20 +45,9 @@ const StockPDV = () => {
       <div className="flex flex-col space-y-4">
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold text-foreground">Gestion du stock point de vente</h1>
-          <div className="flex gap-2">
-            <Button 
-              variant="outline" 
-              size="icon" 
-              title="Actualiser les données"
-              onClick={refreshAllStock}
-              disabled={isLoading}
-            >
-              <RotateCcw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
-            </Button>
-            <Button variant="outline" size="icon" title="Rafraîchir">
-              <RefreshCw className="h-4 w-4" />
-            </Button>
-          </div>
+          <Button variant="outline" size="icon" title="Rafraîchir">
+            <RefreshCw className="h-4 w-4" />
+          </Button>
         </div>
         
         {/* Liste des Articles Header */}
@@ -140,16 +127,16 @@ const StockPDV = () => {
                             {item.article?.reference || 'N/A'}
                           </TableCell>
                            <TableCell className="text-muted-foreground">
-                             {item.article?.categorie || 'N/A'}
+                             {item.article?.categorie_article?.nom || item.article?.categorie || 'N/A'}
                            </TableCell>
                           <TableCell className="text-muted-foreground">
                             {item.point_vente?.nom || 'N/A'}
                           </TableCell>
                            <TableCell className="text-center text-foreground font-medium">
                              {item.quantite_disponible}
-                             {item.article?.unite_mesure && (
+                             {(item.article?.unite_article?.nom || item.article?.unite_mesure) && (
                                <span className="text-muted-foreground ml-1">
-                                 {item.article.unite_mesure}
+                                 {item.article?.unite_article?.nom || item.article.unite_mesure}
                                </span>
                              )}
                            </TableCell>

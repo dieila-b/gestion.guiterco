@@ -1,9 +1,17 @@
 
 import React from 'react';
-import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Package, Plus, Image } from 'lucide-react';
+import { Image, ChevronLeft, ChevronRight } from 'lucide-react';
+import { formatCurrency } from '@/lib/currency';
+
+interface Article {
+  id: string;
+  nom: string;
+  reference: string;
+  prix_vente?: number;
+  image_url?: string;
+  categorie?: string;
+}
 
 interface ProductGridProps {
   stockPDV?: any[];
@@ -13,7 +21,7 @@ interface ProductGridProps {
   totalPages: number;
   goToPage: (page: number) => void;
   getStockColor: (quantite: number) => string;
-  getLocalStock: (articleId: string) => number;
+  getLocalStock?: (articleId: string) => number;
   searchProduct: string;
   selectedCategory: string;
 }
@@ -33,181 +41,193 @@ const ProductGrid: React.FC<ProductGridProps> = ({
   console.log('ProductGrid - stockPDV:', stockPDV);
   console.log('ProductGrid - selectedCategory:', selectedCategory);
 
-  // Filtrer les produits selon les critères
+  // Filtrer les produits en fonction de la recherche et de la catégorie
   const filteredProducts = React.useMemo(() => {
-    if (!stockPDV || stockPDV.length === 0) {
-      console.log('Pas de stock PDV disponible');
-      return [];
-    }
+    if (!stockPDV) return [];
+    
+    const filtered = stockPDV.filter(stockItem => {
+      const article = stockItem.article;
+      if (!article) return false;
 
-    let filtered = [...stockPDV];
+      // Filtre par recherche
+      const matchesSearch = !searchProduct || 
+        article.nom.toLowerCase().includes(searchProduct.toLowerCase()) ||
+        article.reference.toLowerCase().includes(searchProduct.toLowerCase());
 
-    // Filtrage par recherche
-    if (searchProduct) {
-      const search = searchProduct.toLowerCase();
-      filtered = filtered.filter(item =>
-        item.article?.nom?.toLowerCase().includes(search) ||
-        item.article?.reference?.toLowerCase().includes(search)
-      );
-    }
+      // Filtre par catégorie - utiliser la catégorie normalisée
+      const articleCategory = article.categorie || '';
+      const matchesCategory = selectedCategory === 'Tous' || 
+        !selectedCategory || 
+        selectedCategory === '' ||
+        articleCategory === selectedCategory;
 
-    // Filtrage par catégorie
-    if (selectedCategory && selectedCategory !== 'Tous') {
-      filtered = filtered.filter(item => {
-        const category = item.article?.categorie_article?.nom || 
-                        item.article?.categorie || 
-                        'Général';
-        return category === selectedCategory;
+      console.log('Filtering article:', {
+        nom: article.nom,
+        categorie: articleCategory,
+        selectedCategory,
+        matchesCategory,
+        matchesSearch
       });
-    }
+
+      return matchesSearch && matchesCategory;
+    });
 
     console.log('Filtered products:', filtered.length, 'from', stockPDV.length);
     return filtered;
   }, [stockPDV, searchProduct, selectedCategory]);
 
-  // Pagination
-  const itemsPerPage = 12;
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const endIndex = startIndex + itemsPerPage;
-  const currentProducts = filteredProducts.slice(startIndex, endIndex);
-  const totalFilteredPages = Math.ceil(filteredProducts.length / itemsPerPage);
-
-  const formatPrice = (price: number) => {
-    return `${price?.toLocaleString()} GNF`;
+  const getStockIndicator = (quantite: number) => {
+    if (quantite > 50) return { emoji: '🟢', text: 'En stock' };
+    if (quantite >= 10) return { emoji: '🟠', text: 'Stock moyen' };
+    return { emoji: '🔴', text: 'Stock faible' };
   };
 
-  if (loadingArticles) {
-    return (
-      <div className="flex-1 p-4">
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-          {Array.from({ length: 8 }).map((_, i) => (
-            <Card key={i} className="animate-pulse">
-              <CardContent className="p-4">
-                <div className="aspect-square bg-gray-200 rounded mb-2"></div>
-                <div className="h-4 bg-gray-200 rounded mb-2"></div>
-                <div className="h-3 bg-gray-200 rounded mb-2"></div>
-                <div className="h-6 bg-gray-200 rounded"></div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      </div>
-    );
-  }
+  const getDisplayStock = (stockItem: any) => {
+    // Utiliser le stock local si disponible, sinon le stock PDV
+    if (getLocalStock) {
+      return getLocalStock(stockItem.article_id);
+    }
+    return stockItem.quantite_disponible;
+  };
 
   return (
-    <div className="flex-1 flex flex-col h-full">
-      {/* Zone des produits */}
-      <div className="flex-1 p-4 overflow-auto">
-        {currentProducts.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full text-gray-500">
-            <Package className="h-16 w-16 mb-4" />
-            <p className="text-lg font-medium mb-2">Aucun produit trouvé</p>
-            <p className="text-sm text-center">
-              {stockPDV?.length === 0 
-                ? "Aucun stock disponible dans ce point de vente"
-                : "Essayez de modifier vos critères de recherche"}
-            </p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-            {currentProducts.map((stockItem) => {
-              const article = stockItem.article;
-              const stock = stockItem.quantite_disponible || 0;
-              const stockColor = getStockColor(stock);
+    <div className="w-1/2 p-4 flex flex-col">
+      <div className="bg-white rounded-lg shadow-lg border border-gray-200 flex flex-col h-full">
+        {/* En-tête produits */}
+        <div className="p-4 border-b border-gray-200">
+          <h3 className="text-lg font-bold text-gray-800">Produits disponibles</h3>
+          <p className="text-sm text-gray-500">
+            {filteredProducts.length} produits trouvés - Stock mis à jour en temps réel
+            {selectedCategory && selectedCategory !== 'Tous' && (
+              <span className="ml-2 text-blue-600 font-medium">
+                Catégorie: {selectedCategory}
+              </span>
+            )}
+          </p>
+        </div>
 
-              return (
-                <Card 
-                  key={stockItem.id} 
-                  className="group cursor-pointer hover:shadow-lg transition-all duration-200 hover:scale-105"
-                  onClick={() => addToCart(article)}
-                >
-                  <CardContent className="p-3">
-                    {/* Image du produit */}
-                    <div className="aspect-square bg-gray-50 rounded-lg mb-3 flex items-center justify-center overflow-hidden">
-                      {article?.image_url ? (
-                        <img 
-                          src={article.image_url} 
-                          alt={article.nom}
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <Image className="h-8 w-8 text-gray-400" />
+        {/* Grille des produits */}
+        <div className="flex-1 overflow-auto p-4">
+          {loadingArticles ? (
+            <div className="grid grid-cols-5 gap-4">
+              {Array.from({ length: 20 }).map((_, i) => (
+                <div key={i} className="animate-pulse">
+                  <div className="aspect-square bg-gray-200 rounded mb-2"></div>
+                  <div className="h-4 bg-gray-200 rounded mb-1"></div>
+                  <div className="h-3 bg-gray-200 rounded mb-1"></div>
+                  <div className="h-4 bg-gray-200 rounded"></div>
+                </div>
+              ))}
+            </div>
+          ) : filteredProducts.length === 0 ? (
+            <div className="text-center py-8 text-gray-500">
+              <Image className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+              <p>Aucun produit trouvé</p>
+              <p className="text-sm">
+                {selectedCategory && selectedCategory !== 'Tous' 
+                  ? `Aucun produit dans la catégorie "${selectedCategory}"`
+                  : 'Essayez de changer les filtres ou sélectionner un autre PDV'
+                }
+              </p>
+            </div>
+          ) : (
+            <>
+              <div className="grid grid-cols-5 gap-4 mb-4">
+                {filteredProducts.map((stockItem) => {
+                  const article = stockItem.article;
+                  const stockDisponible = getDisplayStock(stockItem);
+                  const stockIndicator = getStockIndicator(stockDisponible);
+                  
+                  return (
+                    <div 
+                      key={article.id}
+                      className={`border rounded-lg p-3 transition-all cursor-pointer hover:shadow-md bg-background relative ${
+                        stockDisponible === 0 ? 'opacity-50 cursor-not-allowed' : 'hover:border-blue-300'
+                      }`}
+                      onClick={() => stockDisponible > 0 && addToCart(article)}
+                    >
+                      {/* Indicateur de stock */}
+                      <div className="absolute top-2 right-2 text-lg">
+                        {stockIndicator.emoji}
+                      </div>
+                      
+                      <div className="aspect-square bg-gray-100 rounded mb-2 flex items-center justify-center overflow-hidden">
+                        {article.image_url ? (
+                          <img 
+                            src={article.image_url} 
+                            alt={article.nom}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-full h-full bg-gradient-to-br from-blue-100 to-blue-200 flex items-center justify-center">
+                            <Image className="h-8 w-8 text-blue-400" />
+                          </div>
+                        )}
+                      </div>
+                      
+                      <div className="text-sm font-medium truncate mb-2" title={article.nom}>
+                        {article.nom}
+                      </div>
+                      
+                      {/* Affichage de la catégorie pour debug */}
+                      {article.categorie && (
+                        <div className="text-xs text-gray-400 mb-1">
+                          {article.categorie}
+                        </div>
+                      )}
+                      
+                      {/* Stock disponible avec couleur et indication temps réel */}
+                      <div className={`text-xs font-medium mb-1 ${getStockColor(stockDisponible)}`}>
+                        Stock: {stockDisponible}
+                        {getLocalStock && (
+                          <span className="ml-1 text-blue-500 animate-pulse">●</span>
+                        )}
+                      </div>
+                      
+                      <div className="font-bold text-blue-600">
+                        {formatCurrency(article.prix_vente || 0)}
+                      </div>
+                      
+                      {stockDisponible === 0 && (
+                        <div className="absolute inset-0 bg-black bg-opacity-50 rounded-lg flex items-center justify-center">
+                          <span className="text-white text-xs font-bold">RUPTURE</span>
+                        </div>
                       )}
                     </div>
+                  );
+                })}
+              </div>
 
-                    {/* Info produit */}
-                    <div className="space-y-2">
-                      <h3 className="font-semibold text-sm line-clamp-2 group-hover:text-blue-600">
-                        {article?.nom || 'Produit sans nom'}
-                      </h3>
-                      
-                      <p className="text-xs text-gray-500">
-                        {article?.reference || 'Pas de référence'}
-                      </p>
-
-                      {/* Prix et stock */}
-                      <div className="flex items-center justify-between">
-                        <span className="font-bold text-green-600 text-sm">
-                          {formatPrice(article?.prix_vente || 0)}
-                        </span>
-                        <Badge 
-                          variant="outline" 
-                          className={`text-xs ${stockColor}`}
-                        >
-                          {stock} en stock
-                        </Badge>
-                      </div>
-
-                      {/* Bouton d'ajout */}
-                      <Button 
-                        size="sm" 
-                        className="w-full opacity-0 group-hover:opacity-100 transition-opacity"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          addToCart(article);
-                        }}
-                      >
-                        <Plus className="h-4 w-4 mr-1" />
-                        Ajouter
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </div>
-        )}
-      </div>
-
-      {/* Pagination si nécessaire */}
-      {totalFilteredPages > 1 && (
-        <div className="border-t p-4 bg-white">
-          <div className="flex justify-center items-center space-x-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => goToPage(Math.max(1, currentPage - 1))}
-              disabled={currentPage === 1}
-            >
-              Précédent
-            </Button>
-            
-            <span className="text-sm text-gray-600">
-              Page {currentPage} sur {totalFilteredPages}
-            </span>
-            
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => goToPage(Math.min(totalFilteredPages, currentPage + 1))}
-              disabled={currentPage === totalFilteredPages}
-            >
-              Suivant
-            </Button>
-          </div>
+              {/* Pagination */}
+              {totalPages > 1 && (
+                <div className="flex justify-center items-center gap-2 pt-4 border-t">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => goToPage(currentPage - 1)}
+                    disabled={currentPage === 1}
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </Button>
+                  
+                  <span className="text-sm text-gray-600">
+                    Page {currentPage} sur {totalPages}
+                  </span>
+                  
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => goToPage(currentPage + 1)}
+                    disabled={currentPage === totalPages}
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </div>
+              )}
+            </>
+          )}
         </div>
-      )}
+      </div>
     </div>
   );
 };

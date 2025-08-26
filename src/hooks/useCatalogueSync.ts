@@ -1,86 +1,159 @@
 
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
+import { useToast } from '@/hooks/use-toast';
 
 export const useCatalogueSync = () => {
   const queryClient = useQueryClient();
+  const { toast } = useToast();
 
+  // Synchroniser toutes les données du catalogue
   const syncCatalogue = useMutation({
     mutationFn: async () => {
-      console.log('🔄 Synchronisation complète du catalogue et des stocks...');
+      console.log('Synchronisation complète du catalogue...');
       
-      // Test des connexions de base
-      const { data: testCatalogue, error: testError } = await supabase
+      // Rafraîchir toutes les queries liées au catalogue
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['catalogue'] }),
+        queryClient.invalidateQueries({ queryKey: ['catalogue_optimized'] }),
+        queryClient.invalidateQueries({ queryKey: ['categories'] }),
+        queryClient.invalidateQueries({ queryKey: ['unites'] }),
+        queryClient.invalidateQueries({ queryKey: ['stock-principal'] }),
+        queryClient.invalidateQueries({ queryKey: ['entrepots'] }),
+        queryClient.invalidateQueries({ queryKey: ['bons-commande'] }),
+        queryClient.invalidateQueries({ queryKey: ['bons-livraison'] }),
+        queryClient.invalidateQueries({ queryKey: ['factures-achat'] }),
+        queryClient.invalidateQueries({ queryKey: ['data-integrity'] })
+      ]);
+
+      // Vérifier la cohérence des données après synchronisation
+      const { data: catalogueData } = await supabase
         .from('catalogue')
-        .select('id, nom, reference')
-        .eq('statut', 'actif')
-        .limit(5);
+        .select(`
+          id,
+          nom,
+          reference,
+          categorie,
+          statut,
+          stock_principal (
+            quantite_disponible,
+            entrepot:entrepots (nom)
+          )
+        `)
+        .eq('statut', 'actif');
 
-      if (testError) {
-        throw new Error(`Erreur de connexion catalogue: ${testError.message}`);
-      }
-
-      console.log('✅ Connexion catalogue OK, articles trouvés:', testCatalogue?.length);
-      
-      // Invalider tous les caches
-      queryClient.invalidateQueries({ queryKey: ['ultra-catalogue'] });
-      queryClient.invalidateQueries({ queryKey: ['ultra-stock'] });
-      queryClient.invalidateQueries({ queryKey: ['ultra-config'] });
-      queryClient.invalidateQueries({ queryKey: ['ultra-clients'] });
-      
-      // Forcer le rechargement
-      await queryClient.refetchQueries({ queryKey: ['ultra-catalogue'] });
-      await queryClient.refetchQueries({ queryKey: ['ultra-stock'] });
-      await queryClient.refetchQueries({ queryKey: ['ultra-config'] });
-      
-      console.log('✅ Synchronisation terminée avec succès');
-      return { success: true, articlesCount: testCatalogue?.length || 0 };
+      return catalogueData;
     },
-    onSuccess: (result) => {
-      toast.success(`Synchronisation réussie! ${result.articlesCount} articles trouvés`);
+    onSuccess: (data) => {
+      console.log('Synchronisation terminée:', data);
+      toast({
+        title: "Synchronisation réussie",
+        description: `${data?.length || 0} produits synchronisés avec succès.`,
+      });
     },
-    onError: (error) => {
-      console.error('❌ Erreur de synchronisation:', error);
-      toast.error(`Erreur de synchronisation: ${error.message}`);
+    onError: (error: any) => {
+      console.error('Erreur de synchronisation:', error);
+      toast({
+        title: "Erreur de synchronisation",
+        description: error.message || "Une erreur est survenue lors de la synchronisation.",
+        variant: "destructive",
+      });
     }
   });
 
-  const checkDataIntegrity = useMutation({
-    mutationFn: async () => {
-      console.log('🔍 Vérification de l\'intégrité des données...');
+  // Vérifier l'intégrité des relations - Version corrigée
+  const checkDataIntegrity = useQuery({
+    queryKey: ['data-integrity'],
+    queryFn: async () => {
+      console.log('Vérification de l\'intégrité des données...');
       
-      // Vérifier les relations orphelines dans le stock
-      const { data: orphanedStock } = await supabase
-        .from('stock_principal')
-        .select('id, quantite_disponible')
-        .is('article_id', null)
-        .gt('quantite_disponible', 0);
+      try {
+        // Vérifier les articles actifs sans stock associé
+        const { data: articlesWithoutStock, error: stockError } = await supabase
+          .from('catalogue')
+          .select(`
+            id, 
+            nom, 
+            reference,
+            stock_principal!inner(quantite_disponible)
+          `)
+          .eq('statut', 'actif')
+          .is('stock_principal.quantite_disponible', null);
 
-      // Vérifier les entrepôts inactifs avec du stock
-      const { data: inactiveWarehousesWithStock } = await supabase
-        .from('stock_principal')
-        .select('id, quantite_disponible, entrepot:entrepots!stock_principal_entrepot_id_fkey(nom, statut)')
-        .gt('quantite_disponible', 0);
+        if (stockError) {
+          console.error('Erreur lors de la vérification du stock:', stockError);
+        }
 
-      const issues = {
-        orphanedStock: orphanedStock || [],
-        inactiveWarehousesWithStock: (inactiveWarehousesWithStock || [])
-          .filter(item => item.entrepot?.statut === 'inactif'),
-        duplicateStock: [] // Placeholder for future checks
-      };
+        // Vérifier les stocks avec des références d'articles invalides
+        const { data: orphanedStock, error: orphanedError } = await supabase
+          .from('stock_principal')
+          .select(`
+            id,
+            article_id,
+            quantite_disponible,
+            entrepot_id
+          `)
+          .not('article_id', 'in', 
+            `(SELECT id FROM catalogue WHERE statut = 'actif')`
+          );
 
-      console.log('🔍 Problèmes détectés:', {
-        orphaned: issues.orphanedStock.length,
-        inactive: issues.inactiveWarehousesWithStock.length
-      });
+        if (orphanedError) {
+          console.error('Erreur lors de la vérification des stocks orphelins:', orphanedError);
+        }
 
-      return issues;
-    }
+        // Vérifier les stocks dans des entrepôts inactifs
+        const { data: inactiveWarehousesWithStock, error: warehouseError } = await supabase
+          .from('stock_principal')
+          .select(`
+            id,
+            quantite_disponible,
+            entrepot:entrepots!inner(nom, statut)
+          `)
+          .gt('quantite_disponible', 0)
+          .eq('entrepot.statut', 'inactif');
+
+        if (warehouseError) {
+          console.error('Erreur lors de la vérification des entrepôts:', warehouseError);
+        }
+
+        // Vérifier les doublons de stock (même article dans le même entrepôt) - requête SQL directe
+        const { data: duplicateStock, error: duplicateError } = await supabase
+          .from('stock_principal')
+          .select('article_id, entrepot_id, count(*)')
+          .gte('count', 2);
+
+        if (duplicateError) {
+          console.warn('Erreur lors de la vérification des doublons:', duplicateError);
+        }
+
+        const result = {
+          articlesWithoutStock: articlesWithoutStock || [],
+          orphanedStock: orphanedStock || [],
+          inactiveWarehousesWithStock: inactiveWarehousesWithStock || [],
+          duplicateStock: duplicateStock || []
+        };
+
+        console.log('Résultats de vérification d\'intégrité:', result);
+        return result;
+
+      } catch (error) {
+        console.error('Erreur lors de la vérification d\'intégrité:', error);
+        return {
+          articlesWithoutStock: [],
+          orphanedStock: [],
+          inactiveWarehousesWithStock: [],
+          duplicateStock: []
+        };
+      }
+    },
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    refetchOnWindowFocus: false,
+    retry: 1
   });
 
   return {
     syncCatalogue,
-    checkDataIntegrity
+    checkDataIntegrity,
+    isLoading: syncCatalogue.isPending
   };
 };

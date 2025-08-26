@@ -1,108 +1,135 @@
 
-import { useUltraFastCatalogue } from './useUltraCache';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 import { useMemo } from 'react';
 
 export interface ArticleOptimized {
   id: string;
   nom: string;
-  reference?: string;
-  description?: string;
-  prix_vente?: number;
+  reference: string;
   prix_achat?: number;
-  prix_unitaire?: number;
+  prix_vente?: number;
   categorie?: string;
-  categories?: {
-    nom: string;
-    couleur?: string;
-  };
-  unite?: string;
-  unites?: {
-    nom: string;
-    symbole: string;
-  };
-  unite_mesure?: string;
-  seuil_alerte?: number;
   image_url?: string;
   statut?: string;
-  created_at?: string;
-  updated_at?: string;
+  categorie_id?: string;
+  unite_id?: string;
 }
 
+// Hook optimisé avec pagination et filtrage côté serveur
 export const useCatalogueOptimized = (
   page = 1, 
   limit = 20, 
   searchTerm = '', 
-  selectedCategory = 'all'
+  category = ''
 ) => {
-  const { data: articles, isLoading } = useUltraFastCatalogue();
+  const from = (page - 1) * limit;
+  const to = from + limit - 1;
 
-  const { paginatedArticles, categories, hasMore } = useMemo(() => {
-    console.log('📦 Traitement catalogue optimisé avec données synchronisées:', {
-      totalArticles: articles?.length || 0,
-      page,
-      limit,
-      searchTerm,
-      selectedCategory
-    });
+  const { data, isLoading, error } = useQuery({
+    queryKey: ['catalogue_optimized', page, limit, searchTerm, category],
+    queryFn: async () => {
+      console.log('Fetching optimized catalogue data...');
+      
+      let query = supabase
+        .from('catalogue')
+        .select(`
+          id,
+          nom,
+          reference,
+          prix_achat,
+          prix_vente,
+          categorie,
+          image_url,
+          statut,
+          categorie_id,
+          unite_id
+        `, { count: 'exact' })
+        // Temporairement désactivé pour debug : .eq('statut', 'actif')
+        .range(from, to);
 
-    if (!articles || articles.length === 0) {
+      // Filtrage côté serveur
+      if (searchTerm) {
+        query = query.or(`nom.ilike.%${searchTerm}%,reference.ilike.%${searchTerm}%`);
+      }
+      
+      if (category && category !== 'all') {
+        query = query.eq('categorie_id', category);
+      }
+
+      query = query.order('nom', { ascending: true });
+      
+      const { data, error, count } = await query;
+      
+      if (error) {
+        console.error('Erreur lors du chargement du catalogue optimisé:', error);
+        throw error;
+      }
+      
+      console.log('Optimized catalogue data loaded:', data);
       return { 
-        paginatedArticles: [], 
-        categories: [], 
-        hasMore: false 
+        articles: data as ArticleOptimized[], 
+        totalCount: count || 0,
+        hasMore: (count || 0) > to + 1
       };
-    }
+    },
+    staleTime: 10 * 60 * 1000, // 10 minutes pour le catalogue
+    gcTime: 15 * 60 * 1000,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false
+  });
 
-    // Filtrer les articles
-    let filteredArticles = articles;
-
-    // Recherche textuelle
-    if (searchTerm) {
-      const search = searchTerm.toLowerCase();
-      filteredArticles = filteredArticles.filter(article =>
-        article.nom?.toLowerCase().includes(search) ||
-        article.reference?.toLowerCase().includes(search) ||
-        article.categorie?.toLowerCase().includes(search)
-      );
-    }
-
-    // Filtre par catégorie
-    if (selectedCategory && selectedCategory !== 'all') {
-      filteredArticles = filteredArticles.filter(article => {
-        const articleCategory = article.categorie || 'Général';
-        return articleCategory === selectedCategory;
-      });
-    }
-
-    // Extraire les catégories uniques depuis les données synchronisées
-    const uniqueCategories = [...new Set(
-      articles.map(article => article.categorie || 'Général')
-    )].filter(Boolean).sort();
-
-    // Pagination
-    const startIndex = (page - 1) * limit;
-    const endIndex = startIndex + limit;
-    const paginatedResults = filteredArticles.slice(startIndex, endIndex);
-
-    console.log('📊 Résultats filtrage avec données synchronisées:', {
-      filteredCount: filteredArticles.length,
-      paginatedCount: paginatedResults.length,
-      categories: uniqueCategories.length,
-      categoriesFound: uniqueCategories
-    });
-
-    return {
-      paginatedArticles: paginatedResults,
-      categories: uniqueCategories,
-      hasMore: endIndex < filteredArticles.length
-    };
-  }, [articles, page, limit, searchTerm, selectedCategory]);
+  // Mémorisation des catégories pour éviter les re-calculs
+  const categories = useMemo(() => {
+    if (!data?.articles) return [];
+    const uniqueCategories = [...new Set(data.articles.map(a => a.categorie).filter(Boolean))];
+    return uniqueCategories;
+  }, [data?.articles]);
 
   return {
-    articles: paginatedArticles,
+    articles: data?.articles || [],
+    totalCount: data?.totalCount || 0,
+    hasMore: data?.hasMore || false,
     categories,
     isLoading,
-    hasMore,
-    totalCount: articles?.length || 0
+    error
   };
+};
+
+// Hook pour recherche en temps réel avec debounce
+export const useCatalogueSearch = (searchTerm: string, enabled = false) => {
+  return useQuery({
+    queryKey: ['catalogue_search', searchTerm],
+    queryFn: async () => {
+      if (!searchTerm || searchTerm.length < 2) return [];
+      
+      console.log('Searching catalogue with term:', searchTerm);
+      
+      const { data, error } = await supabase
+        .from('catalogue')
+        .select(`
+          id,
+          nom,
+          reference,
+          prix_achat,
+          prix_vente,
+          image_url,
+          statut
+        `)
+        // Temporairement désactivé pour debug : .eq('statut', 'actif')
+        .or(`nom.ilike.%${searchTerm}%,reference.ilike.%${searchTerm}%`)
+        .limit(10);
+      
+      if (error) {
+        console.error('Erreur lors de la recherche dans le catalogue:', error);
+        throw error;
+      }
+      
+      console.log('Search results:', data);
+      return data as ArticleOptimized[];
+    },
+    enabled: enabled && searchTerm.length >= 2,
+    staleTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: false
+  });
 };

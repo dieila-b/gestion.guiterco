@@ -1,4 +1,3 @@
-
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -18,7 +17,6 @@ export interface UtilisateurInterne {
   department?: string;
   created_at: string;
   updated_at: string;
-  user_id?: string;
   role_name?: string;
   role_description?: string;
 }
@@ -44,49 +42,20 @@ export const useUtilisateursInternes = () => {
   return useQuery({
     queryKey: ['utilisateurs-internes'],
     queryFn: async () => {
-      console.log('🔍 Chargement des utilisateurs internes...');
-      
-      // Requête ultra-simple - pas de joins complexes
-      const { data: users, error } = await supabase
-        .from('utilisateurs_internes')
+      const { data, error } = await supabase
+        .from('vue_utilisateurs_avec_roles')
         .select('*')
         .order('created_at', { ascending: false });
 
       if (error) {
-        console.error('❌ Erreur utilisateurs_internes:', error);
+        console.error('Erreur lors du chargement des utilisateurs internes:', error);
         throw new Error(`Erreur: ${error.message}`);
       }
 
-      console.log('✅ Utilisateurs trouvés:', users?.length || 0);
-
-      // Si on a des utilisateurs, récupérer les rôles séparément
-      if (users && users.length > 0) {
-        const { data: roles, error: rolesError } = await supabase
-          .from('roles')
-          .select('id, name, description');
-
-        if (rolesError) {
-          console.warn('⚠️ Erreur lors du chargement des rôles:', rolesError);
-        }
-
-        // Combiner les données manuellement
-        const usersWithRoles = users.map(user => ({
-          ...user,
-          role_name: roles?.find(r => r.id === user.role_id)?.name || 'Aucun rôle',
-          role_description: roles?.find(r => r.id === user.role_id)?.description || 'Aucune description'
-        }));
-
-        console.log('✅ Utilisateurs avec rôles:', usersWithRoles.length);
-        return usersWithRoles as UtilisateurInterne[];
-      }
-
-      return users as UtilisateurInterne[] || [];
+      return data as UtilisateurInterne[];
     },
-    retry: false, // Pas de retry pour éviter les boucles
-    staleTime: 30000, // 30 secondes
-    refetchOnWindowFocus: false,
-    refetchOnMount: false,
-    refetchOnReconnect: false
+    retry: 2,
+    retryDelay: 1000,
   });
 };
 
@@ -95,6 +64,7 @@ export const useCreateUtilisateurInterne = () => {
 
   return useMutation({
     mutationFn: async (userData: CreateUtilisateurInterne) => {
+      // Call the Edge Function with service role access
       const { data, error } = await supabase.functions.invoke('create-internal-user', {
         body: userData
       });
@@ -128,6 +98,7 @@ export const useUpdateUtilisateurInterne = () => {
     mutationFn: async ({ id, ...userData }: Partial<CreateUtilisateurInterne> & { id: string }) => {
       console.log('▶ Début mise à jour utilisateur:', { id, userData });
       
+      // Toujours utiliser l'Edge Function pour garantir la synchronisation Auth/DB
       const { data, error } = await supabase.functions.invoke('update-internal-user', {
         body: { id, ...userData }
       });
@@ -162,6 +133,7 @@ export const useDeleteUtilisateurInterne = () => {
 
   return useMutation({
     mutationFn: async (id: string) => {
+      // Call the Edge Function with service role access
       const { data, error } = await supabase.functions.invoke('delete-internal-user', {
         body: { id }
       });

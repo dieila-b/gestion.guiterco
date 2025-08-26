@@ -1,21 +1,33 @@
-// Import hook ultra-optimisé
-import { useFastUnites } from './useUltraOptimizedHooks';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 
 export interface Unite {
   id: string;
   nom: string;
   symbole: string;
-  type_unite?: string;
-  description?: string;
-  statut?: string;
-  created_at?: string;
-  updated_at?: string;
+  type_unite: string;
+  statut: string;
+  created_at: string;
+  updated_at: string;
 }
 
-// Utiliser le hook ultra-optimisé
-export const useUnites = useFastUnites;
+export const useUnites = () => {
+  return useQuery({
+    queryKey: ['unites'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('unites')
+        .select('*')
+        .order('nom', { ascending: true });
+      
+      if (error) throw error;
+      return data as Unite[];
+    },
+    staleTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: false
+  });
+};
 
 export const useCreateUnite = () => {
   const queryClient = useQueryClient();
@@ -32,7 +44,7 @@ export const useCreateUnite = () => {
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['ultra-config'] });
+      queryClient.invalidateQueries({ queryKey: ['unites'] });
     }
   });
 };
@@ -53,7 +65,7 @@ export const useUpdateUnite = () => {
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['ultra-config'] });
+      queryClient.invalidateQueries({ queryKey: ['unites'] });
     }
   });
 };
@@ -71,7 +83,7 @@ export const useDeleteUnite = () => {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['ultra-config'] });
+      queryClient.invalidateQueries({ queryKey: ['unites'] });
     }
   });
 };

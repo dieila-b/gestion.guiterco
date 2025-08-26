@@ -2,13 +2,12 @@
 import React, { useState } from 'react';
 import { useStockPrincipal, useEntrepots } from '@/hooks/stock';
 import { useCatalogueSync } from '@/hooks/useCatalogueSync';
-import { useStockRefresh } from '@/hooks/useStockRefresh';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search, RefreshCw, Filter, AlertTriangle, CheckCircle, RotateCcw } from 'lucide-react';
+import { Search, RefreshCw, Filter, AlertTriangle, CheckCircle } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { formatCurrency } from '@/lib/currency';
@@ -17,7 +16,6 @@ const StockEntrepot = () => {
   const { stockEntrepot, isLoading, error, refreshStock } = useStockPrincipal();
   const { entrepots } = useEntrepots();
   const { syncCatalogue, checkDataIntegrity } = useCatalogueSync();
-  const { refreshAllStock } = useStockRefresh();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedEntrepot, setSelectedEntrepot] = useState<string>('tous');
   const [lastSyncTime, setLastSyncTime] = useState<Date | null>(null);
@@ -63,7 +61,7 @@ const StockEntrepot = () => {
   };
 
   // Vérification de l'intégrité des données
-  const { data: integrityData, isPending: integrityPending } = checkDataIntegrity;
+  const { data: integrityData, isLoading: integrityLoading } = checkDataIntegrity;
   
   // Calculer s'il y a vraiment des problèmes d'intégrité - correction du type
   const hasRealIntegrityIssues = integrityData && (
@@ -73,7 +71,7 @@ const StockEntrepot = () => {
   );
 
   // Afficher l'alerte seulement s'il y a de vrais problèmes
-  const shouldShowIntegrityAlert = hasRealIntegrityIssues && !integrityPending;
+  const shouldShowIntegrityAlert = hasRealIntegrityIssues && !integrityLoading;
 
   return (
     <div className="space-y-6">
@@ -110,26 +108,15 @@ const StockEntrepot = () => {
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-xl font-bold text-primary">Stock des Entrepôts</CardTitle>
-          <div className="flex gap-2">
-            <Button 
-              variant="outline" 
-              size="icon" 
-              title="Actualiser les données"
-              onClick={refreshAllStock}
-              disabled={isLoading}
-            >
-              <RotateCcw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
-            </Button>
-            <Button 
-              variant="outline" 
-              size="icon" 
-              title="Synchroniser et rafraîchir"
-              onClick={handleSync}
-              disabled={syncCatalogue.isPending}
-            >
-              <RefreshCw className={`h-4 w-4 ${syncCatalogue.isPending ? 'animate-spin' : ''}`} />
-            </Button>
-          </div>
+          <Button 
+            variant="outline" 
+            size="icon" 
+            title="Synchroniser et rafraîchir"
+            onClick={handleSync}
+            disabled={syncCatalogue.isPending}
+          >
+            <RefreshCw className={`h-4 w-4 ${syncCatalogue.isPending ? 'animate-spin' : ''}`} />
+          </Button>
         </CardHeader>
         <CardContent>
           {/* Filtres et recherche */}
@@ -210,7 +197,7 @@ const StockEntrepot = () => {
                             {item.article?.reference || 'N/A'}
                           </TableCell>
                            <TableCell className="text-muted-foreground">
-                             {item.article?.categorie || 'Non classé'}
+                             {item.article?.categorie_article?.nom || item.article?.categorie || 'Non classé'}
                            </TableCell>
                           <TableCell className="font-medium text-foreground">
                             {item.article?.nom || 'N/A'}
@@ -220,9 +207,9 @@ const StockEntrepot = () => {
                           </TableCell>
                            <TableCell className="text-right font-medium text-foreground">
                              {item.quantite_disponible}
-                             {item.article?.unite_mesure && (
+                             {(item.article?.unite_article?.nom || item.article?.unite_mesure) && (
                                <span className="text-muted-foreground ml-1">
-                                 {item.article.unite_mesure}
+                                 {item.article?.unite_article?.nom || item.article.unite_mesure}
                                </span>
                              )}
                            </TableCell>

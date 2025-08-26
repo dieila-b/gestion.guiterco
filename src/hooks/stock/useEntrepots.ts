@@ -1,78 +1,86 @@
 
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { useFastEntrepots } from '../useUltraOptimizedHooks';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from '@/hooks/use-toast';
+import { Entrepot } from '@/components/stock/types';
 
 export const useEntrepots = () => {
-  const { data: entrepots, isLoading } = useFastEntrepots();
   const queryClient = useQueryClient();
-  const { toast } = useToast();
+  
+  const { data: entrepots, isLoading, error } = useQuery({
+    queryKey: ['entrepots'],
+    queryFn: async () => {
+      console.log('useEntrepots - Fetching entrepots...');
+      
+      const { data, error } = await supabase
+        .from('entrepots')
+        .select('*')
+        .order('nom');
+      
+      console.log('useEntrepots - Raw data:', data);
+      console.log('useEntrepots - Error:', error);
+      console.log('useEntrepots - Data length:', data?.length);
+      
+      if (error) {
+        console.error('useEntrepots - Query error:', error);
+        throw error;
+      }
+      
+      console.log('useEntrepots - Returning entrepots:', data);
+      return data as Entrepot[];
+    }
+  });
 
   const createEntrepot = useMutation({
-    mutationFn: async (data: {
-      nom: string;
-      adresse?: string | null;
-      capacite_max?: number | null;
-      gestionnaire?: string | null;
-      statut: string;
-    }) => {
-      const { data: result, error } = await supabase
+    mutationFn: async (newEntrepot: Omit<Entrepot, 'id' | 'created_at' | 'updated_at'>) => {
+      const { data, error } = await supabase
         .from('entrepots')
-        .insert([data])
+        .insert(newEntrepot)
         .select()
         .single();
-
+      
       if (error) throw error;
-      return result;
+      return data as Entrepot;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['ultra-config'] });
+      queryClient.invalidateQueries({ queryKey: ['entrepots'] });
       toast({
-        title: "Succès",
-        description: "Entrepôt créé avec succès",
+        title: "Entrepôt créé avec succès",
+        variant: "default",
       });
     },
     onError: (error) => {
       toast({
-        title: "Erreur",
-        description: "Erreur lors de la création de l'entrepôt",
+        title: "Erreur lors de la création de l'entrepôt",
+        description: error.message,
         variant: "destructive",
       });
     }
   });
 
   const updateEntrepot = useMutation({
-    mutationFn: async (data: {
-      id: string;
-      nom: string;
-      adresse?: string | null;
-      capacite_max?: number | null;
-      gestionnaire?: string | null;
-      statut: string;
-    }) => {
-      const { id, ...updateData } = data;
-      const { data: result, error } = await supabase
+    mutationFn: async ({ id, ...entrepot }: Partial<Entrepot> & { id: string }) => {
+      const { data, error } = await supabase
         .from('entrepots')
-        .update(updateData)
+        .update(entrepot)
         .eq('id', id)
         .select()
         .single();
-
+      
       if (error) throw error;
-      return result;
+      return data as Entrepot;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['ultra-config'] });
+      queryClient.invalidateQueries({ queryKey: ['entrepots'] });
       toast({
-        title: "Succès",
-        description: "Entrepôt mis à jour avec succès",
+        title: "Entrepôt mis à jour avec succès",
+        variant: "default",
       });
     },
     onError: (error) => {
       toast({
-        title: "Erreur",
-        description: "Erreur lors de la mise à jour de l'entrepôt",
+        title: "Erreur lors de la mise à jour de l'entrepôt",
+        description: error.message,
         variant: "destructive",
       });
     }
@@ -84,29 +92,30 @@ export const useEntrepots = () => {
         .from('entrepots')
         .delete()
         .eq('id', id);
-
+      
       if (error) throw error;
+      return id;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['ultra-config'] });
+      queryClient.invalidateQueries({ queryKey: ['entrepots'] });
       toast({
-        title: "Succès",
-        description: "Entrepôt supprimé avec succès",
+        title: "Entrepôt supprimé avec succès",
+        variant: "default",
       });
     },
     onError: (error) => {
       toast({
-        title: "Erreur",
-        description: "Erreur lors de la suppression de l'entrepôt",
+        title: "Erreur lors de la suppression de l'entrepôt",
+        description: error.message,
         variant: "destructive",
       });
     }
   });
 
-  return { 
-    entrepots, 
-    isLoading, 
-    error: null,
+  return {
+    entrepots,
+    isLoading,
+    error,
     createEntrepot,
     updateEntrepot,
     deleteEntrepot

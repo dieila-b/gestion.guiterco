@@ -1,6 +1,6 @@
 
-// Import hook optimisé
-import { useFastCatalogue } from './useUltraOptimizedHooks';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 
 export interface Article {
   id: string;
@@ -19,8 +19,57 @@ export interface Article {
   unite_id?: string;
 }
 
-// Utiliser le hook ultra-optimisé
-export const useCatalogue = useFastCatalogue;
+export const useCatalogue = () => {
+  const { data: articles, isLoading, error } = useQuery({
+    queryKey: ['catalogue'],
+    queryFn: async () => {
+      console.log('Fetching catalogue data...');
+      
+      const { data, error } = await supabase
+        .from('catalogue')
+        .select(`
+          id,
+          nom,
+          reference,
+          description,
+          prix_achat,
+          prix_vente,
+          prix_unitaire,
+          categorie,
+          unite_mesure,
+          categorie_id,
+          unite_id,
+          seuil_alerte,
+          image_url,
+          statut,
+          created_at,
+          updated_at
+        `)
+        // Temporairement désactivé pour debug : .eq('statut', 'actif')
+        .order('nom', { ascending: true });
+      
+      console.log('Raw catalogue data from Supabase:', data);
+      console.log('Number of articles:', data?.length);
+      console.log('Articles with status:', data?.map(item => ({ nom: item.nom, statut: item.statut })));
+      
+      if (error) {
+        console.error('Erreur lors du chargement du catalogue:', error);
+        throw error;
+      }
+      
+      console.log('Catalogue data loaded:', data);
+      return data as Article[];
+    },
+    staleTime: 10 * 60 * 1000, // 10 minutes
+    refetchOnWindowFocus: false
+  });
+
+  return {
+    articles,
+    isLoading,
+    error
+  };
+};
 
 // Re-export optimized version
 export * from './useCatalogueOptimized';

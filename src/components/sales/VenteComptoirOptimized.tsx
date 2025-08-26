@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -121,9 +120,9 @@ const VenteComptoirOptimized = () => {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Toutes catégories</SelectItem>
-              {categories.map((cat: string) => (
-                <SelectItem key={cat as string} value={cat as string}>
-                  {cat as string}
+              {categories.map((cat) => (
+                <SelectItem key={cat} value={cat}>
+                  {cat}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -280,7 +279,7 @@ const VenteComptoirOptimized = () => {
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
-            {commandes && commandes.map((commande) => (
+            {commandes?.map((commande) => (
               <div key={commande.id} className="flex items-center justify-between p-3 border rounded-lg">
                 <div className="flex items-center gap-4">
                   <div>

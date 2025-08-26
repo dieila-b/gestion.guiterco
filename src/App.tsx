@@ -2,7 +2,7 @@
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClientProvider } from "@tanstack/react-query";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/components/auth/AuthProvider";
 import { DevModeToggle } from "@/components/auth/DevModeToggle";
@@ -19,9 +19,8 @@ import Margins from "./pages/Margins";
 import Reports from "./pages/Reports";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
-import AppNotification from "@/components/AppNotification";
-import DataRestoredNotification from "@/components/DataRestoredNotification";
-import { queryClient } from "@/lib/queryClient";
+
+const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -97,8 +96,6 @@ const App = () => (
             } />
             <Route path="*" element={<NotFound />} />
           </Routes>
-          <AppNotification />
-          <DataRestoredNotification />
           <DevModeToggle />
         </AuthProvider>
       </BrowserRouter>
