@@ -2,12 +2,13 @@
 import React, { useState } from 'react';
 import { useStockPrincipal, useEntrepots } from '@/hooks/stock';
 import { useCatalogueSync } from '@/hooks/useCatalogueSync';
+import { useStockRefresh } from '@/hooks/useStockRefresh';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search, RefreshCw, Filter, AlertTriangle, CheckCircle } from 'lucide-react';
+import { Search, RefreshCw, Filter, AlertTriangle, CheckCircle, RotateCcw } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { formatCurrency } from '@/lib/currency';
@@ -16,6 +17,7 @@ const StockEntrepot = () => {
   const { stockEntrepot, isLoading, error, refreshStock } = useStockPrincipal();
   const { entrepots } = useEntrepots();
   const { syncCatalogue, checkDataIntegrity } = useCatalogueSync();
+  const { refreshAllStock } = useStockRefresh();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedEntrepot, setSelectedEntrepot] = useState<string>('tous');
   const [lastSyncTime, setLastSyncTime] = useState<Date | null>(null);
@@ -108,15 +110,26 @@ const StockEntrepot = () => {
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-xl font-bold text-primary">Stock des Entrepôts</CardTitle>
-          <Button 
-            variant="outline" 
-            size="icon" 
-            title="Synchroniser et rafraîchir"
-            onClick={handleSync}
-            disabled={syncCatalogue.isPending}
-          >
-            <RefreshCw className={`h-4 w-4 ${syncCatalogue.isPending ? 'animate-spin' : ''}`} />
-          </Button>
+          <div className="flex gap-2">
+            <Button 
+              variant="outline" 
+              size="icon" 
+              title="Actualiser les données"
+              onClick={refreshAllStock}
+              disabled={isLoading}
+            >
+              <RotateCcw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+            </Button>
+            <Button 
+              variant="outline" 
+              size="icon" 
+              title="Synchroniser et rafraîchir"
+              onClick={handleSync}
+              disabled={syncCatalogue.isPending}
+            >
+              <RefreshCw className={`h-4 w-4 ${syncCatalogue.isPending ? 'animate-spin' : ''}`} />
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           {/* Filtres et recherche */}

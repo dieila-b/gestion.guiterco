@@ -11,31 +11,51 @@ export const useFastStockWithRelations = () => {
   return useQuery({
     queryKey: ['stock-with-relations', stockData, catalogueData, configData],
     queryFn: () => {
-      if (!stockData || !catalogueData || !configData) return { stockEntrepot: [], stockPDV: [] };
+      console.log('🔄 Processing stock data with relations...', {
+        stockData: !!stockData,
+        catalogueData: catalogueData?.length,
+        configData: !!configData
+      });
+
+      if (!stockData || !catalogueData || !configData) {
+        console.log('⏳ Missing data, returning empty arrays');
+        return { stockEntrepot: [], stockPDV: [] };
+      }
 
       // Créer des maps pour une recherche rapide
       const articlesMap = new Map(catalogueData.map(article => [article.id, article]));
-      const entrepotsMap = new Map(configData.entrepots.map(entrepot => [entrepot.id, entrepot]));
-      const pdvMap = new Map(configData.pointsDeVente.map(pdv => [pdv.id, pdv]));
+      const entrepotsMap = new Map(configData.entrepots?.map(entrepot => [entrepot.id, entrepot]) || []);
+      const pdvMap = new Map(configData.pointsDeVente?.map(pdv => [pdv.id, pdv]) || []);
+
+      console.log('📊 Maps created:', {
+        articles: articlesMap.size,
+        entrepots: entrepotsMap.size,
+        pdv: pdvMap.size
+      });
 
       // Enrichir les données stock avec les relations
-      const stockEntrepot = stockData.stockEntrepot.map(stock => ({
+      const stockEntrepot = (stockData?.stockEntrepot || []).map(stock => ({
         ...stock,
         article: articlesMap.get(stock.article_id) || null,
         entrepot: entrepotsMap.get(stock.entrepot_id) || null
       }));
 
-      const stockPDV = stockData.stockPDV.map(stock => ({
+      const stockPDV = (stockData?.stockPDV || []).map(stock => ({
         ...stock,
         article: articlesMap.get(stock.article_id) || null,
         point_vente: pdvMap.get(stock.point_vente_id) || null
       }));
 
+      console.log('✅ Stock with relations processed:', {
+        stockEntrepot: stockEntrepot.length,
+        stockPDV: stockPDV.length
+      });
+
       return { stockEntrepot, stockPDV };
     },
     enabled: !stockLoading && !!stockData && !!catalogueData && !!configData,
-    staleTime: 1 * 60 * 1000,
-    gcTime: 3 * 60 * 1000
+    staleTime: 30 * 1000, // 30 secondes pour déboguer
+    gcTime: 1 * 60 * 1000
   });
 };
 

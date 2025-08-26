@@ -60,21 +60,37 @@ export const useFastCatalogue = () => {
 };
 
 export const useFastStockPrincipal = () => {
-  const { data: stockData, isLoading } = useFastStockWithRelations();
+  const { data: stockData, isLoading, error } = useFastStockWithRelations();
+  
+  console.log('🏢 useFastStockPrincipal:', {
+    stockEntrepot: stockData?.stockEntrepot?.length || 0,
+    isLoading,
+    error: !!error
+  });
+  
   return { 
     stockEntrepot: stockData?.stockEntrepot || [], 
     isLoading, 
-    error: null,
-    refreshStock: () => {}
+    error,
+    refreshStock: () => {
+      console.log('🔄 Refresh stock requested');
+    }
   };
 };
 
 export const useFastStockPDV = () => {
-  const { data: stockData, isLoading } = useFastStockWithRelations();
+  const { data: stockData, isLoading, error } = useFastStockWithRelations();
+  
+  console.log('🏪 useFastStockPDV:', {
+    stockPDV: stockData?.stockPDV?.length || 0,
+    isLoading,
+    error: !!error
+  });
+  
   return { 
     stockPDV: stockData?.stockPDV || [], 
     isLoading, 
-    error: null
+    error
   };
 };
 

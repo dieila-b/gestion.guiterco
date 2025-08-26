@@ -11,6 +11,7 @@ import PointsDeVente from '@/components/stock/PointsDeVente';
 import Transferts from '@/components/stock/Transferts';
 import Catalogue from '@/components/stock/Catalogue';
 import SyncButton from '@/components/stock/SyncButton';
+import StockDiagnostic from '@/components/stock/StockDiagnostic';
 
 const Stocks = () => {
   const [activeTab, setActiveTab] = useState("stock-entrepot");
@@ -18,8 +19,9 @@ const Stocks = () => {
   return (
     <AppLayout title="Gestion des stocks">
       <div className="space-y-4">
-        <div className="flex justify-end">
+        <div className="flex justify-between items-start gap-4">
           <SyncButton />
+          <StockDiagnostic />
         </div>
         <Tabs 
           defaultValue="stock-entrepot" 
