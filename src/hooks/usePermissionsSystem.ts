@@ -339,22 +339,58 @@ export const useUpdateRolePermission = () => {
   
   return useMutation({
     mutationFn: async ({ roleId, permissionId, canAccess }: { roleId: string; permissionId: string; canAccess: boolean }) => {
+      console.log('🔄 Mutation démarrée:', { roleId, permissionId, canAccess });
+      
       const { data, error } = await supabase
         .from('role_permissions')
         .upsert({
           role_id: roleId,
           permission_id: permissionId,
           can_access: canAccess
+        }, {
+          onConflict: 'role_id,permission_id'
         })
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Erreur Supabase:', error);
+        throw error;
+      }
+      
+      console.log('✅ Mutation réussie:', data);
       return data;
     },
-    onSuccess: () => {
+    onSuccess: (data, variables) => {
+      console.log('🎉 onSuccess appelé:', { data, variables });
+      
+      // Invalider et refetch les queries
       queryClient.invalidateQueries({ queryKey: ['all-role-permissions'] });
-      toast.success('Permission mise à jour');
+      queryClient.setQueryData(['all-role-permissions'], (oldData: any) => {
+        if (!oldData) return oldData;
+        
+        // Mettre à jour ou ajouter la permission dans le cache
+        const existingIndex = oldData.findIndex((rp: any) => 
+          rp.role_id === variables.roleId && rp.permission_id === variables.permissionId
+        );
+        
+        if (existingIndex >= 0) {
+          // Mettre à jour l'existant
+          const newData = [...oldData];
+          newData[existingIndex] = { ...newData[existingIndex], can_access: variables.canAccess };
+          return newData;
+        } else {
+          // Ajouter le nouveau
+          return [...oldData, {
+            id: data?.id || crypto.randomUUID(),
+            role_id: variables.roleId,
+            permission_id: variables.permissionId,
+            can_access: variables.canAccess
+          }];
+        }
+      });
+      
+      toast.success(`Permission ${variables.canAccess ? 'accordée' : 'révoquée'}`);
     },
     onError: (error) => {
       console.error('❌ Erreur mise à jour permission rôle:', error);

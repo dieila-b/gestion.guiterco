@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -6,28 +7,33 @@ import { Badge } from '@/components/ui/badge';
 import { Grid3x3, RefreshCw, CheckCircle2, XCircle, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useRoles, usePermissions, useAllRolePermissions, useUpdateRolePermission, useBulkUpdateRolePermissions } from '@/hooks/usePermissionsSystem';
-import { usePermissionsRefresh } from '@/hooks/usePermissionsRefresh';
 import { toast } from 'sonner';
 
 export default function PermissionsMatrix() {
-  const { isRefreshing, refreshAllData } = usePermissionsRefresh();
-  
-  const { data: roles = [], isLoading: rolesLoading } = useRoles();
-  const { data: permissions = [], isLoading: permissionsLoading } = usePermissions();
-  const { data: rolePermissions = [], isLoading: rolePermissionsLoading } = useAllRolePermissions();
+  const { data: roles = [], isLoading: rolesLoading, refetch: refetchRoles } = useRoles();
+  const { data: permissions = [], isLoading: permissionsLoading, refetch: refetchPermissions } = usePermissions();
+  const { data: rolePermissions = [], isLoading: rolePermissionsLoading, refetch: refetchRolePermissions } = useAllRolePermissions();
   const updateRolePermission = useUpdateRolePermission();
   const bulkUpdateRolePermissions = useBulkUpdateRolePermissions();
 
   const isDataLoading = rolesLoading || permissionsLoading || rolePermissionsLoading;
 
   console.log('🔍 État du composant PermissionsMatrix:', {
-    isRefreshing,
-    isDataLoading,
     rolesCount: roles.length,
     permissionsCount: permissions.length,
     rolePermissionsCount: rolePermissions.length,
     isMutating: updateRolePermission.isPending
   });
+
+  const refreshAllData = async () => {
+    try {
+      await Promise.all([refetchRoles(), refetchPermissions(), refetchRolePermissions()]);
+      toast.success('Données actualisées');
+    } catch (error) {
+      console.error('Erreur lors de l\'actualisation:', error);
+      toast.error('Erreur lors de l\'actualisation des données');
+    }
+  };
 
   // Organiser les permissions par menu et sous-menu
   const organizedPermissions = permissions.reduce((acc: any, permission) => {
@@ -53,23 +59,20 @@ export default function PermissionsMatrix() {
     return rolePermission?.can_access || false;
   };
 
-  // Mettre à jour une permission - VERSION CORRIGÉE
+  // Mettre à jour une permission
   const handlePermissionChange = async (roleId: string, permissionId: string, newValue: boolean) => {
-    // Bloquer toute action si une opération est en cours
-    if (isRefreshing || updateRolePermission.isPending) {
-      console.log('🚫 Opération bloquée - en cours de traitement');
+    if (updateRolePermission.isPending) {
       toast.warning('Une opération est en cours, veuillez patienter...');
       return;
     }
 
-    // Vérifier que les IDs sont valides
     if (!roleId || !permissionId) {
       console.error('❌ IDs manquants:', { roleId, permissionId });
       toast.error('Erreur: données manquantes');
       return;
     }
     
-    console.log('🎯 Modification permission demandée:', { 
+    console.log('🎯 Modification permission:', { 
       roleId, 
       permissionId, 
       newValue,
@@ -77,7 +80,6 @@ export default function PermissionsMatrix() {
     });
     
     try {
-      // Déclencher la mutation
       await updateRolePermission.mutateAsync({
         roleId,
         permissionId,
@@ -85,7 +87,6 @@ export default function PermissionsMatrix() {
       });
       
       console.log('✅ Permission mise à jour avec succès');
-      toast.success(`Permission ${newValue ? 'accordée' : 'révoquée'} avec succès`);
       
     } catch (error: any) {
       console.error('❌ Erreur lors de la mise à jour:', error);
@@ -95,7 +96,7 @@ export default function PermissionsMatrix() {
 
   // Attribuer toutes les permissions à un rôle
   const handleGrantAllPermissions = async (roleId: string) => {
-    if (isRefreshing || bulkUpdateRolePermissions.isPending) return;
+    if (bulkUpdateRolePermissions.isPending) return;
     
     try {
       const updates = permissions.map(permission => ({
@@ -117,7 +118,7 @@ export default function PermissionsMatrix() {
 
   // Retirer toutes les permissions d'un rôle
   const handleRevokeAllPermissions = async (roleId: string) => {
-    if (isRefreshing || bulkUpdateRolePermissions.isPending) return;
+    if (bulkUpdateRolePermissions.isPending) return;
     
     try {
       const updates = permissions.map(permission => ({
@@ -140,7 +141,7 @@ export default function PermissionsMatrix() {
   const filteredRoles = roles.filter(role => role.name && role.name.trim());
 
   // Affichage de chargement
-  if (isDataLoading && !isRefreshing) {
+  if (isDataLoading) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
@@ -167,16 +168,12 @@ export default function PermissionsMatrix() {
             </div>
             <Button 
               onClick={refreshAllData}
-              disabled={isRefreshing || isDataLoading}
+              disabled={isDataLoading}
               variant="outline"
               size="sm"
             >
-              {isRefreshing ? (
-                <Loader2 className="w-4 h-4 animate-spin mr-2" />
-              ) : (
-                <RefreshCw className="w-4 h-4 mr-2" />
-              )}
-              {isRefreshing ? 'Actualisation...' : 'Actualiser'}
+              <RefreshCw className="w-4 h-4 mr-2" />
+              Actualiser
             </Button>
           </div>
         </CardHeader>
@@ -234,7 +231,7 @@ export default function PermissionsMatrix() {
                             size="sm"
                             variant="outline"
                             onClick={() => handleGrantAllPermissions(role.id)}
-                            disabled={isRefreshing || isSystemRole || bulkUpdateRolePermissions.isPending}
+                            disabled={isSystemRole || bulkUpdateRolePermissions.isPending}
                             className="flex-1"
                           >
                             <CheckCircle2 className="w-3 h-3 mr-1" />
@@ -244,7 +241,7 @@ export default function PermissionsMatrix() {
                             size="sm"
                             variant="outline"
                             onClick={() => handleRevokeAllPermissions(role.id)}
-                            disabled={isRefreshing || isSystemRole || bulkUpdateRolePermissions.isPending}
+                            disabled={isSystemRole || bulkUpdateRolePermissions.isPending}
                             className="flex-1"
                           >
                             <XCircle className="w-3 h-3 mr-1" />
@@ -258,7 +255,7 @@ export default function PermissionsMatrix() {
               </div>
             )}
 
-            {/* Matrice des permissions - VERSION CORRIGÉE */}
+            {/* Matrice des permissions */}
             {Object.keys(organizedPermissions).length > 0 && (
               <div className="overflow-x-auto border rounded-lg">
                 <Table>
@@ -344,14 +341,7 @@ export default function PermissionsMatrix() {
                                 {filteredRoles.map((role) => {
                                   const currentValue = hasPermission(role.id, permission.id);
                                   const isSystemRole = role.is_system && role.name === 'Administrateur';
-                                  const isDisabled = isSystemRole || updateRolePermission.isPending || isRefreshing;
-                                  
-                                  console.log(`Switch ${role.name}-${permission.action}:`, {
-                                    currentValue,
-                                    isDisabled,
-                                    roleId: role.id,
-                                    permissionId: permission.id
-                                  });
+                                  const isDisabled = isSystemRole || updateRolePermission.isPending;
                                   
                                   return (
                                     <TableCell key={role.id} className="text-center">
@@ -359,19 +349,18 @@ export default function PermissionsMatrix() {
                                         <Switch
                                           checked={currentValue}
                                           disabled={isDisabled}
-                                          onCheckedChange={(newValue) => {
-                                            console.log('🎯 Switch activé:', { 
+                                          onCheckedChange={(checked) => {
+                                            console.log('🎯 Switch changé:', { 
                                               role: role.name, 
                                               permission: permission.action, 
                                               oldValue: currentValue,
-                                              newValue 
+                                              newValue: checked 
                                             });
                                             
                                             if (!isDisabled) {
-                                              handlePermissionChange(role.id, permission.id, newValue);
+                                              handlePermissionChange(role.id, permission.id, checked);
                                             }
                                           }}
-                                          className={currentValue ? 'data-[state=checked]:bg-green-600' : ''}
                                         />
                                       </div>
                                     </TableCell>
@@ -398,15 +387,11 @@ export default function PermissionsMatrix() {
                 </p>
                 <Button 
                   onClick={refreshAllData} 
-                  disabled={isRefreshing} 
+                  disabled={isDataLoading} 
                   variant="outline"
                 >
-                  {isRefreshing ? (
-                    <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                  ) : (
-                    <RefreshCw className="w-4 h-4 mr-2" />
-                  )}
-                  {isRefreshing ? 'Actualisation...' : 'Actualiser'}
+                  <RefreshCw className="w-4 h-4 mr-2" />
+                  Actualiser
                 </Button>
               </div>
             )}
