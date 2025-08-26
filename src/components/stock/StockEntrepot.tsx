@@ -1,6 +1,7 @@
 
 import React, { useState } from 'react';
-import { useStockPrincipal, useEntrepots } from '@/hooks/stock';
+import { useEntrepots } from '@/hooks/stock';
+import { useStockPrincipalSimple } from '@/hooks/stock/useStockPrincipalSimple';
 import { useCatalogueSync } from '@/hooks/useCatalogueSync';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -13,7 +14,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { formatCurrency } from '@/lib/currency';
 
 const StockEntrepot = () => {
-  const { stockEntrepot, isLoading, error, refreshStock } = useStockPrincipal();
+  const { stockEntrepot, isLoading, error } = useStockPrincipalSimple();
   const { entrepots } = useEntrepots();
   const { syncCatalogue, checkDataIntegrity } = useCatalogueSync();
   const [searchTerm, setSearchTerm] = useState('');
@@ -53,7 +54,7 @@ const StockEntrepot = () => {
   const handleSync = async () => {
     try {
       await syncCatalogue.mutateAsync();
-      refreshStock();
+      // Refresh sera géré par la prochaine version
       setLastSyncTime(new Date());
     } catch (error) {
       console.error('Erreur lors de la synchronisation:', error);

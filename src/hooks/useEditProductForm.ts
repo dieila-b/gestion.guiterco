@@ -52,8 +52,8 @@ export const useEditProductForm = (article: ArticleOptimized) => {
             .from('catalogue')
             .select(`
               *,
-              categories_catalogue(id, nom),
-              unites(id, nom, symbole)
+              categories_catalogue!catalogue_categorie_id_fkey(id, nom),
+              unites!catalogue_unite_id_fkey(id, nom, symbole)
             `)
             .eq('id', article.id)
             .single();

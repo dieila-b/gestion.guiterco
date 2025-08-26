@@ -41,8 +41,8 @@ export const useStockQueries = (selectedPDV?: string) => {
             categorie_id,
             unite_mesure,
             unite_id,
-            categorie_article:categories_catalogue(nom),
-            unite_article:unites(nom)
+            categorie_article:categories_catalogue!catalogue_categorie_id_fkey(nom),
+            unite_article:unites!catalogue_unite_id_fkey(nom)
           ),
           point_vente:points_de_vente!inner(nom)
         `)
