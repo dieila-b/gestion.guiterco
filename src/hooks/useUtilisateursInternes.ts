@@ -43,24 +43,11 @@ export const useUtilisateursInternes = () => {
   return useQuery({
     queryKey: ['utilisateurs-internes'],
     queryFn: async () => {
-      console.log('🔍 Chargement des utilisateurs internes...');
+      console.log('🔍 Chargement des utilisateurs internes (version simplifiée)...');
       
       try {
-        // Essayer d'abord la vue optimisée
-        const { data: viewData, error: viewError } = await supabase
-          .from('vue_utilisateurs_avec_roles')
-          .select('*')
-          .order('created_at', { ascending: false });
-
-        if (!viewError && viewData && viewData.length > 0) {
-          console.log('✅ Données chargées depuis la vue:', viewData.length, 'utilisateurs');
-          return viewData as UtilisateurInterne[];
-        }
-
-        console.log('🔄 Vue indisponible, essai requête directe...');
-        
-        // Fallback : requête directe avec join
-        const { data: directData, error: directError } = await supabase
+        // Requête simple et directe - pas de fallbacks complexes
+        const { data, error } = await supabase
           .from('utilisateurs_internes')
           .select(`
             *,
@@ -72,36 +59,19 @@ export const useUtilisateursInternes = () => {
           `)
           .order('created_at', { ascending: false });
 
-        if (directError) {
-          console.error('❌ Erreur requête directe:', directError);
-          
-          // Dernier fallback : requête simple sans join
-          const { data: simpleData, error: simpleError } = await supabase
-            .from('utilisateurs_internes')
-            .select('*')
-            .order('created_at', { ascending: false });
-
-          if (simpleError) {
-            console.error('❌ Erreur requête simple:', simpleError);
-            throw new Error(`Erreur de chargement: ${simpleError.message}`);
-          }
-
-          console.log('✅ Données chargées (requête simple):', simpleData?.length || 0, 'utilisateurs');
-          return (simpleData || []).map(user => ({
-            ...user,
-            role_name: 'Rôle non défini',
-            role_description: 'Aucune description'
-          })) as UtilisateurInterne[];
+        if (error) {
+          console.error('❌ Erreur lors du chargement des utilisateurs internes:', error);
+          throw new Error(`Erreur de chargement: ${error.message}`);
         }
 
-        // Reformater les données pour correspondre à l'interface attendue
-        const formattedData = (directData || []).map(user => ({
+        // Reformater les données
+        const formattedData = (data || []).map(user => ({
           ...user,
           role_name: user.roles?.name || 'Rôle non défini',
           role_description: user.roles?.description || 'Aucune description'
         }));
 
-        console.log('✅ Données chargées (requête directe):', formattedData.length, 'utilisateurs');
+        console.log('✅ Utilisateurs internes chargés:', formattedData.length);
         return formattedData as UtilisateurInterne[];
 
       } catch (error) {
@@ -109,10 +79,11 @@ export const useUtilisateursInternes = () => {
         throw error;
       }
     },
-    retry: 2,
-    retryDelay: (attemptIndex) => Math.min(1000 * Math.pow(2, attemptIndex), 5000),
-    staleTime: 30000,
+    retry: 1, // Une seule tentative de retry
+    staleTime: 60000, // 1 minute
     refetchOnWindowFocus: false,
+    refetchOnMount: true,
+    refetchOnReconnect: false
   });
 };
 
@@ -121,7 +92,6 @@ export const useCreateUtilisateurInterne = () => {
 
   return useMutation({
     mutationFn: async (userData: CreateUtilisateurInterne) => {
-      // Call the Edge Function with service role access
       const { data, error } = await supabase.functions.invoke('create-internal-user', {
         body: userData
       });
@@ -155,7 +125,6 @@ export const useUpdateUtilisateurInterne = () => {
     mutationFn: async ({ id, ...userData }: Partial<CreateUtilisateurInterne> & { id: string }) => {
       console.log('▶ Début mise à jour utilisateur:', { id, userData });
       
-      // Toujours utiliser l'Edge Function pour garantir la synchronisation Auth/DB
       const { data, error } = await supabase.functions.invoke('update-internal-user', {
         body: { id, ...userData }
       });
@@ -190,7 +159,6 @@ export const useDeleteUtilisateurInterne = () => {
 
   return useMutation({
     mutationFn: async (id: string) => {
-      // Call the Edge Function with service role access
       const { data, error } = await supabase.functions.invoke('delete-internal-user', {
         body: { id }
       });
