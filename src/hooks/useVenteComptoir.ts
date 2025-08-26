@@ -7,17 +7,17 @@ import { useLocalStockManager } from './useVenteComptoir/useLocalStockManager';
 
 export const useVenteComptoir = (selectedPDV?: string) => {
   const { pointsDeVente, stockPDV } = useStockQueries(selectedPDV);
-  const { localStock, updateLocalStock, restoreLocalStock, getLocalStock } = useLocalStockManager(stockPDV);
+  const { localStock, updateLocalStock, restoreLocalStock, getLocalStock } = useLocalStockManager(stockPDV || []);
   
   // Utiliser le stock local pour les vérifications
-  const { checkStock, getStockColor } = useStockUtils(stockPDV, getLocalStock);
+  const { checkStock, getStockColor } = useStockUtils(stockPDV || [], getLocalStock);
   const { cart, setCart, addToCart, updateQuantity, updateRemise, removeFromCart, clearCart } = useCartManagement(checkStock, updateLocalStock);
-  const { createVente, isLoading } = useVenteMutation(pointsDeVente, selectedPDV, setCart, restoreLocalStock);
+  const { createVente, isLoading } = useVenteMutation(pointsDeVente || [], selectedPDV, setCart, restoreLocalStock);
 
   return {
     cart,
-    stockPDV,
-    pointsDeVente,
+    stockPDV: stockPDV || [],
+    pointsDeVente: pointsDeVente || [],
     localStock,
     addToCart,
     updateQuantity,

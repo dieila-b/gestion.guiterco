@@ -30,7 +30,7 @@ export const useVenteComptoirState = () => {
 
   // Éliminer les doublons de catégories basés sur le stock PDV avec les relations correctes
   const uniqueCategories = useMemo(() => {
-    if (!venteComptoir.stockPDV) return [];
+    if (!venteComptoir.stockPDV || !Array.isArray(venteComptoir.stockPDV)) return [];
     
     console.log('Calculating categories from stockPDV:', venteComptoir.stockPDV);
     
@@ -68,7 +68,7 @@ export const useVenteComptoirState = () => {
 
   // Calculer le total des pages basé sur le stock PDV filtré
   const filteredStockCount = useMemo(() => {
-    if (!venteComptoir.stockPDV) return 0;
+    if (!venteComptoir.stockPDV || !Array.isArray(venteComptoir.stockPDV)) return 0;
     
     return venteComptoir.stockPDV.filter(stockItem => {
       const article = stockItem.article;
