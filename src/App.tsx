@@ -1,49 +1,50 @@
 
-import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { queryClient } from "@/lib/queryClient";
-import { AuthProvider } from "@/components/auth/AuthProvider";
-import { AppInitializer } from "@/components/layout/AppInitializer";
-import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
+import React from 'react';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { Toaster } from 'sonner';
+import { AuthProvider } from '@/components/auth/AuthProvider';
+import ProtectedRoute from '@/components/auth/ProtectedRoute';
+import { AppInitializer } from '@/components/layout/AppInitializer';
+import { queryClient } from '@/lib/queryClient';
 
-// Import des pages
-import Index from "./pages/Index";
-import Stocks from "./pages/Stocks";
-import VenteComptoir from "./pages/VenteComptoir";
-import Ventes from "./pages/Ventes";
-import Achats from "./pages/Achats";
-import Clients from "./pages/Clients";
-import Caisse from "./pages/Caisse";
-import Marges from "./pages/Marges";
-import Rapports from "./pages/Rapports";
-import Parametres from "./pages/Parametres";
+// Import existing pages
+import Dashboard from './pages/Dashboard';
+import Sales from './pages/Sales';
+import Stocks from './pages/Stocks';
+import Clients from './pages/Clients';
 
-function App() {
+// Create simple redirects for missing pages
+const VenteComptoir = () => <Sales />;
+const Ventes = () => <Sales />;
+const Achats = () => <div className="p-4">Module Achats - En développement</div>;
+const Caisse = () => <div className="p-4">Module Caisse - En développement</div>;
+const Marges = () => <div className="p-4">Module Marges - En développement</div>;
+const Rapports = () => <div className="p-4">Module Rapports - En développement</div>;
+const Parametres = () => <div className="p-4">Module Paramètres - En développement</div>;
+
+const App = () => {
   return (
     <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <AuthProvider>
-          <AppInitializer>
-            <Toaster />
-            <Sonner />
-            <BrowserRouter>
+      <AuthProvider>
+        <AppInitializer>
+          <Router>
+            <div className="min-h-screen bg-background">
               <Routes>
+                <Route path="/auth" element={<div>Page d'authentification</div>} />
                 <Route
                   path="/"
                   element={
                     <ProtectedRoute>
-                      <Index />
+                      <Dashboard />
                     </ProtectedRoute>
                   }
                 />
                 <Route
-                  path="/stocks"
+                  path="/dashboard"
                   element={
                     <ProtectedRoute>
-                      <Stocks />
+                      <Dashboard />
                     </ProtectedRoute>
                   }
                 />
@@ -72,10 +73,10 @@ function App() {
                   }
                 />
                 <Route
-                  path="/clients"
+                  path="/stocks"
                   element={
                     <ProtectedRoute>
-                      <Clients />
+                      <Stocks />
                     </ProtectedRoute>
                   }
                 />
@@ -111,13 +112,22 @@ function App() {
                     </ProtectedRoute>
                   }
                 />
+                <Route
+                  path="/clients"
+                  element={
+                    <ProtectedRoute>
+                      <Clients />
+                    </ProtectedRoute>
+                  }
+                />
               </Routes>
-            </BrowserRouter>
-          </AppInitializer>
-        </AuthProvider>
-      </TooltipProvider>
+            </div>
+          </Router>
+        </AppInitializer>
+      </AuthProvider>
+      <Toaster />
     </QueryClientProvider>
   );
-}
+};
 
 export default App;
