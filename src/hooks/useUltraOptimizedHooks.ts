@@ -46,7 +46,7 @@ export const useConsolidatedData = () => {
 };
 
 // Import du hook avec relations
-import { useFastStockWithRelations, useFastEntrepotsComplete, useFastPDVComplete } from './useFastDataWithRelations';
+import { useFastStockWithRelations, useFastEntrepotsComplete, useFastPDVComplete, useFastUnitesComplete } from './useFastDataWithRelations';
 
 // Hooks simplifiés ultra-rapides
 export const useFastCatalogue = () => {
@@ -97,9 +97,9 @@ export const useFastPointsDeVente = () => {
 };
 
 export const useFastUnites = () => {
-  const { data: configData, isLoading } = useUltraFastConfig();
+  const { data: unites, isLoading } = useFastUnitesComplete();
   return { 
-    data: configData?.unites || [], 
+    data: unites || [], 
     isLoading 
   };
 };

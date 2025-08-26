@@ -69,14 +69,14 @@ export const useCatalogueOptimized = (
     // Filtre par catégorie
     if (selectedCategory && selectedCategory !== 'all') {
       filteredArticles = filteredArticles.filter(article => {
-        const articleCategory = article.categories?.nom || article.categorie || 'Général';
+        const articleCategory = article.categorie || 'Général';
         return articleCategory === selectedCategory;
       });
     }
 
     // Extraire les catégories uniques depuis les données synchronisées
     const uniqueCategories = [...new Set(
-      articles.map(article => article.categories?.nom || article.categorie || 'Général')
+      articles.map(article => article.categorie || 'Général')
     )].filter(Boolean).sort();
 
     // Pagination

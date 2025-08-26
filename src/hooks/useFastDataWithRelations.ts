@@ -84,3 +84,25 @@ export const useFastPDVComplete = () => {
     gcTime: 10 * 60 * 1000
   });
 };
+
+// Hook pour les unités avec statut
+export const useFastUnitesComplete = () => {
+  return useQuery({
+    queryKey: ['unites-complete'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('unites')
+        .select('id, nom, symbole, type_unite, statut')
+        .order('nom');
+      
+      if (error) {
+        console.error('❌ Unites complete error:', error);
+        return [];
+      }
+      
+      return data || [];
+    },
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000
+  });
+};

@@ -63,7 +63,7 @@ const UnitesTab = () => {
                   <TableCell className="capitalize">{unite.type_unite}</TableCell>
                   <TableCell>
                     <Badge variant={unite.statut === 'actif' ? 'default' : 'secondary'}>
-                      {unite.statut}
+                      {unite.statut || 'actif'}
                     </Badge>
                   </TableCell>
                   <TableCell className="text-right">
