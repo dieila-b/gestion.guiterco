@@ -10,41 +10,28 @@ export const useUltraFastCatalogue = () => {
       try {
         const { data, error } = await supabase
           .from('catalogue')
-          .select(`
-            id,
-            nom,
-            reference,
-            prix_vente,
-            prix_achat,
-            prix_unitaire,
-            categorie,
-            unite_mesure,
-            seuil_alerte,
-            image_url,
-            statut,
-            categorie_id,
-            unite_id,
-            categories:categories_catalogue!catalogue_categorie_id_fkey(nom),
-            unites:unites!catalogue_unite_id_fkey(nom, symbole)
-          `)
+          .select('id, nom, reference, prix_vente, prix_achat, prix_unitaire, categorie, unite_mesure, seuil_alerte, image_url, statut')
           .eq('statut', 'actif')
-          .limit(100);
+          .order('nom')
+          .limit(200);
         
         if (error) {
-          console.error('Catalogue query error:', error);
-          return [];
+          console.error('❌ Catalogue query error:', error);
+          throw error;
         }
+        
+        console.log('✅ Catalogue loaded:', data?.length || 0, 'items');
         return data || [];
       } catch (error) {
-        console.error('Catalogue fetch error:', error);
+        console.error('❌ Catalogue fetch error:', error);
         return [];
       }
     },
-    staleTime: 5 * 60 * 1000,
-    gcTime: 10 * 60 * 1000,
+    staleTime: 2 * 60 * 1000,
+    gcTime: 5 * 60 * 1000,
     refetchOnWindowFocus: false,
-    refetchOnMount: false,
-    retry: false
+    refetchOnMount: true,
+    retry: 1
   });
 };
 
@@ -53,116 +40,53 @@ export const useUltraFastStock = () => {
     queryKey: ['ultra-stock'],
     queryFn: async () => {
       try {
-        // Stock entrepôt avec relations spécifiées explicitement
+        // Stock entrepôt - requête simplifiée
         const { data: stockEntrepot, error: errorEntrepot } = await supabase
           .from('stock_principal')
-          .select(`
-            id,
-            article_id,
-            entrepot_id,
-            quantite_disponible,
-            quantite_reservee,
-            emplacement,
-            derniere_entree,
-            derniere_sortie,
-            created_at,
-            updated_at,
-            article:catalogue!stock_principal_article_id_fkey(
-              id,
-              nom,
-              reference,
-              prix_vente,
-              prix_achat,
-              prix_unitaire,
-              categorie,
-              unite_mesure,
-              seuil_alerte,
-              image_url,
-              categorie_id,
-              unite_id,
-              categories:categories_catalogue!catalogue_categorie_id_fkey(nom),
-              unites:unites!catalogue_unite_id_fkey(nom, symbole)
-            ),
-            entrepot:entrepots!stock_principal_entrepot_id_fkey(
-              id,
-              nom,
-              adresse,
-              capacite_max,
-              gestionnaire,
-              statut,
-              created_at,
-              updated_at
-            )
-          `)
+          .select('id, article_id, entrepot_id, quantite_disponible, quantite_reservee, emplacement, derniere_entree')
           .gt('quantite_disponible', 0)
-          .limit(50);
+          .order('derniere_entree', { ascending: false })
+          .limit(100);
 
-        // Stock PDV avec relations spécifiées explicitement
+        // Stock PDV - requête simplifiée
         const { data: stockPDV, error: errorPDV } = await supabase
           .from('stock_pdv')
-          .select(`
-            id,
-            article_id,
-            point_vente_id,
-            quantite_disponible,
-            quantite_minimum,
-            derniere_livraison,
-            created_at,
-            updated_at,
-            article:catalogue!stock_pdv_article_id_fkey(
-              id,
-              nom,
-              reference,
-              prix_vente,
-              prix_achat,
-              prix_unitaire,
-              categorie,
-              unite_mesure,
-              seuil_alerte,
-              image_url,
-              categorie_id,
-              unite_id,
-              categories:categories_catalogue!catalogue_categorie_id_fkey(nom),
-              unites:unites!catalogue_unite_id_fkey(nom, symbole)
-            ),
-            point_vente:points_de_vente!stock_pdv_point_vente_id_fkey(
-              id,
-              nom,
-              adresse,
-              type_pdv,
-              responsable,
-              statut,
-              created_at,
-              updated_at
-            )
-          `)
+          .select('id, article_id, point_vente_id, quantite_disponible, quantite_minimum, derniere_livraison')
           .gt('quantite_disponible', 0)
-          .limit(50);
+          .order('derniere_livraison', { ascending: false })
+          .limit(100);
 
-        // Gérer les erreurs potentielles mais retourner les données disponibles
-        const stockEntrepotData = errorEntrepot ? [] : (stockEntrepot || []);
-        const stockPDVData = errorPDV ? [] : (stockPDV || []);
+        if (errorEntrepot) {
+          console.error('❌ Stock entrepot error:', errorEntrepot);
+        }
+        if (errorPDV) {
+          console.error('❌ Stock PDV error:', errorPDV);
+        }
 
-        if (errorEntrepot) console.error('Stock entrepot error:', errorEntrepot);
-        if (errorPDV) console.error('Stock PDV error:', errorPDV);
-
-        return {
-          stockEntrepot: stockEntrepotData,
-          stockPDV: stockPDVData
+        const result = {
+          stockEntrepot: stockEntrepot || [],
+          stockPDV: stockPDV || []
         };
+
+        console.log('✅ Stock loaded:', {
+          entrepot: result.stockEntrepot.length,
+          pdv: result.stockPDV.length
+        });
+
+        return result;
       } catch (error) {
-        console.error('Stock fetch error:', error);
+        console.error('❌ Stock fetch error:', error);
         return {
           stockEntrepot: [],
           stockPDV: []
         };
       }
     },
-    staleTime: 3 * 60 * 1000,
-    gcTime: 6 * 60 * 1000,
+    staleTime: 1 * 60 * 1000,
+    gcTime: 3 * 60 * 1000,
     refetchOnWindowFocus: false,
-    refetchOnMount: false,
-    retry: false
+    refetchOnMount: true,
+    retry: 1
   });
 };
 
@@ -171,61 +95,47 @@ export const useUltraFastConfig = () => {
     queryKey: ['ultra-config'],
     queryFn: async () => {
       try {
-        // Entrepôts avec toutes les colonnes
-        const { data: entrepots, error: errorEntrepots } = await supabase
-          .from('entrepots')
-          .select(`
-            id,
-            nom,
-            adresse,
-            capacite_max,
-            gestionnaire,
-            statut,
-            created_at,
-            updated_at
-          `)
-          .eq('statut', 'actif')
-          .limit(20);
+        const [entrepots, pointsDeVente, unites] = await Promise.all([
+          supabase
+            .from('entrepots')
+            .select('id, nom, adresse, gestionnaire, statut')
+            .eq('statut', 'actif')
+            .order('nom')
+            .limit(50),
+          
+          supabase
+            .from('points_de_vente')
+            .select('id, nom, adresse, type_pdv, responsable, statut')
+            .eq('statut', 'actif')
+            .order('nom')
+            .limit(50),
+          
+          supabase
+            .from('unites')
+            .select('id, nom, symbole, type_unite')
+            .order('nom')
+            .limit(50)
+        ]);
 
-        // Points de vente avec toutes les colonnes
-        const { data: pointsDeVente, error: errorPDV } = await supabase
-          .from('points_de_vente')
-          .select(`
-            id,
-            nom,
-            adresse,
-            type_pdv,
-            responsable,
-            statut,
-            created_at,
-            updated_at
-          `)
-          .eq('statut', 'actif')
-          .limit(20);
+        if (entrepots.error) console.error('❌ Entrepots error:', entrepots.error);
+        if (pointsDeVente.error) console.error('❌ Points de vente error:', pointsDeVente.error);
+        if (unites.error) console.error('❌ Unites error:', unites.error);
 
-        // Unités avec tous les champs nécessaires
-        const { data: unites, error: errorUnites } = await supabase
-          .from('unites')
-          .select(`
-            id,
-            nom,
-            symbole,
-            type_unite,
-            statut
-          `)
-          .limit(20);
-
-        if (errorEntrepots) console.error('Entrepots error:', errorEntrepots);
-        if (errorPDV) console.error('Points de vente error:', errorPDV);
-        if (errorUnites) console.error('Unites error:', errorUnites);
-
-        return {
-          entrepots: errorEntrepots ? [] : (entrepots || []),
-          pointsDeVente: errorPDV ? [] : (pointsDeVente || []),
-          unites: errorUnites ? [] : (unites || [])
+        const result = {
+          entrepots: entrepots.data || [],
+          pointsDeVente: pointsDeVente.data || [],
+          unites: unites.data || []
         };
+
+        console.log('✅ Config loaded:', {
+          entrepots: result.entrepots.length,
+          pdv: result.pointsDeVente.length,
+          unites: result.unites.length
+        });
+
+        return result;
       } catch (error) {
-        console.error('Config fetch error:', error);
+        console.error('❌ Config fetch error:', error);
         return {
           entrepots: [],
           pointsDeVente: [],
@@ -233,11 +143,11 @@ export const useUltraFastConfig = () => {
         };
       }
     },
-    staleTime: 10 * 60 * 1000,
-    gcTime: 20 * 60 * 1000,
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
     refetchOnWindowFocus: false,
-    refetchOnMount: false,
-    retry: false
+    refetchOnMount: true,
+    retry: 1
   });
 };
 
@@ -248,24 +158,27 @@ export const useUltraFastClients = () => {
       try {
         const { data, error } = await supabase
           .from('clients')
-          .select('id, nom, prenom, email, telephone, statut_client')
-          .eq('statut_client', 'actif')
-          .limit(30);
+          .select('id, nom, prenom, email, telephone, statut_client, type_client')
+          .in('statut_client', ['actif', 'particulier'])
+          .order('nom')
+          .limit(100);
         
         if (error) {
-          console.error('Clients error:', error);
-          return [];
+          console.error('❌ Clients error:', error);
+          throw error;
         }
+        
+        console.log('✅ Clients loaded:', data?.length || 0, 'clients');
         return data || [];
       } catch (error) {
-        console.error('Clients fetch error:', error);
+        console.error('❌ Clients fetch error:', error);
         return [];
       }
     },
-    staleTime: 5 * 60 * 1000,
-    gcTime: 10 * 60 * 1000,
+    staleTime: 3 * 60 * 1000,
+    gcTime: 5 * 60 * 1000,
     refetchOnWindowFocus: false,
-    refetchOnMount: false,
-    retry: false
+    refetchOnMount: true,
+    retry: 1
   });
 };

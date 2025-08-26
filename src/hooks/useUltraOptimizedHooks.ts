@@ -45,6 +45,9 @@ export const useConsolidatedData = () => {
   };
 };
 
+// Import du hook avec relations
+import { useFastStockWithRelations, useFastEntrepotsComplete, useFastPDVComplete } from './useFastDataWithRelations';
+
 // Hooks simplifiés ultra-rapides
 export const useFastCatalogue = () => {
   const { data: articles, isLoading, error } = useUltraFastCatalogue();
@@ -57,7 +60,7 @@ export const useFastCatalogue = () => {
 };
 
 export const useFastStockPrincipal = () => {
-  const { data: stockData, isLoading } = useUltraFastStock();
+  const { data: stockData, isLoading } = useFastStockWithRelations();
   return { 
     stockEntrepot: stockData?.stockEntrepot || [], 
     isLoading, 
@@ -67,7 +70,7 @@ export const useFastStockPrincipal = () => {
 };
 
 export const useFastStockPDV = () => {
-  const { data: stockData, isLoading } = useUltraFastStock();
+  const { data: stockData, isLoading } = useFastStockWithRelations();
   return { 
     stockPDV: stockData?.stockPDV || [], 
     isLoading, 
@@ -76,19 +79,19 @@ export const useFastStockPDV = () => {
 };
 
 export const useFastEntrepots = () => {
-  const { data: configData, isLoading } = useUltraFastConfig();
+  const { data: entrepots, isLoading } = useFastEntrepotsComplete();
   return { 
-    data: configData?.entrepots || [], 
-    entrepots: configData?.entrepots || [], 
+    data: entrepots || [], 
+    entrepots: entrepots || [], 
     isLoading 
   };
 };
 
 export const useFastPointsDeVente = () => {
-  const { data: configData, isLoading } = useUltraFastConfig();
+  const { data: pointsDeVente, isLoading } = useFastPDVComplete();
   return { 
-    data: configData?.pointsDeVente || [], 
-    pointsDeVente: configData?.pointsDeVente || [], 
+    data: pointsDeVente || [], 
+    pointsDeVente: pointsDeVente || [], 
     isLoading 
   };
 };
