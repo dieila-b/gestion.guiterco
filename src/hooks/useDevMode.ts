@@ -22,7 +22,7 @@ export interface DevModeConfig {
 export const useDevMode = (): DevModeConfig => {
   // Stabiliser l'objet mockUser pour éviter les re-renders
   const mockUser = useMemo(() => ({
-    id: '00000000-0000-0000-0000-000000000123',
+    id: 'dev-user-123',
     email: 'dev@test.local',
     prenom: 'Admin',
     nom: 'Développement',
