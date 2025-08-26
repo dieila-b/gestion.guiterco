@@ -18,45 +18,16 @@ const setCachedData = (key: string, data: any) => {
   memoryCache.set(key, { data, timestamp: Date.now() });
 };
 
-// Fonction de test de connexion Supabase
-const testSupabaseConnection = async () => {
-  try {
-    console.log('🔗 Test de connexion Supabase...');
-    const { data, error } = await supabase
-      .from('catalogue')
-      .select('id')
-      .limit(1);
-    
-    if (error) {
-      console.error('❌ Erreur de connexion Supabase:', error);
-      return false;
-    }
-    
-    console.log('✅ Connexion Supabase OK');
-    return true;
-  } catch (error) {
-    console.error('❌ Erreur critique Supabase:', error);
-    return false;
-  }
-};
-
 // Optimisation ultra-rapide avec limite stricte de données
 export const useUltraFastCatalogue = () => {
   return useQuery({
     queryKey: ['ultra-catalogue'],
     queryFn: async () => {
       try {
-        // Test de connexion d'abord
-        const connectionOk = await testSupabaseConnection();
-        if (!connectionOk) {
-          console.warn('⚠️ Problème de connexion Supabase - retour données vides');
-          return [];
-        }
-
         // Vérifier le cache mémoire d'abord
         const cachedResult = getCachedData('catalogue');
         if (cachedResult) {
-          console.log('📦 Catalogue depuis cache mémoire:', cachedResult.length, 'articles');
+          console.log('📦 Catalogue depuis cache mémoire');
           return cachedResult;
         }
 
@@ -67,7 +38,6 @@ export const useUltraFastCatalogue = () => {
             id,
             nom,
             reference,
-            description,
             prix_vente,
             prix_achat,
             prix_unitaire,
@@ -78,14 +48,11 @@ export const useUltraFastCatalogue = () => {
             statut,
             categorie_id,
             unite_id,
-            created_at,
-            updated_at,
-            categories:categories_catalogue!catalogue_categorie_id_fkey(nom, couleur),
+            categories:categories_catalogue!catalogue_categorie_id_fkey(nom),
             unites:unites!catalogue_unite_id_fkey(nom, symbole)
           `)
           .eq('statut', 'actif')
-          .order('nom')
-          .limit(100);
+          .limit(50); // Réduire la limite pour plus de rapidité
         
         if (error) {
           console.error('❌ Catalogue query error:', error);
@@ -104,9 +71,9 @@ export const useUltraFastCatalogue = () => {
     staleTime: 10 * 60 * 1000, // 10 minutes
     gcTime: 30 * 60 * 1000, // 30 minutes
     refetchOnWindowFocus: false,
-    refetchOnMount: true, // Forcer le rechargement au montage
-    retry: 2,
-    retryDelay: 1000,
+    refetchOnMount: false,
+    retry: 1,
+    // Optimisation : démarrer le fetch immédiatement
     networkMode: 'online',
   });
 };
@@ -125,7 +92,7 @@ export const useUltraFastStock = () => {
 
         console.log('🔄 Chargement stock depuis Supabase...');
         
-        // Requêtes en parallèle avec gestion d'erreur améliorée
+        // Requêtes en parallèle avec limite réduite
         const [stockEntrepotResult, stockPDVResult] = await Promise.allSettled([
           supabase
             .from('stock_principal')
@@ -142,15 +109,14 @@ export const useUltraFastStock = () => {
               updated_at,
               article:catalogue!stock_principal_article_id_fkey(
                 id, nom, reference, prix_vente, prix_achat, prix_unitaire,
-                categorie, unite_mesure, seuil_alerte, image_url, statut
+                categorie, unite_mesure, seuil_alerte, image_url, categorie_id, unite_id
               ),
               entrepot:entrepots!stock_principal_entrepot_id_fkey(
-                id, nom, adresse, capacite_max, gestionnaire, statut
+                id, nom, adresse, capacite_max, gestionnaire, statut, created_at, updated_at
               )
             `)
-            .gte('quantite_disponible', 0)
-            .order('quantite_disponible', { ascending: false })
-            .limit(50),
+            .gt('quantite_disponible', 0)
+            .limit(30), // Réduire la limite
           
           supabase
             .from('stock_pdv')
@@ -165,15 +131,14 @@ export const useUltraFastStock = () => {
               updated_at,
               article:catalogue!stock_pdv_article_id_fkey(
                 id, nom, reference, prix_vente, prix_achat, prix_unitaire,
-                categorie, unite_mesure, seuil_alerte, image_url, statut
+                categorie, unite_mesure, seuil_alerte, image_url, categorie_id, unite_id
               ),
               point_vente:points_de_vente!stock_pdv_point_vente_id_fkey(
-                id, nom, adresse, type_pdv, responsable, statut
+                id, nom, adresse, type_pdv, responsable, statut, created_at, updated_at
               )
             `)
-            .gte('quantite_disponible', 0)
-            .order('quantite_disponible', { ascending: false })
-            .limit(50)
+            .gt('quantite_disponible', 0)
+            .limit(30) // Réduire la limite
         ]);
 
         const stockEntrepot = stockEntrepotResult.status === 'fulfilled' ? (stockEntrepotResult.value.data || []) : [];
@@ -198,9 +163,8 @@ export const useUltraFastStock = () => {
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 15 * 60 * 1000, // 15 minutes
     refetchOnWindowFocus: false,
-    refetchOnMount: true,
-    retry: 2,
-    retryDelay: 1000,
+    refetchOnMount: false,
+    retry: 1,
     networkMode: 'online',
   });
 };
@@ -219,61 +183,48 @@ export const useUltraFastConfig = () => {
 
         console.log('🔄 Chargement config depuis Supabase...');
         
-        // Requêtes en parallèle avec gestion d'erreur
-        const [entrepotResult, pdvResult, unitesResult, categoriesResult] = await Promise.allSettled([
+        // Requêtes en parallèle avec limite réduite
+        const [entrepotResult, pdvResult, unitesResult] = await Promise.allSettled([
           supabase
             .from('entrepots')
             .select('id, nom, adresse, capacite_max, gestionnaire, statut, created_at, updated_at')
             .eq('statut', 'actif')
-            .order('nom')
-            .limit(20),
+            .limit(10), // Réduire la limite
           
           supabase
             .from('points_de_vente')
             .select('id, nom, adresse, type_pdv, responsable, statut, created_at, updated_at')
             .eq('statut', 'actif')
-            .order('nom')
-            .limit(20),
+            .limit(10), // Réduire la limite
           
           supabase
             .from('unites')
             .select('id, nom, symbole, type_unite, statut')
-            .order('nom')
-            .limit(20),
-
-          supabase
-            .from('categories_catalogue')
-            .select('id, nom, description, couleur, statut')
-            .eq('statut', 'actif')
-            .order('nom')
-            .limit(20)
+            .limit(10) // Réduire la limite
         ]);
 
         const entrepots = entrepotResult.status === 'fulfilled' ? (entrepotResult.value.data || []) : [];
         const pointsDeVente = pdvResult.status === 'fulfilled' ? (pdvResult.value.data || []) : [];
         const unites = unitesResult.status === 'fulfilled' ? (unitesResult.value.data || []) : [];
-        const categories = categoriesResult.status === 'fulfilled' ? (categoriesResult.value.data || []) : [];
 
         if (entrepotResult.status === 'rejected') console.warn('⚠️ Entrepots error:', entrepotResult.reason);
         if (pdvResult.status === 'rejected') console.warn('⚠️ Points de vente error:', pdvResult.reason);
         if (unitesResult.status === 'rejected') console.warn('⚠️ Unites error:', unitesResult.reason);
-        if (categoriesResult.status === 'rejected') console.warn('⚠️ Categories error:', categoriesResult.reason);
 
-        const result = { entrepots, pointsDeVente, unites, categories };
+        const result = { entrepots, pointsDeVente, unites };
         setCachedData('config', result);
-        console.log(`✅ Config chargée: ${entrepots.length} entrepôts, ${pointsDeVente.length} PDV, ${unites.length} unités, ${categories.length} catégories`);
+        console.log(`✅ Config chargée: ${entrepots.length} entrepôts, ${pointsDeVente.length} PDV, ${unites.length} unités`);
         return result;
       } catch (error) {
         console.error('❌ Config fetch error:', error);
-        return { entrepots: [], pointsDeVente: [], unites: [], categories: [] };
+        return { entrepots: [], pointsDeVente: [], unites: [] };
       }
     },
     staleTime: 15 * 60 * 1000, // 15 minutes (plus long car change moins souvent)
     gcTime: 60 * 60 * 1000, // 1 heure
     refetchOnWindowFocus: false,
-    refetchOnMount: true,
-    retry: 2,
-    retryDelay: 1000,
+    refetchOnMount: false,
+    retry: 1,
     networkMode: 'online',
   });
 };
@@ -293,23 +244,9 @@ export const useUltraFastClients = () => {
         console.log('🔄 Chargement clients depuis Supabase...');
         const { data, error } = await supabase
           .from('clients')
-          .select(`
-            id, 
-            nom, 
-            prenom, 
-            email, 
-            telephone, 
-            adresse,
-            ville,
-            code_postal,
-            statut_client,
-            type_client,
-            created_at,
-            updated_at
-          `)
+          .select('id, nom, prenom, email, telephone, statut_client')
           .eq('statut_client', 'actif')
-          .order('nom')
-          .limit(50);
+          .limit(20); // Réduire la limite
         
         if (error) {
           console.error('❌ Clients error:', error);
@@ -328,9 +265,8 @@ export const useUltraFastClients = () => {
     staleTime: 10 * 60 * 1000, // 10 minutes
     gcTime: 30 * 60 * 1000, // 30 minutes
     refetchOnWindowFocus: false,
-    refetchOnMount: true,
-    retry: 2,
-    retryDelay: 1000,
+    refetchOnMount: false,
+    retry: 1,
     networkMode: 'online',
   });
 };
@@ -341,13 +277,6 @@ setInterval(() => {
   for (const [key, value] of memoryCache.entries()) {
     if (now - value.timestamp > MEMORY_CACHE_TTL) {
       memoryCache.delete(key);
-      console.log(`🧹 Cache expiré supprimé: ${key}`);
     }
   }
 }, 5 * 60 * 1000); // Nettoyage toutes les 5 minutes
-
-// Export de fonction utilitaire pour forcer le rechargement
-export const clearMemoryCache = () => {
-  memoryCache.clear();
-  console.log('🧹 Cache mémoire vidé manuellement');
-};
