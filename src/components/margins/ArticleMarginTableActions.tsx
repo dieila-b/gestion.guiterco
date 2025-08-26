@@ -3,7 +3,6 @@ import React from 'react';
 import { useDiagnosticOperations } from '@/hooks/useDiagnosticOperations';
 import DiagnosticButtons from './actions/DiagnosticButtons';
 import RefreshButtons from './actions/RefreshButtons';
-import DebugRepartitionButton from './actions/DebugRepartitionButton';
 
 interface ArticleMarginTableActionsProps {
   isLoading: boolean;
@@ -12,9 +11,6 @@ interface ArticleMarginTableActionsProps {
 const ArticleMarginTableActions = ({ isLoading }: ArticleMarginTableActionsProps) => {
   const {
     handleDiagnosticFraisCalculation,
-    handleDebugVueMarges,
-    handleDebugFrais,
-    handleDebugRepartitionUnitaire,
     handleRefreshData,
     handleForceRefreshView
   } = useDiagnosticOperations();
@@ -24,12 +20,6 @@ const ArticleMarginTableActions = ({ isLoading }: ArticleMarginTableActionsProps
       <DiagnosticButtons
         isLoading={isLoading}
         onDiagnosticFraisCalculation={handleDiagnosticFraisCalculation}
-        onDebugVueMarges={handleDebugVueMarges}
-        onDebugFrais={handleDebugFrais}
-      />
-      <DebugRepartitionButton
-        isLoading={isLoading}
-        onDebugRepartition={handleDebugRepartitionUnitaire}
       />
       <RefreshButtons
         isLoading={isLoading}

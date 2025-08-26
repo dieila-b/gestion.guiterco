@@ -7,7 +7,7 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instanciate createClient with right options
+  // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "12.2.3 (519615d)"
@@ -48,6 +48,13 @@ export type Database = {
             columns: ["article_id"]
             isOneToOne: false
             referencedRelation: "catalogue"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "articles_bon_commande_article_id_fkey"
+            columns: ["article_id"]
+            isOneToOne: false
+            referencedRelation: "vue_catalogue_optimise"
             referencedColumns: ["id"]
           },
           {
@@ -133,6 +140,13 @@ export type Database = {
             foreignKeyName: "articles_bon_livraison_article_id_fkey"
             columns: ["article_id"]
             isOneToOne: false
+            referencedRelation: "vue_catalogue_optimise"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "articles_bon_livraison_article_id_fkey"
+            columns: ["article_id"]
+            isOneToOne: false
             referencedRelation: "vue_marges_articles"
             referencedColumns: ["id"]
           },
@@ -206,6 +220,13 @@ export type Database = {
             foreignKeyName: "articles_facture_achat_article_id_fkey"
             columns: ["article_id"]
             isOneToOne: false
+            referencedRelation: "vue_catalogue_optimise"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "articles_facture_achat_article_id_fkey"
+            columns: ["article_id"]
+            isOneToOne: false
             referencedRelation: "vue_marges_articles"
             referencedColumns: ["id"]
           },
@@ -269,6 +290,13 @@ export type Database = {
             columns: ["article_id"]
             isOneToOne: false
             referencedRelation: "catalogue"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "articles_retour_client_article_id_fkey"
+            columns: ["article_id"]
+            isOneToOne: false
+            referencedRelation: "vue_catalogue_optimise"
             referencedColumns: ["id"]
           },
           {
@@ -618,6 +646,20 @@ export type Database = {
           },
           {
             foreignKeyName: "catalogue_unite_id_fkey"
+            columns: ["unite_id"]
+            isOneToOne: false
+            referencedRelation: "unites"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_catalogue_categorie"
+            columns: ["categorie_id"]
+            isOneToOne: false
+            referencedRelation: "categories_catalogue"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_catalogue_unite"
             columns: ["unite_id"]
             isOneToOne: false
             referencedRelation: "unites"
@@ -1039,6 +1081,13 @@ export type Database = {
             columns: ["article_id"]
             isOneToOne: false
             referencedRelation: "catalogue"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entrees_stock_article_id_fkey"
+            columns: ["article_id"]
+            isOneToOne: false
+            referencedRelation: "vue_catalogue_optimise"
             referencedColumns: ["id"]
           },
           {
@@ -1525,6 +1574,13 @@ export type Database = {
             foreignKeyName: "lignes_commande_article_id_fkey"
             columns: ["article_id"]
             isOneToOne: false
+            referencedRelation: "vue_catalogue_optimise"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lignes_commande_article_id_fkey"
+            columns: ["article_id"]
+            isOneToOne: false
             referencedRelation: "vue_marges_articles"
             referencedColumns: ["id"]
           },
@@ -1585,6 +1641,13 @@ export type Database = {
             columns: ["article_id"]
             isOneToOne: false
             referencedRelation: "catalogue"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lignes_devis_article_id_fkey"
+            columns: ["article_id"]
+            isOneToOne: false
+            referencedRelation: "vue_catalogue_optimise"
             referencedColumns: ["id"]
           },
           {
@@ -1660,6 +1723,13 @@ export type Database = {
             columns: ["article_id"]
             isOneToOne: false
             referencedRelation: "catalogue"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lignes_facture_vente_article_id_fkey"
+            columns: ["article_id"]
+            isOneToOne: false
+            referencedRelation: "vue_catalogue_optimise"
             referencedColumns: ["id"]
           },
           {
@@ -1755,6 +1825,13 @@ export type Database = {
             foreignKeyName: "lignes_precommande_article_id_fkey"
             columns: ["article_id"]
             isOneToOne: false
+            referencedRelation: "vue_catalogue_optimise"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lignes_precommande_article_id_fkey"
+            columns: ["article_id"]
+            isOneToOne: false
             referencedRelation: "vue_marges_articles"
             referencedColumns: ["id"]
           },
@@ -1800,6 +1877,36 @@ export type Database = {
         Update: {
           id?: number
           nom?: string
+        }
+        Relationships: []
+      }
+      menus: {
+        Row: {
+          created_at: string | null
+          icone: string | null
+          id: string
+          nom: string
+          ordre: number | null
+          statut: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          icone?: string | null
+          id?: string
+          nom: string
+          ordre?: number | null
+          statut?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          icone?: string | null
+          id?: string
+          nom?: string
+          ordre?: number | null
+          statut?: string | null
+          updated_at?: string | null
         }
         Relationships: []
       }
@@ -1964,6 +2071,8 @@ export type Database = {
           description: string | null
           id: string
           menu: string
+          menu_id: string | null
+          sous_menu_id: string | null
           submenu: string | null
         }
         Insert: {
@@ -1972,6 +2081,8 @@ export type Database = {
           description?: string | null
           id?: string
           menu: string
+          menu_id?: string | null
+          sous_menu_id?: string | null
           submenu?: string | null
         }
         Update: {
@@ -1980,9 +2091,26 @@ export type Database = {
           description?: string | null
           id?: string
           menu?: string
+          menu_id?: string | null
+          sous_menu_id?: string | null
           submenu?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "permissions_menu_id_fkey"
+            columns: ["menu_id"]
+            isOneToOne: false
+            referencedRelation: "menus"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "permissions_sous_menu_id_fkey"
+            columns: ["sous_menu_id"]
+            isOneToOne: false
+            referencedRelation: "sous_menus"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       points_de_vente: {
         Row: {
@@ -2375,6 +2503,13 @@ export type Database = {
             referencedRelation: "roles"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "role_permissions_role_id_fkey"
+            columns: ["role_id"]
+            isOneToOne: false
+            referencedRelation: "vue_permissions_utilisateurs"
+            referencedColumns: ["role_id"]
+          },
         ]
       }
       roles: {
@@ -2494,6 +2629,13 @@ export type Database = {
             foreignKeyName: "sorties_stock_article_id_fkey"
             columns: ["article_id"]
             isOneToOne: false
+            referencedRelation: "vue_catalogue_optimise"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sorties_stock_article_id_fkey"
+            columns: ["article_id"]
+            isOneToOne: false
             referencedRelation: "vue_marges_articles"
             referencedColumns: ["id"]
           },
@@ -2516,6 +2658,47 @@ export type Database = {
             columns: ["entrepot_id"]
             isOneToOne: false
             referencedRelation: "entrepots"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sous_menus: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          menu_id: string
+          nom: string
+          ordre: number | null
+          statut: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          menu_id: string
+          nom: string
+          ordre?: number | null
+          statut?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          menu_id?: string
+          nom?: string
+          ordre?: number | null
+          statut?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sous_menus_menu_id_fkey"
+            columns: ["menu_id"]
+            isOneToOne: false
+            referencedRelation: "menus"
             referencedColumns: ["id"]
           },
         ]
@@ -2553,10 +2736,59 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "fk_stock_pdv_article"
+            columns: ["article_id"]
+            isOneToOne: false
+            referencedRelation: "catalogue"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_stock_pdv_article"
+            columns: ["article_id"]
+            isOneToOne: false
+            referencedRelation: "vue_catalogue_optimise"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_stock_pdv_article"
+            columns: ["article_id"]
+            isOneToOne: false
+            referencedRelation: "vue_marges_articles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_stock_pdv_article"
+            columns: ["article_id"]
+            isOneToOne: false
+            referencedRelation: "vue_marges_frais"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_stock_pdv_article"
+            columns: ["article_id"]
+            isOneToOne: false
+            referencedRelation: "vue_marges_globales_stock"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_stock_pdv_point_vente"
+            columns: ["point_vente_id"]
+            isOneToOne: false
+            referencedRelation: "points_de_vente"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "stock_pdv_article_id_fkey"
             columns: ["article_id"]
             isOneToOne: false
             referencedRelation: "catalogue"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_pdv_article_id_fkey"
+            columns: ["article_id"]
+            isOneToOne: false
+            referencedRelation: "vue_catalogue_optimise"
             referencedColumns: ["id"]
           },
           {
@@ -2628,10 +2860,59 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "fk_stock_principal_article"
+            columns: ["article_id"]
+            isOneToOne: false
+            referencedRelation: "catalogue"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_stock_principal_article"
+            columns: ["article_id"]
+            isOneToOne: false
+            referencedRelation: "vue_catalogue_optimise"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_stock_principal_article"
+            columns: ["article_id"]
+            isOneToOne: false
+            referencedRelation: "vue_marges_articles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_stock_principal_article"
+            columns: ["article_id"]
+            isOneToOne: false
+            referencedRelation: "vue_marges_frais"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_stock_principal_article"
+            columns: ["article_id"]
+            isOneToOne: false
+            referencedRelation: "vue_marges_globales_stock"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_stock_principal_entrepot"
+            columns: ["entrepot_id"]
+            isOneToOne: false
+            referencedRelation: "entrepots"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "stock_principal_article_id_fkey"
             columns: ["article_id"]
             isOneToOne: false
             referencedRelation: "catalogue"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_principal_article_id_fkey"
+            columns: ["article_id"]
+            isOneToOne: false
+            referencedRelation: "vue_catalogue_optimise"
             referencedColumns: ["id"]
           },
           {
@@ -2788,6 +3069,13 @@ export type Database = {
             foreignKeyName: "transferts_article_id_fkey"
             columns: ["article_id"]
             isOneToOne: false
+            referencedRelation: "vue_catalogue_optimise"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transferts_article_id_fkey"
+            columns: ["article_id"]
+            isOneToOne: false
             referencedRelation: "vue_marges_articles"
             referencedColumns: ["id"]
           },
@@ -2897,6 +3185,13 @@ export type Database = {
             referencedRelation: "roles"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "user_roles_role_id_fkey"
+            columns: ["role_id"]
+            isOneToOne: false
+            referencedRelation: "vue_permissions_utilisateurs"
+            referencedColumns: ["role_id"]
+          },
         ]
       }
       utilisateurs_internes: {
@@ -2961,6 +3256,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "roles"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "utilisateurs_internes_role_id_fkey"
+            columns: ["role_id"]
+            isOneToOne: false
+            referencedRelation: "vue_permissions_utilisateurs"
+            referencedColumns: ["role_id"]
           },
         ]
       }
@@ -3066,6 +3368,13 @@ export type Database = {
             foreignKeyName: "lignes_commande_article_id_fkey"
             columns: ["article_id"]
             isOneToOne: false
+            referencedRelation: "vue_catalogue_optimise"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lignes_commande_article_id_fkey"
+            columns: ["article_id"]
+            isOneToOne: false
             referencedRelation: "vue_marges_articles"
             referencedColumns: ["id"]
           },
@@ -3081,6 +3390,64 @@ export type Database = {
             columns: ["article_id"]
             isOneToOne: false
             referencedRelation: "vue_marges_globales_stock"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vue_catalogue_optimise: {
+        Row: {
+          autres_frais: number | null
+          categorie: string | null
+          categorie_couleur: string | null
+          categorie_id: string | null
+          categories: Json | null
+          created_at: string | null
+          description: string | null
+          frais_douane: number | null
+          frais_logistique: number | null
+          frais_transport: number | null
+          id: string | null
+          image_url: string | null
+          nom: string | null
+          prix_achat: number | null
+          prix_unitaire: number | null
+          prix_vente: number | null
+          reference: string | null
+          seuil_alerte: number | null
+          statut: string | null
+          unite_id: string | null
+          unite_mesure: string | null
+          unite_symbole: string | null
+          unites: Json | null
+          updated_at: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "catalogue_categorie_id_fkey"
+            columns: ["categorie_id"]
+            isOneToOne: false
+            referencedRelation: "categories_catalogue"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "catalogue_unite_id_fkey"
+            columns: ["unite_id"]
+            isOneToOne: false
+            referencedRelation: "unites"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_catalogue_categorie"
+            columns: ["categorie_id"]
+            isOneToOne: false
+            referencedRelation: "categories_catalogue"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_catalogue_unite"
+            columns: ["unite_id"]
+            isOneToOne: false
+            referencedRelation: "unites"
             referencedColumns: ["id"]
           },
         ]
@@ -3215,18 +3582,65 @@ export type Database = {
         }
         Relationships: []
       }
+      vue_mon_profil_employe: {
+        Row: {
+          created_at: string | null
+          department: string | null
+          email: string | null
+          id: string | null
+          matricule: string | null
+          nom: string | null
+          photo_url: string | null
+          prenom: string | null
+          statut: string | null
+          telephone: string | null
+          type_compte: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          department?: string | null
+          email?: string | null
+          id?: string | null
+          matricule?: string | null
+          nom?: string | null
+          photo_url?: string | null
+          prenom?: string | null
+          statut?: string | null
+          telephone?: string | null
+          type_compte?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          department?: string | null
+          email?: string | null
+          id?: string | null
+          matricule?: string | null
+          nom?: string | null
+          photo_url?: string | null
+          prenom?: string | null
+          statut?: string | null
+          telephone?: string | null
+          type_compte?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       vue_permissions_utilisateurs: {
         Row: {
           action: string | null
           can_access: boolean | null
+          description: string | null
           email: string | null
-          internal_user_id: string | null
           menu: string | null
           nom: string | null
           prenom: string | null
+          role_id: string | null
           role_name: string | null
           submenu: string | null
           user_id: string | null
+          utilisateur_interne_id: string | null
         }
         Relationships: []
       }
@@ -3314,6 +3728,34 @@ export type Database = {
         }
         Relationships: []
       }
+      vue_stock_complet: {
+        Row: {
+          article_id: string | null
+          article_nom: string | null
+          article_reference: string | null
+          article_statut: string | null
+          categorie_nom: string | null
+          categories: Json | null
+          created_at: string | null
+          derniere_entree: string | null
+          derniere_sortie: string | null
+          emplacement: string | null
+          entrepot_id: string | null
+          id: string | null
+          location_nom: string | null
+          point_vente_id: string | null
+          prix_achat: number | null
+          prix_vente: number | null
+          quantite_disponible: number | null
+          quantite_reservee: number | null
+          type_stock: string | null
+          unite_nom: string | null
+          unite_symbole: string | null
+          unites: Json | null
+          updated_at: string | null
+        }
+        Relationships: []
+      }
       vue_utilisateurs_avec_roles: {
         Row: {
           created_at: string | null
@@ -3332,6 +3774,7 @@ export type Database = {
           telephone: string | null
           type_compte: string | null
           updated_at: string | null
+          user_id: string | null
         }
         Relationships: [
           {
@@ -3340,6 +3783,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "roles"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "utilisateurs_internes_role_id_fkey"
+            columns: ["role_id"]
+            isOneToOne: false
+            referencedRelation: "vue_permissions_utilisateurs"
+            referencedColumns: ["role_id"]
           },
         ]
       }
@@ -3350,39 +3800,51 @@ export type Database = {
         Returns: undefined
       }
       assign_user_role_admin: {
-        Args: { p_user_id: string; p_role_id: string }
+        Args: { p_role_id: string; p_user_id: string }
         Returns: boolean
       }
       assign_user_role_secure: {
-        Args: { target_user_id: string; new_role_id: string }
+        Args: { new_role_id: string; target_user_id: string }
         Returns: Json
       }
       assign_user_role_simple: {
-        Args: { p_user_id: string; p_role_id: string }
+        Args: { p_role_id: string; p_user_id: string }
         Returns: boolean
       }
       audit_entrees_stock_propres: {
         Args: Record<PropertyKey, never>
         Returns: {
-          rapport: string
-          nombre_entrees: number
           details: string
+          nombre_entrees: number
+          rapport: string
+        }[]
+      }
+      check_orphaned_stock: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          article_id: string
+          entrepot_id: string
+          quantite_disponible: number
         }[]
       }
       check_user_permission: {
         Args: {
-          p_user_id: string
+          p_action?: string
           p_menu: string
           p_submenu?: string
-          p_action?: string
+          p_user_id: string
         }
+        Returns: boolean
+      }
+      check_user_permission_strict: {
+        Args: { p_action?: string; p_menu: string; p_submenu?: string }
         Returns: boolean
       }
       complete_precommande_payment: {
         Args: {
-          precommande_uuid: string
-          montant_final: number
           mode_paiement?: string
+          montant_final: number
+          precommande_uuid: string
         }
         Returns: string
       }
@@ -3392,105 +3854,28 @@ export type Database = {
       }
       create_precommande_cash_transaction: {
         Args: {
-          precommande_uuid: string
-          montant_acompte: number
           mode_paiement?: string
+          montant_acompte: number
+          precommande_uuid: string
         }
         Returns: string
-      }
-      debug_auth_context: {
-        Args: Record<PropertyKey, never>
-        Returns: Json
-      }
-      debug_auth_info: {
-        Args: Record<PropertyKey, never>
-        Returns: {
-          current_user_id: string
-          current_email: string
-          is_authenticated: boolean
-          is_internal_active: boolean
-        }[]
-      }
-      debug_current_user: {
-        Args: Record<PropertyKey, never>
-        Returns: {
-          user_id: string
-          email: string
-          raw_jwt: Json
-          is_authenticated: boolean
-        }[]
-      }
-      debug_frais_articles: {
-        Args: Record<PropertyKey, never>
-        Returns: {
-          article_nom: string
-          bon_commande_numero: string
-          frais_livraison: number
-          frais_logistique: number
-          transit_douane: number
-          montant_ht: number
-          quantite: number
-          prix_unitaire: number
-          montant_ligne: number
-        }[]
-      }
-      debug_frais_articles_detaille: {
-        Args: Record<PropertyKey, never>
-        Returns: {
-          article_nom: string
-          article_id: string
-          bon_commande_numero: string
-          bc_statut: string
-          frais_livraison: number
-          frais_logistique: number
-          transit_douane: number
-          montant_ht: number
-          quantite: number
-          prix_unitaire: number
-          montant_ligne: number
-          frais_total_bc: number
-          part_frais: number
-        }[]
-      }
-      debug_frais_repartition_unitaire: {
-        Args: Record<PropertyKey, never>
-        Returns: {
-          article_nom: string
-          article_id: string
-          bon_commande_numero: string
-          quantite_commandee: number
-          montant_ligne: number
-          part_montant_ligne_pct: number
-          frais_total_bc: number
-          frais_unitaire_reparti: number
-          frais_total_article: number
-        }[]
-      }
-      debug_vue_marges_frais: {
-        Args: Record<PropertyKey, never>
-        Returns: {
-          article_nom: string
-          frais_bon_commande: number
-          cout_total_unitaire: number
-          nb_bons_commande: number
-        }[]
       }
       diagnostic_permissions_system: {
         Args: Record<PropertyKey, never>
         Returns: {
           check_name: string
-          status: string
           count_value: number
           details: string
+          status: string
         }[]
       }
       diagnostic_user_system_complet: {
         Args: Record<PropertyKey, never>
         Returns: {
           composant: string
-          statut: string
           details: string
           recommandation: string
+          statut: string
         }[]
       }
       generate_bon_commande_number: {
@@ -3506,7 +3891,7 @@ export type Database = {
         Returns: string
       }
       generate_matricule: {
-        Args: { p_prenom: string; p_nom: string }
+        Args: { p_nom: string; p_prenom: string }
         Returns: string
       }
       generate_precommande_number: {
@@ -3528,151 +3913,214 @@ export type Database = {
       get_all_internal_users: {
         Args: Record<PropertyKey, never>
         Returns: {
-          id: string
-          user_id: string
-          prenom: string
-          nom: string
-          email: string
-          telephone: string
           adresse: string
-          photo_url: string
-          matricule: string
-          statut: string
-          doit_changer_mot_de_passe: boolean
           created_at: string
-          updated_at: string
+          doit_changer_mot_de_passe: boolean
+          email: string
+          id: string
+          matricule: string
+          nom: string
+          photo_url: string
+          prenom: string
           role_id: string
           role_name: string
+          statut: string
+          telephone: string
+          updated_at: string
+          user_id: string
         }[]
       }
       get_client_statistics: {
         Args: Record<PropertyKey, never>
         Returns: {
+          client_email: string
           client_id: string
           client_nom: string
-          client_email: string
           client_telephone: string
           nombre_ventes: number
+          reste_a_payer: number
           total_facture: number
           total_paye: number
-          reste_a_payer: number
         }[]
       }
       get_clients_endettes: {
         Args: Record<PropertyKey, never>
         Returns: {
+          client_email: string
           client_id: string
           client_nom: string
-          client_email: string
           client_telephone: string
-          facture_id: string
-          numero_facture: string
           date_facture: string
-          montant_total: number
+          facture_id: string
           montant_paye: number
+          montant_total: number
+          numero_facture: string
           reste_a_payer: number
           statut_paiement: string
+        }[]
+      }
+      get_current_user_role: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
+      get_dashboard_complete_stats: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          marge_globale_stock: number
+          marge_pourcentage: number
+          nb_clients: number
+          nb_entrepots: number
+          nb_fournisseurs: number
+          nb_pdv: number
+          stock_global: number
+          total_catalogue: number
+          valeur_stock_achat: number
+          valeur_stock_vente: number
         }[]
       }
       get_factures_avec_marges: {
         Args: Record<PropertyKey, never>
         Returns: {
-          facture_id: string
-          numero_facture: string
-          date_facture: string
-          client_nom: string
-          montant_ttc: number
-          cout_total: number
           benefice_total: number
+          client_nom: string
+          cout_total: number
+          date_facture: string
+          facture_id: string
+          montant_ttc: number
+          numero_facture: string
           taux_marge_global: number
         }[]
       }
       get_factures_vente: {
         Args: Record<PropertyKey, never>
         Returns: {
+          articles: number
+          client: string
+          date_iso: string
           facture_id: string
           numero_facture: string
-          date_iso: string
-          client: string
-          articles: number
-          total: number
           paye: number
           restant: number
-          statut_paiement: string
           statut_livraison: string
+          statut_paiement: string
+          total: number
         }[]
       }
       get_factures_vente_with_details: {
         Args: Record<PropertyKey, never>
         Returns: {
+          articles: number
+          client: string
+          date: string
           facture_id: string
           numero_facture: string
-          date: string
-          client: string
-          articles: number
-          total: number
           paye: number
           restant: number
-          statut_paiement: string
           statut_livraison: string
+          statut_paiement: string
+          total: number
+        }[]
+      }
+      get_margin_debug_data: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          article_nom: string
+          cout_total_unitaire: number
+          frais_bon_commande: number
+          nb_bons_commande: number
+        }[]
+      }
+      get_permissions_structure: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          action: string
+          menu_icone: string
+          menu_id: string
+          menu_nom: string
+          menu_ordre: number
+          permission_description: string
+          permission_id: string
+          sous_menu_description: string
+          sous_menu_id: string
+          sous_menu_nom: string
+          sous_menu_ordre: number
         }[]
       }
       get_precommande_quantities: {
         Args: { p_article_id: string }
         Returns: {
-          total_precommande: number
-          total_livre: number
           en_attente: number
+          total_livre: number
+          total_precommande: number
         }[]
       }
       get_precommandes_info_for_article: {
         Args: { p_article_id: string }
         Returns: {
           article_nom: string
-          total_en_precommande: number
-          total_deja_livre: number
-          reste_a_livrer: number
           nb_precommandes: number
+          reste_a_livrer: number
+          total_deja_livre: number
+          total_en_precommande: number
+        }[]
+      }
+      get_quick_stats: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          total_articles: number
+          total_entrepots: number
+          total_pdv: number
+          total_stock_entrepots: number
+          total_stock_pdv: number
         }[]
       }
       get_rapport_marges_periode: {
         Args: { date_debut: string; date_fin: string }
         Returns: {
-          total_ventes: number
-          total_couts: number
           benefice_total: number
-          taux_marge_moyen: number
           nombre_factures: number
+          taux_marge_moyen: number
+          total_couts: number
+          total_ventes: number
         }[]
       }
       get_resume_marges_globales_stock: {
         Args: Record<PropertyKey, never>
         Returns: {
+          marge_totale_globale: number
+          taux_marge_moyen_pondere: number
           total_articles_en_stock: number
           valeur_totale_stock_cout: number
           valeur_totale_stock_vente: number
-          marge_totale_globale: number
-          taux_marge_moyen_pondere: number
         }[]
       }
       get_total_stock_available: {
         Args: { p_article_id: string }
         Returns: number
       }
+      get_user_permissions: {
+        Args: { user_uuid: string }
+        Returns: {
+          action: string
+          can_access: boolean
+          menu: string
+          submenu: string
+        }[]
+      }
       get_users_by_role: {
         Args: { role_uuid: string }
         Returns: {
-          user_id: string
-          prenom: string
-          nom: string
+          created_at: string
           email: string
           matricule: string
+          nom: string
+          prenom: string
           statut: string
-          created_at: string
+          user_id: string
         }[]
       }
-      is_admin: {
-        Args: Record<PropertyKey, never>
+      has_user_permission: {
+        Args: { p_action?: string; p_menu: string; p_submenu?: string }
         Returns: boolean
       }
       is_admin_or_manager: {
@@ -3687,15 +4135,35 @@ export type Database = {
         Args: { user_id: string }
         Returns: boolean
       }
+      is_user_admin: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
+      log_business_data_access: {
+        Args: { operation: string; table_name: string }
+        Returns: undefined
+      }
+      log_client_access_attempt: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
       rapport_nettoyage_doublons: {
         Args: Record<PropertyKey, never>
         Returns: {
-          statut: string
           message: string
           nombre: number
+          statut: string
         }[]
       }
       refresh_marges_view: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
+      refresh_materialized_views: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
+      refresh_stock_views: {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
@@ -3704,27 +4172,27 @@ export type Database = {
         Returns: Json
       }
       reset_internal_user_password: {
-        Args: { user_email: string; new_password: string }
+        Args: { new_password: string; user_email: string }
         Returns: Json
       }
       secure_password_update: {
         Args: {
-          target_user_id: string
-          new_password: string
           force_change?: boolean
+          new_password: string
+          target_user_id: string
         }
         Returns: Json
       }
       secure_role_assignment: {
-        Args: { target_user_id: string; new_role_id: string }
+        Args: { new_role_id: string; target_user_id: string }
         Returns: Json
       }
       test_rls_permissions: {
         Args: Record<PropertyKey, never>
         Returns: {
-          test_name: string
-          result: string
           details: string
+          result: string
+          test_name: string
         }[]
       }
       unaccent: {
@@ -3736,7 +4204,7 @@ export type Database = {
         Returns: unknown
       }
       update_internal_user_secure: {
-        Args: { user_internal_id: string; user_data: Json }
+        Args: { user_data: Json; user_internal_id: string }
         Returns: Json
       }
       update_stock_pdv: {
@@ -3757,65 +4225,64 @@ export type Database = {
       }
       update_user_profile: {
         Args: {
-          p_user_id: string
-          p_prenom: string
-          p_nom: string
-          p_email: string
-          p_telephone?: string
           p_adresse?: string
-          p_photo_url?: string
-          p_matricule?: string
-          p_statut?: string
           p_doit_changer_mot_de_passe?: boolean
+          p_email: string
+          p_matricule?: string
+          p_nom: string
+          p_photo_url?: string
+          p_prenom: string
+          p_statut?: string
+          p_telephone?: string
+          p_user_id: string
         }
         Returns: boolean
       }
       update_user_simple: {
         Args: {
-          p_user_id: string
-          p_prenom: string
-          p_nom: string
-          p_email: string
-          p_telephone?: string
           p_adresse?: string
-          p_photo_url?: string
-          p_matricule?: string
-          p_statut?: string
           p_doit_changer_mot_de_passe?: boolean
+          p_email: string
+          p_matricule?: string
+          p_nom: string
+          p_photo_url?: string
+          p_prenom: string
+          p_statut?: string
+          p_telephone?: string
+          p_user_id: string
         }
         Returns: boolean
       }
       user_has_permission: {
         Args:
-          | { p_menu: string; p_submenu?: string; p_action?: string }
-          | { user_id: string; permission_name: string }
           | {
-              user_uuid: string
+              action_name?: string
               menu_name: string
               submenu_name?: string
-              action_name?: string
+              user_uuid: string
             }
+          | { permission_name: string; user_id: string }
         Returns: boolean
       }
       user_has_permission_direct: {
-        Args: { p_menu: string; p_submenu?: string; p_action?: string }
+        Args: { p_action?: string; p_menu: string; p_submenu?: string }
         Returns: boolean
       }
       validate_admin_system: {
         Args: Record<PropertyKey, never>
         Returns: {
           check_name: string
-          status: string
           count_result: number
           message: string
+          status: string
         }[]
       }
       validate_system_sync: {
         Args: Record<PropertyKey, never>
         Returns: {
           check_name: string
-          status: string
           details: string
+          status: string
         }[]
       }
       verifier_integrite_entrees_stock: {
@@ -3823,17 +4290,17 @@ export type Database = {
         Returns: {
           article_nom: string
           nombre_entrees: number
-          types_entrees: string
-          total_quantite: number
           statut_verification: string
+          total_quantite: number
+          types_entrees: string
         }[]
       }
       verifier_nettoyage_corrections: {
         Args: Record<PropertyKey, never>
         Returns: {
-          type_verification: string
           nombre: number
           statut: string
+          type_verification: string
         }[]
       }
     }

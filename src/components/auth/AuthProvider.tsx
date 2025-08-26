@@ -3,6 +3,7 @@ import React from 'react';
 import { useDevMode } from '@/hooks/useDevMode';
 import { AuthContext } from './AuthContext';
 import { useAuthState } from './useAuthState';
+import '@/utils/clearDevCache'; // Auto-nettoyage du cache
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const { bypassAuth, mockUser: originalMockUser, isDevMode } = useDevMode();

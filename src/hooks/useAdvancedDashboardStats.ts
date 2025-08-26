@@ -202,11 +202,11 @@ export const useAdvancedDashboardStats = () => {
           stockGlobal = stockPrincipalTotal + stockPDVTotal;
           
           valeurStockAchat = (stockData?.reduce((sum, item) => {
-            const prix = item.article?.prix_unitaire || 0;
+            const prix = (item as any).article?.prix_unitaire || 0;
             const quantite = item.quantite_disponible || 0;
             return sum + (prix * quantite);
           }, 0) || 0) + (stockPDV?.reduce((sum, item) => {
-            const prix = item.article?.prix_unitaire || 0;
+            const prix = (item as any).article?.prix_unitaire || 0;
             const quantite = item.quantite_disponible || 0;
             return sum + (prix * quantite);
           }, 0) || 0);

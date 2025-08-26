@@ -56,11 +56,11 @@ export const useDashboardStats = () => {
       // Valeurs stock (en utilisant prix_unitaire comme prix d'achat ET de vente pour le moment)
       // En attendant que vous ayez des colonnes séparées prix_achat/prix_vente
       const valeurStockAchat = (stockData?.reduce((sum, item) => {
-        const prix = item.article?.prix_unitaire || 0;
+        const prix = (item as any).article?.prix_unitaire || 0;
         const quantite = item.quantite_disponible || 0;
         return sum + (prix * quantite);
       }, 0) || 0) + (stockPDV?.reduce((sum, item) => {
-        const prix = item.article?.prix_unitaire || 0;
+        const prix = (item as any).article?.prix_unitaire || 0;
         const quantite = item.quantite_disponible || 0;
         return sum + (prix * quantite);
       }, 0) || 0);

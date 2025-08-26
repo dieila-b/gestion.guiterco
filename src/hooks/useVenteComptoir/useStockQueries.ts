@@ -41,8 +41,8 @@ export const useStockQueries = (selectedPDV?: string) => {
             categorie_id,
             unite_mesure,
             unite_id,
-            categorie_article:categories_catalogue(nom),
-            unite_article:unites(nom)
+            categorie_article:categories_catalogue!catalogue_categorie_id_fkey(nom),
+            unite_article:unites!catalogue_unite_id_fkey(nom)
           ),
           point_vente:points_de_vente!inner(nom)
         `)
@@ -52,15 +52,18 @@ export const useStockQueries = (selectedPDV?: string) => {
       if (error) throw error;
       
       // Normaliser les données pour la compatibilité
-      return data?.map(item => ({
-        ...item,
-        article: {
-          ...item.article,
-          // Prioriser le nom de la catégorie depuis la relation
-          categorie: item.article.categorie_article?.nom || item.article.categorie || '',
-          unite_mesure: item.article.unite_article?.nom || item.article.unite_mesure || ''
-        }
-      })) || [];
+      return data?.map(item => {
+        const article = item.article as any;
+        return {
+          ...item,
+          article: {
+            ...article,
+            // Prioriser le nom de la catégorie depuis la relation
+            categorie: article?.categorie_article?.nom || article?.categorie || '',
+            unite_mesure: article?.unite_article?.nom || article?.unite_mesure || ''
+          }
+        };
+      }) || [];
     },
     enabled: !!selectedPDV && !!pointsDeVente
   });

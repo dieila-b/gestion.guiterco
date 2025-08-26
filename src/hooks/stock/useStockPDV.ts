@@ -13,10 +13,10 @@ export const useStockPDV = () => {
           *,
           article:catalogue!stock_pdv_article_id_fkey(
             *,
-            categorie_article:categories_catalogue(nom),
-            unite_article:unites(nom)
+            categorie_article:categories_catalogue!catalogue_categorie_id_fkey(nom),
+            unite_article:unites!catalogue_unite_id_fkey(nom)
           ),
-          point_vente:points_de_vente(*)
+          point_vente:points_de_vente!stock_pdv_point_vente_id_fkey(*)
         `)
         .order('updated_at', { ascending: false });
       
