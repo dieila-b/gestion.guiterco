@@ -7,19 +7,13 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { queryClient } from "@/lib/queryClient";
 import { AuthProvider } from "@/components/auth/AuthProvider";
 import { AppInitializer } from "@/components/layout/AppInitializer";
-import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
+import ProtectedRoute from "@/components/auth/ProtectedRoute";
 
 // Import des pages
 import Index from "./pages/Index";
 import Stocks from "./pages/Stocks";
-import VenteComptoir from "./pages/VenteComptoir";
-import Ventes from "./pages/Ventes";
-import Achats from "./pages/Achats";
+import Sales from "./pages/Sales";
 import Clients from "./pages/Clients";
-import Caisse from "./pages/Caisse";
-import Marges from "./pages/Marges";
-import Rapports from "./pages/Rapports";
-import Parametres from "./pages/Parametres";
 
 function App() {
   return (
@@ -51,7 +45,7 @@ function App() {
                   path="/vente-comptoir"
                   element={
                     <ProtectedRoute>
-                      <VenteComptoir />
+                      <Sales />
                     </ProtectedRoute>
                   }
                 />
@@ -59,7 +53,7 @@ function App() {
                   path="/ventes"
                   element={
                     <ProtectedRoute>
-                      <Ventes />
+                      <Sales />
                     </ProtectedRoute>
                   }
                 />
@@ -67,7 +61,7 @@ function App() {
                   path="/achats"
                   element={
                     <ProtectedRoute>
-                      <Achats />
+                      <Navigate to="/" replace />
                     </ProtectedRoute>
                   }
                 />
@@ -83,7 +77,7 @@ function App() {
                   path="/caisse"
                   element={
                     <ProtectedRoute>
-                      <Caisse />
+                      <Navigate to="/" replace />
                     </ProtectedRoute>
                   }
                 />
@@ -91,7 +85,7 @@ function App() {
                   path="/marges"
                   element={
                     <ProtectedRoute>
-                      <Marges />
+                      <Navigate to="/" replace />
                     </ProtectedRoute>
                   }
                 />
@@ -99,7 +93,7 @@ function App() {
                   path="/rapports"
                   element={
                     <ProtectedRoute>
-                      <Rapports />
+                      <Navigate to="/" replace />
                     </ProtectedRoute>
                   }
                 />
@@ -107,7 +101,7 @@ function App() {
                   path="/parametres"
                   element={
                     <ProtectedRoute>
-                      <Parametres />
+                      <Navigate to="/" replace />
                     </ProtectedRoute>
                   }
                 />
