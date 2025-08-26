@@ -13,7 +13,7 @@ export const useStockQueries = (selectedPDV?: string) => {
         .eq('statut', 'actif');
       
       if (error) throw error;
-      return data || [];
+      return data;
     }
   });
 
@@ -23,24 +23,15 @@ export const useStockQueries = (selectedPDV?: string) => {
     queryFn: async () => {
       if (!selectedPDV) return [];
       
-      console.log('Fetching stock for PDV:', selectedPDV);
-      console.log('Available PDVs:', pointsDeVente);
-      
       // Trouver l'ID du point de vente sélectionné
       const pdvSelected = pointsDeVente?.find(pdv => pdv.nom === selectedPDV);
-      if (!pdvSelected) {
-        console.log('PDV not found:', selectedPDV);
-        return [];
-      }
+      if (!pdvSelected) return [];
       
-      console.log('PDV selected:', pdvSelected);
-      
-      // Requête simplifiée avec join manuel
-      const { data: stockData, error: stockError } = await supabase
+      const { data, error } = await supabase
         .from('stock_pdv')
         .select(`
           *,
-          catalogue!inner(
+          article:catalogue!inner(
             id, 
             nom, 
             prix_vente, 
@@ -48,37 +39,34 @@ export const useStockQueries = (selectedPDV?: string) => {
             image_url, 
             categorie,
             categorie_id,
-            unite_mesure
-          )
+            unite_mesure,
+            unite_id,
+            categorie_article:categories_catalogue!catalogue_categorie_id_fkey(nom),
+            unite_article:unites!catalogue_unite_id_fkey(nom)
+          ),
+          point_vente:points_de_vente!inner(nom)
         `)
         .eq('point_vente_id', pdvSelected.id)
-        .gt('quantite_disponible', 0);
+        .gt('quantite_disponible', 0); // Ne récupérer que les articles en stock
       
-      if (stockError) {
-        console.error('Error fetching stock:', stockError);
-        throw stockError;
-      }
+      if (error) throw error;
       
-      console.log('Stock data loaded:', stockData);
-      
-      // Normaliser les données avec structure simplifiée
-      const normalizedData = stockData?.map(item => ({
+      // Normaliser les données pour la compatibilité
+      return data?.map(item => ({
         ...item,
         article: {
-          ...item.catalogue,
-          // Structure cohérente pour l'affichage
-          categorie_article: item.catalogue.categorie ? { nom: item.catalogue.categorie } : null
+          ...item.article,
+          // Prioriser le nom de la catégorie depuis la relation
+          categorie: item.article.categorie_article?.nom || item.article.categorie || '',
+          unite_mesure: item.article.unite_article?.nom || item.article.unite_mesure || ''
         }
       })) || [];
-      
-      console.log('Normalized stock data:', normalizedData);
-      return normalizedData;
     },
     enabled: !!selectedPDV && !!pointsDeVente
   });
 
   return {
-    pointsDeVente: pointsDeVente || [],
-    stockPDV: stockPDV || []
+    pointsDeVente,
+    stockPDV
   };
 };

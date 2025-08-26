@@ -21,29 +21,25 @@ export const useVenteComptoirState = () => {
   // Hook vente comptoir avec gestion du stock PDV et stock local
   const venteComptoir = useVenteComptoir(selectedPDV);
 
-  // Ne pas utiliser le catalogue optimisé - utiliser directement le stock PDV
-  const catalogue = {
-    isLoading: false,
-    articles: [],
-    totalCount: 0
-  };
+  // Hook catalogue optimisé avec pagination
+  const catalogue = useCatalogueOptimized(
+    currentPage, 
+    productsPerPage, 
+    debouncedSearch, 
+    selectedCategory === 'Tous' ? '' : selectedCategory
+  );
 
   // Éliminer les doublons de catégories basés sur le stock PDV avec les relations correctes
   const uniqueCategories = useMemo(() => {
-    if (!venteComptoir.stockPDV || !Array.isArray(venteComptoir.stockPDV)) return [];
+    if (!venteComptoir.stockPDV) return [];
     
     console.log('Calculating categories from stockPDV:', venteComptoir.stockPDV);
     
     const categorySet = new Set<string>();
     venteComptoir.stockPDV.forEach(stockItem => {
-      // Utiliser la catégorie depuis la relation ou depuis le champ direct
-      const articleCategory = stockItem.article?.categorie_article?.nom || 
-                             stockItem.article?.categorie || 
-                             'Sans catégorie';
-      
-      if (articleCategory && articleCategory.trim()) {
-        categorySet.add(articleCategory);
-        console.log('Added category:', articleCategory);
+      if (stockItem.article?.categorie && stockItem.article.categorie.trim()) {
+        categorySet.add(stockItem.article.categorie);
+        console.log('Added category:', stockItem.article.categorie);
       }
     });
     
@@ -66,31 +62,7 @@ export const useVenteComptoirState = () => {
     };
   }, [venteComptoir.cart]);
 
-  // Calculer le total des pages basé sur le stock PDV filtré
-  const filteredStockCount = useMemo(() => {
-    if (!venteComptoir.stockPDV || !Array.isArray(venteComptoir.stockPDV)) return 0;
-    
-    return venteComptoir.stockPDV.filter(stockItem => {
-      const article = stockItem.article;
-      if (!article) return false;
-
-      // Filtre par recherche
-      const matchesSearch = !debouncedSearch || 
-        article.nom.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
-        article.reference.toLowerCase().includes(debouncedSearch.toLowerCase());
-
-      // Filtre par catégorie
-      const articleCategory = article.categorie_article?.nom || article.categorie || 'Sans catégorie';
-      const matchesCategory = selectedCategory === 'Tous' || 
-        !selectedCategory || 
-        selectedCategory === '' ||
-        articleCategory === selectedCategory;
-
-      return matchesSearch && matchesCategory;
-    }).length;
-  }, [venteComptoir.stockPDV, debouncedSearch, selectedCategory]);
-
-  const totalPages = Math.ceil(filteredStockCount / productsPerPage);
+  const totalPages = Math.ceil(catalogue.totalCount / productsPerPage);
 
   // Sélectionner automatiquement le premier PDV disponible
   useEffect(() => {

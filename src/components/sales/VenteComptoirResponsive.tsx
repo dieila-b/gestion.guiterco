@@ -32,8 +32,8 @@ const VenteComptoirResponsive = () => {
         selectedCategory={state.selectedCategory}
         setSelectedCategory={state.setSelectedCategory}
         uniqueCategories={state.uniqueCategories}
-        pointsDeVente={state.venteComptoir.pointsDeVente || []}
-        stockPDV={state.venteComptoir.stockPDV || []}
+        pointsDeVente={state.venteComptoir.pointsDeVente}
+        stockPDV={state.venteComptoir.stockPDV}
         loadingArticles={state.catalogue.isLoading}
         addToCart={state.venteComptoir.addToCart}
         currentPage={state.currentPage}

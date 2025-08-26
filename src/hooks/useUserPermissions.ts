@@ -28,7 +28,7 @@ export const useUserPermissions = () => {
       }
 
       // En mode développement avec utilisateur mock, donner toutes les permissions
-      if (isDevMode && (user.id === '00000000-0000-0000-0000-000000000123' || user.id === 'dev-user-123')) {
+      if (isDevMode && user.id === '00000000-0000-0000-0000-000000000123') {
         console.log('Mode dev avec utilisateur mock - toutes permissions accordées');
         return [
           { menu: 'Dashboard', action: 'read', can_access: true },
