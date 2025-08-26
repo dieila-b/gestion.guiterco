@@ -35,6 +35,20 @@ export const useDevMode = (): DevModeConfig => {
   }), []);
 
   const [config, setConfig] = useState<DevModeConfig>(() => {
+    // Nettoyer le cache si on détecte l'ancien user ID
+    if (typeof window !== 'undefined') {
+      const hasOldCache = localStorage.getItem('dev-user-123') || 
+                         sessionStorage.getItem('dev-user-123');
+      if (hasOldCache) {
+        console.log('🧹 Nettoyage cache ancien dev-user-123');
+        try {
+          localStorage.clear();
+          sessionStorage.clear();
+        } catch (error) {
+          console.warn('Erreur nettoyage cache:', error);
+        }
+      }
+    }
     // Détecter l'environnement de développement
     const hostname = window.location.hostname;
     

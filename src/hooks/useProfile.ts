@@ -29,7 +29,7 @@ export const useProfile = () => {
     const fetchProfile = async () => {
       try {
         // Vérifier si c'est l'utilisateur mock de développement
-        if (user.id === '00000000-0000-0000-0000-000000000123') {
+        if (user.id === '00000000-0000-0000-0000-000000000123' || user.id === 'dev-user-123') {
           // Créer un profil mock pour le développement
           const mockProfile: Profile = {
             id: '00000000-0000-0000-0000-000000000124',
@@ -51,7 +51,7 @@ export const useProfile = () => {
           .from('profiles')
           .select('*')
           .eq('user_id', user.id)
-          .single();
+          .maybeSingle(); // Changé de single() à maybeSingle() pour éviter les erreurs
 
         if (error && error.code !== 'PGRST116') {
           console.error('Erreur lors de la récupération du profil:', error);
