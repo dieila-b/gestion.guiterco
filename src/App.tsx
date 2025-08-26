@@ -15,6 +15,13 @@ import Stocks from "./pages/Stocks";
 import Sales from "./pages/Sales";
 import Clients from "./pages/Clients";
 import Settings from "./pages/Settings";
+import VenteComptoir from "./pages/VenteComptoir";
+import Ventes from "./pages/Ventes";
+import Achats from "./pages/Achats";
+import Caisse from "./pages/Caisse";
+import Marges from "./pages/Marges";
+import Rapports from "./pages/Rapports";
+import Parametres from "./pages/Parametres";
 
 function App() {
   return (
