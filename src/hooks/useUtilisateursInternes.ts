@@ -45,16 +45,21 @@ export const useUtilisateursInternes = () => {
     queryFn: async () => {
       console.log('🔍 Chargement des utilisateurs internes...');
       
-      // Essayer d'abord la vue optimisée
-      let { data, error } = await supabase
-        .from('vue_utilisateurs_avec_roles')
-        .select('*')
-        .order('created_at', { ascending: false });
+      try {
+        // Essayer d'abord la vue optimisée
+        const { data: viewData, error: viewError } = await supabase
+          .from('vue_utilisateurs_avec_roles')
+          .select('*')
+          .order('created_at', { ascending: false });
 
-      // Si la vue ne fonctionne pas, essayer la requête directe
-      if (error || !data || data.length === 0) {
-        console.log('🔄 Essai avec requête directe sur utilisateurs_internes...');
+        if (!viewError && viewData && viewData.length > 0) {
+          console.log('✅ Données chargées depuis la vue:', viewData.length, 'utilisateurs');
+          return viewData as UtilisateurInterne[];
+        }
+
+        console.log('🔄 Vue indisponible, essai requête directe...');
         
+        // Fallback : requête directe avec join
         const { data: directData, error: directError } = await supabase
           .from('utilisateurs_internes')
           .select(`
@@ -69,24 +74,45 @@ export const useUtilisateursInternes = () => {
 
         if (directError) {
           console.error('❌ Erreur requête directe:', directError);
-          throw new Error(`Erreur: ${directError.message}`);
+          
+          // Dernier fallback : requête simple sans join
+          const { data: simpleData, error: simpleError } = await supabase
+            .from('utilisateurs_internes')
+            .select('*')
+            .order('created_at', { ascending: false });
+
+          if (simpleError) {
+            console.error('❌ Erreur requête simple:', simpleError);
+            throw new Error(`Erreur de chargement: ${simpleError.message}`);
+          }
+
+          console.log('✅ Données chargées (requête simple):', simpleData?.length || 0, 'utilisateurs');
+          return (simpleData || []).map(user => ({
+            ...user,
+            role_name: 'Rôle non défini',
+            role_description: 'Aucune description'
+          })) as UtilisateurInterne[];
         }
 
         // Reformater les données pour correspondre à l'interface attendue
-        data = directData?.map(user => ({
+        const formattedData = (directData || []).map(user => ({
           ...user,
-          role_name: user.roles?.name,
-          role_description: user.roles?.description
-        })) || [];
-      }
+          role_name: user.roles?.name || 'Rôle non défini',
+          role_description: user.roles?.description || 'Aucune description'
+        }));
 
-      console.log('✅ Utilisateurs internes chargés:', data.length, 'utilisateurs');
-      
-      return data as UtilisateurInterne[];
+        console.log('✅ Données chargées (requête directe):', formattedData.length, 'utilisateurs');
+        return formattedData as UtilisateurInterne[];
+
+      } catch (error) {
+        console.error('❌ Erreur inattendue:', error);
+        throw error;
+      }
     },
-    retry: 3,
-    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
-    staleTime: 30000, // Les données restent fraîches pendant 30 secondes
+    retry: 2,
+    retryDelay: (attemptIndex) => Math.min(1000 * Math.pow(2, attemptIndex), 5000),
+    staleTime: 30000,
+    refetchOnWindowFocus: false,
   });
 };
 
