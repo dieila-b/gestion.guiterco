@@ -15,7 +15,7 @@ export const useStockPrincipal = () => {
         .from('stock_principal')
         .select(`
           *,
-          article:catalogue(
+          article:catalogue!stock_principal_article_id_fkey(
             id,
             reference,
             nom,

@@ -11,7 +11,7 @@ export const useStockPDV = () => {
         .from('stock_pdv')
         .select(`
           *,
-          article:catalogue(
+          article:catalogue!stock_pdv_article_id_fkey(
             *,
             categorie_article:categories_catalogue(nom),
             unite_article:unites(nom)
