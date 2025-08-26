@@ -7,14 +7,19 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { queryClient } from "@/lib/queryClient";
 import { AuthProvider } from "@/components/auth/AuthProvider";
 import { AppInitializer } from "@/components/layout/AppInitializer";
-import ProtectedRoute from "@/components/auth/ProtectedRoute";
+import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 
 // Import des pages
 import Index from "./pages/Index";
 import Stocks from "./pages/Stocks";
-import Sales from "./pages/Sales";
+import VenteComptoir from "./pages/VenteComptoir";
+import Ventes from "./pages/Ventes";
+import Achats from "./pages/Achats";
 import Clients from "./pages/Clients";
-import Settings from "./pages/Settings";
+import Caisse from "./pages/Caisse";
+import Marges from "./pages/Marges";
+import Rapports from "./pages/Rapports";
+import Parametres from "./pages/Parametres";
 
 function App() {
   return (
@@ -46,7 +51,7 @@ function App() {
                   path="/vente-comptoir"
                   element={
                     <ProtectedRoute>
-                      <Sales />
+                      <VenteComptoir />
                     </ProtectedRoute>
                   }
                 />
@@ -54,7 +59,15 @@ function App() {
                   path="/ventes"
                   element={
                     <ProtectedRoute>
-                      <Sales />
+                      <Ventes />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/achats"
+                  element={
+                    <ProtectedRoute>
+                      <Achats />
                     </ProtectedRoute>
                   }
                 />
@@ -67,18 +80,37 @@ function App() {
                   }
                 />
                 <Route
-                  path="/parametres"
+                  path="/caisse"
                   element={
                     <ProtectedRoute>
-                      <Settings />
+                      <Caisse />
                     </ProtectedRoute>
                   }
                 />
-                {/* Redirection par défaut pour les pages manquantes */}
-                <Route path="/achats" element={<Navigate to="/" replace />} />
-                <Route path="/caisse" element={<Navigate to="/" replace />} />
-                <Route path="/marges" element={<Navigate to="/" replace />} />
-                <Route path="/rapports" element={<Navigate to="/" replace />} />
+                <Route
+                  path="/marges"
+                  element={
+                    <ProtectedRoute>
+                      <Marges />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/rapports"
+                  element={
+                    <ProtectedRoute>
+                      <Rapports />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/parametres"
+                  element={
+                    <ProtectedRoute>
+                      <Parametres />
+                    </ProtectedRoute>
+                  }
+                />
               </Routes>
             </BrowserRouter>
           </AppInitializer>
