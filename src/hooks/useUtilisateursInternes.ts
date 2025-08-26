@@ -1,3 +1,4 @@
+
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -43,46 +44,48 @@ export const useUtilisateursInternes = () => {
   return useQuery({
     queryKey: ['utilisateurs-internes'],
     queryFn: async () => {
-      console.log('🔍 Chargement des utilisateurs internes (version simplifiée)...');
+      console.log('🔍 Chargement des utilisateurs internes...');
       
-      try {
-        // Requête simple et directe - pas de fallbacks complexes
-        const { data, error } = await supabase
-          .from('utilisateurs_internes')
-          .select(`
-            *,
-            roles:role_id(
-              id,
-              name,
-              description
-            )
-          `)
-          .order('created_at', { ascending: false });
+      // Requête ultra-simple - pas de joins complexes
+      const { data: users, error } = await supabase
+        .from('utilisateurs_internes')
+        .select('*')
+        .order('created_at', { ascending: false });
 
-        if (error) {
-          console.error('❌ Erreur lors du chargement des utilisateurs internes:', error);
-          throw new Error(`Erreur de chargement: ${error.message}`);
+      if (error) {
+        console.error('❌ Erreur utilisateurs_internes:', error);
+        throw new Error(`Erreur: ${error.message}`);
+      }
+
+      console.log('✅ Utilisateurs trouvés:', users?.length || 0);
+
+      // Si on a des utilisateurs, récupérer les rôles séparément
+      if (users && users.length > 0) {
+        const { data: roles, error: rolesError } = await supabase
+          .from('roles')
+          .select('id, name, description');
+
+        if (rolesError) {
+          console.warn('⚠️ Erreur lors du chargement des rôles:', rolesError);
         }
 
-        // Reformater les données
-        const formattedData = (data || []).map(user => ({
+        // Combiner les données manuellement
+        const usersWithRoles = users.map(user => ({
           ...user,
-          role_name: user.roles?.name || 'Rôle non défini',
-          role_description: user.roles?.description || 'Aucune description'
+          role_name: roles?.find(r => r.id === user.role_id)?.name || 'Aucun rôle',
+          role_description: roles?.find(r => r.id === user.role_id)?.description || 'Aucune description'
         }));
 
-        console.log('✅ Utilisateurs internes chargés:', formattedData.length);
-        return formattedData as UtilisateurInterne[];
-
-      } catch (error) {
-        console.error('❌ Erreur inattendue:', error);
-        throw error;
+        console.log('✅ Utilisateurs avec rôles:', usersWithRoles.length);
+        return usersWithRoles as UtilisateurInterne[];
       }
+
+      return users as UtilisateurInterne[] || [];
     },
-    retry: 1, // Une seule tentative de retry
-    staleTime: 60000, // 1 minute
+    retry: false, // Pas de retry pour éviter les boucles
+    staleTime: 30000, // 30 secondes
     refetchOnWindowFocus: false,
-    refetchOnMount: true,
+    refetchOnMount: false,
     refetchOnReconnect: false
   });
 };
