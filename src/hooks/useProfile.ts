@@ -32,7 +32,7 @@ export const useProfile = () => {
           .from('profiles')
           .select('*')
           .eq('user_id', user.id)
-          .single();
+          .maybeSingle();
 
         if (error && error.code !== 'PGRST116') {
           console.error('Erreur lors de la récupération du profil:', error);
@@ -52,7 +52,7 @@ export const useProfile = () => {
             .from('profiles')
             .insert([newProfile])
             .select()
-            .single();
+            .maybeSingle();
 
           if (createError) {
             console.error('Erreur lors de la création du profil:', createError);
@@ -81,7 +81,7 @@ export const useProfile = () => {
         .update(updates)
         .eq('user_id', user.id)
         .select()
-        .single();
+        .maybeSingle();
 
       if (error) {
         console.error('Erreur lors de la mise à jour du profil:', error);

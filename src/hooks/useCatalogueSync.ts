@@ -35,9 +35,9 @@ export const useCatalogueSync = () => {
           reference,
           categorie,
           statut,
-          stock_principal (
+          stock_principal!stock_principal_article_id_fkey (
             quantite_disponible,
-            entrepot:entrepots (nom)
+            entrepot:entrepots!stock_principal_entrepot_id_fkey (nom)
           )
         `)
         .eq('statut', 'actif');
@@ -75,7 +75,7 @@ export const useCatalogueSync = () => {
             id, 
             nom, 
             reference,
-            stock_principal!inner(quantite_disponible)
+            stock_principal!stock_principal_article_id_fkey(quantite_disponible)
           `)
           .eq('statut', 'actif')
           .is('stock_principal.quantite_disponible', null);
@@ -84,18 +84,17 @@ export const useCatalogueSync = () => {
           console.error('Erreur lors de la vérification du stock:', stockError);
         }
 
-        // Vérifier les stocks avec des références d'articles invalides
+        // Vérifier les stocks avec des références d'articles invalides (simplifié)
         const { data: orphanedStock, error: orphanedError } = await supabase
           .from('stock_principal')
           .select(`
             id,
             article_id,
             quantite_disponible,
-            entrepot_id
+            entrepot_id,
+            article:catalogue!stock_principal_article_id_fkey(id, statut)
           `)
-          .not('article_id', 'in', 
-            `(SELECT id FROM catalogue WHERE statut = 'actif')`
-          );
+          .is('article.id', null);
 
         if (orphanedError) {
           console.error('Erreur lors de la vérification des stocks orphelins:', orphanedError);
@@ -107,7 +106,7 @@ export const useCatalogueSync = () => {
           .select(`
             id,
             quantite_disponible,
-            entrepot:entrepots!inner(nom, statut)
+            entrepot:entrepots!stock_principal_entrepot_id_fkey(nom, statut)
           `)
           .gt('quantite_disponible', 0)
           .eq('entrepot.statut', 'inactif');
@@ -116,11 +115,10 @@ export const useCatalogueSync = () => {
           console.error('Erreur lors de la vérification des entrepôts:', warehouseError);
         }
 
-        // Vérifier les doublons de stock (même article dans le même entrepôt) - requête SQL directe
+        // Vérifier les doublons de stock (simplifié)
         const { data: duplicateStock, error: duplicateError } = await supabase
           .from('stock_principal')
-          .select('article_id, entrepot_id, count(*)')
-          .gte('count', 2);
+          .select('article_id, entrepot_id');
 
         if (duplicateError) {
           console.warn('Erreur lors de la vérification des doublons:', duplicateError);

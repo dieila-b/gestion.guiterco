@@ -29,7 +29,7 @@ export const useStockPrincipal = () => {
             seuil_alerte,
             created_at,
             updated_at,
-            categorie_article:categories_catalogue(nom),
+            categorie_article:categories_catalogue!catalogue_categorie_id_fkey(nom),
             unite_article:unites(nom)
           ),
           entrepot:entrepots(
