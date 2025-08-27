@@ -39,7 +39,7 @@ export const useStockQueries = (selectedPDV?: string) => {
         .from('stock_pdv')
         .select(`
           *,
-          article:catalogue!inner(
+          article:catalogue!stock_pdv_article_id_fkey(
             id, 
             nom, 
             prix_vente, 
@@ -52,7 +52,7 @@ export const useStockQueries = (selectedPDV?: string) => {
             categorie_article:categories_catalogue!catalogue_categorie_id_fkey(nom),
             unite_article:unites!catalogue_unite_id_fkey(nom)
           ),
-          point_vente:points_de_vente!inner(nom)
+          point_vente:points_de_vente!stock_pdv_point_vente_id_fkey(nom)
         `)
         .eq('point_vente_id', pdvSelected.id)
         .gt('quantite_disponible', 0); // Ne récupérer que les articles en stock
