@@ -3,7 +3,7 @@ import React from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from '@/components/ui/skeleton';
 import { Package, CreditCard, Users, BarChart3 } from 'lucide-react';
-import { formatNumber } from '../utils/formatters';
+import { formatAmount } from '@/lib/currency';
 import type { AdvancedDashboardStats } from '@/hooks/useAdvancedDashboardStats';
 
 interface IconStatsCardsProps {
@@ -26,7 +26,7 @@ const IconStatsCards: React.FC<IconStatsCardsProps> = ({ stats, isLoading }) => 
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium text-gray-600 mb-1">Nombre d'article</p>
               <p className="text-2xl font-bold text-gray-900">
-                {isLoading ? <Skeleton className="h-7 w-16" /> : formatNumber(stats?.nombreArticles || 0)}
+                {isLoading ? <Skeleton className="h-7 w-16" /> : formatAmount(stats?.nombreArticles || 0)}
               </p>
             </div>
           </div>
@@ -45,7 +45,7 @@ const IconStatsCards: React.FC<IconStatsCardsProps> = ({ stats, isLoading }) => 
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium text-gray-600 mb-1">Règlement fournisseur</p>
               <p className="text-2xl font-bold text-gray-900">
-                {isLoading ? <Skeleton className="h-7 w-16" /> : formatNumber(stats?.reglementsFournisseurs || 0)}
+                {isLoading ? <Skeleton className="h-7 w-16" /> : formatAmount(stats?.reglementsFournisseurs || 0)}
               </p>
             </div>
           </div>
@@ -64,7 +64,7 @@ const IconStatsCards: React.FC<IconStatsCardsProps> = ({ stats, isLoading }) => 
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium text-gray-600 mb-1">Nombre de client</p>
               <p className="text-2xl font-bold text-gray-900">
-                {isLoading ? <Skeleton className="h-7 w-16" /> : formatNumber(stats?.nombreClients || 0)}
+                {isLoading ? <Skeleton className="h-7 w-16" /> : formatAmount(stats?.nombreClients || 0)}
               </p>
             </div>
           </div>
@@ -83,7 +83,7 @@ const IconStatsCards: React.FC<IconStatsCardsProps> = ({ stats, isLoading }) => 
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium text-gray-600 mb-1">Stock Global</p>
               <p className="text-2xl font-bold text-gray-900">
-                {isLoading ? <Skeleton className="h-7 w-16" /> : formatNumber(stats?.stockGlobal || 0)}
+                {isLoading ? <Skeleton className="h-7 w-16" /> : formatAmount(stats?.stockGlobal || 0)}
               </p>
             </div>
           </div>

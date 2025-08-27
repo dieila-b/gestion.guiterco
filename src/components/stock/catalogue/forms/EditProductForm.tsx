@@ -9,6 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Package, DollarSign, Truck } from 'lucide-react';
+import { formatCurrency } from '@/lib/currency';
 
 const editProductSchema = z.object({
   nom: z.string().min(1, 'Le nom est requis'),
@@ -230,12 +231,12 @@ const EditProductForm = ({ article, onSubmit, isLoading }: EditProductFormProps)
           <div className="grid grid-cols-3 gap-4 text-sm">
             <div>
               <span className="text-muted-foreground">Coût total unitaire:</span>
-              <p className="font-medium">{coutTotal.toLocaleString()} GNF</p>
+              <p className="font-medium">{formatCurrency(coutTotal)}</p>
             </div>
             <div>
               <span className="text-muted-foreground">Marge unitaire:</span>
               <p className={`font-medium ${margeUnitaire >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                {margeUnitaire.toLocaleString()} GNF
+                {formatCurrency(margeUnitaire)}
               </p>
             </div>
             <div>

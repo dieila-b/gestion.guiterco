@@ -4,18 +4,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useDashboardStats } from '@/hooks/useDashboardStats';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Package, Archive, TrendingUp, TrendingDown, BarChart3 } from 'lucide-react';
+import { formatCurrency } from '@/lib/currency';
 
 const PerformanceIndicators = () => {
   const { data: stats, isLoading, error } = useDashboardStats();
-
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('fr-FR', {
-      style: 'currency',
-      currency: 'EUR',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(amount);
-  };
 
   const formatNumber = (num: number) => {
     return new Intl.NumberFormat('fr-FR').format(num);

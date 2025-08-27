@@ -3,7 +3,7 @@ import React from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from '@/components/ui/skeleton';
 import { ShoppingCart, TrendingUp, Calculator } from 'lucide-react';
-import { formatCurrency } from '../utils/formatters';
+import { formatCurrency } from '@/lib/currency';
 import type { AdvancedDashboardStats } from '@/hooks/useAdvancedDashboardStats';
 
 interface BottomStatsCardsProps {

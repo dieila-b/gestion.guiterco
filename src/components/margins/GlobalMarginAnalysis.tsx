@@ -1,10 +1,10 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { RefreshCw, Download, TrendingUp, Info } from 'lucide-react';
+import { RefreshCw, Download, TrendingUp, Info, DollarSign, BarChart3 } from 'lucide-react';
 import { useRapportMargePeriode } from '@/hooks/useMargins';
 import { useRefreshOperations } from '@/hooks/diagnostics/useRefreshOperations';
+import { formatCurrency } from '@/lib/currency';
 import PeriodSelector from './PeriodSelector';
 
 const GlobalMarginAnalysis = () => {
@@ -96,33 +96,21 @@ const GlobalMarginAnalysis = () => {
                 <div className="p-4 border rounded-lg bg-gradient-to-r from-blue-50 to-blue-100">
                   <div className="text-sm text-blue-600 mb-1">Total Ventes</div>
                   <div className="text-2xl font-bold text-blue-900">
-                    {new Intl.NumberFormat('fr-FR', { 
-                      style: 'currency', 
-                      currency: 'EUR' 
-                    }).format(rapport.total_ventes || 0)}
+                    {formatCurrency(rapport.total_ventes || 0)}
                   </div>
                 </div>
-                
                 <div className="p-4 border rounded-lg bg-gradient-to-r from-red-50 to-red-100">
                   <div className="text-sm text-red-600 mb-1">Total Coûts</div>
                   <div className="text-2xl font-bold text-red-900">
-                    {new Intl.NumberFormat('fr-FR', { 
-                      style: 'currency', 
-                      currency: 'EUR' 
-                    }).format(rapport.total_couts || 0)}
+                    {formatCurrency(rapport.total_couts || 0)}
                   </div>
                 </div>
-                
                 <div className="p-4 border rounded-lg bg-gradient-to-r from-green-50 to-green-100">
                   <div className="text-sm text-green-600 mb-1">Bénéfice Total</div>
                   <div className="text-2xl font-bold text-green-900">
-                    {new Intl.NumberFormat('fr-FR', { 
-                      style: 'currency', 
-                      currency: 'EUR' 
-                    }).format(rapport.benefice_total || 0)}
+                    {formatCurrency(rapport.benefice_total || 0)}
                   </div>
                 </div>
-                
                 <div className="p-4 border rounded-lg bg-gradient-to-r from-purple-50 to-purple-100">
                   <div className="text-sm text-purple-600 mb-1">Taux Marge Moyen</div>
                   <div className="text-2xl font-bold text-purple-900">
@@ -143,19 +131,13 @@ const GlobalMarginAnalysis = () => {
                     <div className="flex justify-between">
                       <span className="text-gray-600">Vente moyenne par facture:</span>
                       <span className="font-medium">
-                        {new Intl.NumberFormat('fr-FR', { 
-                          style: 'currency', 
-                          currency: 'EUR' 
-                        }).format((rapport.total_ventes || 0) / Math.max(rapport.nombre_factures || 1, 1))}
+                        {formatCurrency((rapport.total_ventes || 0) / Math.max(rapport.nombre_factures || 1, 1))}
                       </span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-gray-600">Marge moyenne par facture:</span>
+                      <span className="text-gray-600">Bénéfice moyen par facture:</span>
                       <span className="font-medium">
-                        {new Intl.NumberFormat('fr-FR', { 
-                          style: 'currency', 
-                          currency: 'EUR' 
-                        }).format((rapport.benefice_total || 0) / Math.max(rapport.nombre_factures || 1, 1))}
+                        {formatCurrency((rapport.benefice_total || 0) / Math.max(rapport.nombre_factures || 1, 1))}
                       </span>
                     </div>
                   </div>

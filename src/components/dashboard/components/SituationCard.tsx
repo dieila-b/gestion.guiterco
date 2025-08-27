@@ -3,7 +3,7 @@ import React from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from '@/components/ui/skeleton';
 import { Activity } from 'lucide-react';
-import { formatCurrency } from '../utils/formatters';
+import { formatCurrency } from '@/lib/currency';
 import type { AdvancedDashboardStats } from '@/hooks/useAdvancedDashboardStats';
 
 interface SituationCardProps {

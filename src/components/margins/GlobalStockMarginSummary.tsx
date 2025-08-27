@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Package, TrendingUp, DollarSign, Percent } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
+import { formatCurrency } from '@/lib/currency';
 import type { ResumeMargesGlobalesStock } from '@/types/margins';
 
 interface GlobalStockMarginSummaryProps {
@@ -11,15 +12,6 @@ interface GlobalStockMarginSummaryProps {
 }
 
 const GlobalStockMarginSummary = ({ resume, isLoading }: GlobalStockMarginSummaryProps) => {
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('fr-FR', {
-      style: 'currency',
-      currency: 'GNF',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(value);
-  };
-
   const formatPercentage = (value: number) => {
     return `${value.toFixed(2)}%`;
   };

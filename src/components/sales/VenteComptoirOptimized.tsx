@@ -10,6 +10,7 @@ import { useCatalogueOptimized } from '@/hooks/useCatalogueOptimized';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { useDebounce } from '@/hooks/useDebounce';
+import { formatCurrency } from '@/lib/currency';
 
 const VenteComptoirOptimized = () => {
   const [selectedPDV, setSelectedPDV] = useState('');
@@ -64,9 +65,7 @@ const VenteComptoirOptimized = () => {
     setCurrentPage(1);
   }, []);
 
-  const formatCurrency = useCallback((amount: number) => {
-    return `${amount.toLocaleString()} GNF`;
-  }, []);
+  // Utilisation du formatage GNF global
 
   if (loadingCommandes && loadingArticles) {
     return (

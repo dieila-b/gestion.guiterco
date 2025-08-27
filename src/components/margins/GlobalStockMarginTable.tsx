@@ -2,6 +2,7 @@ import React from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import { formatCurrency, formatAmount } from '@/lib/currency';
 import type { MargeGlobaleStock } from '@/types/margins';
 
 interface GlobalStockMarginTableProps {
@@ -10,15 +11,6 @@ interface GlobalStockMarginTableProps {
 }
 
 const GlobalStockMarginTable = ({ marges, isLoading }: GlobalStockMarginTableProps) => {
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('fr-FR', {
-      style: 'currency',
-      currency: 'GNF',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(value);
-  };
-
   const formatPercentage = (value: number) => {
     return `${value.toFixed(2)}%`;
   };
@@ -74,7 +66,7 @@ const GlobalStockMarginTable = ({ marges, isLoading }: GlobalStockMarginTablePro
                 </div>
               </TableCell>
               <TableCell className="text-right font-medium">
-                {marge.stock_total.toLocaleString('fr-FR')}
+                {formatAmount(marge.stock_total)}
               </TableCell>
               <TableCell className="text-right">
                 {formatCurrency(marge.cout_total_unitaire)}
