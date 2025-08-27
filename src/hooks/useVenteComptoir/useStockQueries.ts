@@ -19,13 +19,21 @@ export const useStockQueries = (selectedPDV?: string) => {
 
   // Hook pour récupérer le stock PDV avec filtrage par point de vente et relations complètes
   const { data: stockPDV } = useQuery({
-    queryKey: ['stock_pdv', selectedPDV],
+    queryKey: ['stock_pdv', selectedPDV, pointsDeVente],
     queryFn: async () => {
-      if (!selectedPDV) return [];
+      // Si aucun PDV n'est sélectionné, utiliser le premier disponible
+      let pdvToUse = selectedPDV;
+      if (!pdvToUse && pointsDeVente && pointsDeVente.length > 0) {
+        pdvToUse = pointsDeVente[0].nom;
+      }
+      
+      if (!pdvToUse) return [];
       
       // Trouver l'ID du point de vente sélectionné
-      const pdvSelected = pointsDeVente?.find(pdv => pdv.nom === selectedPDV);
+      const pdvSelected = pointsDeVente?.find(pdv => pdv.nom === pdvToUse);
       if (!pdvSelected) return [];
+      
+      console.log('Stock PDV Query - Selected PDV:', pdvToUse, 'PDV ID:', pdvSelected.id);
       
       const { data, error } = await supabase
         .from('stock_pdv')
@@ -49,10 +57,15 @@ export const useStockQueries = (selectedPDV?: string) => {
         .eq('point_vente_id', pdvSelected.id)
         .gt('quantite_disponible', 0); // Ne récupérer que les articles en stock
       
-      if (error) throw error;
+      if (error) {
+        console.error('Erreur récupération stock PDV:', error);
+        throw error;
+      }
+      
+      console.log('Stock PDV raw data:', data);
       
       // Normaliser les données pour la compatibilité
-      return data?.map(item => {
+      const normalizedData = data?.map(item => {
         const article = item.article as any;
         return {
           ...item,
@@ -64,8 +77,11 @@ export const useStockQueries = (selectedPDV?: string) => {
           }
         };
       }) || [];
+      
+      console.log('Stock PDV normalized data:', normalizedData);
+      return normalizedData;
     },
-    enabled: !!selectedPDV && !!pointsDeVente
+    enabled: !!pointsDeVente && pointsDeVente.length > 0
   });
 
   return {

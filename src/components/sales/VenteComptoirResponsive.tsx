@@ -4,7 +4,6 @@ import { useVenteComptoirState } from '@/hooks/useVenteComptoirState';
 import { useVenteComptoirHandlers } from '@/hooks/useVenteComptoirHandlers';
 import VenteMainContent from './components/VenteMainContent';
 import VenteModals from './components/VenteModals';
-import StockPDVDiagnostic from './components/StockPDVDiagnostic';
 
 const VenteComptoirResponsive = () => {
   const state = useVenteComptoirState();
@@ -25,7 +24,6 @@ const VenteComptoirResponsive = () => {
 
   return (
     <div className="h-screen bg-gray-50 overflow-hidden">
-      <StockPDVDiagnostic selectedPDV={state.selectedPDV} />
       <VenteMainContent
         selectedPDV={state.selectedPDV}
         setSelectedPDV={state.setSelectedPDV}
