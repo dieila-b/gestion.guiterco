@@ -104,6 +104,11 @@ export const fetchExpenses = async (startDate: Date, endDate: Date) => {
 
 export const fetchVersements = async (startDate: Date, endDate: Date) => {
   try {
+    console.log('🔍 Récupération versements pour la période:', {
+      start: startDate.toISOString(),
+      end: endDate.toISOString()
+    });
+
     // Récupérer tous les versements dans la période 
     const { data: versements, error: versementsError } = await supabase
       .from('versements_clients')
@@ -113,9 +118,10 @@ export const fetchVersements = async (startDate: Date, endDate: Date) => {
 
     if (versementsError) {
       console.error('❌ Erreur versements_clients:', versementsError);
-      // Ne pas jeter l'erreur, retourner un tableau vide pour éviter de bloquer l'UI
       return [];
     }
+
+    console.log('🧾 Versements récupérés (bruts):', versements?.length || 0, versements);
 
     if (!versements || versements.length === 0) {
       console.log('ℹ️ Aucun versement trouvé dans la période');
@@ -128,10 +134,13 @@ export const fetchVersements = async (startDate: Date, endDate: Date) => {
     let facturesPayees = [];
     if (factureIds.length > 0) {
       try {
+        console.log('🔍 Récupération factures pour IDs:', factureIds);
         const { data: factures, error: facturesError } = await supabase
           .from('factures_vente')
-          .select('id, statut_paiement')
+          .select('id, statut_paiement, numero_facture')
           .in('id', factureIds);
+        
+        console.log('📄 Factures trouvées:', factures);
         
         if (!facturesError && factures) {
           facturesPayees = factures;
@@ -146,6 +155,12 @@ export const fetchVersements = async (startDate: Date, endDate: Date) => {
     // Filtrer les versements pour ne garder que ceux valides
     const filteredVersements = versements.filter(v => {
       const numeroVersement = v.numero_versement || '';
+      console.log('🔍 Analyse versement:', {
+        numero: numeroVersement,
+        facture_id: v.facture_id,
+        montant: v.montant
+      });
+
       // Plus spécifique : uniquement les vrais règlements internes
       const isInternal = numeroVersement.toLowerCase().includes('vers-caisse') || 
                         numeroVersement.toLowerCase().includes('vers-compte') ||
@@ -160,23 +175,37 @@ export const fetchVersements = async (startDate: Date, endDate: Date) => {
       // Si on a pu récupérer les factures, vérifier le statut
       if (facturesPayees.length > 0) {
         const facture = facturesPayees.find(f => f.id === v.facture_id);
+        console.log('🔍 Facture associée:', facture);
+        
         const facturePayee = facture && ['payee', 'partiellement_payee'].includes(facture.statut_paiement);
         
         if (!facturePayee) {
-          console.log('🚫 Exclusion versement facture non payée:', v.numero_versement);
+          console.log('🚫 Exclusion versement facture non payée:', {
+            numero: v.numero_versement,
+            facture_trouvee: !!facture,
+            statut_facture: facture?.statut_paiement
+          });
           return false;
         }
+        
+        console.log('✅ Versement valide:', {
+          numero: v.numero_versement,
+          statut_facture: facture.statut_paiement,
+          montant: v.montant
+        });
+      } else {
+        // Si pas de factures récupérées, on laisse passer le versement
+        console.log('⚠️ Aucune facture récupérée, acceptation du versement par défaut');
       }
       
       return true;
     });
 
-    console.log(`🧾 Versements récupérés: ${versements?.length || 0}, après filtrage: ${filteredVersements.length}`);
+    console.log(`🧾 Versements après filtrage: ${filteredVersements.length}`);
     return filteredVersements;
     
   } catch (error) {
     console.error('❌ Erreur critique dans fetchVersements:', error);
-    // Retourner un tableau vide plutôt que de faire planter l'application
     return [];
   }
 };
