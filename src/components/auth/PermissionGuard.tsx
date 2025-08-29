@@ -29,9 +29,9 @@ export const PermissionGuard: React.FC<PermissionGuardProps> = ({
     isLoading
   });
 
-  // En mode développement, être permissif pour les utilisateurs connectés
-  if (isDevMode && (user || utilisateurInterne)) {
-    console.log('Mode dev - accès accordé');
+  // En mode développement, être permissif SEULEMENT pour l'utilisateur mock
+  if (isDevMode && user?.id === '00000000-0000-4000-8000-000000000001') {
+    console.log('Mode dev avec utilisateur mock - accès accordé');
     return <>{children}</>;
   }
 

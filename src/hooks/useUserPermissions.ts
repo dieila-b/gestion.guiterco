@@ -115,9 +115,9 @@ export const useHasPermission = () => {
   const { isDevMode, user } = useAuth();
 
   const hasPermission = (menu: string, submenu?: string, action: string = 'read'): boolean => {
-    // En mode développement, être plus permissif
-    if (isDevMode) {
-      console.log(`Permission check (dev mode): ${menu}${submenu ? ` > ${submenu}` : ''} (${action}) - GRANTED`);
+    // SEULEMENT l'utilisateur mock spécifique bypass les permissions en mode dev
+    if (isDevMode && user?.id === '00000000-0000-4000-8000-000000000001') {
+      console.log(`Permission check (dev mode - mock user): ${menu}${submenu ? ` > ${submenu}` : ''} (${action}) - GRANTED`);
       return true;
     }
     
@@ -138,7 +138,7 @@ export const useHasPermission = () => {
       permission.can_access
     );
     
-    console.log(`Vérification permission: ${menu}${submenu ? ` > ${submenu}` : ''} (${action}):`, hasAccess);
+    console.log(`Vérification permission: ${menu}${submenu ? ` > ${submenu}` : ''} (${action}):`, { hasAccess, userId: user?.id, permissionsCount: permissions.length });
     
     return hasAccess;
   };
