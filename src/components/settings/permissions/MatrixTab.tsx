@@ -63,14 +63,26 @@ export default function MatrixTab() {
     return rolePermission?.can_access || false;
   };
 
-  const groupedPermissions = permissions.reduce((acc, permission) => {
-    const key = permission.submenu ? `${permission.menu} > ${permission.submenu}` : permission.menu;
-    if (!acc[key]) {
-      acc[key] = [];
-    }
-    acc[key].push(permission);
-    return acc;
-  }, {} as {[key: string]: typeof permissions});
+  // Regrouper les permissions par menu et sous-menu pour un affichage hiérarchique
+  const groupedPermissions = React.useMemo(() => {
+    if (!permissions) return {};
+    
+    return permissions.reduce((acc, permission) => {
+      const menuKey = permission.menu;
+      if (!acc[menuKey]) {
+        acc[menuKey] = {};
+      }
+      
+      // Utiliser le submenu ou "Principal" pour les permissions principales
+      const submenuKey = permission.submenu || 'Principal';
+      if (!acc[menuKey][submenuKey]) {
+        acc[menuKey][submenuKey] = [];
+      }
+      
+      acc[menuKey][submenuKey].push(permission);
+      return acc;
+    }, {});
+  }, [permissions]);
 
   if (isLoading) {
     return (
@@ -94,10 +106,9 @@ export default function MatrixTab() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-64">Fonctionnalité</TableHead>
-                  <TableHead className="w-32">Action</TableHead>
+                  <TableHead className="w-80">Permission</TableHead>
                   {roles.map((role) => (
-                    <TableHead key={role.id} className="text-center min-w-24">
+                    <TableHead key={role.id} className="text-center min-w-32">
                       <div className="flex flex-col items-center gap-1">
                         <span className="font-medium">{role.name}</span>
                         {role.is_system && (
@@ -109,39 +120,58 @@ export default function MatrixTab() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {Object.entries(groupedPermissions).map(([groupName, groupPermissions]) => (
-                  <React.Fragment key={groupName}>
-                    <TableRow>
-                      <TableCell colSpan={2 + roles.length} className="bg-muted/50 font-medium">
-                        {groupName}
+                {Object.entries(groupedPermissions).map(([menu, submenus]) => (
+                  <React.Fragment key={menu}>
+                    <TableRow className="bg-muted/50">
+                      <TableCell colSpan={roles.length + 1} className="font-semibold text-primary">
+                        📁 {menu}
                       </TableCell>
                     </TableRow>
-                    {groupPermissions.map((permission) => (
-                      <TableRow key={permission.id}>
-                        <TableCell className="pl-8">
-                          {permission.description || `${permission.menu}${permission.submenu ? ` > ${permission.submenu}` : ''}`}
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="outline">
-                            {permission.action === 'read' ? 'Lecture' : 
-                             permission.action === 'write' ? 'Écriture' : 
-                             permission.action === 'delete' ? 'Suppression' : 
-                             permission.action === 'export' ? 'Export' : 
-                             permission.action === 'import' ? 'Import' : permission.action}
-                          </Badge>
-                        </TableCell>
-                        {roles.map((role) => (
-                          <TableCell key={role.id} className="text-center">
-                            <Checkbox
-                              checked={hasPermission(role.id, permission.id)}
-                              onCheckedChange={(checked) => 
-                                handlePermissionChange(role.id, permission.id, checked as boolean)
-                              }
-                              disabled={updateRolePermission.isPending}
-                            />
-                          </TableCell>
+                    {Object.entries(submenus).map(([submenu, menuPermissions]) => (
+                      <React.Fragment key={`${menu}-${submenu}`}>
+                        {submenu !== 'Principal' && (
+                          <TableRow className="bg-muted/25">
+                            <TableCell colSpan={roles.length + 1} className="font-medium text-sm pl-8">
+                              📂 {submenu}
+                            </TableCell>
+                          </TableRow>
+                        )}
+                        {menuPermissions.map((permission) => (
+                          <TableRow key={permission.id}>
+                            <TableCell className={submenu !== 'Principal' ? 'pl-12' : 'pl-4'}>
+                              <div className="flex flex-col">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-base">
+                                    {permission.action === 'read' && '👁️'} 
+                                    {permission.action === 'write' && '✏️'} 
+                                    {permission.action === 'delete' && '🗑️'}
+                                  </span>
+                                  <Badge variant="outline" className="text-xs">
+                                    {permission.action === 'read' ? 'Lecture' : 
+                                     permission.action === 'write' ? 'Écriture' : 
+                                     permission.action === 'delete' ? 'Suppression' : 
+                                     permission.action}
+                                  </Badge>
+                                </div>
+                                {permission.description && (
+                                  <span className="text-sm text-muted-foreground mt-1">{permission.description}</span>
+                                )}
+                              </div>
+                            </TableCell>
+                            {roles.map((role) => (
+                              <TableCell key={`${permission.id}-${role.id}`} className="text-center">
+                                <Checkbox
+                                  checked={hasPermission(role.id, permission.id)}
+                                  onCheckedChange={(checked) => 
+                                    handlePermissionChange(role.id, permission.id, checked as boolean)
+                                  }
+                                  disabled={updateRolePermission.isPending}
+                                />
+                              </TableCell>
+                            ))}
+                          </TableRow>
                         ))}
-                      </TableRow>
+                      </React.Fragment>
                     ))}
                   </React.Fragment>
                 ))}

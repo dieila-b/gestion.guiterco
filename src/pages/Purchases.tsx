@@ -6,6 +6,7 @@ import BonsCommande from '@/components/purchases/BonsCommande';
 import BonsLivraison from '@/components/purchases/BonsLivraison';
 import FacturesAchat from '@/components/purchases/FacturesAchat';
 import RetoursFournisseurs from '@/components/purchases/RetoursFournisseurs';
+import { PermissionGuard } from '@/components/auth/PermissionGuard';
 
 const Purchases = () => {
   const [activeTab, setActiveTab] = useState("bons-commande");
@@ -20,26 +21,42 @@ const Purchases = () => {
           className="w-full"
         >
           <TabsList className="grid grid-cols-4 w-full">
-            <TabsTrigger value="bons-commande">Bons de commande</TabsTrigger>
-            <TabsTrigger value="bons-livraison">Bons de livraison</TabsTrigger>
-            <TabsTrigger value="factures-achat">Factures d'achat</TabsTrigger>
-            <TabsTrigger value="retours-fournisseurs">Retours fournisseurs</TabsTrigger>
+            <PermissionGuard menu="Achats" submenu="Bons de commande" action="read" fallback={null}>
+              <TabsTrigger value="bons-commande">Bons de commande</TabsTrigger>
+            </PermissionGuard>
+            <PermissionGuard menu="Achats" submenu="Bons de livraison" action="read" fallback={null}>
+              <TabsTrigger value="bons-livraison">Bons de livraison</TabsTrigger>
+            </PermissionGuard>
+            <PermissionGuard menu="Achats" submenu="Factures d'achat" action="read" fallback={null}>
+              <TabsTrigger value="factures-achat">Factures d'achat</TabsTrigger>
+            </PermissionGuard>
+            <PermissionGuard menu="Achats" submenu="Retours fournisseurs" action="read" fallback={null}>
+              <TabsTrigger value="retours-fournisseurs">Retours fournisseurs</TabsTrigger>
+            </PermissionGuard>
           </TabsList>
 
           <TabsContent value="bons-commande" className="mt-6">
-            <BonsCommande />
+            <PermissionGuard menu="Achats" submenu="Bons de commande" action="read">
+              <BonsCommande />
+            </PermissionGuard>
           </TabsContent>
 
           <TabsContent value="bons-livraison" className="mt-6">
-            <BonsLivraison />
+            <PermissionGuard menu="Achats" submenu="Bons de livraison" action="read">
+              <BonsLivraison />
+            </PermissionGuard>
           </TabsContent>
 
           <TabsContent value="factures-achat" className="mt-6">
-            <FacturesAchat />
+            <PermissionGuard menu="Achats" submenu="Factures d'achat" action="read">
+              <FacturesAchat />
+            </PermissionGuard>
           </TabsContent>
 
           <TabsContent value="retours-fournisseurs" className="mt-6">
-            <RetoursFournisseurs />
+            <PermissionGuard menu="Achats" submenu="Retours fournisseurs" action="read">
+              <RetoursFournisseurs />
+            </PermissionGuard>
           </TabsContent>
         </Tabs>
       </div>

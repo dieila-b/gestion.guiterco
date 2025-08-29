@@ -5,6 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ClientsList from '@/components/clients/ClientsList';
 import MeilleursClients from '@/components/clients/MeilleursClients';
 import ClientsEndettes from '@/components/clients/ClientsEndettes';
+import { PermissionGuard } from '@/components/auth/PermissionGuard';
 
 const Clients = () => {
   return (
@@ -12,21 +13,33 @@ const Clients = () => {
       <div className="space-y-6">
         <Tabs defaultValue="liste" className="w-full">
           <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="liste">Clients</TabsTrigger>
-            <TabsTrigger value="meilleurs">Meilleurs Clients</TabsTrigger>
-            <TabsTrigger value="endettes">Clients Endettés</TabsTrigger>
+            <PermissionGuard menu="Clients" submenu="Liste" action="read" fallback={null}>
+              <TabsTrigger value="liste">Clients</TabsTrigger>
+            </PermissionGuard>
+            <PermissionGuard menu="Clients" submenu="Meilleurs Clients" action="read" fallback={null}>
+              <TabsTrigger value="meilleurs">Meilleurs Clients</TabsTrigger>
+            </PermissionGuard>
+            <PermissionGuard menu="Clients" submenu="Clients Endettés" action="read" fallback={null}>
+              <TabsTrigger value="endettes">Clients Endettés</TabsTrigger>
+            </PermissionGuard>
           </TabsList>
           
           <TabsContent value="liste" className="space-y-4">
-            <ClientsList />
+            <PermissionGuard menu="Clients" submenu="Liste" action="read">
+              <ClientsList />
+            </PermissionGuard>
           </TabsContent>
           
           <TabsContent value="meilleurs" className="space-y-4">
-            <MeilleursClients />
+            <PermissionGuard menu="Clients" submenu="Meilleurs Clients" action="read">
+              <MeilleursClients />
+            </PermissionGuard>
           </TabsContent>
           
           <TabsContent value="endettes" className="space-y-4">
-            <ClientsEndettes />
+            <PermissionGuard menu="Clients" submenu="Clients Endettés" action="read">
+              <ClientsEndettes />
+            </PermissionGuard>
           </TabsContent>
         </Tabs>
       </div>

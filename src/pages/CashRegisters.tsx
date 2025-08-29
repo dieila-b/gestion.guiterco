@@ -10,6 +10,7 @@ import AddCashRegisterDialog from '@/components/cash-register/AddCashRegisterDia
 import { useCashRegisters } from '@/hooks/useCashRegisters';
 import { useTransactions, useTodayTransactions } from '@/hooks/useTransactions';
 import ExpensesTab from '@/components/cash-register/ExpensesTab';
+import { PermissionGuard } from '@/components/auth/PermissionGuard';
 
 const CashRegisters: React.FC = () => {
   const { toast } = useToast();
@@ -78,16 +79,24 @@ const CashRegisters: React.FC = () => {
         <TabsContent value="overview" className="space-y-4">
           <Tabs value={activeSubTab} onValueChange={setActiveSubTab} className="space-y-4">
             <TabsList>
-              <TabsTrigger value="daily">Aperçu du jour</TabsTrigger>
-              <TabsTrigger value="complete">Historique complet</TabsTrigger>
+              <PermissionGuard menu="Caisse" submenu="Aperçu du jour" action="read" fallback={null}>
+                <TabsTrigger value="daily">Aperçu du jour</TabsTrigger>
+              </PermissionGuard>
+              <PermissionGuard menu="Caisse" submenu="Historique complet" action="read" fallback={null}>
+                <TabsTrigger value="complete">Historique complet</TabsTrigger>
+              </PermissionGuard>
             </TabsList>
 
             <TabsContent value="daily" className="space-y-4">
-              <CashRegisterOverview />
+              <PermissionGuard menu="Caisse" submenu="Aperçu du jour" action="read">
+                <CashRegisterOverview />
+              </PermissionGuard>
             </TabsContent>
 
             <TabsContent value="complete" className="space-y-4">
-              <CompleteTransactionHistory />
+              <PermissionGuard menu="Caisse" submenu="Historique complet" action="read">
+                <CompleteTransactionHistory />
+              </PermissionGuard>
             </TabsContent>
           </Tabs>
         </TabsContent>
