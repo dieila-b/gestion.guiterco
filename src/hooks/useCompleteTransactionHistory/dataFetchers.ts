@@ -7,12 +7,13 @@ export const fetchTransactions = async (startDate: Date, endDate: Date) => {
     .select('id, type, amount, montant, description, date_operation, created_at, source')
     .gte('date_operation', startDate.toISOString())
     .lte('date_operation', endDate.toISOString())
-    .not('description', 'ilike', '%Règlement VERS-%')
-    .not('description', 'ilike', '%Règlement V-%')
-    .not('description', 'ilike', '%Règlement VER-%')
-    .not('description', 'ilike', '%Reglement VERS-%')
-    .not('description', 'ilike', '%Reglement V-%')
-    .not('description', 'ilike', '%Reglement VER-%');
+    .not('description', 'ilike', '%Règlement vers-caisse%')
+    .not('description', 'ilike', '%Règlement vers-compte%')
+    .not('description', 'ilike', '%Règlement interne%')
+    .not('description', 'ilike', '%Reglement vers-caisse%')
+    .not('description', 'ilike', '%Reglement vers-compte%')
+    .not('description', 'ilike', '%Reglement interne%')
+    .not('description', 'ilike', '%Transfert interne%');
 
   if (transError) {
     console.error('❌ Erreur transactions:', transError);
@@ -22,12 +23,13 @@ export const fetchTransactions = async (startDate: Date, endDate: Date) => {
   // Filtrage supplémentaire côté client pour sécurité
   const filteredTransactions = (transactions || []).filter(t => {
     const desc = (t.description || '').toLowerCase();
-    const isInternal = desc.includes('règlement vers-') || 
-                      desc.includes('règlement v-') || 
-                      desc.includes('règlement ver-') ||
-                      desc.includes('reglement vers-') || 
-                      desc.includes('reglement v-') ||
-                      desc.includes('reglement ver-');
+    const isInternal = desc.includes('règlement vers-caisse') || 
+                      desc.includes('règlement vers-compte') || 
+                      desc.includes('règlement interne') ||
+                      desc.includes('reglement vers-caisse') || 
+                      desc.includes('reglement vers-compte') ||
+                      desc.includes('reglement interne') ||
+                      desc.includes('transfert interne');
     if (isInternal) {
       console.log('🚫 Exclusion transaction BD:', t.description);
     }
@@ -144,9 +146,11 @@ export const fetchVersements = async (startDate: Date, endDate: Date) => {
     // Filtrer les versements pour ne garder que ceux valides
     const filteredVersements = versements.filter(v => {
       const numeroVersement = v.numero_versement || '';
-      const isInternal = numeroVersement.toLowerCase().includes('vers-') || 
-                        numeroVersement.toLowerCase().includes('v-') ||
-                        numeroVersement.toLowerCase().includes('ver-');
+      // Plus spécifique : uniquement les vrais règlements internes
+      const isInternal = numeroVersement.toLowerCase().includes('vers-caisse') || 
+                        numeroVersement.toLowerCase().includes('vers-compte') ||
+                        numeroVersement.toLowerCase().includes('reglement interne') ||
+                        numeroVersement.toLowerCase().includes('transfert interne');
       
       if (isInternal) {
         console.log('🚫 Exclusion versement interne:', numeroVersement);

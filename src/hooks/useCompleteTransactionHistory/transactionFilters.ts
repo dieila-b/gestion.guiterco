@@ -5,12 +5,14 @@ import type { CompleteTransaction, CompleteTransactionFilters } from './types';
 const isInternalSettlement = (description: string): boolean => {
   if (!description) return false;
   const desc = description.toLowerCase();
-  return desc.includes('règlement vers-') || 
-         desc.includes('règlement v-') || 
-         desc.includes('règlement ver-') || 
-         desc.includes('reglement vers-') || 
-         desc.includes('reglement v-') ||
-         desc.includes('reglement ver-');
+  // Plus spécifique : uniquement les règlements vers d'autres caisses ou comptes internes
+  return desc.includes('règlement vers-caisse') || 
+         desc.includes('règlement vers-compte') || 
+         desc.includes('règlement interne') ||
+         desc.includes('reglement vers-caisse') || 
+         desc.includes('reglement vers-compte') ||
+         desc.includes('reglement interne') ||
+         desc.includes('transfert interne');
 };
 
 export const applyTypeFilters = (
