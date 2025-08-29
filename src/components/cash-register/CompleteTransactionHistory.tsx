@@ -19,10 +19,10 @@ const CompleteTransactionHistory: React.FC = () => {
   const currentYear = new Date().getFullYear();
   const currentMonth = new Date().getMonth() + 1;
   
-  // États pour les filtres - Utiliser juillet 2025 par défaut car c'est là qu'il y a des données
+  // États pour les filtres - Utiliser août 2025 par défaut pour voir les données existantes
   const [filters, setFilters] = useState({
     year: 2025,
-    month: 7, // Juillet 2025 où il y a des données
+    month: 8, // Août 2025 où il y a le versement du 26/08
     day: undefined as number | undefined,
     startDate: undefined as Date | undefined,
     endDate: undefined as Date | undefined,

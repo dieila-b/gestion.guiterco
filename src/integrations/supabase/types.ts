@@ -3721,7 +3721,6 @@ export type Database = {
       }
       vue_solde_caisse: {
         Row: {
-          cash_register_id: string | null
           derniere_operation: string | null
           nombre_operations: number | null
           solde_actif: number | null
