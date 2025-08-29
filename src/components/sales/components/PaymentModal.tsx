@@ -189,13 +189,24 @@ const PaymentModal = ({
                     id="montant-paye"
                     type="number"
                     value={montantPaye}
-                    onChange={(e) => setMontantPaye(Number(e.target.value))}
+                    onChange={(e) => {
+                      const value = Number(e.target.value);
+                      setMontantPaye(value);
+                    }}
                     max={totalAmount}
                     min={0}
                   />
                 </div>
 
-                {montantPaye < totalAmount && (
+                {montantPaye > totalAmount && (
+                  <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+                    <p className="text-sm text-red-800">
+                      <span className="font-semibold">⚠️ Erreur:</span> Le montant payé ne peut pas dépasser le montant total ({formatCurrency(totalAmount)})
+                    </p>
+                  </div>
+                )}
+
+                {montantPaye < totalAmount && montantPaye <= totalAmount && (
                   <div className="p-3 bg-orange-50 border border-orange-200 rounded-lg">
                     <p className="text-sm text-orange-800">
                       <span className="font-semibold">Reste à payer:</span> {formatCurrency(totalAmount - montantPaye)}
@@ -297,7 +308,7 @@ const PaymentModal = ({
             <Button variant="outline" onClick={onClose} disabled={isLoading}>
               Annuler
             </Button>
-            <Button onClick={handleConfirm} disabled={isLoading}>
+            <Button onClick={handleConfirm} disabled={isLoading || montantPaye > totalAmount}>
               {isLoading ? 'Traitement...' : 'Confirmer la vente'}
             </Button>
           </div>
