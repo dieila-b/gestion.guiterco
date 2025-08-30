@@ -15,13 +15,18 @@ export const useUnitesMesure = () => {
   return useQuery({
     queryKey: ['unites_mesure'],
     queryFn: async () => {
+      // Utilisons la table 'unites' qui semble exister dans le schéma
       const { data, error } = await supabase
-        .from('unites_mesure')
+        .from('unites')
         .select('*')
         .order('nom', { ascending: true });
       
-      if (error) throw error;
-      return data as UniteMesure[];
+      if (error) {
+        console.error('Erreur lors de la récupération des unités:', error);
+        throw error;
+      }
+      
+      return (data || []) as UniteMesure[];
     },
     staleTime: 5 * 60 * 1000,
     refetchOnWindowFocus: false
@@ -34,7 +39,7 @@ export const useCreateUniteMesure = () => {
   return useMutation({
     mutationFn: async (unite: Omit<UniteMesure, 'id' | 'created_at' | 'updated_at'>) => {
       const { data, error } = await supabase
-        .from('unites_mesure')
+        .from('unites')
         .insert(unite)
         .select()
         .single();
@@ -54,7 +59,7 @@ export const useUpdateUniteMesure = () => {
   return useMutation({
     mutationFn: async ({ id, ...updates }: Partial<UniteMesure> & { id: string }) => {
       const { data, error } = await supabase
-        .from('unites_mesure')
+        .from('unites')
         .update(updates)
         .eq('id', id)
         .select()
@@ -75,7 +80,7 @@ export const useDeleteUniteMesure = () => {
   return useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase
-        .from('unites_mesure')
+        .from('unites')
         .delete()
         .eq('id', id);
       

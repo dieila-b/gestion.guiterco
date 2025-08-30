@@ -41,7 +41,7 @@ export interface StockPrincipal {
 }
 
 export const useStockPrincipal = () => {
-  return useQuery({
+  const query = useQuery({
     queryKey: ['stock-principal'],
     queryFn: async () => {
       console.log('📦 Récupération du stock principal...');
@@ -69,8 +69,7 @@ export const useStockPrincipal = () => {
             seuil_alerte,
             categorie,
             unite_mesure,
-            categorie_article:categories_catalogue!catalogue_categorie_id_fkey(nom, couleur),
-            unite_article:unites_mesure!catalogue_unite_id_fkey(nom, symbole)
+            categorie_article:categories_catalogue!catalogue_categorie_id_fkey(nom, couleur)
           ),
           entrepot:entrepots!stock_principal_entrepot_id_fkey(
             id,
@@ -87,12 +86,27 @@ export const useStockPrincipal = () => {
         throw error;
       }
 
-      console.log('✅ Stock principal récupéré:', data?.length, 'entrées');
-      return data as StockPrincipal[];
+      // Normaliser les données pour s'assurer de la compatibilité des types
+      const normalizedData = (data || []).map(item => ({
+        ...item,
+        article: item.article ? {
+          ...item.article,
+          unite_article: { nom: item.article.unite_mesure || '', symbole: '' }
+        } : undefined
+      }));
+
+      console.log('✅ Stock principal récupéré:', normalizedData?.length, 'entrées');
+      return normalizedData as StockPrincipal[];
     },
     staleTime: 2 * 60 * 1000,
     refetchOnWindowFocus: false
   });
+
+  return {
+    ...query,
+    stockEntrepot: query.data || [],
+    refreshStock: query.refetch
+  };
 };
 
 export const useUpdateStockPrincipal = () => {

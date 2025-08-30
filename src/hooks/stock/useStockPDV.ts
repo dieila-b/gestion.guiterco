@@ -34,12 +34,12 @@ export interface StockPointDeVente {
 }
 
 export const useStockPDV = (pointVenteId?: string) => {
-  return useQuery({
+  const query = useQuery({
     queryKey: ['stock-pdv', pointVenteId],
     queryFn: async () => {
       console.log('🏪 Récupération du stock PDV...');
       
-      let query = supabase
+      let queryBuilder = supabase
         .from('stock_pdv')
         .select(`
           id,
@@ -55,8 +55,7 @@ export const useStockPDV = (pointVenteId?: string) => {
             reference,
             prix_vente,
             statut,
-            categorie_article:categories_catalogue!catalogue_categorie_id_fkey(nom, couleur),
-            unite_article:unites_mesure!catalogue_unite_id_fkey(nom, symbole)
+            categorie_article:categories_catalogue!catalogue_categorie_id_fkey(nom, couleur)
           ),
           point_vente:points_de_vente!stock_pdv_point_vente_id_fkey(
             id,
@@ -68,23 +67,37 @@ export const useStockPDV = (pointVenteId?: string) => {
         .gt('quantite_disponible', 0);
 
       if (pointVenteId) {
-        query = query.eq('point_vente_id', pointVenteId);
+        queryBuilder = queryBuilder.eq('point_vente_id', pointVenteId);
       }
 
-      const { data, error } = await query.order('created_at', { ascending: false });
+      const { data, error } = await queryBuilder.order('created_at', { ascending: false });
 
       if (error) {
         console.error('❌ Erreur lors de la récupération du stock PDV:', error);
         throw error;
       }
 
-      console.log('✅ Stock PDV récupéré:', data?.length, 'entrées');
-      return data as StockPointDeVente[];
+      // Normaliser les données pour s'assurer de la compatibilité des types
+      const normalizedData = (data || []).map(item => ({
+        ...item,
+        article: item.article ? {
+          ...item.article,
+          unite_article: { nom: '', symbole: '' }
+        } : undefined
+      }));
+
+      console.log('✅ Stock PDV récupéré:', normalizedData?.length, 'entrées');
+      return normalizedData as StockPointDeVente[];
     },
     staleTime: 2 * 60 * 1000,
     refetchOnWindowFocus: false,
     enabled: !pointVenteId || !!pointVenteId
   });
+
+  return {
+    ...query,
+    stockPDV: query.data || []
+  };
 };
 
 export const useUpdateStockPDV = () => {
