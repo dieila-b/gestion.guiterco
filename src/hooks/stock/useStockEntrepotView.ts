@@ -142,10 +142,10 @@ export const useStockEntrepotStats = () => {
   return useQuery({
     queryKey: ['stock-entrepot-stats'],
     queryFn: async () => {
-      // Statistiques simples
+      // Statistiques simples - ajout des champs manquants
       const { data: stockData, error } = await supabase
         .from('stock_principal')
-        .select('quantite_disponible, article_id')
+        .select('quantite_disponible, article_id, entrepot_id')
         .gt('quantite_disponible', 0);
       
       if (error) {

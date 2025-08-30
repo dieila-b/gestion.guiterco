@@ -144,10 +144,10 @@ export const useStockPDVStats = () => {
   return useQuery({
     queryKey: ['stock-pdv-stats'],
     queryFn: async () => {
-      // Statistiques simples
+      // Statistiques simples - ajout des champs manquants
       const { data: stockData, error } = await supabase
         .from('stock_pdv')
-        .select('quantite_disponible, article_id')
+        .select('quantite_disponible, article_id, point_vente_id')
         .gt('quantite_disponible', 0);
       
       if (error) {
