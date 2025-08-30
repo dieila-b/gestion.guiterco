@@ -49,7 +49,7 @@ export const checkInternalUser = async (userId: string): Promise<UtilisateurInte
       return null;
     }
 
-    // D'abord, essayer avec les nouvelles tables (si elles existent)
+    // Essayer d'abord avec user_id (production), puis avec id (dev mode bypass)
     let { data: internalUser, error } = await supabase
       .from('utilisateurs_internes')
       .select(`
@@ -60,7 +60,7 @@ export const checkInternalUser = async (userId: string): Promise<UtilisateurInte
         statut,
         type_compte,
         photo_url,
-        role_id
+        roles!inner(id, name, description)
       `)
       .eq('user_id', userId)
       .eq('statut', 'actif')
@@ -79,7 +79,7 @@ export const checkInternalUser = async (userId: string): Promise<UtilisateurInte
           statut,
           type_compte,
           photo_url,
-          role_id
+          roles!inner(id, name, description)
         `)
         .eq('id', userId)
         .eq('statut', 'actif')
@@ -99,60 +99,11 @@ export const checkInternalUser = async (userId: string): Promise<UtilisateurInte
       return null;
     }
 
-    // Récupérer le rôle si role_id existe et si la table roles existe
-    let roleData = null;
-    if (internalUser.role_id) {
-      try {
-        // Vérifier si la table roles existe en essayant de la requêter
-        const { data: role, error: roleError } = await supabase
-          .from('roles')
-          .select('id, nom, description')
-          .eq('id', internalUser.role_id)
-          .maybeSingle();
-
-        if (!roleError && role) {
-          roleData = {
-            id: role.id,
-            name: role.nom,
-            nom: role.nom,
-            description: role.description
-          };
-        } else {
-          console.log('⚠️ Table roles pas encore créée ou rôle non trouvé, utilisation d\'un rôle par défaut');
-          roleData = {
-            id: 'default-role',
-            name: 'Utilisateur',
-            nom: 'Utilisateur',
-            description: 'Rôle par défaut'
-          };
-        }
-      } catch (roleError) {
-        console.log('⚠️ Erreur lors de la récupération du rôle (table roles pas encore créée?):', roleError);
-        roleData = {
-          id: 'default-role',
-          name: 'Utilisateur',
-          nom: 'Utilisateur',
-          description: 'Rôle par défaut'
-        };
-      }
-    }
-
-    // Fallback si pas de rôle défini ou table pas encore créée
-    if (!roleData) {
-      roleData = {
-        id: 'default-role',
-        name: 'Utilisateur',
-        nom: 'Utilisateur',
-        description: 'Rôle par défaut'
-      };
-    }
-
     console.log('✅ Utilisateur interne trouvé:', {
       id: internalUser.id,
       email: internalUser.email,
       statut: internalUser.statut,
-      type_compte: internalUser.type_compte,
-      role: roleData.nom
+      type_compte: internalUser.type_compte
     });
 
     return {
@@ -163,7 +114,12 @@ export const checkInternalUser = async (userId: string): Promise<UtilisateurInte
       statut: internalUser.statut,
       type_compte: internalUser.type_compte,
       photo_url: internalUser.photo_url,
-      role: roleData
+      role: {
+        id: internalUser.roles.id,
+        name: internalUser.roles.name,
+        nom: internalUser.roles.name, // Compatibility
+        description: internalUser.roles.description
+      }
     };
   } catch (error) {
     console.error('❌ Erreur inattendue lors de la vérification de l\'utilisateur interne:', error);

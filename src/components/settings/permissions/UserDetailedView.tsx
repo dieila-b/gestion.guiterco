@@ -4,7 +4,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Eye, User, Shield, BarChart3, AlertTriangle } from 'lucide-react';
-import { UserPermissionsDisplay } from './UserPermissionsDisplay';
+import UserPermissionsDisplay from './UserPermissionsDisplay';
 import AccessStatistics from './AccessStatistics';
 
 interface UserDetailedViewProps {

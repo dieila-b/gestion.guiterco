@@ -1,175 +1,147 @@
 
-import { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/components/auth/AuthContext';
 
-interface Permission {
+export interface UserPermission {
   menu: string;
-  submenu: string | null;
+  submenu?: string;
   action: string;
   can_access: boolean;
 }
 
-interface UserRole {
-  id: string;
-  nom: string;
-  description: string | null;
-}
+export const useUserPermissions = () => {
+  const { user, isDevMode, utilisateurInterne } = useAuth();
 
-export const useUserPermissions = (userId: string | undefined) => {
-  const [permissions, setPermissions] = useState<Permission[]>([]);
-  const [userRole, setUserRole] = useState<UserRole | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  return useQuery({
+    queryKey: ['user-permissions', user?.id, isDevMode, utilisateurInterne?.id],
+    queryFn: async () => {
+      console.log('Chargement des permissions pour:', {
+        userId: user?.id,
+        isDevMode,
+        utilisateurInterneId: utilisateurInterne?.id
+      });
 
-  useEffect(() => {
-    if (!userId) {
-      setIsLoading(false);
-      return;
-    }
-
-    const fetchPermissions = async () => {
-      try {
-        // D'abord récupérer l'utilisateur interne et son rôle
-        const { data: internalUser, error: userError } = await supabase
-          .from('utilisateurs_internes')
-          .select('role_id, type_compte')
-          .or(`user_id.eq.${userId},id.eq.${userId}`)
-          .eq('statut', 'actif')
-          .maybeSingle();
-
-        if (userError || !internalUser?.role_id) {
-          console.log('❌ Utilisateur interne non trouvé ou pas de rôle assigné');
-          // Fallback: permissions par défaut (lecture seule limitée)
-          setPermissions([
-            { menu: 'Catalogue', submenu: null, action: 'read', can_access: true },
-            { menu: 'Stock', submenu: 'PDV', action: 'read', can_access: true }
-          ]);
-          setUserRole({
-            id: 'default',
-            nom: 'Utilisateur',
-            description: 'Permissions limitées par défaut'
-          });
-          setIsLoading(false);
-          return;
-        }
-
-        // Essayer de récupérer le rôle depuis la nouvelle table
-        try {
-          const { data: role, error: roleError } = await supabase
-            .from('roles')
-            .select('id, nom, description')
-            .eq('id', internalUser.role_id)
-            .maybeSingle();
-
-          if (!roleError && role) {
-            setUserRole(role);
-
-            // Récupérer les permissions du rôle
-            const { data: rolePermissions, error: permError } = await supabase
-              .from('role_permissions')
-              .select(`
-                can_access,
-                permissions (
-                  menu,
-                  submenu,
-                  action
-                )
-              `)
-              .eq('role_id', internalUser.role_id);
-
-            if (permError) {
-              throw new Error('Table role_permissions not found');
-            }
-
-            const formattedPermissions: Permission[] = rolePermissions.map(rp => ({
-              menu: rp.permissions.menu,
-              submenu: rp.permissions.submenu,
-              action: rp.permissions.action,
-              can_access: rp.can_access
-            }));
-
-            setPermissions(formattedPermissions);
-          } else {
-            // Pas de rôle trouvé, utiliser les permissions par défaut
-            throw new Error('Role not found');
-          }
-
-        } catch (tablesError) {
-          console.log('⚠️ Nouvelles tables pas encore créées, utilisation des permissions par défaut');
-          
-          // Fallback: permissions par défaut basées sur le type de compte dans utilisateurs_internes
-          const typeCompte = internalUser?.type_compte || 'employe';
-          
-          // Permissions par défaut selon le type de compte
-          let defaultPermissions: Permission[] = [];
-          let defaultRole: UserRole = { id: 'default', nom: 'Utilisateur', description: 'Rôle par défaut' };
-
-          if (typeCompte === 'admin') {
-            defaultRole = { id: 'admin', nom: 'Administrateur', description: 'Accès complet' };
-            defaultPermissions = [
-              { menu: 'Dashboard', submenu: null, action: 'read', can_access: true },
-              { menu: 'Catalogue', submenu: null, action: 'read', can_access: true },
-              { menu: 'Catalogue', submenu: null, action: 'write', can_access: true },
-              { menu: 'Stock', submenu: null, action: 'read', can_access: true },
-              { menu: 'Stock', submenu: null, action: 'write', can_access: true },
-              { menu: 'Ventes', submenu: null, action: 'read', can_access: true },
-              { menu: 'Ventes', submenu: null, action: 'write', can_access: true },
-              { menu: 'Achats', submenu: null, action: 'read', can_access: true },
-              { menu: 'Achats', submenu: null, action: 'write', can_access: true },
-              { menu: 'Clients', submenu: null, action: 'read', can_access: true },
-              { menu: 'Clients', submenu: null, action: 'write', can_access: true },
-              { menu: 'Caisse', submenu: null, action: 'read', can_access: true },
-              { menu: 'Caisse', submenu: null, action: 'write', can_access: true },
-              { menu: 'Rapports', submenu: null, action: 'read', can_access: true }
-            ];
-          } else {
-            // Permissions limitées pour les autres utilisateurs
-            defaultPermissions = [
-              { menu: 'Catalogue', submenu: null, action: 'read', can_access: true },
-              { menu: 'Stock', submenu: 'PDV', action: 'read', can_access: true },
-              { menu: 'Ventes', submenu: null, action: 'read', can_access: true }
-            ];
-          }
-
-          setUserRole(defaultRole);
-          setPermissions(defaultPermissions);
-        }
-
-      } catch (error) {
-        console.error('❌ Erreur lors de la récupération des permissions:', error);
-        setPermissions([]);
-        setUserRole(null);
-      } finally {
-        setIsLoading(false);
+      if (!user?.id) {
+        console.warn('Pas d\'utilisateur connecté');
+        return [];
       }
-    };
 
-    fetchPermissions();
-  }, [userId]);
+      // En mode développement avec utilisateur mock, donner toutes les permissions
+      if (isDevMode && user.id === '00000000-0000-4000-8000-000000000001') {
+        console.log('Mode dev avec utilisateur mock - toutes permissions accordées');
+        return [
+          { menu: 'Dashboard', action: 'read', can_access: true },
+          { menu: 'Catalogue', action: 'read', can_access: true },
+          { menu: 'Catalogue', action: 'write', can_access: true },
+          { menu: 'Stock', submenu: 'Entrepôts', action: 'read', can_access: true },
+          { menu: 'Stock', submenu: 'Entrepôts', action: 'write', can_access: true },
+          { menu: 'Stock', submenu: 'PDV', action: 'read', can_access: true },
+          { menu: 'Stock', submenu: 'PDV', action: 'write', can_access: true },
+          { menu: 'Ventes', submenu: 'Factures', action: 'read', can_access: true },
+          { menu: 'Ventes', submenu: 'Factures', action: 'write', can_access: true },
+          { menu: 'Ventes', submenu: 'Précommandes', action: 'read', can_access: true },
+          { menu: 'Ventes', submenu: 'Précommandes', action: 'write', can_access: true },
+          { menu: 'Achats', submenu: 'Bons de commande', action: 'read', can_access: true },
+          { menu: 'Achats', submenu: 'Bons de commande', action: 'write', can_access: true },
+          { menu: 'Clients', action: 'read', can_access: true },
+          { menu: 'Clients', action: 'write', can_access: true },
+          { menu: 'Paramètres', submenu: 'Rôles et permissions', action: 'read', can_access: true },
+          { menu: 'Paramètres', submenu: 'Rôles et permissions', action: 'write', can_access: true }
+        ] as UserPermission[];
+      }
+
+      // Pour les utilisateurs réels, récupérer les permissions via la vue
+      try {
+        console.log('Récupération des permissions depuis la vue pour utilisateur:', user.id);
+        
+        const { data, error } = await supabase
+          .from('vue_permissions_utilisateurs')
+          .select('menu, submenu, action, can_access')
+          .eq('user_id', user.id)
+          .eq('can_access', true);
+
+        if (error) {
+          console.error('Erreur lors de la récupération des permissions:', error);
+          
+          // Si erreur avec la vue, essayer une approche alternative
+          console.log('Tentative de récupération via les tables directement...');
+          
+          if (!utilisateurInterne?.role?.id) {
+            console.warn('Pas de rôle défini pour l\'utilisateur interne');
+            return [];
+          }
+
+          const { data: rolePermissions, error: roleError } = await supabase
+            .from('role_permissions')
+            .select(`
+              permission:permissions(menu, submenu, action)
+            `)
+            .eq('role_id', utilisateurInterne.role.id)
+            .eq('can_access', true);
+
+          if (roleError) {
+            console.error('Erreur lors de la récupération des permissions par rôle:', roleError);
+            return [];
+          }
+
+          const formattedPermissions = rolePermissions?.map(rp => ({
+            menu: rp.permission.menu,
+            submenu: rp.permission.submenu,
+            action: rp.permission.action,
+            can_access: true
+          })) || [];
+
+          console.log('Permissions récupérées par rôle:', formattedPermissions);
+          return formattedPermissions;
+        }
+
+        console.log('Permissions récupérées depuis la vue:', data);
+        return data as UserPermission[];
+        
+      } catch (error) {
+        console.error('Erreur inattendue lors de la récupération des permissions:', error);
+        return [];
+      }
+    },
+    enabled: !!user?.id,
+    retry: 1,
+    staleTime: 5 * 60 * 1000 // 5 minutes
+  });
+};
+
+export const useHasPermission = () => {
+  const { data: permissions = [], isLoading, error } = useUserPermissions();
+  const { isDevMode, user } = useAuth();
 
   const hasPermission = (menu: string, submenu?: string, action: string = 'read'): boolean => {
-    return permissions.some(p => 
-      p.menu === menu && 
-      (!submenu || p.submenu === submenu) &&
-      p.action === action &&
-      p.can_access
+    // En mode développement, être plus permissif
+    if (isDevMode) {
+      console.log(`Permission check (dev mode): ${menu}${submenu ? ` > ${submenu}` : ''} (${action}) - GRANTED`);
+      return true;
+    }
+    
+    if (isLoading) {
+      console.log('Permissions en cours de chargement...');
+      return false;
+    }
+    
+    if (error) {
+      console.error('Erreur lors du chargement des permissions:', error);
+      return false;
+    }
+    
+    const hasAccess = permissions.some(permission => 
+      permission.menu === menu &&
+      (submenu === undefined || permission.submenu === submenu) &&
+      permission.action === action &&
+      permission.can_access
     );
+    
+    console.log(`Vérification permission: ${menu}${submenu ? ` > ${submenu}` : ''} (${action}):`, hasAccess);
+    
+    return hasAccess;
   };
 
-  const getAccessibleMenus = () => {
-    const menus = new Set<string>();
-    permissions.forEach(p => {
-      if (p.can_access) {
-        menus.add(p.menu);
-      }
-    });
-    return Array.from(menus);
-  };
-
-  return {
-    permissions,
-    userRole,
-    isLoading,
-    hasPermission,
-    getAccessibleMenus
-  };
+  return { hasPermission, isLoading, permissions };
 };
