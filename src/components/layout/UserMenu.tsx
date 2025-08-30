@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import {
@@ -19,17 +20,27 @@ interface UserMenuProps {
 }
 
 const UserMenu = ({ user: propUser }: UserMenuProps) => {
-  const { signOut, user: authUser } = useAuth();
+  const { signOut, user: authUser, utilisateurInterne } = useAuth();
   const { profile } = useProfile();
 
   const user = propUser || authUser;
 
-  // Utiliser les données du profil ou données par défaut
+  // Priorité : utilisateur interne > profil > données utilisateur > défaut
   const displayUser = {
-    prenom: profile?.prenom || user?.user_metadata?.prenom || user?.user_metadata?.first_name || 'Utilisateur',
-    nom: profile?.nom || user?.user_metadata?.nom || user?.user_metadata?.last_name || '',
+    prenom: utilisateurInterne?.prenom || 
+            profile?.prenom || 
+            user?.user_metadata?.prenom || 
+            user?.user_metadata?.first_name || 
+            'Utilisateur',
+    nom: utilisateurInterne?.nom || 
+         profile?.nom || 
+         user?.user_metadata?.nom || 
+         user?.user_metadata?.last_name || 
+         '',
     email: user?.email || '',
-    photo_url: profile?.avatar_url || user?.user_metadata?.avatar_url
+    photo_url: utilisateurInterne?.photo_url || 
+               profile?.avatar_url || 
+               user?.user_metadata?.avatar_url
   };
 
   const initials = displayUser.prenom && displayUser.nom 
@@ -43,6 +54,16 @@ const UserMenu = ({ user: propUser }: UserMenuProps) => {
       console.error('Erreur lors de la déconnexion:', error);
     }
   };
+
+  console.log('👤 UserMenu - Données d\'affichage:', {
+    displayUser,
+    utilisateurInterne: utilisateurInterne ? {
+      prenom: utilisateurInterne.prenom,
+      nom: utilisateurInterne.nom,
+      role: utilisateurInterne.role?.name
+    } : null,
+    hasProfile: !!profile
+  });
 
   return (
     <DropdownMenu>
@@ -68,6 +89,11 @@ const UserMenu = ({ user: propUser }: UserMenuProps) => {
             <p className="text-xs leading-none text-muted-foreground">
               {displayUser.email}
             </p>
+            {utilisateurInterne?.role && (
+              <p className="text-xs leading-none text-muted-foreground mt-1">
+                {utilisateurInterne.role.name}
+              </p>
+            )}
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
