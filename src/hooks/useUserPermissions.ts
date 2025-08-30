@@ -16,16 +16,17 @@ export const useUserPermissions = () => {
   return useQuery({
     queryKey: ['user-permissions', user?.id, isDevMode, utilisateurInterne?.id, utilisateurInterne?.role?.id],
     queryFn: async () => {
-      console.log('🔍 Chargement des permissions pour:', {
+      console.log('🔍 useUserPermissions - Début chargement des permissions:', {
         userId: user?.id,
         isDevMode,
         utilisateurInterneId: utilisateurInterne?.id,
         roleId: utilisateurInterne?.role?.id,
+        roleName: utilisateurInterne?.role?.name || utilisateurInterne?.role?.nom,
         userEmail: user?.email
       });
 
       if (!user?.id) {
-        console.warn('❌ Pas d\'utilisateur connecté');
+        console.warn('❌ useUserPermissions - Pas d\'utilisateur connecté');
         return [];
       }
 
@@ -61,9 +62,15 @@ export const useUserPermissions = () => {
         ] as UserPermission[];
       }
 
-      // Pour les utilisateurs réels, utiliser le role_id de l'utilisateur interne
-      if (!utilisateurInterne?.role?.id) {
-        console.warn('❌ Pas de rôle défini pour l\'utilisateur interne:', utilisateurInterne);
+      // Pour les utilisateurs réels, vérifier d'abord si on a un utilisateur interne
+      if (!utilisateurInterne) {
+        console.warn('❌ useUserPermissions - Pas d\'utilisateur interne trouvé');
+        return [];
+      }
+
+      // Vérifier si on a un rôle
+      if (!utilisateurInterne.role?.id) {
+        console.warn('❌ useUserPermissions - Pas de rôle défini pour l\'utilisateur interne:', utilisateurInterne);
         return [];
       }
 
@@ -86,7 +93,24 @@ export const useUserPermissions = () => {
 
         if (error) {
           console.error('❌ Erreur lors de la récupération des permissions par rôle:', error);
-          return [];
+          
+          // Fallback : essayer de récupérer toutes les permissions disponibles
+          console.log('🔄 Fallback - Tentative de récupération de toutes les permissions');
+          const { data: allPermissions, error: fallbackError } = await supabase
+            .from('permissions')
+            .select('id, menu, submenu, action')
+            .limit(10);
+          
+          if (fallbackError) {
+            console.error('❌ Erreur fallback permissions:', fallbackError);
+            return [];
+          } else {
+            console.log('📋 Permissions disponibles (fallback):', allPermissions);
+            // En cas d'erreur mais permissions trouvées, donner accès basique
+            return [
+              { menu: 'Dashboard', action: 'read', can_access: true }
+            ];
+          }
         }
 
         const formattedPermissions = rolePermissions?.map(rp => ({
@@ -96,21 +120,28 @@ export const useUserPermissions = () => {
           can_access: true
         })) || [];
 
-        console.log('✅ Permissions récupérées:', {
+        console.log('✅ Permissions récupérées avec succès:', {
           count: formattedPermissions.length,
           permissions: formattedPermissions
         });
+        
+        // Si aucune permission trouvée, donner au moins accès au dashboard
+        if (formattedPermissions.length === 0) {
+          console.log('⚠️ Aucune permission spécifique trouvée, accès dashboard par défaut');
+          return [{ menu: 'Dashboard', action: 'read', can_access: true }];
+        }
         
         return formattedPermissions;
         
       } catch (error) {
         console.error('❌ Erreur inattendue lors de la récupération des permissions:', error);
-        return [];
+        // En cas d'erreur complète, donner au moins accès au dashboard
+        return [{ menu: 'Dashboard', action: 'read', can_access: true }];
       }
     },
     enabled: !!user?.id && (isDevMode || !!utilisateurInterne?.role?.id),
     retry: 2,
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 5 * 60 * 1000,
     refetchOnWindowFocus: false,
     refetchOnMount: true
   });
