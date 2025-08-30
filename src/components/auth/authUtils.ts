@@ -49,7 +49,7 @@ export const checkInternalUser = async (userId: string): Promise<UtilisateurInte
       return null;
     }
 
-    // Récupérer l'utilisateur avec son rôle depuis les nouvelles tables
+    // D'abord, essayer avec les nouvelles tables (si elles existent)
     let { data: internalUser, error } = await supabase
       .from('utilisateurs_internes')
       .select(`
@@ -60,8 +60,7 @@ export const checkInternalUser = async (userId: string): Promise<UtilisateurInte
         statut,
         type_compte,
         photo_url,
-        role_id,
-        roles!inner(id, nom, description)
+        role_id
       `)
       .eq('user_id', userId)
       .eq('statut', 'actif')
@@ -80,8 +79,7 @@ export const checkInternalUser = async (userId: string): Promise<UtilisateurInte
           statut,
           type_compte,
           photo_url,
-          role_id,
-          roles!inner(id, nom, description)
+          role_id
         `)
         .eq('id', userId)
         .eq('statut', 'actif')
@@ -101,12 +99,52 @@ export const checkInternalUser = async (userId: string): Promise<UtilisateurInte
       return null;
     }
 
+    // Récupérer le rôle si role_id existe
+    let roleData = null;
+    if (internalUser.role_id) {
+      try {
+        const { data: role, error: roleError } = await supabase
+          .from('roles')
+          .select('id, nom, description')
+          .eq('id', internalUser.role_id)
+          .single();
+
+        if (!roleError && role) {
+          roleData = {
+            id: role.id,
+            name: role.nom,
+            nom: role.nom, // Compatibility
+            description: role.description
+          };
+        }
+      } catch (roleError) {
+        console.log('⚠️ Erreur lors de la récupération du rôle (table roles pas encore créée?):', roleError);
+        // Fallback pour compatibilité
+        roleData = {
+          id: 'temp-role-id',
+          name: 'Utilisateur',
+          nom: 'Utilisateur',
+          description: 'Rôle par défaut'
+        };
+      }
+    }
+
+    // Fallback si pas de rôle défini
+    if (!roleData) {
+      roleData = {
+        id: 'temp-role-id',
+        name: 'Utilisateur',
+        nom: 'Utilisateur',
+        description: 'Rôle par défaut'
+      };
+    }
+
     console.log('✅ Utilisateur interne trouvé:', {
       id: internalUser.id,
       email: internalUser.email,
       statut: internalUser.statut,
       type_compte: internalUser.type_compte,
-      role: internalUser.roles?.nom
+      role: roleData.nom
     });
 
     return {
@@ -117,12 +155,7 @@ export const checkInternalUser = async (userId: string): Promise<UtilisateurInte
       statut: internalUser.statut,
       type_compte: internalUser.type_compte,
       photo_url: internalUser.photo_url,
-      role: {
-        id: internalUser.roles?.id || '',
-        name: internalUser.roles?.nom || '',
-        nom: internalUser.roles?.nom || '', // Compatibility
-        description: internalUser.roles?.description || ''
-      }
+      role: roleData
     };
   } catch (error) {
     console.error('❌ Erreur inattendue lors de la vérification de l\'utilisateur interne:', error);
