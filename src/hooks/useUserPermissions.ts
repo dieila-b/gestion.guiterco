@@ -55,7 +55,7 @@ export const useUserPermissions = () => {
         ] as UserPermission[];
       }
 
-      // Pour les utilisateurs réels, vérifier s'ils ont un rôle assigné
+      // Pour les utilisateurs réels, utiliser les nouvelles tables
       if (!utilisateurInterne?.role?.id) {
         console.warn('❌ Utilisateur sans rôle défini');
         return [];
@@ -67,6 +67,7 @@ export const useUserPermissions = () => {
         const { data, error } = await supabase
           .from('role_permissions')
           .select(`
+            can_access,
             permission:permissions(menu, submenu, action)
           `)
           .eq('role_id', utilisateurInterne.role.id)
@@ -81,7 +82,7 @@ export const useUserPermissions = () => {
           menu: rp.permission.menu,
           submenu: rp.permission.submenu,
           action: rp.permission.action,
-          can_access: true
+          can_access: rp.can_access
         })) || [];
 
         console.log('✅ Permissions récupérées:', formattedPermissions);

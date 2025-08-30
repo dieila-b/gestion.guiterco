@@ -49,7 +49,7 @@ export const checkInternalUser = async (userId: string): Promise<UtilisateurInte
       return null;
     }
 
-    // Essayer d'abord avec user_id (production), puis avec id (dev mode bypass)
+    // Récupérer l'utilisateur avec son rôle depuis les nouvelles tables
     let { data: internalUser, error } = await supabase
       .from('utilisateurs_internes')
       .select(`
@@ -60,7 +60,8 @@ export const checkInternalUser = async (userId: string): Promise<UtilisateurInte
         statut,
         type_compte,
         photo_url,
-        roles!inner(id, name, description)
+        role_id,
+        roles!inner(id, nom, description)
       `)
       .eq('user_id', userId)
       .eq('statut', 'actif')
@@ -79,7 +80,8 @@ export const checkInternalUser = async (userId: string): Promise<UtilisateurInte
           statut,
           type_compte,
           photo_url,
-          roles!inner(id, name, description)
+          role_id,
+          roles!inner(id, nom, description)
         `)
         .eq('id', userId)
         .eq('statut', 'actif')
@@ -103,7 +105,8 @@ export const checkInternalUser = async (userId: string): Promise<UtilisateurInte
       id: internalUser.id,
       email: internalUser.email,
       statut: internalUser.statut,
-      type_compte: internalUser.type_compte
+      type_compte: internalUser.type_compte,
+      role: internalUser.roles?.nom
     });
 
     return {
@@ -115,10 +118,10 @@ export const checkInternalUser = async (userId: string): Promise<UtilisateurInte
       type_compte: internalUser.type_compte,
       photo_url: internalUser.photo_url,
       role: {
-        id: internalUser.roles.id,
-        name: internalUser.roles.name,
-        nom: internalUser.roles.name, // Compatibility
-        description: internalUser.roles.description
+        id: internalUser.roles?.id || '',
+        name: internalUser.roles?.nom || '',
+        nom: internalUser.roles?.nom || '', // Compatibility
+        description: internalUser.roles?.description || ''
       }
     };
   } catch (error) {
