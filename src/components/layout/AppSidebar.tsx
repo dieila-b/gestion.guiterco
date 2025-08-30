@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { 
   Home, 
   ShoppingCart, 
@@ -32,33 +32,37 @@ const AppSidebar = () => {
   const location = useLocation();
   const { utilisateurInterne, signOut, user, isInternalUser } = useAuth();
 
-  const menuItems = [
+  const menuItems = useMemo(() => [
     { icon: Home, label: 'Tableau de bord', href: '/', menu: 'Dashboard' },
     { icon: ShoppingCart, label: 'Ventes', href: '/sales', menu: 'Ventes' },
-    { icon: Package, label: 'Stocks', href: '/stocks', menu: 'Stocks' },
+    { icon: Package, label: 'Stocks', href: '/stocks', menu: 'Stock' },
     { icon: CreditCard, label: 'Achats', href: '/purchases', menu: 'Achats' },
     { icon: Users, label: 'Clients', href: '/clients', menu: 'Clients' },
     { icon: DollarSign, label: 'Caisse', href: '/cash-registers', menu: 'Caisse' },
     { icon: TrendingUp, label: 'Marges', href: '/margins', menu: 'Marges' },
     { icon: FileText, label: 'Rapports', href: '/reports', menu: 'Rapports' },
     { icon: Settings, label: 'Paramètres', href: '/settings', menu: 'Paramètres' },
-  ];
+  ], []);
 
-  // Utiliser les données disponibles (utilisateurInterne en priorité, sinon user)
-  const displayUser = utilisateurInterne || {
-    prenom: user?.user_metadata?.prenom || 'Utilisateur',
-    nom: user?.user_metadata?.nom || '',
-    email: user?.email || '',
-    role: { nom: 'utilisateur', name: 'utilisateur' },
-    type_compte: 'interne',
-    photo_url: undefined
-  };
+  // Stabiliser les données utilisateur pour éviter les re-rendus inutiles
+  const displayUser = useMemo(() => {
+    return utilisateurInterne || {
+      prenom: user?.user_metadata?.prenom || 'Utilisateur',
+      nom: user?.user_metadata?.nom || '',
+      email: user?.email || '',
+      role: { nom: 'utilisateur', name: 'utilisateur' },
+      type_compte: 'interne',
+      photo_url: undefined
+    };
+  }, [utilisateurInterne, user?.user_metadata?.prenom, user?.user_metadata?.nom, user?.email]);
 
-  const initials = displayUser.prenom && displayUser.nom 
-    ? `${displayUser.prenom.charAt(0)}${displayUser.nom.charAt(0)}`.toUpperCase()
-    : displayUser.email?.charAt(0).toUpperCase() || 'U';
+  const initials = useMemo(() => {
+    return displayUser.prenom && displayUser.nom 
+      ? `${displayUser.prenom.charAt(0)}${displayUser.nom.charAt(0)}`.toUpperCase()
+      : displayUser.email?.charAt(0).toUpperCase() || 'U';
+  }, [displayUser.prenom, displayUser.nom, displayUser.email]);
 
-  const getRoleLabel = (role: string) => {
+  const getRoleLabel = useMemo(() => (role: string) => {
     switch (role?.toLowerCase()) {
       case 'administrateur':
         return 'Administrateur';
@@ -72,9 +76,15 @@ const AppSidebar = () => {
       default:
         return role;
     }
-  };
+  }, []);
 
-  const shouldShowProfile = utilisateurInterne || (user && isInternalUser);
+  const shouldShowProfile = useMemo(() => {
+    return utilisateurInterne || (user && isInternalUser);
+  }, [utilisateurInterne, user, isInternalUser]);
+
+  const currentRole = useMemo(() => {
+    return getRoleLabel((displayUser.role?.name || displayUser.role?.nom) || displayUser.type_compte);
+  }, [displayUser, getRoleLabel]);
 
   return (
     <aside className="w-64 bg-slate-800 border-r border-slate-700 h-full flex flex-col">
@@ -140,7 +150,7 @@ const AppSidebar = () => {
                     {displayUser.prenom} {displayUser.nom}
                   </p>
                   <p className="text-slate-400 text-xs truncate">
-                    {getRoleLabel((displayUser.role?.name || displayUser.role?.nom) || displayUser.type_compte)}
+                    {currentRole}
                   </p>
                 </div>
               </Button>
@@ -155,7 +165,7 @@ const AppSidebar = () => {
                     {displayUser.email}
                   </p>
                   <p className="text-xs leading-none text-blue-600">
-                    {getRoleLabel((displayUser.role?.name || displayUser.role?.nom) || displayUser.type_compte)}
+                    {currentRole}
                   </p>
                 </div>
               </DropdownMenuLabel>
@@ -169,7 +179,7 @@ const AppSidebar = () => {
               <DropdownMenuSeparator />
               <DropdownMenuItem
                 className="cursor-pointer text-red-600 focus:text-red-600"
-                onClick={() => signOut()}
+                onClick={signOut}
               >
                 <LogOut className="mr-2 h-4 w-4" />
                 <span>Se déconnecter</span>
