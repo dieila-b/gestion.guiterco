@@ -28,13 +28,40 @@ export const useStockPDVView = () => {
   return useQuery({
     queryKey: ['stock-pdv-view'],
     queryFn: async () => {
-      console.log('🏪 Récupération du stock PDV via vue...');
+      console.log('🏪 Récupération du stock PDV via jointures...');
       
       const { data, error } = await supabase
-        .from('vue_stock_pdv')
-        .select('*')
-        .order('pdv_nom', { ascending: true })
-        .order('article_nom', { ascending: true });
+        .from('stock_pdv')
+        .select(`
+          id,
+          article_id,
+          point_vente_id,
+          quantite_disponible,
+          quantite_minimum,
+          derniere_livraison,
+          catalogue (
+            nom,
+            reference,
+            prix_vente,
+            prix_achat,
+            prix_unitaire,
+            categories_catalogue (
+              nom,
+              couleur
+            ),
+            unites (
+              nom,
+              symbole
+            )
+          ),
+          points_de_vente (
+            nom,
+            type_pdv,
+            adresse
+          )
+        `)
+        .gt('quantite_disponible', 0)
+        .order('points_de_vente.nom', { ascending: true });
 
       if (error) {
         console.error('❌ Erreur lors de la récupération du stock PDV:', error);
@@ -42,7 +69,31 @@ export const useStockPDVView = () => {
       }
 
       console.log('✅ Stock PDV récupéré:', data?.length, 'entrées');
-      return data as StockPDVView[];
+      
+      // Transformer les données pour correspondre à l'interface
+      const transformedData: StockPDVView[] = data?.map(item => ({
+        id: item.id,
+        article_id: item.article_id,
+        point_vente_id: item.point_vente_id,
+        quantite_disponible: item.quantite_disponible,
+        quantite_minimum: item.quantite_minimum,
+        derniere_livraison: item.derniere_livraison,
+        article_nom: item.catalogue?.nom || 'N/A',
+        reference: item.catalogue?.reference || 'N/A',
+        prix_vente: item.catalogue?.prix_vente,
+        prix_achat: item.catalogue?.prix_achat,
+        prix_unitaire: item.catalogue?.prix_unitaire,
+        pdv_nom: item.points_de_vente?.nom || 'N/A',
+        type_pdv: item.points_de_vente?.type_pdv,
+        pdv_adresse: item.points_de_vente?.adresse,
+        valeur_totale: item.quantite_disponible * (item.catalogue?.prix_vente || item.catalogue?.prix_unitaire || 0),
+        categorie_nom: item.catalogue?.categories_catalogue?.nom,
+        categorie_couleur: item.catalogue?.categories_catalogue?.couleur,
+        unite_nom: item.catalogue?.unites?.nom,
+        unite_symbole: item.catalogue?.unites?.symbole
+      })) || [];
+
+      return transformedData;
     },
     staleTime: 2 * 60 * 1000,
     refetchOnWindowFocus: false
@@ -53,14 +104,36 @@ export const useStockPDVStats = () => {
   return useQuery({
     queryKey: ['stock-pdv-stats'],
     queryFn: async () => {
-      const { data, error } = await supabase.rpc('get_stock_pdv_stats');
+      const { data, error } = await supabase
+        .from('stock_pdv')
+        .select(`
+          quantite_disponible,
+          point_vente_id,
+          catalogue (
+            prix_vente,
+            prix_unitaire
+          )
+        `)
+        .gt('quantite_disponible', 0);
       
       if (error) {
         console.error('❌ Erreur lors de la récupération des stats PDV:', error);
         throw error;
       }
       
-      return data?.[0] || { total_articles: 0, valeur_totale: 0, pdv_actifs: 0 };
+      // Calculer les statistiques côté client
+      const totalArticles = data?.length || 0;
+      const valeurTotale = data?.reduce((sum, item) => {
+        const prix = item.catalogue?.prix_vente || item.catalogue?.prix_unitaire || 0;
+        return sum + (item.quantite_disponible * prix);
+      }, 0) || 0;
+      const pdvActifs = new Set(data?.map(item => item.point_vente_id)).size;
+      
+      return { 
+        total_articles: totalArticles, 
+        valeur_totale: valeurTotale, 
+        pdv_actifs: pdvActifs 
+      };
     },
     staleTime: 2 * 60 * 1000
   });

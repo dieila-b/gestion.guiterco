@@ -27,13 +27,39 @@ export const useStockEntrepotView = () => {
   return useQuery({
     queryKey: ['stock-entrepot-view'],
     queryFn: async () => {
-      console.log('🏭 Récupération du stock entrepôt via vue...');
+      console.log('🏭 Récupération du stock entrepôt via jointures...');
       
       const { data, error } = await supabase
-        .from('vue_stock_entrepot')
-        .select('*')
-        .order('entrepot_nom', { ascending: true })
-        .order('article_nom', { ascending: true });
+        .from('stock_principal')
+        .select(`
+          id,
+          article_id,
+          entrepot_id,
+          quantite_disponible,
+          quantite_reservee,
+          derniere_entree,
+          catalogue (
+            nom,
+            reference,
+            prix_vente,
+            prix_achat,
+            prix_unitaire,
+            categories_catalogue (
+              nom,
+              couleur
+            ),
+            unites (
+              nom,
+              symbole
+            )
+          ),
+          entrepots (
+            nom,
+            adresse
+          )
+        `)
+        .gt('quantite_disponible', 0)
+        .order('entrepots.nom', { ascending: true });
 
       if (error) {
         console.error('❌ Erreur lors de la récupération du stock entrepôt:', error);
@@ -41,7 +67,30 @@ export const useStockEntrepotView = () => {
       }
 
       console.log('✅ Stock entrepôt récupéré:', data?.length, 'entrées');
-      return data as StockEntrepotView[];
+      
+      // Transformer les données pour correspondre à l'interface
+      const transformedData: StockEntrepotView[] = data?.map(item => ({
+        id: item.id,
+        article_id: item.article_id,
+        entrepot_id: item.entrepot_id,
+        quantite_disponible: item.quantite_disponible,
+        quantite_reservee: item.quantite_reservee || 0,
+        derniere_entree: item.derniere_entree,
+        article_nom: item.catalogue?.nom || 'N/A',
+        reference: item.catalogue?.reference || 'N/A',
+        prix_vente: item.catalogue?.prix_vente,
+        prix_achat: item.catalogue?.prix_achat,
+        prix_unitaire: item.catalogue?.prix_unitaire,
+        entrepot_nom: item.entrepots?.nom || 'N/A',
+        entrepot_adresse: item.entrepots?.adresse,
+        valeur_totale: item.quantite_disponible * (item.catalogue?.prix_vente || item.catalogue?.prix_unitaire || 0),
+        categorie_nom: item.catalogue?.categories_catalogue?.nom,
+        categorie_couleur: item.catalogue?.categories_catalogue?.couleur,
+        unite_nom: item.catalogue?.unites?.nom,
+        unite_symbole: item.catalogue?.unites?.symbole
+      })) || [];
+
+      return transformedData;
     },
     staleTime: 2 * 60 * 1000,
     refetchOnWindowFocus: false
@@ -52,14 +101,36 @@ export const useStockEntrepotStats = () => {
   return useQuery({
     queryKey: ['stock-entrepot-stats'],
     queryFn: async () => {
-      const { data, error } = await supabase.rpc('get_stock_entrepot_stats');
+      const { data, error } = await supabase
+        .from('stock_principal')
+        .select(`
+          quantite_disponible,
+          entrepot_id,
+          catalogue (
+            prix_vente,
+            prix_unitaire
+          )
+        `)
+        .gt('quantite_disponible', 0);
       
       if (error) {
         console.error('❌ Erreur lors de la récupération des stats entrepôt:', error);
         throw error;
       }
       
-      return data?.[0] || { total_articles: 0, valeur_totale: 0, entrepots_actifs: 0 };
+      // Calculer les statistiques côté client
+      const totalArticles = data?.length || 0;
+      const valeurTotale = data?.reduce((sum, item) => {
+        const prix = item.catalogue?.prix_vente || item.catalogue?.prix_unitaire || 0;
+        return sum + (item.quantite_disponible * prix);
+      }, 0) || 0;
+      const entrepotsActifs = new Set(data?.map(item => item.entrepot_id)).size;
+      
+      return { 
+        total_articles: totalArticles, 
+        valeur_totale: valeurTotale, 
+        entrepots_actifs: entrepotsActifs 
+      };
     },
     staleTime: 2 * 60 * 1000
   });
