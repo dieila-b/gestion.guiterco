@@ -38,7 +38,7 @@ export const useStockEntrepotView = () => {
           quantite_disponible,
           quantite_reservee,
           derniere_entree,
-          catalogue!inner (
+          catalogue!article_id (
             nom,
             reference,
             prix_vente,
@@ -53,7 +53,7 @@ export const useStockEntrepotView = () => {
               symbole
             )
           ),
-          entrepots!inner (
+          entrepots!entrepot_id (
             nom,
             adresse
           )
@@ -106,7 +106,7 @@ export const useStockEntrepotStats = () => {
         .select(`
           quantite_disponible,
           entrepot_id,
-          catalogue!inner (
+          catalogue!article_id (
             prix_vente,
             prix_unitaire
           )

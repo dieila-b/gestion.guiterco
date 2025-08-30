@@ -59,19 +59,19 @@ const DataSyncStatus = () => {
         <div className="grid grid-cols-2 gap-2 text-xs">
           <div className="flex justify-between">
             <span>Catalogue:</span>
-            <Badge variant="outline">{tables.catalogue || 0}</Badge>
+            <Badge variant="outline">{(tables as any).catalogue || 0}</Badge>
           </div>
           <div className="flex justify-between">
             <span>Stock entrepôt:</span>
-            <Badge variant="outline">{tables.stock_principal || 0}</Badge>
+            <Badge variant="outline">{(tables as any).stock_principal || 0}</Badge>
           </div>
           <div className="flex justify-between">
             <span>Stock PDV:</span>
-            <Badge variant="outline">{tables.stock_pdv || 0}</Badge>
+            <Badge variant="outline">{(tables as any).stock_pdv || 0}</Badge>
           </div>
           <div className="flex justify-between">
             <span>Entrepôts:</span>
-            <Badge variant="outline">{tables.entrepots || 0}</Badge>
+            <Badge variant="outline">{(tables as any).entrepots || 0}</Badge>
           </div>
         </div>
         <div className="flex items-center justify-between mt-2 pt-2 border-t border-green-200">

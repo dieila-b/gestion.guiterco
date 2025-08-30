@@ -39,7 +39,7 @@ export const useStockPDVView = () => {
           quantite_disponible,
           quantite_minimum,
           derniere_livraison,
-          catalogue!inner (
+          catalogue!article_id (
             nom,
             reference,
             prix_vente,
@@ -54,7 +54,7 @@ export const useStockPDVView = () => {
               symbole
             )
           ),
-          points_de_vente!inner (
+          points_de_vente!point_vente_id (
             nom,
             type_pdv,
             adresse
@@ -109,7 +109,7 @@ export const useStockPDVStats = () => {
         .select(`
           quantite_disponible,
           point_vente_id,
-          catalogue!inner (
+          catalogue!article_id (
             prix_vente,
             prix_unitaire
           )
