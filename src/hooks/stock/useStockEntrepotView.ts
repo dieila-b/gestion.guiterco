@@ -29,7 +29,8 @@ export const useStockEntrepotView = () => {
     queryFn: async () => {
       console.log('🏭 Récupération du stock entrepôt...');
       
-      const { data, error } = await supabase
+      // Requête simplifiée sans relations complexes
+      const { data: stockData, error } = await supabase
         .from('stock_principal')
         .select(`
           id,
@@ -37,59 +38,99 @@ export const useStockEntrepotView = () => {
           entrepot_id,
           quantite_disponible,
           quantite_reservee,
-          derniere_entree,
-          catalogue!article_id (
-            nom,
-            reference,
-            prix_vente,
-            prix_achat,
-            prix_unitaire,
-            categories_catalogue!categorie_id (
-              nom,
-              couleur
-            ),
-            unites!unite_id (
-              nom,
-              symbole
-            )
-          ),
-          entrepots!entrepot_id (
-            nom,
-            adresse
-          )
+          derniere_entree
         `)
-        .gt('quantite_disponible', 0)
-        .order('entrepots.nom', { ascending: true });
+        .gt('quantite_disponible', 0);
 
       if (error) {
-        console.error('❌ Erreur lors de la récupération du stock entrepôt:', error);
+        console.error('❌ Erreur lors de la récupération du stock principal:', error);
         throw error;
       }
 
-      console.log('✅ Stock entrepôt récupéré:', data?.length, 'entrées');
-      
-      // Transformation des données pour correspondre à l'interface
-      const transformedData: StockEntrepotView[] = data?.map(item => ({
-        id: item.id,
-        article_id: item.article_id,
-        entrepot_id: item.entrepot_id,
-        quantite_disponible: item.quantite_disponible,
-        quantite_reservee: item.quantite_reservee || 0,
-        derniere_entree: item.derniere_entree,
-        article_nom: item.catalogue?.nom || '',
-        reference: item.catalogue?.reference || '',
-        prix_vente: item.catalogue?.prix_vente,
-        prix_achat: item.catalogue?.prix_achat,
-        prix_unitaire: item.catalogue?.prix_unitaire,
-        entrepot_nom: item.entrepots?.nom || '',
-        entrepot_adresse: item.entrepots?.adresse,
-        valeur_totale: item.quantite_disponible * (item.catalogue?.prix_vente || item.catalogue?.prix_unitaire || 0),
-        categorie_nom: item.catalogue?.categories_catalogue?.nom || null,
-        categorie_couleur: item.catalogue?.categories_catalogue?.couleur || null,
-        unite_nom: item.catalogue?.unites?.nom || null,
-        unite_symbole: item.catalogue?.unites?.symbole || null,
-      })) || [];
-      
+      if (!stockData || stockData.length === 0) {
+        console.log('ℹ️ Aucun stock principal trouvé');
+        return [];
+      }
+
+      // Récupérer les articles séparément
+      const articleIds = [...new Set(stockData.map(item => item.article_id))];
+      const { data: articles, error: articlesError } = await supabase
+        .from('catalogue')
+        .select('id, nom, reference, prix_vente, prix_achat, prix_unitaire, categorie_id, unite_id')
+        .in('id', articleIds);
+
+      if (articlesError) {
+        console.error('❌ Erreur lors de la récupération des articles:', articlesError);
+        throw articlesError;
+      }
+
+      // Récupérer les entrepôts séparément
+      const entrepotIds = [...new Set(stockData.map(item => item.entrepot_id))];
+      const { data: entrepots, error: entrepotsError } = await supabase
+        .from('entrepots')
+        .select('id, nom, adresse')
+        .in('id', entrepotIds);
+
+      if (entrepotsError) {
+        console.error('❌ Erreur lors de la récupération des entrepôts:', entrepotsError);
+        throw entrepotsError;
+      }
+
+      // Récupérer les catégories si nécessaire
+      const categorieIds = articles?.filter(a => a.categorie_id).map(a => a.categorie_id) || [];
+      let categories: any[] = [];
+      if (categorieIds.length > 0) {
+        const { data: categoriesData } = await supabase
+          .from('categories_catalogue')
+          .select('id, nom, couleur')
+          .in('id', categorieIds);
+        categories = categoriesData || [];
+      }
+
+      // Récupérer les unités si nécessaire
+      const uniteIds = articles?.filter(a => a.unite_id).map(a => a.unite_id) || [];
+      let unites: any[] = [];
+      if (uniteIds.length > 0) {
+        const { data: unitesData } = await supabase
+          .from('unites')
+          .select('id, nom, symbole')
+          .in('id', uniteIds);
+        unites = unitesData || [];
+      }
+
+      // Assembler les données
+      const transformedData: StockEntrepotView[] = stockData.map(stock => {
+        const article = articles?.find(a => a.id === stock.article_id);
+        const entrepot = entrepots?.find(e => e.id === stock.entrepot_id);
+        const categorie = categories.find(c => c.id === article?.categorie_id);
+        const unite = unites.find(u => u.id === article?.unite_id);
+
+        const prix = article?.prix_vente || article?.prix_unitaire || 0;
+        const valeurTotale = stock.quantite_disponible * prix;
+
+        return {
+          id: stock.id,
+          article_id: stock.article_id,
+          entrepot_id: stock.entrepot_id,
+          quantite_disponible: stock.quantite_disponible,
+          quantite_reservee: stock.quantite_reservee || 0,
+          derniere_entree: stock.derniere_entree,
+          article_nom: article?.nom || 'Article inconnu',
+          reference: article?.reference || '',
+          prix_vente: article?.prix_vente,
+          prix_achat: article?.prix_achat,
+          prix_unitaire: article?.prix_unitaire,
+          entrepot_nom: entrepot?.nom || 'Entrepôt inconnu',
+          entrepot_adresse: entrepot?.adresse,
+          valeur_totale: valeurTotale,
+          categorie_nom: categorie?.nom || null,
+          categorie_couleur: categorie?.couleur || null,
+          unite_nom: unite?.nom || null,
+          unite_symbole: unite?.symbole || null,
+        };
+      });
+
+      console.log('✅ Stock entrepôt transformé:', transformedData.length, 'entrées');
       return transformedData;
     },
     staleTime: 2 * 60 * 1000,
@@ -101,29 +142,37 @@ export const useStockEntrepotStats = () => {
   return useQuery({
     queryKey: ['stock-entrepot-stats'],
     queryFn: async () => {
-      const { data, error } = await supabase
+      // Statistiques simples
+      const { data: stockData, error } = await supabase
         .from('stock_principal')
-        .select(`
-          quantite_disponible,
-          entrepot_id,
-          catalogue!article_id (
-            prix_vente,
-            prix_unitaire
-          )
-        `)
+        .select('quantite_disponible, article_id')
         .gt('quantite_disponible', 0);
       
       if (error) {
         console.error('❌ Erreur lors de la récupération des stats entrepôt:', error);
         throw error;
       }
+
+      const totalArticles = stockData?.length || 0;
       
-      const totalArticles = data?.length || 0;
-      const valeurTotale = data?.reduce((sum, item) => {
-        const prix = item.catalogue?.prix_vente || item.catalogue?.prix_unitaire || 0;
-        return sum + (item.quantite_disponible * prix);
-      }, 0) || 0;
-      const entrepotsActifs = new Set(data?.map(item => item.entrepot_id)).size;
+      // Récupérer les prix des articles pour calculer la valeur
+      const articleIds = [...new Set(stockData?.map(item => item.article_id) || [])];
+      let valeurTotale = 0;
+      
+      if (articleIds.length > 0) {
+        const { data: articles } = await supabase
+          .from('catalogue')
+          .select('id, prix_vente, prix_unitaire')
+          .in('id', articleIds);
+
+        valeurTotale = stockData?.reduce((sum, stock) => {
+          const article = articles?.find(a => a.id === stock.article_id);
+          const prix = article?.prix_vente || article?.prix_unitaire || 0;
+          return sum + (stock.quantite_disponible * prix);
+        }, 0) || 0;
+      }
+
+      const entrepotsActifs = new Set(stockData?.map(item => item.entrepot_id)).size;
       
       return { 
         total_articles: totalArticles, 
