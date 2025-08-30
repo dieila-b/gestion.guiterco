@@ -45,6 +45,8 @@ const DataSyncStatus = () => {
     );
   }
 
+  const tables = syncStatus.tables || {};
+
   return (
     <Card className="border-green-200 bg-green-50">
       <CardHeader className="pb-2">
@@ -57,19 +59,19 @@ const DataSyncStatus = () => {
         <div className="grid grid-cols-2 gap-2 text-xs">
           <div className="flex justify-between">
             <span>Catalogue:</span>
-            <Badge variant="outline">{syncStatus.tables.catalogue || 0}</Badge>
+            <Badge variant="outline">{tables.catalogue || 0}</Badge>
           </div>
           <div className="flex justify-between">
             <span>Stock entrepôt:</span>
-            <Badge variant="outline">{syncStatus.tables.stock_principal || 0}</Badge>
+            <Badge variant="outline">{tables.stock_principal || 0}</Badge>
           </div>
           <div className="flex justify-between">
             <span>Stock PDV:</span>
-            <Badge variant="outline">{syncStatus.tables.stock_pdv || 0}</Badge>
+            <Badge variant="outline">{tables.stock_pdv || 0}</Badge>
           </div>
           <div className="flex justify-between">
             <span>Entrepôts:</span>
-            <Badge variant="outline">{syncStatus.tables.entrepots || 0}</Badge>
+            <Badge variant="outline">{tables.entrepots || 0}</Badge>
           </div>
         </div>
         <div className="flex items-center justify-between mt-2 pt-2 border-t border-green-200">
