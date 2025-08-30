@@ -11,7 +11,7 @@ interface PermissionGuardProps {
   fallback?: React.ReactNode;
 }
 
-const PermissionGuard: React.FC<PermissionGuardProps> = ({
+export const PermissionGuard: React.FC<PermissionGuardProps> = ({
   children,
   menu,
   submenu,
@@ -54,6 +54,5 @@ const PermissionGuard: React.FC<PermissionGuardProps> = ({
   return <>{children}</>;
 };
 
-// Export nommé pour correspondre aux imports existants
-export { PermissionGuard };
+// Export par défaut pour la compatibilité
 export default PermissionGuard;
