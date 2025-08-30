@@ -54,6 +54,7 @@ export const useDevMode = () => {
     const newValue = value !== undefined ? value : !bypassAuth;
     setBypassAuth(newValue);
     localStorage.setItem('dev_bypass_auth', newValue.toString());
+    console.log('🔧 Toggle bypass auth:', newValue);
   };
 
   return {

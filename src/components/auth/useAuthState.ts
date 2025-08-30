@@ -6,7 +6,7 @@ import { useToast } from '@/hooks/use-toast';
 import { UtilisateurInterne } from './types';
 import { checkInternalUser, signIn as authSignIn, signOut as authSignOut } from './authUtils';
 
-export const useAuthState = (bypassAuth: boolean, mockUser: UtilisateurInterne, isDevMode: boolean) => {
+export const useAuthState = (bypassAuth: boolean, mockUtilisateurInterne: UtilisateurInterne, isDevMode: boolean) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [utilisateurInterne, setUtilisateurInterne] = useState<UtilisateurInterne | null>(null);
@@ -26,20 +26,20 @@ export const useAuthState = (bypassAuth: boolean, mockUser: UtilisateurInterne, 
   useEffect(() => {
     if (isDevModeRef.current && bypassAuthRef.current) {
       console.log('🚀 Activation du bypass d\'authentification');
-      setUtilisateurInterne(mockUser);
+      setUtilisateurInterne(mockUtilisateurInterne);
       
       const mockSupabaseUser = {
-        id: mockUser.id,
-        email: mockUser.email,
+        id: mockUtilisateurInterne.id,
+        email: mockUtilisateurInterne.email,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
         email_confirmed_at: new Date().toISOString(),
         user_metadata: {
-          prenom: mockUser.prenom,
-          nom: mockUser.nom
+          prenom: mockUtilisateurInterne.prenom,
+          nom: mockUtilisateurInterne.nom
         },
         app_metadata: {
-          role: mockUser.role.nom
+          role: mockUtilisateurInterne.role.name
         },
         aud: 'authenticated',
         role: 'authenticated'
@@ -67,7 +67,7 @@ export const useAuthState = (bypassAuth: boolean, mockUser: UtilisateurInterne, 
       setUtilisateurInterne(null);
       setLoading(true); // Remettre en loading pour l'auth normale
     }
-  }, [bypassAuth, isDevMode]);
+  }, [bypassAuth, isDevMode, mockUtilisateurInterne]);
 
   // Effect pour l'authentification normale  
   useEffect(() => {
@@ -150,7 +150,7 @@ export const useAuthState = (bypassAuth: boolean, mockUser: UtilisateurInterne, 
         subscription.unsubscribe();
       };
     }
-  }, []);  // Enlever bypassAuth et toast des dépendances pour éviter la boucle
+  }, []); // Enlever bypassAuth des dépendances pour éviter la boucle
 
   const signIn = async (email: string, password: string) => {
     console.log('🔑 Tentative de connexion pour:', email);
@@ -186,9 +186,8 @@ export const useAuthState = (bypassAuth: boolean, mockUser: UtilisateurInterne, 
       // 3. Déconnexion Supabase avec nettoyage complet
       console.log('🚪 Déconnexion Supabase en cours...');
       
-      // Utiliser la méthode la plus agressive pour la déconnexion
       const { error } = await supabase.auth.signOut({ 
-        scope: 'global' // Déconnecte de tous les onglets/appareils
+        scope: 'global'
       });
       
       if (error) {
@@ -197,79 +196,20 @@ export const useAuthState = (bypassAuth: boolean, mockUser: UtilisateurInterne, 
         console.log('✅ Déconnexion Supabase réussie');
       }
       
-      // 4. Nettoyer TOUTES les clés d'authentification possibles
+      // 4. Nettoyer les clés d'authentification
       const keysToRemove = [
-        // Clés génériques Supabase
         'supabase.auth.token',
-        'supabase.auth.refreshToken',
-        'supabase.auth.expiresAt',
-        'supabase-auth-token',
-        // Clés spécifiques au projet
+        'supabase.auth.refreshToken', 
         'sb-hlmiuwwfxerrinfthvrj-auth-token',
-        'sb-hlmiuwwfxerrinfthvrj.supabase.co-auth-token',
-        // Autres clés possibles
-        'auth-token',
-        'auth-user',
-        'auth-session',
-        // État utilisateur interne
-        'internal-user',
-        'utilisateur-interne',
-        // Cache permissions
-        'user-permissions',
         'dev_bypass_auth'
       ];
       
-      // Nettoyer localStorage et sessionStorage
-      [localStorage, sessionStorage].forEach(storage => {
-        keysToRemove.forEach(key => {
-          try {
-            storage.removeItem(key);
-            console.log(`🧹 Clé supprimée de ${storage === localStorage ? 'localStorage' : 'sessionStorage'}: ${key}`);
-          } catch (e) {
-            console.warn(`⚠️ Impossible de supprimer la clé: ${key}`, e);
-          }
-        });
-        
-        // Nettoyer toutes les clés qui commencent par 'sb-'
-        const storageKeys = Object.keys(storage);
-        storageKeys.forEach(key => {
-          if (key.startsWith('sb-') || key.includes('supabase') || key.includes('auth')) {
-            try {
-              storage.removeItem(key);
-              console.log(`🧹 Clé auth supprimée: ${key}`);
-            } catch (e) {
-              console.warn(`⚠️ Erreur suppression ${key}:`, e);
-            }
-          }
-        });
-      });
-      
-      // 5. Forcer la suppression des cookies d'authentification
-      const cookiesToRemove = [
-        'sb-access-token',
-        'sb-refresh-token',
-        'supabase-auth-token',
-        'auth-token'
-      ];
-      
-      cookiesToRemove.forEach(cookieName => {
+      keysToRemove.forEach(key => {
         try {
-          document.cookie = `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=${window.location.hostname};`;
-          document.cookie = `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
-          console.log(`🍪 Cookie supprimé: ${cookieName}`);
+          localStorage.removeItem(key);
+          sessionStorage.removeItem(key);
         } catch (e) {
-          console.warn(`⚠️ Erreur suppression cookie ${cookieName}:`, e);
-        }
-      });
-      
-      // 6. Nettoyer également tous les cookies existants de manière plus agressive
-      document.cookie.split(";").forEach(function(c) { 
-        const eqPos = c.indexOf("=");
-        const name = eqPos > -1 ? c.substr(0, eqPos).trim() : c.trim();
-        if (name.includes('sb-') || name.includes('supabase') || name.includes('auth')) {
-          document.cookie = name + "=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/";
-          document.cookie = name + "=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;domain=" + window.location.hostname;
-          console.log(`🍪 Cookie auth nettoyé: ${name}`);
+          console.warn(`⚠️ Impossible de supprimer la clé: ${key}`, e);
         }
       });
       
@@ -278,14 +218,12 @@ export const useAuthState = (bypassAuth: boolean, mockUser: UtilisateurInterne, 
     } catch (error) {
       console.error('❌ Erreur critique lors de la déconnexion:', error);
     } finally {
-      // 7. Réinitialiser la ref et forcer la redirection
+      // 5. Réinitialiser la ref et forcer la redirection
       isSigningOutRef.current = false;
       
       console.log('🔄 Redirection forcée vers /auth');
       
-      // Petite pause pour s'assurer que tout est nettoyé
       setTimeout(() => {
-        // Utiliser replace pour éviter que l'utilisateur puisse revenir en arrière
         window.location.replace('/auth');
       }, 100);
     }
