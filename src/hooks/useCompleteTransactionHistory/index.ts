@@ -22,20 +22,24 @@ export const useCompleteTransactionHistory = () => {
           throw transactionsError;
         }
 
-        // Charger les données de balance
+        // Charger les données de balance depuis la table cash_registers
         const { data: balanceData, error: balanceError } = await supabase
           .from('cash_registers')
           .select('balance')
-          .single();
+          .maybeSingle();
 
         if (balanceError) {
           console.warn('⚠️ Erreur lors du chargement de la balance:', balanceError);
         }
 
+        // Mapper les transactions au bon format
         const completeTransactions: CompleteTransaction[] = (transactions || []).map(t => ({
-          ...t,
-          amount: Number(t.montant) || Number(t.amount) || 0,
-          type: t.type as 'income' | 'expense'
+          id: t.id,
+          type: t.type as 'income' | 'expense',
+          amount: Number(t.amount) || 0,
+          description: t.description || '',
+          date: t.date_operation || t.created_at,
+          source: t.source || null
         }));
 
         const stats = calculateStats(completeTransactions, balanceData);
@@ -54,8 +58,8 @@ export const useCompleteTransactionHistory = () => {
         throw error;
       }
     },
-    staleTime: 2 * 60 * 1000, // 2 minutes
-    refetchInterval: 30000, // 30 secondes
+    staleTime: 2 * 60 * 1000,
+    refetchInterval: 30000,
     retry: 2,
     retryDelay: 1000,
   });

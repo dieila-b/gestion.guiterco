@@ -58,8 +58,8 @@ export const useFacturesVenteQuery = () => {
         throw error;
       }
     },
-    staleTime: 2 * 60 * 1000, // 2 minutes
-    refetchInterval: 30000, // 30 secondes
+    staleTime: 2 * 60 * 1000,
+    refetchInterval: 30000,
     retry: 2,
     retryDelay: 1000,
   });
@@ -92,7 +92,7 @@ export const useVersementsClientsQuery = () => {
         throw error;
       }
     },
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 5 * 60 * 1000,
     retry: 2,
     retryDelay: 1000,
   });
@@ -126,7 +126,76 @@ export const useFacturesPrecommandesQuery = () => {
         throw error;
       }
     },
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 5 * 60 * 1000,
+    retry: 2,
+    retryDelay: 1000,
+  });
+};
+
+// Add missing devis hooks
+export const useDevisVenteQuery = () => {
+  return useQuery({
+    queryKey: ['devis_vente'],
+    queryFn: async () => {
+      console.log('🔄 Chargement des devis de vente...');
+      
+      try {
+        const { data, error } = await supabase
+          .from('devis_vente')
+          .select(`
+            *,
+            client:clients(*)
+          `)
+          .order('created_at', { ascending: false });
+        
+        if (error) {
+          console.error('❌ Erreur lors du chargement des devis:', error);
+          throw error;
+        }
+        
+        console.log('✅ Devis de vente chargés:', data?.length);
+        return data || [];
+      } catch (error) {
+        console.error('❌ Erreur dans useDevisVenteQuery:', error);
+        throw error;
+      }
+    },
+    staleTime: 5 * 60 * 1000,
+    retry: 2,
+    retryDelay: 1000,
+  });
+};
+
+// Add missing retours clients hook
+export const useRetoursClientsQuery = () => {
+  return useQuery({
+    queryKey: ['retours_clients'],
+    queryFn: async () => {
+      console.log('🔄 Chargement des retours clients...');
+      
+      try {
+        const { data, error } = await supabase
+          .from('retours_clients')
+          .select(`
+            *,
+            client:clients(*),
+            facture:factures_vente(numero_facture)
+          `)
+          .order('created_at', { ascending: false });
+        
+        if (error) {
+          console.error('❌ Erreur lors du chargement des retours:', error);
+          throw error;
+        }
+        
+        console.log('✅ Retours clients chargés:', data?.length);
+        return data || [];
+      } catch (error) {
+        console.error('❌ Erreur dans useRetoursClientsQuery:', error);
+        throw error;
+      }
+    },
+    staleTime: 5 * 60 * 1000,
     retry: 2,
     retryDelay: 1000,
   });
