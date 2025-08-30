@@ -49,18 +49,24 @@ export const checkInternalUser = async (userId: string): Promise<UtilisateurInte
       return null;
     }
 
-    // Essayer d'abord avec user_id (production), puis avec id (dev mode bypass)
+    // Essayer d'abord avec user_id (production)
     let { data: internalUser, error } = await supabase
       .from('utilisateurs_internes')
       .select(`
         id,
+        user_id,
         email,
         prenom,
         nom,
         statut,
         type_compte,
         photo_url,
-        roles!inner(id, name, description)
+        role_id,
+        roles!inner(
+          id,
+          name,
+          description
+        )
       `)
       .eq('user_id', userId)
       .eq('statut', 'actif')
@@ -73,13 +79,19 @@ export const checkInternalUser = async (userId: string): Promise<UtilisateurInte
         .from('utilisateurs_internes')
         .select(`
           id,
+          user_id,
           email,
           prenom,
           nom,
           statut,
           type_compte,
           photo_url,
-          roles!inner(id, name, description)
+          role_id,
+          roles!inner(
+            id,
+            name,
+            description
+          )
         `)
         .eq('id', userId)
         .eq('statut', 'actif')
@@ -99,11 +111,18 @@ export const checkInternalUser = async (userId: string): Promise<UtilisateurInte
       return null;
     }
 
+    // Vérifier que les données du rôle sont présentes
+    if (!internalUser.roles) {
+      console.log('❌ Pas de rôle associé à l\'utilisateur interne');
+      return null;
+    }
+
     console.log('✅ Utilisateur interne trouvé:', {
       id: internalUser.id,
       email: internalUser.email,
       statut: internalUser.statut,
-      type_compte: internalUser.type_compte
+      type_compte: internalUser.type_compte,
+      role: internalUser.roles
     });
 
     return {

@@ -85,14 +85,27 @@ export const useAuthState = (bypassAuth: boolean, mockUser: UtilisateurInterne, 
               console.log('🔍 Vérification utilisateur interne pour:', session.user.id);
               const internalUser = await checkInternalUser(session.user.id);
               
-              console.log('👤 Utilisateur interne trouvé:', internalUser);
-              
               if (internalUser && internalUser.statut === 'actif') {
+                console.log('✅ Utilisateur interne autorisé:', {
+                  id: internalUser.id,
+                  email: internalUser.email,
+                  role: internalUser.role
+                });
                 setUtilisateurInterne(internalUser);
-                console.log('✅ Utilisateur interne autorisé');
               } else {
-                setUtilisateurInterne(null);
                 console.log('❌ Utilisateur non autorisé ou inactif');
+                setUtilisateurInterne(null);
+                
+                // Optionnel: déconnecter l'utilisateur s'il n'est pas autorisé
+                if (session) {
+                  console.log('🚪 Déconnexion automatique - utilisateur non autorisé');
+                  await supabase.auth.signOut();
+                  toast({
+                    title: "Accès refusé",
+                    description: "Votre compte n'est pas autorisé à accéder à cette application.",
+                    variant: "destructive"
+                  });
+                }
               }
             } catch (error) {
               console.error('❌ Erreur vérification utilisateur:', error);

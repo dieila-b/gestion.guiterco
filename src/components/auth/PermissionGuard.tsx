@@ -2,7 +2,8 @@
 import React from 'react';
 import { useHasPermission } from '@/hooks/useUserPermissions';
 import { useAuth } from '@/components/auth/AuthContext';
-import { Loader2 } from 'lucide-react';
+import { Loader2, AlertCircle } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface PermissionGuardProps {
   children: React.ReactNode;
@@ -10,6 +11,7 @@ interface PermissionGuardProps {
   submenu?: string;
   action?: string;
   fallback?: React.ReactNode;
+  showAccessDenied?: boolean;
 }
 
 export const PermissionGuard: React.FC<PermissionGuardProps> = ({
@@ -17,25 +19,38 @@ export const PermissionGuard: React.FC<PermissionGuardProps> = ({
   menu,
   submenu,
   action = 'read',
-  fallback = null
+  fallback = null,
+  showAccessDenied = false
 }) => {
   const { hasPermission, isLoading } = useHasPermission();
-  const { isDevMode, user, utilisateurInterne } = useAuth();
+  const { isDevMode, user, utilisateurInterne, loading: authLoading } = useAuth();
 
-  console.log(`PermissionGuard - Vérification: ${menu}${submenu ? ` > ${submenu}` : ''} (${action})`, {
+  console.log(`🔒 PermissionGuard - Vérification: ${menu}${submenu ? ` > ${submenu}` : ''} (${action})`, {
     isDevMode,
     hasUser: !!user,
     hasUtilisateurInterne: !!utilisateurInterne,
-    isLoading
+    authLoading,
+    isLoading,
+    userRole: utilisateurInterne?.role
   });
 
   // En mode développement, être permissif pour les utilisateurs connectés
   if (isDevMode && (user || utilisateurInterne)) {
-    console.log('Mode dev - accès accordé');
+    console.log('🚀 Mode dev - accès accordé');
     return <>{children}</>;
   }
 
-  // En production, attendre que le chargement soit terminé
+  // Attendre que l'authentification soit terminée
+  if (authLoading) {
+    return (
+      <div className="flex items-center justify-center p-4">
+        <Loader2 className="h-4 w-4 animate-spin mr-2" />
+        <span className="text-sm text-muted-foreground">Chargement de l'authentification...</span>
+      </div>
+    );
+  }
+
+  // Attendre que les permissions soient chargées
   if (isLoading) {
     return (
       <div className="flex items-center justify-center p-4">
@@ -48,9 +63,21 @@ export const PermissionGuard: React.FC<PermissionGuardProps> = ({
   // Vérifier les permissions
   const hasAccess = hasPermission(menu, submenu, action);
   
-  console.log(`PermissionGuard - Résultat: ${hasAccess ? 'Accès accordé' : 'Accès refusé'}`);
+  console.log(`🔒 PermissionGuard - Résultat: ${hasAccess ? '✅ Accès accordé' : '❌ Accès refusé'}`);
   
   if (!hasAccess) {
+    if (showAccessDenied) {
+      return (
+        <Alert className="m-4">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            Vous n'avez pas les permissions nécessaires pour accéder à cette section.
+            <br />
+            Permission requise: {menu}{submenu ? ` > ${submenu}` : ''} ({action})
+          </AlertDescription>
+        </Alert>
+      );
+    }
     return <>{fallback}</>;
   }
 
