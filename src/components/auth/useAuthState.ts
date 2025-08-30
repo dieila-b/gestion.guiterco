@@ -153,48 +153,78 @@ export const useAuthState = (bypassAuth: boolean, mockUser: UtilisateurInterne, 
   };
 
   const signOut = async () => {
-    console.log('🚪 Déconnexion...');
+    console.log('🚪 Début de la déconnexion sécurisée...');
     
-    if (bypassAuthRef.current && isDevModeRef.current) {
-      // En mode bypass, on nettoie l'état local et recharge
-      console.log('🚪 Déconnexion en mode bypass');
+    try {
+      // 1. Nettoyer immédiatement l'état local pour éviter toute persistance
       setUser(null);
       setSession(null);
       setUtilisateurInterne(null);
-      // Forcer le rechargement complet de la page
-      window.location.reload();
-      return;
-    }
-    
-    // Marquer que nous sommes en train de nous déconnecter
-    console.log('🚪 Début de la déconnexion');
-    
-    // Nettoyer immédiatement l'état local
-    setUser(null);
-    setSession(null);
-    setUtilisateurInterne(null);
-    
-    try {
-      // Déconnexion Supabase avec méthode plus agressive
-      await supabase.auth.signOut({ scope: 'global' });
-      console.log('✅ Déconnexion Supabase réussie');
+      setLoading(false);
+      
+      // 2. En mode bypass, nettoyer et recharger
+      if (bypassAuthRef.current && isDevModeRef.current) {
+        console.log('🚪 Déconnexion en mode bypass');
+        // Nettoyer le localStorage du bypass
+        localStorage.removeItem('dev_bypass_auth');
+        window.location.replace('/auth');
+        return;
+      }
+      
+      // 3. Déconnexion Supabase avec nettoyage complet
+      console.log('🚪 Déconnexion Supabase en cours...');
+      
+      // Utiliser la méthode la plus agressive pour la déconnexion
+      const { error } = await supabase.auth.signOut({ 
+        scope: 'global' // Déconnecte de tous les onglets/appareils
+      });
+      
+      if (error) {
+        console.error('❌ Erreur lors de la déconnexion Supabase:', error);
+      } else {
+        console.log('✅ Déconnexion Supabase réussie');
+      }
+      
+      // 4. Nettoyer manuellement le localStorage de toutes les traces d'auth
+      const keysToRemove = [
+        'supabase.auth.token',
+        `sb-${supabase.supabaseUrl.split('//')[1].split('.')[0]}-auth-token`,
+        'sb-hlmiuwwfxerrinfthvrj-auth-token'
+      ];
+      
+      keysToRemove.forEach(key => {
+        try {
+          localStorage.removeItem(key);
+          console.log(`🧹 Clé supprimée: ${key}`);
+        } catch (e) {
+          console.warn(`⚠️ Impossible de supprimer la clé: ${key}`, e);
+        }
+      });
+      
+      // 5. Nettoyer également le sessionStorage
+      try {
+        sessionStorage.clear();
+        console.log('🧹 SessionStorage nettoyé');
+      } catch (e) {
+        console.warn('⚠️ Erreur nettoyage sessionStorage:', e);
+      }
+      
+      // 6. Forcer la suppression des cookies d'authentification si présents
+      document.cookie.split(";").forEach(function(c) { 
+        document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/"); 
+      });
+      
+      console.log('🚪 Nettoyage complet terminé');
+      
     } catch (error) {
-      console.error('❌ Erreur lors de la déconnexion Supabase:', error);
+      console.error('❌ Erreur critique lors de la déconnexion:', error);
+    } finally {
+      // 7. Redirection forcée vers la page d'authentification
+      console.log('🔄 Redirection forcée vers /auth');
+      
+      // Utiliser replace pour éviter que l'utilisateur puisse revenir en arrière
+      window.location.replace('/auth');
     }
-    
-    // Nettoyer le localStorage pour éliminer toute trace de session
-    try {
-      localStorage.removeItem('supabase.auth.token');
-      localStorage.removeItem('sb-hlmiuwwfxerrinfthvrj-auth-token');
-      console.log('✅ LocalStorage nettoyé');
-    } catch (error) {
-      console.error('❌ Erreur nettoyage localStorage:', error);
-    }
-    
-    console.log('🚪 Déconnexion complète, rechargement...');
-    
-    // Forcer un rechargement complet de la page pour éliminer tout état résiduel
-    window.location.replace('/auth');
   };
 
   // Un utilisateur est considéré comme autorisé s'il a un compte interne actif
