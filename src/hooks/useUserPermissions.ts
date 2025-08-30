@@ -60,11 +60,7 @@ export const useUserPermissions = (userId: string | undefined) => {
             .eq('id', internalUser.role_id)
             .maybeSingle();
 
-          if (roleError) {
-            throw new Error('Table roles not found');
-          }
-
-          if (role) {
+          if (!roleError && role) {
             setUserRole(role);
 
             // Récupérer les permissions du rôle
@@ -112,7 +108,7 @@ export const useUserPermissions = (userId: string | undefined) => {
           
           // Permissions par défaut selon le type de compte
           let defaultPermissions: Permission[] = [];
-          let defaultRole = { id: 'default', nom: 'Utilisateur', description: 'Rôle par défaut' };
+          let defaultRole: UserRole = { id: 'default', nom: 'Utilisateur', description: 'Rôle par défaut' };
 
           if (typeCompte === 'admin') {
             defaultRole = { id: 'admin', nom: 'Administrateur', description: 'Accès complet' };
