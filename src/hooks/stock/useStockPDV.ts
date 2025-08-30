@@ -2,11 +2,43 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { StockPointDeVente } from '@/components/stock/types';
+import { useAuth } from '@/components/auth/AuthContext';
 
 export const useStockPDV = () => {
+  const { isDevMode } = useAuth();
+
   const { data: stockPDV, isLoading, error } = useQuery({
     queryKey: ['stock-pdv'],
     queryFn: async () => {
+      // En mode dev, retourner des données mockées
+      if (isDevMode) {
+        return [
+          {
+            id: 'mock-stock-pdv-1',
+            article_id: 'mock-article-1',
+            point_vente_id: 'mock-pdv-1',
+            quantite_disponible: 25,
+            seuil_alerte: 5,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+            article: {
+              id: 'mock-article-1',
+              nom: 'Article PDV Test',
+              reference: 'PDV001',
+              prix_vente: 29.99,
+              statut: 'actif',
+              categorie_article: { nom: 'Test' },
+              unite_article: { nom: 'pièce' }
+            },
+            point_vente: {
+              id: 'mock-pdv-1',
+              nom: 'PDV Principal',
+              statut: 'actif'
+            }
+          }
+        ] as StockPointDeVente[];
+      }
+
       const { data, error } = await supabase
         .from('stock_pdv')
         .select(`
@@ -24,12 +56,11 @@ export const useStockPDV = () => {
         throw error;
       }
       console.log('Stock PDV data loaded:', data);
-      console.log('Number of PDV items:', data?.length);
-      console.log('First PDV item:', data?.[0]);
-      console.log('Article relation in PDV:', data?.[0]?.article);
-      console.log('Point vente relation:', data?.[0]?.point_vente);
       return data as StockPointDeVente[];
-    }
+    },
+    retry: isDevMode ? false : 3,
+    staleTime: isDevMode ? Infinity : 5 * 60 * 1000,
+    refetchOnWindowFocus: !isDevMode
   });
 
   return {
