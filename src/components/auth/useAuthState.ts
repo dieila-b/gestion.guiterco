@@ -16,6 +16,7 @@ export const useAuthState = (bypassAuth: boolean, mockUser: UtilisateurInterne, 
   // Refs pour éviter les boucles infinies
   const bypassAuthRef = useRef(bypassAuth);
   const isDevModeRef = useRef(isDevMode);
+  const isSigningOutRef = useRef(false);
   
   // Mettre à jour les refs quand les valeurs changent
   bypassAuthRef.current = bypassAuth;
@@ -77,10 +78,16 @@ export const useAuthState = (bypassAuth: boolean, mockUser: UtilisateurInterne, 
         async (event, session) => {
           console.log('🔐 Auth state change:', { event, session: !!session });
           
+          // Si on est en train de se déconnecter, ignorer les événements
+          if (isSigningOutRef.current && event !== 'SIGNED_OUT') {
+            console.log('🚪 Déconnexion en cours - ignore event:', event);
+            return;
+          }
+          
           setSession(session);
           setUser(session?.user ?? null);
 
-          if (session?.user) {
+          if (session?.user && !isSigningOutRef.current) {
             try {
               console.log('🔍 Vérification utilisateur interne pour:', session.user.id);
               const internalUser = await checkInternalUser(session.user.id);
@@ -156,6 +163,9 @@ export const useAuthState = (bypassAuth: boolean, mockUser: UtilisateurInterne, 
     console.log('🚪 Début de la déconnexion sécurisée...');
     
     try {
+      // Marquer qu'on est en train de se déconnecter
+      isSigningOutRef.current = true;
+      
       // 1. Nettoyer immédiatement l'état local pour éviter toute persistance
       setUser(null);
       setSession(null);
@@ -167,6 +177,8 @@ export const useAuthState = (bypassAuth: boolean, mockUser: UtilisateurInterne, 
         console.log('🚪 Déconnexion en mode bypass');
         // Nettoyer le localStorage du bypass
         localStorage.removeItem('dev_bypass_auth');
+        // Réinitialiser la ref
+        isSigningOutRef.current = false;
         window.location.replace('/auth');
         return;
       }
@@ -185,33 +197,80 @@ export const useAuthState = (bypassAuth: boolean, mockUser: UtilisateurInterne, 
         console.log('✅ Déconnexion Supabase réussie');
       }
       
-      // 4. Nettoyer manuellement le localStorage de toutes les traces d'auth
+      // 4. Nettoyer TOUTES les clés d'authentification possibles
       const keysToRemove = [
+        // Clés génériques Supabase
         'supabase.auth.token',
+        'supabase.auth.refreshToken',
+        'supabase.auth.expiresAt',
+        'supabase-auth-token',
+        // Clés spécifiques au projet
         'sb-hlmiuwwfxerrinfthvrj-auth-token',
-        'sb-hlmiuwwfxerrinfthvrj.supabase.co-auth-token'
+        'sb-hlmiuwwfxerrinfthvrj.supabase.co-auth-token',
+        // Autres clés possibles
+        'auth-token',
+        'auth-user',
+        'auth-session',
+        // État utilisateur interne
+        'internal-user',
+        'utilisateur-interne',
+        // Cache permissions
+        'user-permissions',
+        'dev_bypass_auth'
       ];
       
-      keysToRemove.forEach(key => {
+      // Nettoyer localStorage et sessionStorage
+      [localStorage, sessionStorage].forEach(storage => {
+        keysToRemove.forEach(key => {
+          try {
+            storage.removeItem(key);
+            console.log(`🧹 Clé supprimée de ${storage === localStorage ? 'localStorage' : 'sessionStorage'}: ${key}`);
+          } catch (e) {
+            console.warn(`⚠️ Impossible de supprimer la clé: ${key}`, e);
+          }
+        });
+        
+        // Nettoyer toutes les clés qui commencent par 'sb-'
+        const storageKeys = Object.keys(storage);
+        storageKeys.forEach(key => {
+          if (key.startsWith('sb-') || key.includes('supabase') || key.includes('auth')) {
+            try {
+              storage.removeItem(key);
+              console.log(`🧹 Clé auth supprimée: ${key}`);
+            } catch (e) {
+              console.warn(`⚠️ Erreur suppression ${key}:`, e);
+            }
+          }
+        });
+      });
+      
+      // 5. Forcer la suppression des cookies d'authentification
+      const cookiesToRemove = [
+        'sb-access-token',
+        'sb-refresh-token',
+        'supabase-auth-token',
+        'auth-token'
+      ];
+      
+      cookiesToRemove.forEach(cookieName => {
         try {
-          localStorage.removeItem(key);
-          console.log(`🧹 Clé supprimée: ${key}`);
+          document.cookie = `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=${window.location.hostname};`;
+          document.cookie = `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
+          console.log(`🍪 Cookie supprimé: ${cookieName}`);
         } catch (e) {
-          console.warn(`⚠️ Impossible de supprimer la clé: ${key}`, e);
+          console.warn(`⚠️ Erreur suppression cookie ${cookieName}:`, e);
         }
       });
       
-      // 5. Nettoyer également le sessionStorage
-      try {
-        sessionStorage.clear();
-        console.log('🧹 SessionStorage nettoyé');
-      } catch (e) {
-        console.warn('⚠️ Erreur nettoyage sessionStorage:', e);
-      }
-      
-      // 6. Forcer la suppression des cookies d'authentification si présents
+      // 6. Nettoyer également tous les cookies existants de manière plus agressive
       document.cookie.split(";").forEach(function(c) { 
-        document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/"); 
+        const eqPos = c.indexOf("=");
+        const name = eqPos > -1 ? c.substr(0, eqPos).trim() : c.trim();
+        if (name.includes('sb-') || name.includes('supabase') || name.includes('auth')) {
+          document.cookie = name + "=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/";
+          document.cookie = name + "=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;domain=" + window.location.hostname;
+          console.log(`🍪 Cookie auth nettoyé: ${name}`);
+        }
       });
       
       console.log('🚪 Nettoyage complet terminé');
@@ -219,11 +278,16 @@ export const useAuthState = (bypassAuth: boolean, mockUser: UtilisateurInterne, 
     } catch (error) {
       console.error('❌ Erreur critique lors de la déconnexion:', error);
     } finally {
-      // 7. Redirection forcée vers la page d'authentification
+      // 7. Réinitialiser la ref et forcer la redirection
+      isSigningOutRef.current = false;
+      
       console.log('🔄 Redirection forcée vers /auth');
       
-      // Utiliser replace pour éviter que l'utilisateur puisse revenir en arrière
-      window.location.replace('/auth');
+      // Petite pause pour s'assurer que tout est nettoyé
+      setTimeout(() => {
+        // Utiliser replace pour éviter que l'utilisateur puisse revenir en arrière
+        window.location.replace('/auth');
+      }, 100);
     }
   };
 
