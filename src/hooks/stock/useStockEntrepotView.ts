@@ -44,11 +44,11 @@ export const useStockEntrepotView = () => {
             prix_vente,
             prix_achat,
             prix_unitaire,
-            categories_catalogue (
+            categories_catalogue!categorie_id (
               nom,
               couleur
             ),
-            unites (
+            unites!unite_id (
               nom,
               symbole
             )
