@@ -38,22 +38,22 @@ export const useStockEntrepotView = () => {
           quantite_disponible,
           quantite_reservee,
           derniere_entree,
-          catalogue (
+          catalogue!stock_principal_article_id_fkey (
             nom,
             reference,
             prix_vente,
             prix_achat,
             prix_unitaire,
-            categories_catalogue (
+            categories_catalogue!catalogue_categorie_id_fkey (
               nom,
               couleur
             ),
-            unites (
+            unites!catalogue_unite_id_fkey (
               nom,
               symbole
             )
           ),
-          entrepots (
+          entrepots!stock_principal_entrepot_id_fkey (
             nom,
             adresse
           )
@@ -106,7 +106,7 @@ export const useStockEntrepotStats = () => {
         .select(`
           quantite_disponible,
           entrepot_id,
-          catalogue (
+          catalogue!stock_principal_article_id_fkey (
             prix_vente,
             prix_unitaire
           )
