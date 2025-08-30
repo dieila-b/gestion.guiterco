@@ -188,8 +188,8 @@ export const useAuthState = (bypassAuth: boolean, mockUser: UtilisateurInterne, 
       // 4. Nettoyer manuellement le localStorage de toutes les traces d'auth
       const keysToRemove = [
         'supabase.auth.token',
-        `sb-${supabase.supabaseUrl.split('//')[1].split('.')[0]}-auth-token`,
-        'sb-hlmiuwwfxerrinfthvrj-auth-token'
+        'sb-hlmiuwwfxerrinfthvrj-auth-token',
+        'sb-hlmiuwwfxerrinfthvrj.supabase.co-auth-token'
       ];
       
       keysToRemove.forEach(key => {
