@@ -31,6 +31,7 @@ export const PermissionGuard: React.FC<PermissionGuardProps> = ({
     isDevMode,
     hasUser: !!user,
     hasUtilisateurInterne: !!utilisateurInterne,
+    userRole: utilisateurInterne?.role?.name || utilisateurInterne?.role?.nom,
     isLoading,
     authLoading
   });
