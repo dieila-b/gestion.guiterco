@@ -1,5 +1,5 @@
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -239,7 +239,8 @@ export const useAuthState = (bypassAuth: boolean, mockUser: UtilisateurInterne, 
     window.location.replace('/auth');
   };
 
-  const isInternalUser = user && utilisateurInterne && utilisateurInterne.statut === 'actif';
+  const isInternalUser = (bypassAuthRef.current && isDevModeRef.current) || 
+                         (user && utilisateurInterne && utilisateurInterne.statut === 'actif');
 
   console.log('🔍 État auth actuel:', {
     loading,

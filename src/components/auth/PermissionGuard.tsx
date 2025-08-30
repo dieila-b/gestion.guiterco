@@ -34,8 +34,8 @@ export const PermissionGuard: React.FC<PermissionGuardProps> = ({
     userRole: utilisateurInterne?.role
   });
 
-  // En mode développement, être permissif pour les utilisateurs connectés
-  if (isDevMode && (user || utilisateurInterne)) {
+  // En mode développement, être permissif
+  if (isDevMode) {
     console.log('🚀 Mode dev - accès accordé');
     return <>{children}</>;
   }

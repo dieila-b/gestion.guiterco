@@ -30,9 +30,9 @@ export const useUserPermissions = () => {
         return [];
       }
 
-      // En mode développement avec utilisateur mock, donner toutes les permissions
-      if (isDevMode && user.id === '00000000-0000-4000-8000-000000000001') {
-        console.log('🚀 Mode dev avec utilisateur mock - toutes permissions accordées');
+      // En mode développement, donner toutes les permissions
+      if (isDevMode) {
+        console.log('🚀 Mode dev - toutes permissions accordées');
         return [
           { menu: 'Dashboard', action: 'read', can_access: true },
           { menu: 'Catalogue', action: 'read', can_access: true },
@@ -51,6 +51,14 @@ export const useUserPermissions = () => {
           { menu: 'Ventes', submenu: 'Factures', action: 'write', can_access: true },
           { menu: 'Ventes', submenu: 'Précommandes', action: 'read', can_access: true },
           { menu: 'Ventes', submenu: 'Précommandes', action: 'write', can_access: true },
+          { menu: 'Ventes', submenu: 'Vente au Comptoir', action: 'read', can_access: true },
+          { menu: 'Ventes', submenu: 'Vente au Comptoir', action: 'write', can_access: true },
+          { menu: 'Ventes', submenu: 'Factures de vente', action: 'read', can_access: true },
+          { menu: 'Ventes', submenu: 'Factures de vente', action: 'write', can_access: true },
+          { menu: 'Ventes', submenu: 'Factures Impayées', action: 'read', can_access: true },
+          { menu: 'Ventes', submenu: 'Versements', action: 'read', can_access: true },
+          { menu: 'Ventes', submenu: 'Devis', action: 'read', can_access: true },
+          { menu: 'Ventes', submenu: 'Retours clients', action: 'read', can_access: true },
           { menu: 'Achats', submenu: 'Bons de commande', action: 'read', can_access: true },
           { menu: 'Achats', submenu: 'Bons de commande', action: 'write', can_access: true },
           { menu: 'Clients', action: 'read', can_access: true },
@@ -93,24 +101,7 @@ export const useUserPermissions = () => {
 
         if (error) {
           console.error('❌ Erreur lors de la récupération des permissions par rôle:', error);
-          
-          // Fallback : essayer de récupérer toutes les permissions disponibles
-          console.log('🔄 Fallback - Tentative de récupération de toutes les permissions');
-          const { data: allPermissions, error: fallbackError } = await supabase
-            .from('permissions')
-            .select('id, menu, submenu, action')
-            .limit(10);
-          
-          if (fallbackError) {
-            console.error('❌ Erreur fallback permissions:', fallbackError);
-            return [];
-          } else {
-            console.log('📋 Permissions disponibles (fallback):', allPermissions);
-            // En cas d'erreur mais permissions trouvées, donner accès basique
-            return [
-              { menu: 'Dashboard', action: 'read', can_access: true }
-            ];
-          }
+          return [{ menu: 'Dashboard', action: 'read', can_access: true }];
         }
 
         const formattedPermissions = rolePermissions?.map(rp => ({
@@ -135,11 +126,10 @@ export const useUserPermissions = () => {
         
       } catch (error) {
         console.error('❌ Erreur inattendue lors de la récupération des permissions:', error);
-        // En cas d'erreur complète, donner au moins accès au dashboard
         return [{ menu: 'Dashboard', action: 'read', can_access: true }];
       }
     },
-    enabled: !!user?.id && (isDevMode || !!utilisateurInterne?.role?.id),
+    enabled: !!user?.id,
     retry: 2,
     staleTime: 5 * 60 * 1000,
     refetchOnWindowFocus: false,
@@ -152,7 +142,7 @@ export const useHasPermission = () => {
   const { isDevMode, user } = useAuth();
 
   const hasPermission = (menu: string, submenu?: string, action: string = 'read'): boolean => {
-    // En mode développement, être plus permissif
+    // En mode développement, être toujours permissif
     if (isDevMode) {
       console.log(`✅ Permission check (dev mode): ${menu}${submenu ? ` > ${submenu}` : ''} (${action}) - GRANTED`);
       return true;
