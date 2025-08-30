@@ -31,7 +31,7 @@ export const useUserPermissions = (userId: string | undefined) => {
         // D'abord récupérer l'utilisateur interne et son rôle
         const { data: internalUser, error: userError } = await supabase
           .from('utilisateurs_internes')
-          .select('role_id')
+          .select('role_id, type_compte')
           .or(`user_id.eq.${userId},id.eq.${userId}`)
           .eq('statut', 'actif')
           .maybeSingle();
@@ -97,14 +97,7 @@ export const useUserPermissions = (userId: string | undefined) => {
           console.log('⚠️ Nouvelles tables pas encore créées, utilisation des permissions par défaut');
           
           // Fallback: permissions par défaut basées sur le type de compte dans utilisateurs_internes
-          const { data: userData } = await supabase
-            .from('utilisateurs_internes')
-            .select('type_compte')
-            .or(`user_id.eq.${userId},id.eq.${userId}`)
-            .eq('statut', 'actif')
-            .single();
-
-          const typeCompte = userData?.type_compte || 'employe';
+          const typeCompte = internalUser?.type_compte || 'employe';
           
           // Permissions par défaut selon le type de compte
           let defaultPermissions: Permission[] = [];
