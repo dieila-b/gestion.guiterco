@@ -50,13 +50,17 @@ export const useDevMode = () => {
     }
   };
 
+  const toggleBypass = (value?: boolean) => {
+    const newValue = value !== undefined ? value : !bypassAuth;
+    setBypassAuth(newValue);
+    localStorage.setItem('dev_bypass_auth', newValue.toString());
+  };
+
   return {
     isDevMode,
     bypassAuth,
     mockUser,
-    setBypassAuth: (value: boolean) => {
-      setBypassAuth(value);
-      localStorage.setItem('dev_bypass_auth', value.toString());
-    }
+    setBypassAuth: toggleBypass,
+    toggleBypass
   };
 };
