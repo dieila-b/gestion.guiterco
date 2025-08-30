@@ -1,7 +1,8 @@
 
 import React from 'react';
-import { useAuth } from './AuthContext';
 import { useHasPermission } from '@/hooks/useUserPermissions';
+import { useAuth } from '@/components/auth/AuthContext';
+import { Loader2 } from 'lucide-react';
 
 interface PermissionGuardProps {
   children: React.ReactNode;
@@ -18,41 +19,40 @@ export const PermissionGuard: React.FC<PermissionGuardProps> = ({
   action = 'read',
   fallback = null
 }) => {
-  const { isDevMode, loading: authLoading, isInternalUser } = useAuth();
-  const { hasPermission, isLoading: permissionsLoading } = useHasPermission();
+  const { hasPermission, isLoading } = useHasPermission();
+  const { isDevMode, user, utilisateurInterne } = useAuth();
 
-  // En mode dev, toujours autoriser
-  if (isDevMode) {
+  console.log(`PermissionGuard - Vérification: ${menu}${submenu ? ` > ${submenu}` : ''} (${action})`, {
+    isDevMode,
+    hasUser: !!user,
+    hasUtilisateurInterne: !!utilisateurInterne,
+    isLoading
+  });
+
+  // En mode développement, être permissif pour les utilisateurs connectés
+  if (isDevMode && (user || utilisateurInterne)) {
+    console.log('Mode dev - accès accordé');
     return <>{children}</>;
   }
 
-  // Si l'auth est en cours de chargement
-  if (authLoading) {
-    return <div className="flex items-center justify-center p-4">
-      <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
-    </div>;
+  // En production, attendre que le chargement soit terminé
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center p-4">
+        <Loader2 className="h-4 w-4 animate-spin mr-2" />
+        <span className="text-sm text-muted-foreground">Vérification des permissions...</span>
+      </div>
+    );
   }
 
-  // Si pas d'utilisateur interne
-  if (!isInternalUser) {
-    return <>{fallback}</>;
-  }
-
-  // Si les permissions sont en cours de chargement
-  if (permissionsLoading) {
-    return <div className="flex items-center justify-center p-4">
-      <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
-    </div>;
-  }
-
-  // Vérifier la permission
-  if (!hasPermission(menu, submenu, action)) {
-    console.log(`🚫 Permission refusée: ${menu}${submenu ? ` > ${submenu}` : ''} (${action})`);
+  // Vérifier les permissions
+  const hasAccess = hasPermission(menu, submenu, action);
+  
+  console.log(`PermissionGuard - Résultat: ${hasAccess ? 'Accès accordé' : 'Accès refusé'}`);
+  
+  if (!hasAccess) {
     return <>{fallback}</>;
   }
 
   return <>{children}</>;
 };
-
-// Export par défaut pour la compatibilité
-export default PermissionGuard;

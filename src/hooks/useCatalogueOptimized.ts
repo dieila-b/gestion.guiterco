@@ -2,7 +2,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useMemo } from 'react';
-import { useAuth } from '@/components/auth/AuthContext';
 
 export interface ArticleOptimized {
   id: string;
@@ -24,7 +23,6 @@ export const useCatalogueOptimized = (
   searchTerm = '', 
   category = ''
 ) => {
-  const { isDevMode } = useAuth();
   const from = (page - 1) * limit;
   const to = from + limit - 1;
 
@@ -33,51 +31,6 @@ export const useCatalogueOptimized = (
     queryFn: async () => {
       console.log('Fetching optimized catalogue data...');
       
-      // En mode dev, retourner des données mockées
-      if (isDevMode) {
-        const mockArticles: ArticleOptimized[] = [
-          {
-            id: 'mock-1',
-            nom: 'Article Test 1',
-            reference: 'TEST001',
-            prix_achat: 15.00,
-            prix_vente: 25.00,
-            categorie: 'Électronique',
-            image_url: null,
-            statut: 'actif',
-            categorie_id: 'mock-cat-1',
-            unite_id: 'mock-unite-1'
-          },
-          {
-            id: 'mock-2',
-            nom: 'Article Test 2',
-            reference: 'TEST002',
-            prix_achat: 10.00,
-            prix_vente: 18.00,
-            categorie: 'Bureau',
-            image_url: null,
-            statut: 'actif',
-            categorie_id: 'mock-cat-2',
-            unite_id: 'mock-unite-2'
-          }
-        ];
-        
-        // Simuler le filtrage
-        let filteredArticles = mockArticles;
-        if (searchTerm) {
-          filteredArticles = mockArticles.filter(a => 
-            a.nom.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            a.reference.toLowerCase().includes(searchTerm.toLowerCase())
-          );
-        }
-        
-        return { 
-          articles: filteredArticles.slice(from, to + 1), 
-          totalCount: filteredArticles.length,
-          hasMore: filteredArticles.length > to + 1
-        };
-      }
-
       let query = supabase
         .from('catalogue')
         .select(`
@@ -92,6 +45,7 @@ export const useCatalogueOptimized = (
           categorie_id,
           unite_id
         `, { count: 'exact' })
+        // Temporairement désactivé pour debug : .eq('statut', 'actif')
         .range(from, to);
 
       // Filtrage côté serveur
@@ -119,11 +73,10 @@ export const useCatalogueOptimized = (
         hasMore: (count || 0) > to + 1
       };
     },
-    retry: isDevMode ? false : 3,
-    staleTime: isDevMode ? Infinity : 10 * 60 * 1000,
+    staleTime: 10 * 60 * 1000, // 10 minutes pour le catalogue
     gcTime: 15 * 60 * 1000,
-    refetchOnWindowFocus: !isDevMode,
-    refetchOnMount: !isDevMode
+    refetchOnWindowFocus: false,
+    refetchOnMount: false
   });
 
   // Mémorisation des catégories pour éviter les re-calculs
@@ -145,30 +98,12 @@ export const useCatalogueOptimized = (
 
 // Hook pour recherche en temps réel avec debounce
 export const useCatalogueSearch = (searchTerm: string, enabled = false) => {
-  const { isDevMode } = useAuth();
-
   return useQuery({
     queryKey: ['catalogue_search', searchTerm],
     queryFn: async () => {
       if (!searchTerm || searchTerm.length < 2) return [];
       
       console.log('Searching catalogue with term:', searchTerm);
-      
-      // En mode dev, retourner des résultats mockés
-      if (isDevMode) {
-        const mockResults: ArticleOptimized[] = [
-          {
-            id: 'search-mock-1',
-            nom: `Résultat pour "${searchTerm}"`,
-            reference: 'SEARCH001',
-            prix_achat: 12.00,
-            prix_vente: 20.00,
-            image_url: null,
-            statut: 'actif'
-          }
-        ];
-        return mockResults;
-      }
       
       const { data, error } = await supabase
         .from('catalogue')
@@ -181,6 +116,7 @@ export const useCatalogueSearch = (searchTerm: string, enabled = false) => {
           image_url,
           statut
         `)
+        // Temporairement désactivé pour debug : .eq('statut', 'actif')
         .or(`nom.ilike.%${searchTerm}%,reference.ilike.%${searchTerm}%`)
         .limit(10);
       
@@ -193,7 +129,6 @@ export const useCatalogueSearch = (searchTerm: string, enabled = false) => {
       return data as ArticleOptimized[];
     },
     enabled: enabled && searchTerm.length >= 2,
-    retry: isDevMode ? false : 3,
     staleTime: 5 * 60 * 1000,
     refetchOnWindowFocus: false
   });

@@ -2,61 +2,14 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { StockPrincipal } from '@/components/stock/types';
-import { useAuth } from '@/components/auth/AuthContext';
 
 export const useStockPrincipal = () => {
   const queryClient = useQueryClient();
-  const { isDevMode } = useAuth();
   
   const { data: stockEntrepot, isLoading, error } = useQuery({
     queryKey: ['stock-principal'],
     queryFn: async () => {
       console.log('Fetching stock principal data with improved relations...');
-      
-      // En mode dev, retourner des données mockées
-      if (isDevMode) {
-        return [
-          {
-            id: 'mock-stock-principal-1',
-            article_id: 'mock-article-1',
-            entrepot_id: 'mock-entrepot-1',
-            quantite_disponible: 100,
-            quantite_reservee: 10,
-            emplacement: 'A1-B2',
-            derniere_entree: new Date().toISOString(),
-            derniere_sortie: new Date().toISOString(),
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-            article: {
-              id: 'mock-article-1',
-              reference: 'REF001',
-              nom: 'Article Principal Test',
-              description: 'Description test',
-              categorie: 'Électronique',
-              unite_mesure: 'pièce',
-              prix_unitaire: 20.00,
-              prix_achat: 15.00,
-              prix_vente: 25.99,
-              seuil_alerte: 20,
-              statut: 'actif',
-              created_at: new Date().toISOString(),
-              updated_at: new Date().toISOString(),
-              categorie_article: { nom: 'Électronique' },
-              unite_article: { nom: 'pièce' }
-            },
-            entrepot: {
-              id: 'mock-entrepot-1',
-              nom: 'Entrepôt Principal',
-              adresse: 'Adresse test',
-              capacite_max: 10000,
-              gestionnaire: 'Gestionnaire test',
-              statut: 'actif',
-              created_at: new Date().toISOString(),
-              updated_at: new Date().toISOString()
-            }
-          }
-        ] as StockPrincipal[];
-      }
       
       const { data, error } = await supabase
         .from('stock_principal')
@@ -98,21 +51,22 @@ export const useStockPrincipal = () => {
       }
       
       console.log('Stock principal data loaded with relations:', data);
+      console.log('Number of items:', data?.length);
+      console.log('First item with relations:', data?.[0]);
+      console.log('Article relation:', data?.[0]?.article);
+      console.log('Entrepot relation:', data?.[0]?.entrepot);
       return data as StockPrincipal[];
     },
-    retry: isDevMode ? false : 3,
-    staleTime: isDevMode ? Infinity : 2 * 60 * 1000,
-    refetchOnWindowFocus: !isDevMode,
-    refetchInterval: isDevMode ? false : 5 * 60 * 1000
+    staleTime: 2 * 60 * 1000, // 2 minutes pour des données plus fraîches
+    refetchOnWindowFocus: true, // Rafraîchir quand on revient sur la fenêtre
+    refetchInterval: 5 * 60 * 1000 // Rafraîchir automatiquement toutes les 5 minutes
   });
 
   // Fonction pour forcer le rafraîchissement
   const refreshStock = () => {
-    if (!isDevMode) {
-      queryClient.invalidateQueries({ queryKey: ['stock-principal'] });
-      queryClient.invalidateQueries({ queryKey: ['catalogue'] });
-      queryClient.invalidateQueries({ queryKey: ['entrepots'] });
-    }
+    queryClient.invalidateQueries({ queryKey: ['stock-principal'] });
+    queryClient.invalidateQueries({ queryKey: ['catalogue'] });
+    queryClient.invalidateQueries({ queryKey: ['entrepots'] });
   };
 
   return {
