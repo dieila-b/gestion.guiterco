@@ -21,10 +21,12 @@ export const useDevMode = () => {
     
     setIsDevMode(devMode);
     
-    // En mode dev, permettre le bypass d'authentification
+    // En mode dev, vérifier le statut du bypass
     if (devMode) {
-      const shouldBypass = localStorage.getItem('dev_bypass_auth') !== 'false';
+      const bypassStatus = localStorage.getItem('dev_bypass_auth');
+      const shouldBypass = bypassStatus === null || bypassStatus === 'true';
       setBypassAuth(shouldBypass);
+      
       console.log('🔧 Mode développement détecté:', {
         hostname,
         isLovablePreview,
@@ -55,6 +57,11 @@ export const useDevMode = () => {
     setBypassAuth(newValue);
     localStorage.setItem('dev_bypass_auth', newValue.toString());
     console.log('🔧 Toggle bypass auth:', newValue);
+    
+    // Forcer un rechargement pour appliquer les changements
+    if (isDevMode) {
+      window.location.reload();
+    }
   };
 
   return {

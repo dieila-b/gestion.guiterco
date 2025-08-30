@@ -3,7 +3,7 @@ import React from 'react';
 import { useDevMode } from '@/hooks/useDevMode';
 import { AuthContext } from './AuthContext';
 import { useAuthState } from './useAuthState';
-import '@/utils/clearDevCache'; // Auto-nettoyage du cache
+import '@/utils/clearDevCache';
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const { bypassAuth, mockUser, isDevMode } = useDevMode();
@@ -14,7 +14,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     email: mockUser.email,
     prenom: mockUser.user_metadata.prenom,
     nom: mockUser.user_metadata.nom,
-    role: mockUser.role,
+    role: {
+      id: mockUser.role.id,
+      name: mockUser.role.name,
+      nom: mockUser.role.name, // Compatibilité
+      description: mockUser.role.description
+    },
     statut: 'actif' as const,
     type_compte: 'admin' as const,
     photo_url: mockUser.user_metadata.avatar_url
