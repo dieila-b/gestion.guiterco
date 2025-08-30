@@ -22,7 +22,9 @@ export const useStockPrincipal = () => {
             entrepot_id: 'mock-entrepot-1',
             quantite_disponible: 100,
             quantite_reservee: 10,
-            seuil_alerte: 20,
+            emplacement: 'A1-B2',
+            derniere_entree: new Date().toISOString(),
+            derniere_sortie: new Date().toISOString(),
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
             article: {
@@ -35,8 +37,8 @@ export const useStockPrincipal = () => {
               prix_unitaire: 20.00,
               prix_achat: 15.00,
               prix_vente: 25.99,
-              statut: 'actif',
               seuil_alerte: 20,
+              statut: 'actif',
               created_at: new Date().toISOString(),
               updated_at: new Date().toISOString(),
               categorie_article: { nom: 'Électronique' },
@@ -46,9 +48,9 @@ export const useStockPrincipal = () => {
               id: 'mock-entrepot-1',
               nom: 'Entrepôt Principal',
               adresse: 'Adresse test',
+              capacite_max: 10000,
               gestionnaire: 'Gestionnaire test',
               statut: 'actif',
-              capacite_max: 10000,
               created_at: new Date().toISOString(),
               updated_at: new Date().toISOString()
             }

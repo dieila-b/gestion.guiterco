@@ -18,22 +18,36 @@ export const useStockPDV = () => {
             article_id: 'mock-article-1',
             point_vente_id: 'mock-pdv-1',
             quantite_disponible: 25,
-            seuil_alerte: 5,
+            quantite_minimum: 5,
+            derniere_livraison: new Date().toISOString(),
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
             article: {
               id: 'mock-article-1',
-              nom: 'Article PDV Test',
               reference: 'PDV001',
+              nom: 'Article PDV Test',
+              description: 'Description test',
+              categorie: 'Test',
+              unite_mesure: 'pièce',
+              prix_unitaire: 29.99,
+              prix_achat: 20.00,
               prix_vente: 29.99,
+              seuil_alerte: 5,
               statut: 'actif',
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
               categorie_article: { nom: 'Test' },
               unite_article: { nom: 'pièce' }
             },
             point_vente: {
               id: 'mock-pdv-1',
               nom: 'PDV Principal',
-              statut: 'actif'
+              adresse: 'Adresse test',
+              type_pdv: 'principal',
+              responsable: 'Responsable test',
+              statut: 'actif',
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString()
             }
           }
         ] as StockPointDeVente[];
