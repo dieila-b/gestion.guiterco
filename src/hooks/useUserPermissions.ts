@@ -10,82 +10,72 @@ export interface UserPermission {
   can_access: boolean;
 }
 
+// Permissions complètes pour le mode dev
+const DEV_PERMISSIONS: UserPermission[] = [
+  { menu: 'Dashboard', action: 'read', can_access: true },
+  { menu: 'Catalogue', action: 'read', can_access: true },
+  { menu: 'Catalogue', action: 'write', can_access: true },
+  { menu: 'Stock', submenu: 'Entrepôts', action: 'read', can_access: true },
+  { menu: 'Stock', submenu: 'Entrepôts', action: 'write', can_access: true },
+  { menu: 'Stock', submenu: 'PDV', action: 'read', can_access: true },
+  { menu: 'Stock', submenu: 'PDV', action: 'write', can_access: true },
+  { menu: 'Stock', submenu: 'Stock Entrepôt', action: 'read', can_access: true },
+  { menu: 'Stock', submenu: 'Stock PDV', action: 'read', can_access: true },
+  { menu: 'Stock', submenu: 'Entrées', action: 'read', can_access: true },
+  { menu: 'Stock', submenu: 'Sorties', action: 'read', can_access: true },
+  { menu: 'Stock', submenu: 'Transferts', action: 'read', can_access: true },
+  { menu: 'Stock', submenu: 'Catalogue', action: 'read', can_access: true },
+  { menu: 'Ventes', submenu: 'Factures', action: 'read', can_access: true },
+  { menu: 'Ventes', submenu: 'Factures', action: 'write', can_access: true },
+  { menu: 'Ventes', submenu: 'Précommandes', action: 'read', can_access: true },
+  { menu: 'Ventes', submenu: 'Précommandes', action: 'write', can_access: true },
+  { menu: 'Ventes', submenu: 'Vente au Comptoir', action: 'read', can_access: true },
+  { menu: 'Ventes', submenu: 'Vente au Comptoir', action: 'write', can_access: true },
+  { menu: 'Ventes', submenu: 'Factures de vente', action: 'read', can_access: true },
+  { menu: 'Ventes', submenu: 'Factures de vente', action: 'write', can_access: true },
+  { menu: 'Ventes', submenu: 'Factures Impayées', action: 'read', can_access: true },
+  { menu: 'Ventes', submenu: 'Versements', action: 'read', can_access: true },
+  { menu: 'Ventes', submenu: 'Devis', action: 'read', can_access: true },
+  { menu: 'Ventes', submenu: 'Retours clients', action: 'read', can_access: true },
+  { menu: 'Achats', submenu: 'Bons de commande', action: 'read', can_access: true },
+  { menu: 'Achats', submenu: 'Bons de commande', action: 'write', can_access: true },
+  { menu: 'Clients', action: 'read', can_access: true },
+  { menu: 'Clients', action: 'write', can_access: true },
+  { menu: 'Marges', action: 'read', can_access: true },
+  { menu: 'Rapports', action: 'read', can_access: true },
+  { menu: 'Paramètres', submenu: 'Rôles et permissions', action: 'read', can_access: true },
+  { menu: 'Paramètres', submenu: 'Rôles et permissions', action: 'write', can_access: true }
+];
+
 export const useUserPermissions = () => {
   const { user, isDevMode, utilisateurInterne } = useAuth();
 
   return useQuery({
-    queryKey: ['user-permissions', user?.id, isDevMode, utilisateurInterne?.id, utilisateurInterne?.role?.id],
+    queryKey: ['user-permissions', user?.id, isDevMode],
     queryFn: async () => {
-      console.log('🔍 useUserPermissions - Début chargement des permissions:', {
+      console.log('🔍 useUserPermissions - Chargement permissions:', {
         userId: user?.id,
         isDevMode,
-        utilisateurInterneId: utilisateurInterne?.id,
-        roleId: utilisateurInterne?.role?.id,
-        roleName: utilisateurInterne?.role?.name || utilisateurInterne?.role?.nom,
-        userEmail: user?.email
+        hasUtilisateurInterne: !!utilisateurInterne
       });
 
-      if (!user?.id) {
-        console.warn('❌ useUserPermissions - Pas d\'utilisateur connecté');
-        return [];
-      }
-
-      // En mode développement, donner toutes les permissions
+      // En mode développement, retourner immédiatement toutes les permissions
       if (isDevMode) {
-        console.log('🚀 Mode dev - toutes permissions accordées');
-        return [
-          { menu: 'Dashboard', action: 'read', can_access: true },
-          { menu: 'Catalogue', action: 'read', can_access: true },
-          { menu: 'Catalogue', action: 'write', can_access: true },
-          { menu: 'Stock', submenu: 'Entrepôts', action: 'read', can_access: true },
-          { menu: 'Stock', submenu: 'Entrepôts', action: 'write', can_access: true },
-          { menu: 'Stock', submenu: 'PDV', action: 'read', can_access: true },
-          { menu: 'Stock', submenu: 'PDV', action: 'write', can_access: true },
-          { menu: 'Stock', submenu: 'Stock Entrepôt', action: 'read', can_access: true },
-          { menu: 'Stock', submenu: 'Stock PDV', action: 'read', can_access: true },
-          { menu: 'Stock', submenu: 'Entrées', action: 'read', can_access: true },
-          { menu: 'Stock', submenu: 'Sorties', action: 'read', can_access: true },
-          { menu: 'Stock', submenu: 'Transferts', action: 'read', can_access: true },
-          { menu: 'Stock', submenu: 'Catalogue', action: 'read', can_access: true },
-          { menu: 'Ventes', submenu: 'Factures', action: 'read', can_access: true },
-          { menu: 'Ventes', submenu: 'Factures', action: 'write', can_access: true },
-          { menu: 'Ventes', submenu: 'Précommandes', action: 'read', can_access: true },
-          { menu: 'Ventes', submenu: 'Précommandes', action: 'write', can_access: true },
-          { menu: 'Ventes', submenu: 'Vente au Comptoir', action: 'read', can_access: true },
-          { menu: 'Ventes', submenu: 'Vente au Comptoir', action: 'write', can_access: true },
-          { menu: 'Ventes', submenu: 'Factures de vente', action: 'read', can_access: true },
-          { menu: 'Ventes', submenu: 'Factures de vente', action: 'write', can_access: true },
-          { menu: 'Ventes', submenu: 'Factures Impayées', action: 'read', can_access: true },
-          { menu: 'Ventes', submenu: 'Versements', action: 'read', can_access: true },
-          { menu: 'Ventes', submenu: 'Devis', action: 'read', can_access: true },
-          { menu: 'Ventes', submenu: 'Retours clients', action: 'read', can_access: true },
-          { menu: 'Achats', submenu: 'Bons de commande', action: 'read', can_access: true },
-          { menu: 'Achats', submenu: 'Bons de commande', action: 'write', can_access: true },
-          { menu: 'Clients', action: 'read', can_access: true },
-          { menu: 'Clients', action: 'write', can_access: true },
-          { menu: 'Marges', action: 'read', can_access: true },
-          { menu: 'Rapports', action: 'read', can_access: true },
-          { menu: 'Paramètres', submenu: 'Rôles et permissions', action: 'read', can_access: true },
-          { menu: 'Paramètres', submenu: 'Rôles et permissions', action: 'write', can_access: true }
-        ] as UserPermission[];
+        console.log('🚀 Mode dev - permissions complètes accordées immédiatement');
+        return DEV_PERMISSIONS;
       }
 
-      // Pour les utilisateurs réels, vérifier d'abord si on a un utilisateur interne
-      if (!utilisateurInterne) {
-        console.warn('❌ useUserPermissions - Pas d\'utilisateur interne trouvé');
+      if (!user?.id) {
+        console.warn('❌ Pas d\'utilisateur connecté');
         return [];
       }
 
-      // Vérifier si on a un rôle
-      if (!utilisateurInterne.role?.id) {
-        console.warn('❌ useUserPermissions - Pas de rôle défini pour l\'utilisateur interne:', utilisateurInterne);
-        return [];
+      if (!utilisateurInterne?.role?.id) {
+        console.warn('❌ Pas de rôle défini pour l\'utilisateur');
+        return [{ menu: 'Dashboard', action: 'read', can_access: true }];
       }
 
       try {
-        console.log('🔍 Récupération des permissions via role_id:', utilisateurInterne.role.id);
-        
-        // Récupérer les permissions directement via le rôle
         const { data: rolePermissions, error } = await supabase
           .from('role_permissions')
           .select(`
@@ -100,7 +90,7 @@ export const useUserPermissions = () => {
           .eq('can_access', true);
 
         if (error) {
-          console.error('❌ Erreur lors de la récupération des permissions par rôle:', error);
+          console.error('❌ Erreur permissions:', error);
           return [{ menu: 'Dashboard', action: 'read', can_access: true }];
         }
 
@@ -111,50 +101,38 @@ export const useUserPermissions = () => {
           can_access: true
         })) || [];
 
-        console.log('✅ Permissions récupérées avec succès:', {
-          count: formattedPermissions.length,
-          permissions: formattedPermissions
-        });
+        console.log('✅ Permissions chargées:', formattedPermissions.length);
         
-        // Si aucune permission trouvée, donner au moins accès au dashboard
         if (formattedPermissions.length === 0) {
-          console.log('⚠️ Aucune permission spécifique trouvée, accès dashboard par défaut');
           return [{ menu: 'Dashboard', action: 'read', can_access: true }];
         }
         
         return formattedPermissions;
         
       } catch (error) {
-        console.error('❌ Erreur inattendue lors de la récupération des permissions:', error);
+        console.error('❌ Erreur critique permissions:', error);
         return [{ menu: 'Dashboard', action: 'read', can_access: true }];
       }
     },
     enabled: !!user?.id,
-    retry: 2,
+    retry: 1,
     staleTime: 5 * 60 * 1000,
     refetchOnWindowFocus: false,
-    refetchOnMount: true
+    refetchOnMount: false
   });
 };
 
 export const useHasPermission = () => {
-  const { data: permissions = [], isLoading, error } = useUserPermissions();
-  const { isDevMode, user } = useAuth();
+  const { data: permissions = [], isLoading } = useUserPermissions();
+  const { isDevMode } = useAuth();
 
   const hasPermission = (menu: string, submenu?: string, action: string = 'read'): boolean => {
-    // En mode développement, être toujours permissif
+    // En mode développement, toujours accorder les permissions
     if (isDevMode) {
-      console.log(`✅ Permission check (dev mode): ${menu}${submenu ? ` > ${submenu}` : ''} (${action}) - GRANTED`);
       return true;
     }
     
     if (isLoading) {
-      console.log('⏳ Permissions en cours de chargement...');
-      return false;
-    }
-    
-    if (error) {
-      console.error('❌ Erreur lors du chargement des permissions:', error);
       return false;
     }
     
@@ -166,10 +144,8 @@ export const useHasPermission = () => {
       return menuMatch && submenuMatch && actionMatch && permission.can_access;
     });
     
-    console.log(`🔒 Vérification permission: ${menu}${submenu ? ` > ${submenu}` : ''} (${action}):`, hasAccess ? '✅ GRANTED' : '❌ DENIED');
-    
     return hasAccess;
   };
 
-  return { hasPermission, isLoading, permissions };
+  return { hasPermission, isLoading: isDevMode ? false : isLoading, permissions };
 };

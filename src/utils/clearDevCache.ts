@@ -1,33 +1,22 @@
-// Utilitaire pour nettoyer le cache dev après changement d'UUID
-export const clearDevCache = () => {
-  // Nettoyer le localStorage des anciennes données dev
-  const keysToRemove = [
-    'supabase.auth.token',
-    'sb-hlmiuwwfxerrinfthvrj-auth-token',
-    'dev_bypass_auth'
-  ];
-  
-  keysToRemove.forEach(key => {
-    localStorage.removeItem(key);
-  });
-  
-  // Nettoyer le sessionStorage aussi
-  sessionStorage.clear();
-  
-  console.log('🧹 Cache dev nettoyé');
-};
 
-// Auto-nettoyage au chargement en mode dev
-if (window.location.hostname === 'localhost' || 
-    window.location.hostname.includes('127.0.0.1') ||
-    window.location.hostname.includes('.local')) {
+// Auto-nettoyage du cache pour éviter les problèmes en mode dev
+if (typeof window !== 'undefined' && window.location.hostname.includes('lovable.app')) {
+  // Nettoyer le localStorage des anciennes données d'auth en mode dev
+  const authKeys = Object.keys(localStorage).filter(key => 
+    key.includes('supabase') || key.includes('auth') || key.includes('user')
+  );
   
-  const lastUuidCheck = localStorage.getItem('dev_uuid_version');
-  const currentUuidVersion = '00000000-0000-4000-8000-000000000001';
-  
-  if (lastUuidCheck !== currentUuidVersion) {
-    clearDevCache();
-    localStorage.setItem('dev_uuid_version', currentUuidVersion);
-    console.log('🔄 UUID dev mis à jour, cache nettoyé');
-  }
+  authKeys.forEach(key => {
+    try {
+      const value = localStorage.getItem(key);
+      if (value && value.includes('mock') && !value.includes('dev')) {
+        localStorage.removeItem(key);
+        console.log('🧹 Nettoyage cache dev:', key);
+      }
+    } catch (e) {
+      // Ignore les erreurs de parsing
+    }
+  });
 }
+
+export {};
