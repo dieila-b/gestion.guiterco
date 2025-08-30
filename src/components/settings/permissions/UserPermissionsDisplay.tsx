@@ -7,8 +7,8 @@ import { useAuth } from '@/components/auth/AuthContext';
 import { Loader2, User, Shield, Eye, Edit, Trash2 } from 'lucide-react';
 
 export const UserPermissionsDisplay: React.FC = () => {
-  const { data: permissions = [], isLoading } = useUserPermissions();
   const { utilisateurInterne, user } = useAuth();
+  const { permissions, isLoading } = useUserPermissions(utilisateurInterne?.id);
 
   if (isLoading) {
     return (

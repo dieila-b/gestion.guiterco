@@ -119,9 +119,21 @@ export const checkInternalUser = async (userId: string): Promise<UtilisateurInte
           };
         } else if (roleError) {
           console.log('⚠️ Table roles pas encore créée, utilisation d\'un rôle par défaut');
+          roleData = {
+            id: 'default-role',
+            name: 'Utilisateur',
+            nom: 'Utilisateur',
+            description: 'Rôle par défaut'
+          };
         }
       } catch (roleError) {
         console.log('⚠️ Erreur lors de la récupération du rôle (table roles pas encore créée?):', roleError);
+        roleData = {
+          id: 'default-role',
+          name: 'Utilisateur',
+          nom: 'Utilisateur',
+          description: 'Rôle par défaut'
+        };
       }
     }
 

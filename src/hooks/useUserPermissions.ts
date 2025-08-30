@@ -64,33 +64,38 @@ export const useUserPermissions = (userId: string | undefined) => {
             throw new Error('Table roles not found');
           }
 
-          setUserRole(role);
+          if (role) {
+            setUserRole(role);
 
-          // Récupérer les permissions du rôle
-          const { data: rolePermissions, error: permError } = await supabase
-            .from('role_permissions')
-            .select(`
-              can_access,
-              permissions (
-                menu,
-                submenu,
-                action
-              )
-            `)
-            .eq('role_id', internalUser.role_id);
+            // Récupérer les permissions du rôle
+            const { data: rolePermissions, error: permError } = await supabase
+              .from('role_permissions')
+              .select(`
+                can_access,
+                permissions (
+                  menu,
+                  submenu,
+                  action
+                )
+              `)
+              .eq('role_id', internalUser.role_id);
 
-          if (permError) {
-            throw new Error('Table role_permissions not found');
+            if (permError) {
+              throw new Error('Table role_permissions not found');
+            }
+
+            const formattedPermissions: Permission[] = rolePermissions.map(rp => ({
+              menu: rp.permissions.menu,
+              submenu: rp.permissions.submenu,
+              action: rp.permissions.action,
+              can_access: rp.can_access
+            }));
+
+            setPermissions(formattedPermissions);
+          } else {
+            // Pas de rôle trouvé, utiliser les permissions par défaut
+            throw new Error('Role not found');
           }
-
-          const formattedPermissions: Permission[] = rolePermissions.map(rp => ({
-            menu: rp.permissions.menu,
-            submenu: rp.permissions.submenu,
-            action: rp.permissions.action,
-            can_access: rp.can_access
-          }));
-
-          setPermissions(formattedPermissions);
 
         } catch (tablesError) {
           console.log('⚠️ Nouvelles tables pas encore créées, utilisation des permissions par défaut');
