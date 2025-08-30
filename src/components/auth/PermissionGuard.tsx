@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { useHasPermission } from '@/hooks/useUserPermissions';
+import { useHasPermission } from '@/hooks/useHasPermission';
 import { useAuth } from '@/components/auth/AuthContext';
 import { Loader2, AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
