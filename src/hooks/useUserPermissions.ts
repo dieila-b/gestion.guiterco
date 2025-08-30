@@ -1,141 +1,181 @@
 
-import { useQuery } from '@tanstack/react-query';
+import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/components/auth/AuthContext';
 
-export interface UserPermission {
+interface Permission {
   menu: string;
-  submenu?: string;
+  submenu: string | null;
   action: string;
   can_access: boolean;
 }
 
-export const useUserPermissions = () => {
-  const { user, isDevMode, utilisateurInterne } = useAuth();
+interface UserRole {
+  id: string;
+  nom: string;
+  description: string | null;
+}
 
-  return useQuery({
-    queryKey: ['user-permissions', user?.id, utilisateurInterne?.role?.id],
-    queryFn: async () => {
-      console.log('🔐 Chargement des permissions pour:', {
-        userId: user?.id,
-        isDevMode,
-        utilisateurInterneId: utilisateurInterne?.id,
-        roleId: utilisateurInterne?.role?.id
-      });
+export const useUserPermissions = (userId: string | undefined) => {
+  const [permissions, setPermissions] = useState<Permission[]>([]);
+  const [userRole, setUserRole] = useState<UserRole | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-      if (!user?.id) {
-        console.warn('❌ Pas d\'utilisateur connecté');
-        return [];
-      }
+  useEffect(() => {
+    if (!userId) {
+      setIsLoading(false);
+      return;
+    }
 
-      // En mode développement avec utilisateur mock, donner toutes les permissions
-      if (isDevMode && user.id === '00000000-0000-4000-8000-000000000001') {
-        console.log('🚀 Mode dev avec utilisateur mock - toutes permissions accordées');
-        return [
-          { menu: 'Dashboard', action: 'read', can_access: true },
-          { menu: 'Catalogue', action: 'read', can_access: true },
-          { menu: 'Catalogue', action: 'write', can_access: true },
-          { menu: 'Stock', submenu: 'Entrepôts', action: 'read', can_access: true },
-          { menu: 'Stock', submenu: 'Entrepôts', action: 'write', can_access: true },
-          { menu: 'Stock', submenu: 'PDV', action: 'read', can_access: true },
-          { menu: 'Stock', submenu: 'PDV', action: 'write', can_access: true },
-          { menu: 'Ventes', submenu: 'Factures', action: 'read', can_access: true },
-          { menu: 'Ventes', submenu: 'Factures', action: 'write', can_access: true },
-          { menu: 'Ventes', submenu: 'Précommandes', action: 'read', can_access: true },
-          { menu: 'Ventes', submenu: 'Précommandes', action: 'write', can_access: true },
-          { menu: 'Achats', submenu: 'Bons de commande', action: 'read', can_access: true },
-          { menu: 'Achats', submenu: 'Bons de commande', action: 'write', can_access: true },
-          { menu: 'Clients', action: 'read', can_access: true },
-          { menu: 'Clients', action: 'write', can_access: true },
-          { menu: 'Caisse', action: 'read', can_access: true },
-          { menu: 'Caisse', action: 'write', can_access: true },
-          { menu: 'Rapports', action: 'read', can_access: true },
-          { menu: 'Paramètres', submenu: 'Rôles et permissions', action: 'read', can_access: true },
-          { menu: 'Paramètres', submenu: 'Rôles et permissions', action: 'write', can_access: true }
-        ] as UserPermission[];
-      }
-
-      // Pour les utilisateurs réels, utiliser les nouvelles tables
-      if (!utilisateurInterne?.role?.id) {
-        console.warn('❌ Utilisateur sans rôle défini');
-        return [];
-      }
-
+    const fetchPermissions = async () => {
       try {
-        console.log('📊 Récupération des permissions pour le rôle:', utilisateurInterne.role.id);
-        
-        const { data, error } = await supabase
-          .from('role_permissions')
-          .select(`
-            can_access,
-            permission:permissions(menu, submenu, action)
-          `)
-          .eq('role_id', utilisateurInterne.role.id)
-          .eq('can_access', true);
+        // D'abord récupérer l'utilisateur interne et son rôle
+        const { data: internalUser, error: userError } = await supabase
+          .from('utilisateurs_internes')
+          .select('role_id')
+          .or(`user_id.eq.${userId},id.eq.${userId}`)
+          .eq('statut', 'actif')
+          .maybeSingle();
 
-        if (error) {
-          console.error('❌ Erreur lors de la récupération des permissions:', error);
-          return [];
+        if (userError || !internalUser?.role_id) {
+          console.log('❌ Utilisateur interne non trouvé ou pas de rôle assigné');
+          // Fallback: permissions par défaut (lecture seule limitée)
+          setPermissions([
+            { menu: 'Catalogue', submenu: null, action: 'read', can_access: true },
+            { menu: 'Stock', submenu: 'PDV', action: 'read', can_access: true }
+          ]);
+          setUserRole({
+            id: 'default',
+            nom: 'Utilisateur',
+            description: 'Permissions limitées par défaut'
+          });
+          setIsLoading(false);
+          return;
         }
 
-        const formattedPermissions = data?.map(rp => ({
-          menu: rp.permission.menu,
-          submenu: rp.permission.submenu,
-          action: rp.permission.action,
-          can_access: rp.can_access
-        })) || [];
+        // Essayer de récupérer le rôle depuis la nouvelle table
+        try {
+          const { data: role, error: roleError } = await supabase
+            .from('roles')
+            .select('id, nom, description')
+            .eq('id', internalUser.role_id)
+            .maybeSingle();
 
-        console.log('✅ Permissions récupérées:', formattedPermissions);
-        return formattedPermissions;
-        
+          if (roleError) {
+            throw new Error('Table roles not found');
+          }
+
+          setUserRole(role);
+
+          // Récupérer les permissions du rôle
+          const { data: rolePermissions, error: permError } = await supabase
+            .from('role_permissions')
+            .select(`
+              can_access,
+              permissions (
+                menu,
+                submenu,
+                action
+              )
+            `)
+            .eq('role_id', internalUser.role_id);
+
+          if (permError) {
+            throw new Error('Table role_permissions not found');
+          }
+
+          const formattedPermissions: Permission[] = rolePermissions.map(rp => ({
+            menu: rp.permissions.menu,
+            submenu: rp.permissions.submenu,
+            action: rp.permissions.action,
+            can_access: rp.can_access
+          }));
+
+          setPermissions(formattedPermissions);
+
+        } catch (tablesError) {
+          console.log('⚠️ Nouvelles tables pas encore créées, utilisation des permissions par défaut');
+          
+          // Fallback: permissions par défaut basées sur le type de compte dans utilisateurs_internes
+          const { data: userData } = await supabase
+            .from('utilisateurs_internes')
+            .select('type_compte')
+            .or(`user_id.eq.${userId},id.eq.${userId}`)
+            .eq('statut', 'actif')
+            .single();
+
+          const typeCompte = userData?.type_compte || 'employe';
+          
+          // Permissions par défaut selon le type de compte
+          let defaultPermissions: Permission[] = [];
+          let defaultRole = { id: 'default', nom: 'Utilisateur', description: 'Rôle par défaut' };
+
+          if (typeCompte === 'admin') {
+            defaultRole = { id: 'admin', nom: 'Administrateur', description: 'Accès complet' };
+            defaultPermissions = [
+              { menu: 'Dashboard', submenu: null, action: 'read', can_access: true },
+              { menu: 'Catalogue', submenu: null, action: 'read', can_access: true },
+              { menu: 'Catalogue', submenu: null, action: 'write', can_access: true },
+              { menu: 'Stock', submenu: null, action: 'read', can_access: true },
+              { menu: 'Stock', submenu: null, action: 'write', can_access: true },
+              { menu: 'Ventes', submenu: null, action: 'read', can_access: true },
+              { menu: 'Ventes', submenu: null, action: 'write', can_access: true },
+              { menu: 'Achats', submenu: null, action: 'read', can_access: true },
+              { menu: 'Achats', submenu: null, action: 'write', can_access: true },
+              { menu: 'Clients', submenu: null, action: 'read', can_access: true },
+              { menu: 'Clients', submenu: null, action: 'write', can_access: true },
+              { menu: 'Caisse', submenu: null, action: 'read', can_access: true },
+              { menu: 'Caisse', submenu: null, action: 'write', can_access: true },
+              { menu: 'Rapports', submenu: null, action: 'read', can_access: true }
+            ];
+          } else {
+            // Permissions limitées pour les autres utilisateurs
+            defaultPermissions = [
+              { menu: 'Catalogue', submenu: null, action: 'read', can_access: true },
+              { menu: 'Stock', submenu: 'PDV', action: 'read', can_access: true },
+              { menu: 'Ventes', submenu: null, action: 'read', can_access: true }
+            ];
+          }
+
+          setUserRole(defaultRole);
+          setPermissions(defaultPermissions);
+        }
+
       } catch (error) {
-        console.error('❌ Erreur inattendue lors de la récupération des permissions:', error);
-        return [];
+        console.error('❌ Erreur lors de la récupération des permissions:', error);
+        setPermissions([]);
+        setUserRole(null);
+      } finally {
+        setIsLoading(false);
       }
-    },
-    enabled: !!user?.id,
-    retry: 2,
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    refetchOnMount: false,
-    refetchOnWindowFocus: false
-  });
-};
+    };
 
-export const useHasPermission = () => {
-  const { data: permissions = [], isLoading, error } = useUserPermissions();
-  const { isDevMode, user } = useAuth();
+    fetchPermissions();
+  }, [userId]);
 
   const hasPermission = (menu: string, submenu?: string, action: string = 'read'): boolean => {
-    // SEULEMENT l'utilisateur mock spécifique bypass les permissions en mode dev
-    if (isDevMode && user?.id === '00000000-0000-4000-8000-000000000001') {
-      return true;
-    }
-    
-    if (isLoading) {
-      return false;
-    }
-    
-    if (error) {
-      console.error('❌ Erreur lors du chargement des permissions:', error);
-      return false;
-    }
-    
-    const hasAccess = permissions.some(permission => 
-      permission.menu === menu &&
-      (submenu === undefined || permission.submenu === submenu) &&
-      permission.action === action &&
-      permission.can_access
+    return permissions.some(p => 
+      p.menu === menu && 
+      (!submenu || p.submenu === submenu) &&
+      p.action === action &&
+      p.can_access
     );
-    
-    console.log(`🔍 Vérification permission: ${menu}${submenu ? ` > ${submenu}` : ''} (${action}):`, { 
-      hasAccess, 
-      userId: user?.id, 
-      permissionsCount: permissions.length,
-      availablePermissions: permissions.filter(p => p.menu === menu)
-    });
-    
-    return hasAccess;
   };
 
-  return { hasPermission, isLoading, permissions };
+  const getAccessibleMenus = () => {
+    const menus = new Set<string>();
+    permissions.forEach(p => {
+      if (p.can_access) {
+        menus.add(p.menu);
+      }
+    });
+    return Array.from(menus);
+  };
+
+  return {
+    permissions,
+    userRole,
+    isLoading,
+    hasPermission,
+    getAccessibleMenus
+  };
 };

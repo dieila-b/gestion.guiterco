@@ -99,40 +99,36 @@ export const checkInternalUser = async (userId: string): Promise<UtilisateurInte
       return null;
     }
 
-    // Récupérer le rôle si role_id existe
+    // Récupérer le rôle si role_id existe et si la table roles existe
     let roleData = null;
     if (internalUser.role_id) {
       try {
+        // Vérifier si la table roles existe en essayant de la requêter
         const { data: role, error: roleError } = await supabase
           .from('roles')
           .select('id, nom, description')
           .eq('id', internalUser.role_id)
-          .single();
+          .maybeSingle();
 
         if (!roleError && role) {
           roleData = {
             id: role.id,
             name: role.nom,
-            nom: role.nom, // Compatibility
+            nom: role.nom,
             description: role.description
           };
+        } else if (roleError) {
+          console.log('⚠️ Table roles pas encore créée, utilisation d\'un rôle par défaut');
         }
       } catch (roleError) {
         console.log('⚠️ Erreur lors de la récupération du rôle (table roles pas encore créée?):', roleError);
-        // Fallback pour compatibilité
-        roleData = {
-          id: 'temp-role-id',
-          name: 'Utilisateur',
-          nom: 'Utilisateur',
-          description: 'Rôle par défaut'
-        };
       }
     }
 
-    // Fallback si pas de rôle défini
+    // Fallback si pas de rôle défini ou table pas encore créée
     if (!roleData) {
       roleData = {
-        id: 'temp-role-id',
+        id: 'default-role',
         name: 'Utilisateur',
         nom: 'Utilisateur',
         description: 'Rôle par défaut'
