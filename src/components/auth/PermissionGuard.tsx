@@ -54,4 +54,6 @@ const PermissionGuard: React.FC<PermissionGuardProps> = ({
   return <>{children}</>;
 };
 
+// Export nommé pour correspondre aux imports existants
+export { PermissionGuard };
 export default PermissionGuard;
