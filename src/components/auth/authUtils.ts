@@ -20,7 +20,8 @@ export const checkInternalUser = async (userId: string): Promise<UtilisateurInte
     });
     
     // Chercher par user_id d'abord (clé étrangère vers auth.users)
-    let query = supabase
+    console.log('🔍 Query par user_id:', userId);
+    const { data: userByUserId, error: errorByUserId } = await supabase
       .from('utilisateurs_internes')
       .select(`
         id,
@@ -34,17 +35,13 @@ export const checkInternalUser = async (userId: string): Promise<UtilisateurInte
         role_id,
         role:roles!utilisateurs_internes_role_id_fkey(
           id,
-          nom,
           name,
           description
         )
       `)
       .eq('user_id', userId)
       .eq('statut', 'actif')
-      .single();
-    
-    console.log('🔍 Query par user_id:', userId);
-    const { data: userByUserId, error: errorByUserId } = await query;
+      .maybeSingle();
     
     if (!errorByUserId && userByUserId) {
       console.log('✅ Utilisateur trouvé par user_id:', userByUserId);
@@ -58,8 +55,8 @@ export const checkInternalUser = async (userId: string): Promise<UtilisateurInte
         photo_url: userByUserId.photo_url || undefined,
         role: {
           id: userByUserId.role?.id || '',
-          nom: userByUserId.role?.nom || userByUserId.role?.name || '',
-          name: userByUserId.role?.name || userByUserId.role?.nom || '',
+          nom: userByUserId.role?.name || '',
+          name: userByUserId.role?.name || '',
           description: userByUserId.role?.description || ''
         }
       };
@@ -83,14 +80,13 @@ export const checkInternalUser = async (userId: string): Promise<UtilisateurInte
           role_id,
           role:roles!utilisateurs_internes_role_id_fkey(
             id,
-            nom,
             name,
             description
           )
         `)
         .eq('email', authUser.user.email)
         .eq('statut', 'actif')
-        .single();
+        .maybeSingle();
       
       if (!errorByEmail && userByEmail) {
         console.log('✅ Utilisateur trouvé par email:', userByEmail);
@@ -114,8 +110,8 @@ export const checkInternalUser = async (userId: string): Promise<UtilisateurInte
           photo_url: userByEmail.photo_url || undefined,
           role: {
             id: userByEmail.role?.id || '',
-            nom: userByEmail.role?.nom || userByEmail.role?.name || '',
-            name: userByEmail.role?.name || userByEmail.role?.nom || '',
+            nom: userByEmail.role?.name || '',
+            name: userByEmail.role?.name || '',
             description: userByEmail.role?.description || ''
           }
         };
