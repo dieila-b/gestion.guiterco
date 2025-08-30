@@ -2,68 +2,39 @@
 import { supabase } from '@/integrations/supabase/client';
 import { UtilisateurInterne } from './types';
 
-export const signIn = async (email: string, password: string) => {
-  try {
-    console.log('🔑 Tentative de connexion avec Supabase pour:', email);
-    
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-
-    if (error) {
-      console.log('❌ Erreur de connexion:', error.message);
-      return { error };
-    }
-
-    console.log('✅ Connexion réussie:', { userId: data.user?.id, email: data.user?.email });
-    return { error: null };
-  } catch (error) {
-    console.error('❌ Erreur inattendue lors de la connexion:', error);
-    return { error };
-  }
-};
-
-export const signOut = async () => {
-  try {
-    console.log('🚪 Déconnexion de Supabase...');
-    const { error } = await supabase.auth.signOut();
-    if (error) {
-      console.error('❌ Erreur lors de la déconnexion:', error);
-      throw error;
-    }
-    console.log('✅ Déconnexion réussie de Supabase');
-    return { error: null };
-  } catch (error) {
-    console.error('❌ Erreur inattendue lors de la déconnexion:', error);
-    return { error };
-  }
-};
-
 export const checkInternalUser = async (userId: string): Promise<UtilisateurInterne | null> => {
+  console.log('🔍 checkInternalUser - Recherche utilisateur interne pour:', userId);
+  
   try {
-    console.log('🔍 Vérification utilisateur interne pour userId:', userId);
+    // Récupérer l'utilisateur authentifié Supabase d'abord
+    const { data: authUser, error: authError } = await supabase.auth.getUser();
     
-    if (!userId) {
-      console.log('❌ UserId manquant');
+    if (authError) {
+      console.error('❌ Erreur récupération utilisateur auth:', authError);
       return null;
     }
-
-    // Essayer d'abord avec user_id (production)
-    let { data: internalUser, error } = await supabase
+    
+    console.log('✅ Utilisateur auth récupéré:', {
+      id: authUser.user?.id,
+      email: authUser.user?.email
+    });
+    
+    // Chercher par user_id d'abord (clé étrangère vers auth.users)
+    let query = supabase
       .from('utilisateurs_internes')
       .select(`
         id,
-        user_id,
         email,
         prenom,
         nom,
         statut,
         type_compte,
         photo_url,
+        user_id,
         role_id,
-        roles!inner(
+        role:roles!utilisateurs_internes_role_id_fkey(
           id,
+          nom,
           name,
           description
         )
@@ -71,77 +42,133 @@ export const checkInternalUser = async (userId: string): Promise<UtilisateurInte
       .eq('user_id', userId)
       .eq('statut', 'actif')
       .single();
-
-    // Si pas trouvé avec user_id, essayer avec id (pour le mode dev)
-    if (error && error.code === 'PGRST116') {
-      console.log('🔍 Essai avec id au lieu de user_id (mode dev)');
-      const result = await supabase
+    
+    console.log('🔍 Query par user_id:', userId);
+    const { data: userByUserId, error: errorByUserId } = await query;
+    
+    if (!errorByUserId && userByUserId) {
+      console.log('✅ Utilisateur trouvé par user_id:', userByUserId);
+      return {
+        id: userByUserId.id,
+        email: userByUserId.email,
+        prenom: userByUserId.prenom,
+        nom: userByUserId.nom,
+        statut: userByUserId.statut,
+        type_compte: userByUserId.type_compte,
+        photo_url: userByUserId.photo_url || undefined,
+        role: {
+          id: userByUserId.role?.id || '',
+          nom: userByUserId.role?.nom || userByUserId.role?.name || '',
+          name: userByUserId.role?.name || userByUserId.role?.nom || '',
+          description: userByUserId.role?.description || ''
+        }
+      };
+    }
+    
+    console.log('❌ Utilisateur non trouvé par user_id, tentative par email...');
+    
+    // Si pas trouvé par user_id, essayer par email
+    if (authUser.user?.email) {
+      const { data: userByEmail, error: errorByEmail } = await supabase
         .from('utilisateurs_internes')
         .select(`
           id,
-          user_id,
           email,
           prenom,
           nom,
           statut,
           type_compte,
           photo_url,
+          user_id,
           role_id,
-          roles!inner(
+          role:roles!utilisateurs_internes_role_id_fkey(
             id,
+            nom,
             name,
             description
           )
         `)
-        .eq('id', userId)
+        .eq('email', authUser.user.email)
         .eq('statut', 'actif')
         .single();
       
-      internalUser = result.data;
-      error = result.error;
+      if (!errorByEmail && userByEmail) {
+        console.log('✅ Utilisateur trouvé par email:', userByEmail);
+        
+        // Mettre à jour le user_id si nécessaire
+        if (!userByEmail.user_id) {
+          console.log('🔄 Mise à jour user_id manquant...');
+          await supabase
+            .from('utilisateurs_internes')
+            .update({ user_id: userId })
+            .eq('id', userByEmail.id);
+        }
+        
+        return {
+          id: userByEmail.id,
+          email: userByEmail.email,
+          prenom: userByEmail.prenom,
+          nom: userByEmail.nom,
+          statut: userByEmail.statut,
+          type_compte: userByEmail.type_compte,
+          photo_url: userByEmail.photo_url || undefined,
+          role: {
+            id: userByEmail.role?.id || '',
+            nom: userByEmail.role?.nom || userByEmail.role?.name || '',
+            name: userByEmail.role?.name || userByEmail.role?.nom || '',
+            description: userByEmail.role?.description || ''
+          }
+        };
+      }
+      
+      console.log('❌ Utilisateur non trouvé par email non plus');
     }
+    
+    console.log('❌ Aucun utilisateur interne trouvé pour:', { userId, email: authUser.user?.email });
+    return null;
+    
+  } catch (error: any) {
+    console.error('❌ Erreur lors de la vérification utilisateur interne:', error);
+    return null;
+  }
+};
 
-    if (error) {
-      console.log('❌ Erreur lors de la récupération de l\'utilisateur interne:', error);
-      return null;
-    }
-
-    if (!internalUser) {
-      console.log('❌ Aucun utilisateur interne trouvé pour userId:', userId);
-      return null;
-    }
-
-    // Vérifier que les données du rôle sont présentes
-    if (!internalUser.roles) {
-      console.log('❌ Pas de rôle associé à l\'utilisateur interne');
-      return null;
-    }
-
-    console.log('✅ Utilisateur interne trouvé:', {
-      id: internalUser.id,
-      email: internalUser.email,
-      statut: internalUser.statut,
-      type_compte: internalUser.type_compte,
-      role: internalUser.roles
+export const signIn = async (email: string, password: string) => {
+  console.log('🔑 Tentative de connexion:', email);
+  
+  try {
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email: email.trim().toLowerCase(),
+      password: password,
     });
 
-    return {
-      id: internalUser.id,
-      email: internalUser.email,
-      prenom: internalUser.prenom,
-      nom: internalUser.nom,
-      statut: internalUser.statut,
-      type_compte: internalUser.type_compte,
-      photo_url: internalUser.photo_url,
-      role: {
-        id: internalUser.roles.id,
-        name: internalUser.roles.name,
-        nom: internalUser.roles.name, // Compatibility
-        description: internalUser.roles.description
-      }
-    };
+    if (error) {
+      console.error('❌ Erreur de connexion:', error);
+      return { error };
+    }
+
+    console.log('✅ Connexion réussie pour:', data.user?.email);
+    return { error: null };
+  } catch (error: any) {
+    console.error('❌ Erreur inattendue lors de la connexion:', error);
+    return { error };
+  }
+};
+
+export const signOut = async () => {
+  console.log('🚪 Déconnexion...');
+  
+  try {
+    const { error } = await supabase.auth.signOut();
+    
+    if (error) {
+      console.error('❌ Erreur lors de la déconnexion:', error);
+      throw error;
+    }
+    
+    console.log('✅ Déconnexion réussie');
   } catch (error) {
-    console.error('❌ Erreur inattendue lors de la vérification de l\'utilisateur interne:', error);
-    return null;
+    console.error('❌ Erreur lors de la déconnexion:', error);
+    throw error;
   }
 };

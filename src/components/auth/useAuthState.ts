@@ -75,34 +75,48 @@ export const useAuthState = (bypassAuth: boolean, mockUser: UtilisateurInterne, 
       
       const { data: { subscription } } = supabase.auth.onAuthStateChange(
         async (event, session) => {
-          console.log('🔐 Auth state change:', { event, session: !!session });
+          console.log('🔐 Auth state change:', { event, session: !!session, userId: session?.user?.id });
           
           setSession(session);
           setUser(session?.user ?? null);
 
           if (session?.user) {
             try {
-              console.log('🔍 Vérification utilisateur interne pour:', session.user.id);
+              console.log('🔍 Vérification utilisateur interne pour:', {
+                userId: session.user.id,
+                email: session.user.email
+              });
+              
               const internalUser = await checkInternalUser(session.user.id);
               
               if (internalUser && internalUser.statut === 'actif') {
                 console.log('✅ Utilisateur interne autorisé:', {
                   id: internalUser.id,
                   email: internalUser.email,
-                  role: internalUser.role
+                  role: internalUser.role,
+                  prenom: internalUser.prenom,
+                  nom: internalUser.nom
                 });
                 setUtilisateurInterne(internalUser);
               } else {
-                console.log('❌ Utilisateur non autorisé ou inactif');
+                console.log('❌ Utilisateur non autorisé ou inactif:', internalUser);
                 setUtilisateurInterne(null);
                 
-                // Optionnel: déconnecter l'utilisateur s'il n'est pas autorisé
-                if (session) {
-                  console.log('🚪 Déconnexion automatique - utilisateur non autorisé');
+                // Déconnecter l'utilisateur s'il n'est pas autorisé
+                if (session && !internalUser) {
+                  console.log('🚪 Déconnexion automatique - utilisateur non trouvé dans utilisateurs_internes');
                   await supabase.auth.signOut();
                   toast({
                     title: "Accès refusé",
-                    description: "Votre compte n'est pas autorisé à accéder à cette application.",
+                    description: "Votre compte n'est pas enregistré dans le système. Contactez l'administrateur.",
+                    variant: "destructive"
+                  });
+                } else if (session && internalUser?.statut !== 'actif') {
+                  console.log('🚪 Déconnexion automatique - utilisateur inactif');
+                  await supabase.auth.signOut();
+                  toast({
+                    title: "Compte inactif",
+                    description: "Votre compte a été désactivé. Contactez l'administrateur.",
                     variant: "destructive"
                   });
                 }
@@ -110,6 +124,13 @@ export const useAuthState = (bypassAuth: boolean, mockUser: UtilisateurInterne, 
             } catch (error) {
               console.error('❌ Erreur vérification utilisateur:', error);
               setUtilisateurInterne(null);
+              
+              // En cas d'erreur de connexion DB, ne pas déconnecter mais informer
+              toast({
+                title: "Erreur de connexion",
+                description: "Impossible de vérifier vos permissions. Réessayez dans quelques instants.",
+                variant: "destructive"
+              });
             }
           } else {
             setUtilisateurInterne(null);
@@ -123,10 +144,17 @@ export const useAuthState = (bypassAuth: boolean, mockUser: UtilisateurInterne, 
       const sessionTimeout = setTimeout(() => {
         console.log('⏰ Timeout auth session check - forcer l\'arrêt du loading');
         setLoading(false);
-      }, 8000); // Timeout de sécurité
+      }, 10000); // Timeout de sécurité augmenté
       
-      supabase.auth.getSession().then(async ({ data: { session } }) => {
+      supabase.auth.getSession().then(async ({ data: { session }, error }) => {
         clearTimeout(sessionTimeout);
+        
+        if (error) {
+          console.error('❌ Erreur getSession:', error);
+          setLoading(false);
+          return;
+        }
+        
         console.log('🔍 Session existante récupérée:', !!session);
         
         // Si pas de session, arrêter le loading immédiatement
@@ -143,7 +171,7 @@ export const useAuthState = (bypassAuth: boolean, mockUser: UtilisateurInterne, 
             console.log('🔧 Force loading false après délai');
             setLoading(false);
           }
-        }, 2000);
+        }, 3000);
         
       }).catch((error) => {
         clearTimeout(sessionTimeout);
@@ -156,7 +184,7 @@ export const useAuthState = (bypassAuth: boolean, mockUser: UtilisateurInterne, 
         subscription.unsubscribe();
       };
     }
-  }, []);  // Enlever bypassAuth et toast des dépendances pour éviter la boucle
+  }, []); // Dépendances réduites pour éviter les boucles
 
   const signIn = async (email: string, password: string) => {
     console.log('🔑 Tentative de connexion pour:', email);

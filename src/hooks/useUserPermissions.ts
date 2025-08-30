@@ -20,7 +20,8 @@ export const useUserPermissions = () => {
         userId: user?.id,
         isDevMode,
         utilisateurInterneId: utilisateurInterne?.id,
-        roleId: utilisateurInterne?.role?.id
+        roleId: utilisateurInterne?.role?.id,
+        userEmail: user?.email
       });
 
       if (!user?.id) {
@@ -39,6 +40,12 @@ export const useUserPermissions = () => {
           { menu: 'Stock', submenu: 'Entrepôts', action: 'write', can_access: true },
           { menu: 'Stock', submenu: 'PDV', action: 'read', can_access: true },
           { menu: 'Stock', submenu: 'PDV', action: 'write', can_access: true },
+          { menu: 'Stock', submenu: 'Stock Entrepôt', action: 'read', can_access: true },
+          { menu: 'Stock', submenu: 'Stock PDV', action: 'read', can_access: true },
+          { menu: 'Stock', submenu: 'Entrées', action: 'read', can_access: true },
+          { menu: 'Stock', submenu: 'Sorties', action: 'read', can_access: true },
+          { menu: 'Stock', submenu: 'Transferts', action: 'read', can_access: true },
+          { menu: 'Stock', submenu: 'Catalogue', action: 'read', can_access: true },
           { menu: 'Ventes', submenu: 'Factures', action: 'read', can_access: true },
           { menu: 'Ventes', submenu: 'Factures', action: 'write', can_access: true },
           { menu: 'Ventes', submenu: 'Précommandes', action: 'read', can_access: true },
@@ -47,6 +54,8 @@ export const useUserPermissions = () => {
           { menu: 'Achats', submenu: 'Bons de commande', action: 'write', can_access: true },
           { menu: 'Clients', action: 'read', can_access: true },
           { menu: 'Clients', action: 'write', can_access: true },
+          { menu: 'Marges', action: 'read', can_access: true },
+          { menu: 'Rapports', action: 'read', can_access: true },
           { menu: 'Paramètres', submenu: 'Rôles et permissions', action: 'read', can_access: true },
           { menu: 'Paramètres', submenu: 'Rôles et permissions', action: 'write', can_access: true }
         ] as UserPermission[];
@@ -54,7 +63,7 @@ export const useUserPermissions = () => {
 
       // Pour les utilisateurs réels, utiliser le role_id de l'utilisateur interne
       if (!utilisateurInterne?.role?.id) {
-        console.warn('❌ Pas de rôle défini pour l\'utilisateur interne');
+        console.warn('❌ Pas de rôle défini pour l\'utilisateur interne:', utilisateurInterne);
         return [];
       }
 
@@ -87,7 +96,11 @@ export const useUserPermissions = () => {
           can_access: true
         })) || [];
 
-        console.log('✅ Permissions récupérées:', formattedPermissions);
+        console.log('✅ Permissions récupérées:', {
+          count: formattedPermissions.length,
+          permissions: formattedPermissions
+        });
+        
         return formattedPermissions;
         
       } catch (error) {
@@ -95,9 +108,11 @@ export const useUserPermissions = () => {
         return [];
       }
     },
-    enabled: !!user?.id && !!utilisateurInterne?.role?.id,
-    retry: 1,
-    staleTime: 5 * 60 * 1000 // 5 minutes
+    enabled: !!user?.id && (isDevMode || !!utilisateurInterne?.role?.id),
+    retry: 2,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    refetchOnWindowFocus: false,
+    refetchOnMount: true
   });
 };
 
