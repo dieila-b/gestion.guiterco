@@ -16,7 +16,7 @@ export const useUserPermissions = () => {
   return useQuery({
     queryKey: ['user-permissions', user?.id, isDevMode, utilisateurInterne?.id],
     queryFn: async () => {
-      console.log('Chargement des permissions pour:', {
+      console.log('🔐 Chargement des permissions pour:', {
         userId: user?.id,
         isDevMode,
         utilisateurInterneId: utilisateurInterne?.id
@@ -28,7 +28,7 @@ export const useUserPermissions = () => {
       }
 
       // En mode développement avec utilisateur mock, donner toutes les permissions
-      if (isDevMode && user.id === '00000000-0000-4000-8000-000000000001') {
+      if (isDevMode && (user.id === '00000000-0000-4000-8000-000000000001' || user.email?.includes('dev'))) {
         console.log('Mode dev avec utilisateur mock - toutes permissions accordées');
         return [
           { menu: 'Dashboard', action: 'read', can_access: true },
@@ -51,25 +51,29 @@ export const useUserPermissions = () => {
         ] as UserPermission[];
       }
 
-      // Pour les utilisateurs réels, récupérer les permissions via la vue
+      // Pour les utilisateurs réels, récupérer les permissions via la base
       try {
-        console.log('Récupération des permissions depuis la vue pour utilisateur:', user.id);
+        console.log('Récupération des permissions depuis la base pour utilisateur:', user.id);
         
+        // Essayer d'abord avec la vue optimisée
         const { data, error } = await supabase
           .from('vue_permissions_utilisateurs')
           .select('menu, submenu, action, can_access')
           .eq('user_id', user.id)
           .eq('can_access', true);
 
-        if (error) {
-          console.error('Erreur lors de la récupération des permissions:', error);
+        if (error && error.code !== 'PGRST116') {
+          console.error('Erreur lors de la récupération des permissions via vue:', error);
           
-          // Si erreur avec la vue, essayer une approche alternative
+          // Fallback: récupération directe via les tables
           console.log('Tentative de récupération via les tables directement...');
           
           if (!utilisateurInterne?.role?.id) {
             console.warn('Pas de rôle défini pour l\'utilisateur interne');
-            return [];
+            // En cas d'erreur, donner des permissions de base
+            return [
+              { menu: 'Dashboard', action: 'read', can_access: true }
+            ];
           }
 
           const { data: rolePermissions, error: roleError } = await supabase
@@ -82,7 +86,10 @@ export const useUserPermissions = () => {
 
           if (roleError) {
             console.error('Erreur lors de la récupération des permissions par rôle:', roleError);
-            return [];
+            // Permissions minimales en cas d'erreur
+            return [
+              { menu: 'Dashboard', action: 'read', can_access: true }
+            ];
           }
 
           const formattedPermissions = rolePermissions?.map(rp => ({
@@ -101,11 +108,15 @@ export const useUserPermissions = () => {
         
       } catch (error) {
         console.error('Erreur inattendue lors de la récupération des permissions:', error);
-        return [];
+        // En cas d'erreur complète, donner au moins l'accès au dashboard
+        return [
+          { menu: 'Dashboard', action: 'read', can_access: true }
+        ];
       }
     },
     enabled: !!user?.id,
-    retry: 1,
+    retry: 2,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
     staleTime: 5 * 60 * 1000 // 5 minutes
   });
 };
@@ -115,8 +126,8 @@ export const useHasPermission = () => {
   const { isDevMode, user } = useAuth();
 
   const hasPermission = (menu: string, submenu?: string, action: string = 'read'): boolean => {
-    // En mode développement, être plus permissif
-    if (isDevMode) {
+    // En mode développement avec utilisateur dev, être plus permissif
+    if (isDevMode && (user?.id === '00000000-0000-4000-8000-000000000001' || user?.email?.includes('dev'))) {
       console.log(`Permission check (dev mode): ${menu}${submenu ? ` > ${submenu}` : ''} (${action}) - GRANTED`);
       return true;
     }
@@ -128,7 +139,8 @@ export const useHasPermission = () => {
     
     if (error) {
       console.error('Erreur lors du chargement des permissions:', error);
-      return false;
+      // En cas d'erreur, permettre au moins l'accès au dashboard
+      return menu === 'Dashboard' && action === 'read';
     }
     
     const hasAccess = permissions.some(permission => 
