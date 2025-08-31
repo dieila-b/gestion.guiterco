@@ -49,7 +49,21 @@ export const checkInternalUser = async (userId: string): Promise<UtilisateurInte
       return null;
     }
 
-    // Utiliser la nouvelle structure avec role_id
+    // Diagnostic: compter le total des utilisateurs internes
+    const { count: totalUsers } = await supabase
+      .from('utilisateurs_internes')
+      .select('*', { count: 'exact', head: true });
+    console.log('📊 Total utilisateurs internes dans la DB:', totalUsers);
+
+    // Diagnostic: chercher par email
+    const { data: userByEmail } = await supabase
+      .from('utilisateurs_internes')
+      .select('id, email, user_id, role_id')
+      .eq('email', 'danta93@gmail.com')
+      .single();
+    console.log('🔍 Recherche par email danta93@gmail.com:', userByEmail);
+
+    // Utiliser la nouvelle structure avec role_id - seulement les colonnes qui existent
     let { data: internalUser, error } = await supabase
       .from('utilisateurs_internes')
       .select(`
@@ -62,7 +76,7 @@ export const checkInternalUser = async (userId: string): Promise<UtilisateurInte
         photo_url,
         user_id,
         role_id,
-        roles!role_id(id, name, nom, description)
+        roles!role_id(id, name, description)
       `)
       .eq('user_id', userId)
       .eq('statut', 'actif')
@@ -82,7 +96,7 @@ export const checkInternalUser = async (userId: string): Promise<UtilisateurInte
           photo_url,
           user_id,
           role_id,
-          roles!role_id(id, name, nom, description)
+          roles!role_id(id, name, description)
         `)
         .eq('id', userId)
         .eq('statut', 'actif')
@@ -135,8 +149,8 @@ export const checkInternalUser = async (userId: string): Promise<UtilisateurInte
       photo_url: internalUser.photo_url,
       role: {
         id: internalUser.roles.id,
-        name: internalUser.roles.name || internalUser.roles.nom,
-        nom: internalUser.roles.nom || internalUser.roles.name, // Compatibility
+        name: internalUser.roles.name,
+        nom: internalUser.roles.name, // Use name for compatibility
         description: internalUser.roles.description
       }
     };
