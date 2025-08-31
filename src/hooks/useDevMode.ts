@@ -1,74 +1,58 @@
 
 import { useState, useEffect } from 'react';
+import { UtilisateurInterne } from '@/components/auth/types';
 
-export const useDevMode = () => {
-  const [isDevMode, setIsDevMode] = useState(false);
+interface DevModeConfig {
+  bypassAuth: boolean;
+  mockUser: UtilisateurInterne;
+  isDevMode: boolean;
+}
+
+export const useDevMode = (): DevModeConfig => {
   const [bypassAuth, setBypassAuth] = useState(false);
 
-  useEffect(() => {
-    // Détecter l'environnement de développement
+  // Détecter l'environnement de développement
+  const isDevMode = (() => {
     const hostname = window.location.hostname;
     const isLovablePreview = hostname.includes('lovableproject.com') || 
-                            hostname.includes('lovableproject.app') ||
-                            hostname.includes('sandbox.lovable.dev');
+                           hostname.includes('lovableproject.app') || 
+                           hostname.includes('lovable.app') ||
+                           hostname.includes('lovable.dev');
     const isExplicitDev = import.meta.env.DEV || import.meta.env.MODE === 'development';
     
-    const devMode = hostname === 'localhost' || 
-                   hostname.includes('127.0.0.1') ||
-                   hostname.includes('.local') ||
-                   isLovablePreview ||
-                   isExplicitDev;
-    
-    setIsDevMode(devMode);
-    
-    // En mode dev, vérifier le statut du bypass
-    if (devMode) {
-      const bypassStatus = localStorage.getItem('dev_bypass_auth');
-      const shouldBypass = bypassStatus === null || bypassStatus === 'true';
-      setBypassAuth(shouldBypass);
-      
-      console.log('🔧 Mode développement détecté:', {
-        hostname,
-        isLovablePreview,
-        isExplicitDev,
-        bypassAuth: shouldBypass
-      });
-    }
-  }, []);
+    return hostname === 'localhost' || 
+           hostname.includes('127.0.0.1') ||
+           hostname.includes('.local') ||
+           isLovablePreview ||
+           isExplicitDev;
+  })();
 
-  // Utilisateur mock pour le développement
-  const mockUser = {
-    id: '00000000-0000-4000-8000-000000000001',
-    email: 'dev@guitierco.com',
-    user_metadata: {
-      prenom: 'Développeur',
-      nom: 'GuIterCo',
-      avatar_url: null
-    },
-    role: {
-      id: 'mock-admin-role',
-      name: 'Administrateur',
-      description: 'Rôle administrateur pour le développement'
-    }
-  };
-
-  const toggleBypass = (value?: boolean) => {
-    const newValue = value !== undefined ? value : !bypassAuth;
-    setBypassAuth(newValue);
-    localStorage.setItem('dev_bypass_auth', newValue.toString());
-    console.log('🔧 Toggle bypass auth:', newValue);
-    
-    // Forcer un rechargement pour appliquer les changements
+  useEffect(() => {
     if (isDevMode) {
-      window.location.reload();
+      const savedBypass = localStorage.getItem('dev_bypass_auth');
+      setBypassAuth(savedBypass !== 'false');
+      console.log('🚀 Mode développement activé, bypass:', savedBypass !== 'false');
+    }
+  }, [isDevMode]);
+
+  const mockUser: UtilisateurInterne = {
+    id: '00000000-0000-4000-8000-000000000001',
+    email: 'admin@dev.local',
+    prenom: 'Admin',
+    nom: 'Développeur',
+    statut: 'actif',
+    type_compte: 'interne',
+    role: {
+      id: 'mock-role-id',
+      nom: 'Administrateur',
+      name: 'Administrateur', 
+      description: 'Accès complet au système'
     }
   };
 
   return {
-    isDevMode,
     bypassAuth,
     mockUser,
-    setBypassAuth: toggleBypass,
-    toggleBypass
+    isDevMode
   };
 };

@@ -1,39 +1,42 @@
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { UtilisateurInterne } from './types';
 import { checkInternalUser, signIn as authSignIn, signOut as authSignOut } from './authUtils';
 
-export const useAuthState = (bypassAuth: boolean, mockUtilisateurInterne: UtilisateurInterne, isDevMode: boolean) => {
+export const useAuthState = (bypassAuth: boolean, mockUser: UtilisateurInterne, isDevMode: boolean) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [utilisateurInterne, setUtilisateurInterne] = useState<UtilisateurInterne | null>(null);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
   
-  const isSigningOutRef = useRef(false);
+  const bypassAuthRef = useRef(bypassAuth);
+  const isDevModeRef = useRef(isDevMode);
+  
+  bypassAuthRef.current = bypassAuth;
+  isDevModeRef.current = isDevMode;
 
   // Effect pour gérer le mode bypass
   useEffect(() => {
-    if (isDevMode && bypassAuth) {
+    if (isDevModeRef.current && bypassAuthRef.current) {
       console.log('🚀 Activation du bypass d\'authentification');
+      setUtilisateurInterne(mockUser);
       
-      // Créer un utilisateur Supabase mock
       const mockSupabaseUser = {
-        id: mockUtilisateurInterne.id,
-        email: mockUtilisateurInterne.email,
+        id: mockUser.id,
+        email: mockUser.email,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
         email_confirmed_at: new Date().toISOString(),
         user_metadata: {
-          prenom: mockUtilisateurInterne.prenom,
-          nom: mockUtilisateurInterne.nom,
-          avatar_url: mockUtilisateurInterne.photo_url
+          prenom: mockUser.prenom,
+          nom: mockUser.nom
         },
         app_metadata: {
-          role: mockUtilisateurInterne.role.name
+          role: mockUser.role.nom
         },
         aud: 'authenticated',
         role: 'authenticated'
@@ -50,101 +53,149 @@ export const useAuthState = (bypassAuth: boolean, mockUtilisateurInterne: Utilis
       
       setUser(mockSupabaseUser);
       setSession(mockSession);
-      setUtilisateurInterne(mockUtilisateurInterne);
       setLoading(false);
       
-      console.log('✅ Mock session créée avec utilisateur interne:', mockUtilisateurInterne);
+      console.log('✅ Mock session créée avec utilisateur interne:', mockUser);
       return;
-    }
-
-    // Si le bypass est désactivé, nettoyer l'état mock
-    if (!bypassAuth && isDevMode) {
+    } else if (!bypassAuthRef.current) {
       console.log('🔒 Désactivation du bypass - nettoyage état mock');
-      setUser(null);
-      setSession(null);
-      setUtilisateurInterne(null);
-      // Ne pas remettre loading à true ici car on va gérer l'auth normale
+      if (user?.id === mockUser.id) {
+        setUser(null);
+        setSession(null);
+        setUtilisateurInterne(null);
+        setLoading(true);
+      }
     }
-  }, [bypassAuth, isDevMode, mockUtilisateurInterne]);
+  }, [bypassAuth, isDevMode, mockUser]);
 
-  // Effect pour l'authentification normale
+  // Effect pour l'authentification normale  
   useEffect(() => {
-    // Ne pas gérer l'auth normale si on est en mode bypass
-    if (isDevMode && bypassAuth) {
-      return;
-    }
+    if (!bypassAuthRef.current) {
+      console.log('🔐 Initialisation authentification normale');
+      
+      const { data: { subscription } } = supabase.auth.onAuthStateChange(
+        async (event, session) => {
+          console.log('🔐 Auth state change:', { 
+            event, 
+            sessionExists: !!session, 
+            userId: session?.user?.id,
+            email: session?.user?.email
+          });
+          
+          setSession(session);
+          setUser(session?.user ?? null);
 
-    console.log('🔐 Initialisation authentification normale');
-    
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        console.log('🔐 Auth state change:', { event, session: !!session });
+          if (session?.user) {
+            console.log('🔍 Recherche utilisateur interne pour:', {
+              userId: session.user.id,
+              email: session.user.email
+            });
+            
+            try {
+              const internalUser = await checkInternalUser(session.user.id);
+              
+              console.log('🔍 Résultat checkInternalUser:', {
+                found: !!internalUser,
+                status: internalUser?.statut,
+                role: internalUser?.role,
+                email: internalUser?.email
+              });
+              
+              if (internalUser && internalUser.statut === 'actif') {
+                console.log('✅ Utilisateur interne autorisé:', {
+                  id: internalUser.id,
+                  email: internalUser.email,
+                  role: internalUser.role?.nom || internalUser.role?.name,
+                  prenom: internalUser.prenom,
+                  nom: internalUser.nom
+                });
+                setUtilisateurInterne(internalUser);
+              } else {
+                console.log('❌ Utilisateur non autorisé ou inactif:', internalUser);
+                setUtilisateurInterne(null);
+                
+                if (session && !internalUser) {
+                  console.log('🚪 Déconnexion automatique - utilisateur non trouvé');
+                  await supabase.auth.signOut();
+                  toast({
+                    title: "Accès refusé",
+                    description: "Votre compte n'est pas enregistré comme utilisateur interne.",
+                    variant: "destructive"
+                  });
+                } else if (session && internalUser?.statut !== 'actif') {
+                  console.log('🚪 Déconnexion automatique - utilisateur inactif');
+                  await supabase.auth.signOut();
+                  toast({
+                    title: "Compte inactif",
+                    description: "Votre compte a été désactivé.",
+                    variant: "destructive"
+                  });
+                }
+              }
+            } catch (error) {
+              console.error('❌ Erreur vérification utilisateur:', error);
+              setUtilisateurInterne(null);
+              
+              toast({
+                title: "Erreur de connexion",
+                description: "Impossible de vérifier vos permissions.",
+                variant: "destructive"
+              });
+            }
+          } else {
+            console.log('📭 Aucune session utilisateur');
+            setUtilisateurInterne(null);
+          }
+          
+          setLoading(false);
+        }
+      );
+
+      const sessionTimeout = setTimeout(() => {
+        console.log('⏰ Timeout auth session check');
+        setLoading(false);
+      }, 10000);
+      
+      supabase.auth.getSession().then(async ({ data: { session }, error }) => {
+        clearTimeout(sessionTimeout);
         
-        // Si on est en train de se déconnecter, ignorer les événements
-        if (isSigningOutRef.current && event !== 'SIGNED_OUT') {
-          console.log('🚪 Déconnexion en cours - ignore event:', event);
+        if (error) {
+          console.error('❌ Erreur getSession:', error);
+          setLoading(false);
           return;
         }
         
-        setSession(session);
-        setUser(session?.user ?? null);
-
-        if (session?.user && !isSigningOutRef.current) {
-          try {
-            console.log('🔍 Vérification utilisateur interne pour:', session.user.id);
-            const internalUser = await checkInternalUser(session.user.id);
-            
-            console.log('👤 Utilisateur interne trouvé:', internalUser);
-            
-            if (internalUser && internalUser.statut === 'actif') {
-              setUtilisateurInterne(internalUser);
-              console.log('✅ Utilisateur interne autorisé');
-            } else {
-              setUtilisateurInterne(null);
-              console.log('❌ Utilisateur non autorisé ou inactif');
-            }
-          } catch (error) {
-            console.error('❌ Erreur vérification utilisateur:', error);
-            setUtilisateurInterne(null);
-          }
-        } else {
-          setUtilisateurInterne(null);
-        }
+        console.log('🔍 Session existante récupérée:', {
+          exists: !!session,
+          userId: session?.user?.id,
+          email: session?.user?.email
+        });
         
-        setLoading(false);
-      }
-    );
-
-    // Vérifier la session existante
-    const initAuth = async () => {
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        console.log('🔍 Session existante récupérée:', !!session);
-        
-        // Si pas de session, arrêter le loading
         if (!session) {
           console.log('📭 Aucune session existante');
           setLoading(false);
+          return;
         }
-      } catch (error) {
+        
+        setTimeout(() => {
+          if (loading) {
+            console.log('🔧 Force loading false après délai');
+            setLoading(false);
+          }
+        }, 3000);
+        
+      }).catch((error) => {
+        clearTimeout(sessionTimeout);
         console.error('❌ Erreur getSession:', error);
         setLoading(false);
-      }
-    };
+      });
 
-    initAuth();
-
-    // Timeout de sécurité pour éviter le loading infini
-    const timeout = setTimeout(() => {
-      console.log('⏰ Timeout auth - forcer l\'arrêt du loading');
-      setLoading(false);
-    }, 5000);
-
-    return () => {
-      clearTimeout(timeout);
-      subscription.unsubscribe();
-    };
-  }, [isDevMode, bypassAuth]);
+      return () => {
+        clearTimeout(sessionTimeout);
+        subscription.unsubscribe();
+      };
+    }
+  }, []);
 
   const signIn = async (email: string, password: string) => {
     console.log('🔑 Tentative de connexion pour:', email);
@@ -154,62 +205,52 @@ export const useAuthState = (bypassAuth: boolean, mockUtilisateurInterne: Utilis
   };
 
   const signOut = async () => {
-    console.log('🚪 Début de la déconnexion...');
+    console.log('🚪 Déconnexion...');
     
-    try {
-      isSigningOutRef.current = true;
-      
-      // Nettoyer immédiatement l'état local
+    if (bypassAuthRef.current && isDevModeRef.current) {
+      console.log('🚪 Déconnexion en mode bypass');
       setUser(null);
       setSession(null);
       setUtilisateurInterne(null);
-      setLoading(false);
-      
-      // En mode bypass, nettoyer et rediriger
-      if (isDevMode && bypassAuth) {
-        console.log('🚪 Déconnexion en mode bypass');
-        localStorage.removeItem('dev_bypass_auth');
-        window.location.replace('/auth');
-        return;
-      }
-      
-      // Déconnexion Supabase normale
-      const { error } = await supabase.auth.signOut({ scope: 'global' });
-      
-      if (error) {
-        console.error('❌ Erreur déconnexion Supabase:', error);
-      } else {
-        console.log('✅ Déconnexion Supabase réussie');
-      }
-      
-      // Nettoyer le stockage local
-      const keysToRemove = [
-        'supabase.auth.token',
-        'supabase.auth.refreshToken', 
-        'sb-hlmiuwwfxerrinfthvrj-auth-token',
-        'dev_bypass_auth'
-      ];
-      
-      keysToRemove.forEach(key => {
-        try {
-          localStorage.removeItem(key);
-          sessionStorage.removeItem(key);
-        } catch (e) {
-          console.warn(`⚠️ Impossible de supprimer la clé: ${key}`, e);
-        }
-      });
-      
-    } catch (error) {
-      console.error('❌ Erreur lors de la déconnexion:', error);
-    } finally {
-      isSigningOutRef.current = false;
-      setTimeout(() => {
-        window.location.replace('/auth');
-      }, 100);
+      window.location.reload();
+      return;
     }
+    
+    setUser(null);
+    setSession(null);
+    setUtilisateurInterne(null);
+    
+    try {
+      await supabase.auth.signOut({ scope: 'global' });
+      console.log('✅ Déconnexion Supabase réussie');
+    } catch (error) {
+      console.error('❌ Erreur lors de la déconnexion Supabase:', error);
+    }
+    
+    try {
+      localStorage.removeItem('supabase.auth.token');
+      localStorage.removeItem('sb-hlmiuwwfxerrinfthvrj-auth-token');
+      console.log('✅ LocalStorage nettoyé');
+    } catch (error) {
+      console.error('❌ Erreur nettoyage localStorage:', error);
+    }
+    
+    console.log('🚪 Déconnexion complète, rechargement...');
+    window.location.replace('/auth');
   };
 
-  const isInternalUser = user && utilisateurInterne && utilisateurInterne.statut === 'actif';
+  const isInternalUser = (bypassAuthRef.current && isDevModeRef.current) || 
+                         (user && utilisateurInterne && utilisateurInterne.statut === 'actif');
+
+  console.log('🔍 État auth actuel:', {
+    loading,
+    hasUser: !!user,
+    hasUtilisateurInterne: !!utilisateurInterne,
+    isInternalUser: !!isInternalUser,
+    userEmail: user?.email,
+    internalUserRole: utilisateurInterne?.role?.nom || utilisateurInterne?.role?.name,
+    bypassMode: bypassAuth && isDevMode
+  });
 
   return {
     user,
