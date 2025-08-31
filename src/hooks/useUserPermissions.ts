@@ -109,9 +109,6 @@ export const useUserPermissions = () => {
           }
           
           return formattedPermissions;
-          
-        } catch (error) {
-          console.error('Erreur lors de la requête manuelle:', error);
         }
 
         // Méthode 3: Permissions par défaut pour éviter le blocage complet
@@ -160,4 +157,27 @@ export const useUserPermissions = () => {
     refetchOnWindowFocus: true,
     refetchInterval: 2 * 60 * 1000 // Rafraîchir toutes les 2 minutes
   });
+};
+
+export const useHasPermission = () => {
+  const { data: permissions = [], isLoading } = useUserPermissions();
+  
+  const hasPermission = (menu: string, submenu?: string, action: string = 'read') => {
+    if (!permissions || permissions.length === 0) {
+      return false;
+    }
+    
+    return permissions.some(permission => 
+      permission.menu === menu &&
+      permission.action === action &&
+      permission.can_access === true &&
+      (submenu ? permission.submenu === submenu : true)
+    );
+  };
+
+  return {
+    hasPermission,
+    isLoading,
+    permissions
+  };
 };
