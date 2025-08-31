@@ -1,15 +1,14 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
-import { Grid3x3, Save } from 'lucide-react';
+import { Grid3x3 } from 'lucide-react';
 import { useRoles, usePermissions, useRolePermissions, useUpdateRolePermission } from '@/hooks/usePermissionsSystem';
-import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 
 export default function MatrixTab() {
-  const [selectedRole, setSelectedRole] = useState<string>('');
   const [pendingChanges, setPendingChanges] = useState<{[key: string]: boolean}>({});
   
   const { data: roles = [], isLoading: rolesLoading } = useRoles();
@@ -18,6 +17,60 @@ export default function MatrixTab() {
   const updateRolePermission = useUpdateRolePermission();
 
   const isLoading = rolesLoading || permissionsLoading || rolePermissionsLoading;
+
+  // Structure complète de l'application organisée
+  const APPLICATION_STRUCTURE = [
+    {
+      menu: 'Dashboard',
+      submenus: [],
+      icon: '📊'
+    },
+    {
+      menu: 'Catalogue',
+      submenus: [],
+      icon: '📦'
+    },
+    {
+      menu: 'Stock',
+      submenus: ['Entrepôts', 'PDV', 'Mouvements', 'Inventaire'],
+      icon: '📋'
+    },
+    {
+      menu: 'Ventes',
+      submenus: ['Factures', 'Précommandes', 'Devis'],
+      icon: '💰'
+    },
+    {
+      menu: 'Achats',
+      submenus: ['Bons de commande', 'Bons de livraison', 'Factures fournisseurs'],
+      icon: '🛒'
+    },
+    {
+      menu: 'Clients',
+      submenus: [],
+      icon: '👥'
+    },
+    {
+      menu: 'Caisse',
+      submenus: ['Clôtures', 'Comptages'],
+      icon: '💳'
+    },
+    {
+      menu: 'Rapports',
+      submenus: ['Ventes', 'Achats', 'Stock', 'Clients', 'Marges', 'Financiers', 'Caisse'],
+      icon: '📈'
+    },
+    {
+      menu: 'Marges',
+      submenus: ['Articles', 'Catégories', 'Globales', 'Factures', 'Périodes'],
+      icon: '📊'
+    },
+    {
+      menu: 'Paramètres',
+      submenus: ['Zone Géographique', 'Fournisseurs', 'Entrepôts', 'Points de vente', 'Utilisateurs', 'Permissions'],
+      icon: '⚙️'
+    }
+  ];
 
   const handlePermissionChange = async (roleId: string, permissionId: string, canAccess: boolean) => {
     const key = `${roleId}-${permissionId}`;
@@ -30,19 +83,14 @@ export default function MatrixTab() {
         canAccess
       });
       
-      // Retirer du pending après succès
       setPendingChanges(prev => {
         const newPending = { ...prev };
         delete newPending[key];
         return newPending;
       });
       
-      toast.success('Permission mise à jour');
     } catch (error) {
       console.error('Erreur lors de la mise à jour:', error);
-      toast.error('Erreur lors de la mise à jour');
-      
-      // Retirer du pending en cas d'erreur
       setPendingChanges(prev => {
         const newPending = { ...prev };
         delete newPending[key];
@@ -63,26 +111,33 @@ export default function MatrixTab() {
     return rolePermission?.can_access || false;
   };
 
-  // Regrouper les permissions par menu et sous-menu pour un affichage hiérarchique
-  const groupedPermissions = React.useMemo(() => {
-    if (!permissions) return {};
-    
-    return permissions.reduce((acc, permission) => {
-      const menuKey = permission.menu;
-      if (!acc[menuKey]) {
-        acc[menuKey] = {};
-      }
-      
-      // Utiliser le submenu ou "Principal" pour les permissions principales
-      const submenuKey = permission.submenu || 'Principal';
-      if (!acc[menuKey][submenuKey]) {
-        acc[menuKey][submenuKey] = [];
-      }
-      
-      acc[menuKey][submenuKey].push(permission);
-      return acc;
-    }, {});
-  }, [permissions]);
+  const getPermissionsForMenuSubmenu = (menu: string, submenu?: string) => {
+    return permissions.filter(p => 
+      p.menu === menu && 
+      (submenu ? p.submenu === submenu : !p.submenu)
+    ).sort((a, b) => {
+      const actionOrder = { 'read': 1, 'write': 2, 'delete': 3 };
+      return (actionOrder[a.action as keyof typeof actionOrder] || 999) - (actionOrder[b.action as keyof typeof actionOrder] || 999);
+    });
+  };
+
+  const getActionIcon = (action: string) => {
+    switch (action) {
+      case 'read': return '👁️';
+      case 'write': return '✏️';
+      case 'delete': return '🗑️';
+      default: return '🔧';
+    }
+  };
+
+  const getActionLabel = (action: string) => {
+    switch (action) {
+      case 'read': return 'Lecture';
+      case 'write': return 'Écriture';
+      case 'delete': return 'Suppression';
+      default: return action;
+    }
+  };
 
   if (isLoading) {
     return (
@@ -98,15 +153,18 @@ export default function MatrixTab() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Grid3x3 className="w-5 h-5" />
-            Matrice des Permissions
+            Matrice des Permissions - Vue Complète
           </CardTitle>
+          <p className="text-sm text-muted-foreground">
+            Gestion des permissions par rôle pour tous les menus et sous-menus de l'application
+          </p>
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-80">Permission</TableHead>
+                  <TableHead className="w-80 sticky left-0 bg-background">Permission</TableHead>
                   {roles.map((role) => (
                     <TableHead key={role.id} className="text-center min-w-32">
                       <div className="flex flex-col items-center gap-1">
@@ -120,37 +178,67 @@ export default function MatrixTab() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {Object.entries(groupedPermissions).map(([menu, submenus]) => (
-                  <React.Fragment key={menu}>
+                {APPLICATION_STRUCTURE.map((menuStructure) => (
+                  <React.Fragment key={menuStructure.menu}>
+                    {/* En-tête du menu principal */}
                     <TableRow className="bg-muted/50">
-                      <TableCell colSpan={roles.length + 1} className="font-semibold text-primary">
-                        📁 {menu}
+                      <TableCell colSpan={roles.length + 1} className="font-semibold text-primary sticky left-0 bg-muted/50">
+                        {menuStructure.icon} {menuStructure.menu}
                       </TableCell>
                     </TableRow>
-                    {Object.entries(submenus).map(([submenu, menuPermissions]) => (
-                      <React.Fragment key={`${menu}-${submenu}`}>
-                        {submenu !== 'Principal' && (
-                          <TableRow className="bg-muted/25">
-                            <TableCell colSpan={roles.length + 1} className="font-medium text-sm pl-8">
-                              📂 {submenu}
+
+                    {/* Permissions principales (sans sous-menu) */}
+                    {menuStructure.submenus.length === 0 && 
+                      getPermissionsForMenuSubmenu(menuStructure.menu).map((permission) => (
+                        <TableRow key={permission.id}>
+                          <TableCell className="pl-8 sticky left-0 bg-background">
+                            <div className="flex flex-col">
+                              <div className="flex items-center gap-2">
+                                <span className="text-base">
+                                  {getActionIcon(permission.action)}
+                                </span>
+                                <Badge variant="outline" className="text-xs">
+                                  {getActionLabel(permission.action)}
+                                </Badge>
+                              </div>
+                              {permission.description && (
+                                <span className="text-sm text-muted-foreground mt-1">{permission.description}</span>
+                              )}
+                            </div>
+                          </TableCell>
+                          {roles.map((role) => (
+                            <TableCell key={`${permission.id}-${role.id}`} className="text-center">
+                              <Checkbox
+                                checked={hasPermission(role.id, permission.id)}
+                                onCheckedChange={(checked) => 
+                                  handlePermissionChange(role.id, permission.id, checked as boolean)
+                                }
+                                disabled={updateRolePermission.isPending}
+                              />
                             </TableCell>
-                          </TableRow>
-                        )}
-                        {menuPermissions.map((permission) => (
+                          ))}
+                        </TableRow>
+                      ))
+                    }
+
+                    {/* Sous-menus et leurs permissions */}
+                    {menuStructure.submenus.map((submenu) => (
+                      <React.Fragment key={`${menuStructure.menu}-${submenu}`}>
+                        <TableRow className="bg-muted/25">
+                          <TableCell colSpan={roles.length + 1} className="font-medium text-sm pl-8 sticky left-0 bg-muted/25">
+                            📂 {submenu}
+                          </TableCell>
+                        </TableRow>
+                        {getPermissionsForMenuSubmenu(menuStructure.menu, submenu).map((permission) => (
                           <TableRow key={permission.id}>
-                            <TableCell className={submenu !== 'Principal' ? 'pl-12' : 'pl-4'}>
+                            <TableCell className="pl-12 sticky left-0 bg-background">
                               <div className="flex flex-col">
                                 <div className="flex items-center gap-2">
                                   <span className="text-base">
-                                    {permission.action === 'read' && '👁️'} 
-                                    {permission.action === 'write' && '✏️'} 
-                                    {permission.action === 'delete' && '🗑️'}
+                                    {getActionIcon(permission.action)}
                                   </span>
                                   <Badge variant="outline" className="text-xs">
-                                    {permission.action === 'read' ? 'Lecture' : 
-                                     permission.action === 'write' ? 'Écriture' : 
-                                     permission.action === 'delete' ? 'Suppression' : 
-                                     permission.action}
+                                    {getActionLabel(permission.action)}
                                   </Badge>
                                 </div>
                                 {permission.description && (
@@ -178,6 +266,14 @@ export default function MatrixTab() {
               </TableBody>
             </Table>
           </div>
+          
+          {Object.keys(pendingChanges).length > 0 && (
+            <div className="mt-4 p-3 bg-orange-50 border border-orange-200 rounded-lg">
+              <p className="text-sm text-orange-700">
+                {Object.keys(pendingChanges).length} modification(s) en cours de sauvegarde...
+              </p>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

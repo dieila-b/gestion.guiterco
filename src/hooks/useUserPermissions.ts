@@ -32,24 +32,89 @@ export const useUserPermissions = () => {
       if (isDevMode && user.id === '00000000-0000-4000-8000-000000000001') {
         console.log('🚀 Mode dev avec utilisateur mock - toutes permissions accordées');
         return [
+          // Dashboard
           { menu: 'Dashboard', action: 'read', can_access: true },
+          
+          // Catalogue
           { menu: 'Catalogue', action: 'read', can_access: true },
           { menu: 'Catalogue', action: 'write', can_access: true },
+          { menu: 'Catalogue', action: 'delete', can_access: true },
+          
+          // Stock avec tous ses sous-menus
           { menu: 'Stock', submenu: 'Entrepôts', action: 'read', can_access: true },
           { menu: 'Stock', submenu: 'Entrepôts', action: 'write', can_access: true },
+          { menu: 'Stock', submenu: 'Entrepôts', action: 'delete', can_access: true },
           { menu: 'Stock', submenu: 'PDV', action: 'read', can_access: true },
           { menu: 'Stock', submenu: 'PDV', action: 'write', can_access: true },
+          { menu: 'Stock', submenu: 'PDV', action: 'delete', can_access: true },
+          { menu: 'Stock', submenu: 'Mouvements', action: 'read', can_access: true },
+          { menu: 'Stock', submenu: 'Mouvements', action: 'write', can_access: true },
+          { menu: 'Stock', submenu: 'Inventaire', action: 'read', can_access: true },
+          { menu: 'Stock', submenu: 'Inventaire', action: 'write', can_access: true },
+          
+          // Ventes
           { menu: 'Ventes', submenu: 'Factures', action: 'read', can_access: true },
           { menu: 'Ventes', submenu: 'Factures', action: 'write', can_access: true },
+          { menu: 'Ventes', submenu: 'Factures', action: 'delete', can_access: true },
           { menu: 'Ventes', submenu: 'Précommandes', action: 'read', can_access: true },
           { menu: 'Ventes', submenu: 'Précommandes', action: 'write', can_access: true },
+          { menu: 'Ventes', submenu: 'Précommandes', action: 'delete', can_access: true },
+          { menu: 'Ventes', submenu: 'Devis', action: 'read', can_access: true },
+          { menu: 'Ventes', submenu: 'Devis', action: 'write', can_access: true },
+          { menu: 'Ventes', submenu: 'Devis', action: 'delete', can_access: true },
+          
+          // Achats
           { menu: 'Achats', submenu: 'Bons de commande', action: 'read', can_access: true },
           { menu: 'Achats', submenu: 'Bons de commande', action: 'write', can_access: true },
+          { menu: 'Achats', submenu: 'Bons de commande', action: 'delete', can_access: true },
+          { menu: 'Achats', submenu: 'Bons de livraison', action: 'read', can_access: true },
+          { menu: 'Achats', submenu: 'Bons de livraison', action: 'write', can_access: true },
+          { menu: 'Achats', submenu: 'Bons de livraison', action: 'delete', can_access: true },
+          { menu: 'Achats', submenu: 'Factures fournisseurs', action: 'read', can_access: true },
+          { menu: 'Achats', submenu: 'Factures fournisseurs', action: 'write', can_access: true },
+          
+          // Clients
           { menu: 'Clients', action: 'read', can_access: true },
           { menu: 'Clients', action: 'write', can_access: true },
+          { menu: 'Clients', action: 'delete', can_access: true },
+          
+          // Caisse
           { menu: 'Caisse', action: 'read', can_access: true },
           { menu: 'Caisse', action: 'write', can_access: true },
-          { menu: 'Rapports', action: 'read', can_access: true },
+          { menu: 'Caisse', submenu: 'Clôtures', action: 'read', can_access: true },
+          { menu: 'Caisse', submenu: 'Clôtures', action: 'write', can_access: true },
+          { menu: 'Caisse', submenu: 'Comptages', action: 'read', can_access: true },
+          { menu: 'Caisse', submenu: 'Comptages', action: 'write', can_access: true },
+          
+          // Rapports
+          { menu: 'Rapports', submenu: 'Ventes', action: 'read', can_access: true },
+          { menu: 'Rapports', submenu: 'Achats', action: 'read', can_access: true },
+          { menu: 'Rapports', submenu: 'Stock', action: 'read', can_access: true },
+          { menu: 'Rapports', submenu: 'Clients', action: 'read', can_access: true },
+          { menu: 'Rapports', submenu: 'Marges', action: 'read', can_access: true },
+          { menu: 'Rapports', submenu: 'Financiers', action: 'read', can_access: true },
+          { menu: 'Rapports', submenu: 'Caisse', action: 'read', can_access: true },
+          
+          // Marges
+          { menu: 'Marges', submenu: 'Articles', action: 'read', can_access: true },
+          { menu: 'Marges', submenu: 'Catégories', action: 'read', can_access: true },
+          { menu: 'Marges', submenu: 'Globales', action: 'read', can_access: true },
+          { menu: 'Marges', submenu: 'Factures', action: 'read', can_access: true },
+          { menu: 'Marges', submenu: 'Périodes', action: 'read', can_access: true },
+          
+          // Paramètres
+          { menu: 'Paramètres', submenu: 'Zone Géographique', action: 'read', can_access: true },
+          { menu: 'Paramètres', submenu: 'Zone Géographique', action: 'write', can_access: true },
+          { menu: 'Paramètres', submenu: 'Fournisseurs', action: 'read', can_access: true },
+          { menu: 'Paramètres', submenu: 'Fournisseurs', action: 'write', can_access: true },
+          { menu: 'Paramètres', submenu: 'Entrepôts', action: 'read', can_access: true },
+          { menu: 'Paramètres', submenu: 'Entrepôts', action: 'write', can_access: true },
+          { menu: 'Paramètres', submenu: 'Points de vente', action: 'read', can_access: true },
+          { menu: 'Paramètres', submenu: 'Points de vente', action: 'write', can_access: true },
+          { menu: 'Paramètres', submenu: 'Utilisateurs', action: 'read', can_access: true },
+          { menu: 'Paramètres', submenu: 'Utilisateurs', action: 'write', can_access: true },
+          { menu: 'Paramètres', submenu: 'Permissions', action: 'read', can_access: true },
+          { menu: 'Paramètres', submenu: 'Permissions', action: 'write', can_access: true },
           { menu: 'Paramètres', submenu: 'Rôles et permissions', action: 'read', can_access: true },
           { menu: 'Paramètres', submenu: 'Rôles et permissions', action: 'write', can_access: true }
         ] as UserPermission[];
