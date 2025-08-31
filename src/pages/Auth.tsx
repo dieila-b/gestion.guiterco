@@ -7,15 +7,18 @@ import { useDevMode } from '@/hooks/useDevMode';
 import { Loader2 } from 'lucide-react';
 
 const Auth = () => {
-  const { user, loading, isInternalUser } = useAuth();
+  const { user, loading, isInternalUser, utilisateurInterne } = useAuth();
   const { isDevMode, bypassAuth } = useDevMode();
   const navigate = useNavigate();
 
   useEffect(() => {
-    console.log('🔄 Auth Page - State check:', {
+    console.log('🔄 Auth Page - État détaillé:', {
       user: !!user,
+      userEmail: user?.email,
       loading,
       isInternalUser,
+      utilisateurInterne: !!utilisateurInterne,
+      utilisateurStatut: utilisateurInterne?.statut,
       isDevMode,
       bypassAuth
     });
@@ -26,13 +29,6 @@ const Auth = () => {
       return;
     }
 
-    // Si l'utilisateur est connecté ET est un utilisateur interne, rediriger
-    if (user && isInternalUser) {
-      console.log('✅ Utilisateur connecté et vérifié, redirection vers /');
-      navigate('/', { replace: true });
-      return;
-    }
-
     // En mode dev avec bypass activé, rediriger directement
     if (isDevMode && bypassAuth) {
       console.log('🚀 Mode dev avec bypass activé, redirection vers /');
@@ -40,11 +36,23 @@ const Auth = () => {
       return;
     }
 
-    // Si utilisateur connecté mais pas interne, rester sur la page auth
-    if (user && !isInternalUser) {
+    // Si l'utilisateur est connecté ET est un utilisateur interne actif, rediriger
+    if (user && isInternalUser && utilisateurInterne?.statut === 'actif') {
+      console.log('✅ Utilisateur connecté et autorisé, redirection vers /');
+      navigate('/', { replace: true });
+      return;
+    }
+
+    // Si utilisateur connecté mais pas interne ou pas actif, rester sur la page auth
+    if (user && (!isInternalUser || utilisateurInterne?.statut !== 'actif')) {
       console.log('❌ Utilisateur connecté mais pas autorisé, rester sur auth');
     }
-  }, [user, loading, isInternalUser, isDevMode, bypassAuth, navigate]);
+
+    // Si pas d'utilisateur, rester sur la page de connexion
+    if (!user) {
+      console.log('👤 Pas d\'utilisateur connecté, afficher la page de connexion');
+    }
+  }, [user, loading, isInternalUser, utilisateurInterne, isDevMode, bypassAuth, navigate]);
 
   // Afficher un loader pendant la vérification
   if (loading) {
@@ -59,7 +67,7 @@ const Auth = () => {
   }
 
   // Si l'utilisateur est connecté et vérifié, afficher un loader de redirection
-  if (user && isInternalUser) {
+  if (user && isInternalUser && utilisateurInterne?.statut === 'actif') {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">

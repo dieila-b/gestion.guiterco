@@ -2,7 +2,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
 import { UtilisateurInterne } from './types';
 import { checkInternalUser, signIn as authSignIn, signOut as authSignOut } from './authUtils';
 
@@ -11,16 +10,46 @@ export const useAuthState = (bypassAuth: boolean, mockUser: UtilisateurInterne, 
   const [session, setSession] = useState<Session | null>(null);
   const [utilisateurInterne, setUtilisateurInterne] = useState<UtilisateurInterne | null>(null);
   const [loading, setLoading] = useState(true);
-  const { toast } = useToast();
   
   // Refs pour éviter les boucles infinies
   const bypassAuthRef = useRef(bypassAuth);
   const isDevModeRef = useRef(isDevMode);
   const initializationRef = useRef(false);
+  const checkingUserRef = useRef(false);
   
   // Mettre à jour les refs quand les valeurs changent
   bypassAuthRef.current = bypassAuth;
   isDevModeRef.current = isDevMode;
+
+  // Fonction pour vérifier l'utilisateur interne avec protection contre les appels multiples
+  const checkUser = useCallback(async (authUser: User) => {
+    if (checkingUserRef.current) {
+      console.log('🔄 Vérification utilisateur déjà en cours, abandon');
+      return;
+    }
+    
+    checkingUserRef.current = true;
+    console.log('🔍 Début vérification utilisateur interne pour:', authUser.id);
+    
+    try {
+      const internalUser = await checkInternalUser(authUser.id);
+      console.log('👤 Résultat vérification utilisateur interne:', internalUser);
+      
+      if (internalUser && internalUser.statut === 'actif') {
+        setUtilisateurInterne(internalUser);
+        console.log('✅ Utilisateur interne autorisé et défini');
+      } else {
+        console.log('❌ Utilisateur non autorisé ou inactif');
+        setUtilisateurInterne(null);
+      }
+    } catch (error) {
+      console.error('❌ Erreur vérification utilisateur:', error);
+      setUtilisateurInterne(null);
+    } finally {
+      checkingUserRef.current = false;
+      setLoading(false);
+    }
+  }, []);
 
   // Effect pour gérer le mode bypass
   useEffect(() => {
@@ -85,36 +114,25 @@ export const useAuthState = (bypassAuth: boolean, mockUser: UtilisateurInterne, 
           setUser(session?.user ?? null);
 
           if (session?.user) {
-            try {
-              console.log('🔍 Vérification utilisateur interne pour:', session.user.id);
-              const internalUser = await checkInternalUser(session.user.id);
-              
-              console.log('👤 Utilisateur interne trouvé:', internalUser);
-              
-              if (internalUser && internalUser.statut === 'actif') {
-                setUtilisateurInterne(internalUser);
-                console.log('✅ Utilisateur interne autorisé');
-              } else {
-                setUtilisateurInterne(null);
-                console.log('❌ Utilisateur non autorisé ou inactif');
-              }
-            } catch (error) {
-              console.error('❌ Erreur vérification utilisateur:', error);
-              setUtilisateurInterne(null);
-            }
+            // Attendre un peu avant de vérifier l'utilisateur pour éviter les appels simultanés
+            setTimeout(() => {
+              checkUser(session.user);
+            }, 500);
           } else {
             setUtilisateurInterne(null);
+            setLoading(false);
+            checkingUserRef.current = false;
           }
-          
-          setLoading(false);
         }
       );
 
-      // Vérifier la session existante avec timeout
+      // Vérifier la session existante avec timeout réduit
       const sessionTimeout = setTimeout(() => {
         console.log('⏰ Timeout auth session check');
-        setLoading(false);
-      }, 5000);
+        if (!user) {
+          setLoading(false);
+        }
+      }, 3000);
       
       supabase.auth.getSession().then(async ({ data: { session } }) => {
         clearTimeout(sessionTimeout);
@@ -134,7 +152,7 @@ export const useAuthState = (bypassAuth: boolean, mockUser: UtilisateurInterne, 
         subscription.unsubscribe();
       };
     }
-  }, []);
+  }, [checkUser]);
 
   const signIn = async (email: string, password: string) => {
     console.log('🔑 Tentative de connexion pour:', email);
@@ -162,6 +180,7 @@ export const useAuthState = (bypassAuth: boolean, mockUser: UtilisateurInterne, 
     setSession(null);
     setUtilisateurInterne(null);
     initializationRef.current = false;
+    checkingUserRef.current = false;
     
     try {
       await supabase.auth.signOut({ scope: 'global' });

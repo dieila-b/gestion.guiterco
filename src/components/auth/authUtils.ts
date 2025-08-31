@@ -49,16 +49,69 @@ export const checkInternalUser = async (userId: string): Promise<UtilisateurInte
       return null;
     }
 
-    // Utiliser la vue des utilisateurs avec rôles
+    // Première tentative : utiliser directement la table utilisateurs_internes avec jointure
+    console.log('📊 Requête directe utilisateurs_internes avec jointure role');
+    
     const { data: internalUser, error } = await supabase
-      .from('vue_utilisateurs_avec_roles')
-      .select('*')
+      .from('utilisateurs_internes')
+      .select(`
+        *,
+        roles (
+          id,
+          name,
+          description
+        )
+      `)
       .eq('user_id', userId)
       .eq('statut', 'actif')
       .single();
 
     if (error) {
-      console.log('❌ Erreur lors de la récupération de l\'utilisateur interne:', error);
+      console.log('❌ Erreur requête utilisateurs_internes:', error);
+      
+      // Deuxième tentative : sans jointure pour diagnostiquer
+      console.log('🔄 Tentative sans jointure...');
+      const { data: simpleUser, error: simpleError } = await supabase
+        .from('utilisateurs_internes')
+        .select('*')
+        .eq('user_id', userId)
+        .eq('statut', 'actif')
+        .single();
+      
+      if (simpleError) {
+        console.log('❌ Erreur requête simple:', simpleError);
+        return null;
+      }
+      
+      if (simpleUser) {
+        console.log('✅ Utilisateur trouvé sans jointure:', simpleUser);
+        
+        // Récupérer le rôle séparément
+        const { data: role } = await supabase
+          .from('roles')
+          .select('*')
+          .eq('id', simpleUser.role_id)
+          .single();
+          
+        console.log('🎭 Rôle récupéré:', role);
+        
+        return {
+          id: simpleUser.id,
+          email: simpleUser.email,
+          prenom: simpleUser.prenom,
+          nom: simpleUser.nom,
+          statut: simpleUser.statut,
+          type_compte: simpleUser.type_compte,
+          photo_url: simpleUser.photo_url,
+          role: {
+            id: role?.id || simpleUser.role_id,
+            name: role?.name || 'Unknown',
+            nom: role?.name || 'Unknown',
+            description: role?.description || ''
+          }
+        };
+      }
+      
       return null;
     }
 
@@ -67,13 +120,13 @@ export const checkInternalUser = async (userId: string): Promise<UtilisateurInte
       return null;
     }
 
-    console.log('✅ Utilisateur interne trouvé:', {
+    console.log('✅ Utilisateur interne trouvé avec jointure:', {
       id: internalUser.id,
       email: internalUser.email,
       statut: internalUser.statut,
       type_compte: internalUser.type_compte,
       user_id: internalUser.user_id,
-      role_name: internalUser.role_name
+      role: internalUser.roles
     });
 
     return {
@@ -85,10 +138,10 @@ export const checkInternalUser = async (userId: string): Promise<UtilisateurInte
       type_compte: internalUser.type_compte,
       photo_url: internalUser.photo_url,
       role: {
-        id: internalUser.role_id,
-        name: internalUser.role_name,
-        nom: internalUser.role_name, // Compatibilité
-        description: internalUser.role_description || ''
+        id: internalUser.roles?.id || internalUser.role_id,
+        name: internalUser.roles?.name || 'Unknown',
+        nom: internalUser.roles?.name || 'Unknown',
+        description: internalUser.roles?.description || ''
       }
     };
   } catch (error) {
