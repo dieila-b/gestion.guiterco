@@ -49,22 +49,8 @@ export const checkInternalUser = async (userId: string): Promise<UtilisateurInte
       return null;
     }
 
-    // Diagnostic: compter le total des utilisateurs internes
-    const { count: totalUsers } = await supabase
-      .from('utilisateurs_internes')
-      .select('*', { count: 'exact', head: true });
-    console.log('📊 Total utilisateurs internes dans la DB:', totalUsers);
-
-    // Diagnostic: chercher par email
-    const { data: userByEmail } = await supabase
-      .from('utilisateurs_internes')
-      .select('id, email, user_id, role_id')
-      .eq('email', 'danta93@gmail.com')
-      .single();
-    console.log('🔍 Recherche par email danta93@gmail.com:', userByEmail);
-
-    // Utiliser la nouvelle structure avec role_id - seulement les colonnes qui existent
-    let { data: internalUser, error } = await supabase
+    // Utiliser la nouvelle structure avec role_id
+    const { data: internalUser, error } = await supabase
       .from('utilisateurs_internes')
       .select(`
         id,
@@ -76,52 +62,18 @@ export const checkInternalUser = async (userId: string): Promise<UtilisateurInte
         photo_url,
         user_id,
         role_id,
-        roles!role_id(id, name, description)
+        roles!role_id(
+          id,
+          name,
+          description
+        )
       `)
       .eq('user_id', userId)
       .eq('statut', 'actif')
       .single();
 
-    if (error && error.code === 'PGRST116') {
-      console.log('🔍 Pas trouvé avec user_id, essai avec id (mode dev)');
-      const result = await supabase
-        .from('utilisateurs_internes')
-        .select(`
-          id,
-          email,
-          prenom,
-          nom,
-          statut,
-          type_compte,
-          photo_url,
-          user_id,
-          role_id,
-          roles!role_id(id, name, description)
-        `)
-        .eq('id', userId)
-        .eq('statut', 'actif')
-        .single();
-      
-      internalUser = result.data;
-      error = result.error;
-    }
-
     if (error) {
       console.log('❌ Erreur lors de la récupération de l\'utilisateur interne:', error);
-      
-      // Diagnostic supplémentaire
-      console.log('🔍 Diagnostic: recherche tous les utilisateurs actifs...');
-      const { data: allActiveUsers, error: allError } = await supabase
-        .from('utilisateurs_internes')
-        .select('id, email, user_id, statut, role_id')
-        .eq('statut', 'actif');
-      
-      if (allError) {
-        console.error('❌ Erreur diagnostic:', allError);
-      } else {
-        console.log('👥 Utilisateurs actifs dans la DB:', allActiveUsers);
-      }
-      
       return null;
     }
 
@@ -150,7 +102,7 @@ export const checkInternalUser = async (userId: string): Promise<UtilisateurInte
       role: {
         id: internalUser.roles.id,
         name: internalUser.roles.name,
-        nom: internalUser.roles.name, // Use name for compatibility
+        nom: internalUser.roles.name, // Compatibilité
         description: internalUser.roles.description
       }
     };

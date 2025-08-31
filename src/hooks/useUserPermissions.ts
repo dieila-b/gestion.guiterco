@@ -55,7 +55,7 @@ export const useUserPermissions = () => {
         ] as UserPermission[];
       }
 
-      // Pour les utilisateurs réels, utiliser la nouvelle vue
+      // Pour les utilisateurs réels, utiliser la vue des permissions
       try {
         console.log('📊 Récupération des permissions via vue_permissions_utilisateurs');
         
@@ -86,7 +86,7 @@ export const useUserPermissions = () => {
       }
     },
     enabled: !!user?.id,
-    retry: 2,
+    retry: 1,
     staleTime: 5 * 60 * 1000, // 5 minutes
     refetchOnMount: false,
     refetchOnWindowFocus: false

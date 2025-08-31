@@ -21,60 +21,65 @@ export const PermissionGuard: React.FC<PermissionGuardProps> = ({
   fallback = null
 }) => {
   const { hasPermission, isLoading } = useHasPermission();
-  const { isDevMode, user, utilisateurInterne } = useAuth();
+  const { isDevMode, user, utilisateurInterne, loading: authLoading } = useAuth();
 
   console.log(`🛡️ PermissionGuard - Vérification: ${menu}${submenu ? ` > ${submenu}` : ''} (${action})`, {
     isDevMode,
     hasUser: !!user,
     hasUtilisateurInterne: !!utilisateurInterne,
-    userRole: utilisateurInterne?.role?.nom,
-    isLoading
+    userRole: utilisateurInterne?.role?.name,
+    isLoading,
+    authLoading
   });
 
-  // En mode développement, être permissif SEULEMENT pour l'utilisateur mock
+  // En mode développement avec utilisateur mock, être permissif
   if (isDevMode && user?.id === '00000000-0000-4000-8000-000000000001') {
     console.log('🚀 Mode dev avec utilisateur mock - accès accordé');
     return <>{children}</>;
   }
 
-  // Attendre le chargement des permissions
-  if (isLoading) {
+  // Attendre le chargement de l'authentification ET des permissions
+  if (authLoading || isLoading) {
     return (
       <div className="flex items-center justify-center p-4">
         <Loader2 className="h-4 w-4 animate-spin mr-2" />
-        <span className="text-sm text-muted-foreground">Vérification des permissions...</span>
+        <span className="text-sm text-muted-foreground">
+          {authLoading ? 'Authentification...' : 'Vérification des permissions...'}
+        </span>
       </div>
     );
   }
 
-  // Vérifier les permissions
-  const hasAccess = hasPermission(menu, submenu, action);
-  
-  console.log(`🛡️ PermissionGuard - Résultat: ${hasAccess ? 'Accès accordé' : 'Accès refusé'}`, {
-    menu,
-    submenu,
-    action,
-    userRole: utilisateurInterne?.role?.nom
-  });
-  
-  if (!hasAccess) {
-    if (fallback) {
-      return <>{fallback}</>;
-    }
+  // Vérifier les permissions seulement si l'utilisateur est connecté
+  if (user) {
+    const hasAccess = hasPermission(menu, submenu, action);
+    
+    console.log(`🛡️ PermissionGuard - Résultat: ${hasAccess ? 'Accès accordé' : 'Accès refusé'}`, {
+      menu,
+      submenu,
+      action,
+      userRole: utilisateurInterne?.role?.name
+    });
+    
+    if (!hasAccess) {
+      if (fallback) {
+        return <>{fallback}</>;
+      }
 
-    return (
-      <Alert className="m-4">
-        <AlertCircle className="h-4 w-4" />
-        <AlertDescription>
-          Vous n'avez pas les permissions nécessaires pour accéder à cette section.
-          {utilisateurInterne?.role?.nom && (
-            <div className="mt-2 text-xs text-muted-foreground">
-              Votre rôle: {utilisateurInterne.role.nom}
-            </div>
-          )}
-        </AlertDescription>
-      </Alert>
-    );
+      return (
+        <Alert className="m-4">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            Vous n'avez pas les permissions nécessaires pour accéder à cette section.
+            {utilisateurInterne?.role?.name && (
+              <div className="mt-2 text-xs text-muted-foreground">
+                Votre rôle: {utilisateurInterne.role.name}
+              </div>
+            )}
+          </AlertDescription>
+        </Alert>
+      );
+    }
   }
 
   return <>{children}</>;
