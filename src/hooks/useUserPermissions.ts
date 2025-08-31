@@ -1,4 +1,3 @@
-
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/components/auth/AuthContext';
@@ -40,17 +39,17 @@ export const useUserPermissions = () => {
           { menu: 'Catalogue', action: 'write', can_access: true },
           { menu: 'Catalogue', action: 'delete', can_access: true },
           
-          // Stock avec tous ses sous-menus
-          { menu: 'Stock', submenu: 'Entrepôts', action: 'read', can_access: true },
-          { menu: 'Stock', submenu: 'Entrepôts', action: 'write', can_access: true },
-          { menu: 'Stock', submenu: 'Entrepôts', action: 'delete', can_access: true },
-          { menu: 'Stock', submenu: 'PDV', action: 'read', can_access: true },
-          { menu: 'Stock', submenu: 'PDV', action: 'write', can_access: true },
-          { menu: 'Stock', submenu: 'PDV', action: 'delete', can_access: true },
-          { menu: 'Stock', submenu: 'Mouvements', action: 'read', can_access: true },
-          { menu: 'Stock', submenu: 'Mouvements', action: 'write', can_access: true },
-          { menu: 'Stock', submenu: 'Inventaire', action: 'read', can_access: true },
-          { menu: 'Stock', submenu: 'Inventaire', action: 'write', can_access: true },
+          // Stocks avec tous ses sous-menus (orthographe corrigée)
+          { menu: 'Stocks', submenu: 'Entrepôts', action: 'read', can_access: true },
+          { menu: 'Stocks', submenu: 'Entrepôts', action: 'write', can_access: true },
+          { menu: 'Stocks', submenu: 'Entrepôts', action: 'delete', can_access: true },
+          { menu: 'Stocks', submenu: 'PDV', action: 'read', can_access: true },
+          { menu: 'Stocks', submenu: 'PDV', action: 'write', can_access: true },
+          { menu: 'Stocks', submenu: 'PDV', action: 'delete', can_access: true },
+          { menu: 'Stocks', submenu: 'Mouvements', action: 'read', can_access: true },
+          { menu: 'Stocks', submenu: 'Mouvements', action: 'write', can_access: true },
+          { menu: 'Stocks', submenu: 'Inventaire', action: 'read', can_access: true },
+          { menu: 'Stocks', submenu: 'Inventaire', action: 'write', can_access: true },
           
           // Ventes
           { menu: 'Ventes', submenu: 'Factures', action: 'read', can_access: true },
@@ -86,10 +85,10 @@ export const useUserPermissions = () => {
           { menu: 'Caisse', submenu: 'Comptages', action: 'read', can_access: true },
           { menu: 'Caisse', submenu: 'Comptages', action: 'write', can_access: true },
           
-          // Rapports
+          // Rapports (Stocks avec orthographe corrigée)
           { menu: 'Rapports', submenu: 'Ventes', action: 'read', can_access: true },
           { menu: 'Rapports', submenu: 'Achats', action: 'read', can_access: true },
-          { menu: 'Rapports', submenu: 'Stock', action: 'read', can_access: true },
+          { menu: 'Rapports', submenu: 'Stocks', action: 'read', can_access: true },
           { menu: 'Rapports', submenu: 'Clients', action: 'read', can_access: true },
           { menu: 'Rapports', submenu: 'Marges', action: 'read', can_access: true },
           { menu: 'Rapports', submenu: 'Financiers', action: 'read', can_access: true },
