@@ -49,7 +49,26 @@ export const checkInternalUser = async (userId: string): Promise<UtilisateurInte
       return null;
     }
 
-    // Essayer d'abord avec user_id (production), puis avec id (dev mode bypass)
+    // D'abord, vérifier combien d'utilisateurs internes existent au total
+    const { count: totalUsers } = await supabase
+      .from('utilisateurs_internes')
+      .select('*', { count: 'exact', head: true });
+    
+    console.log('📊 Nombre total d\'utilisateurs internes dans la DB:', totalUsers);
+
+    // Vérifier s'il y a des utilisateurs avec cet email
+    const { data: usersByEmail, error: emailError } = await supabase
+      .from('utilisateurs_internes')
+      .select('*')
+      .eq('email', 'danta93@gmail.com');
+    
+    if (emailError) {
+      console.error('❌ Erreur lors de la recherche par email:', emailError);
+    } else {
+      console.log('📧 Utilisateurs trouvés avec cet email:', usersByEmail);
+    }
+
+    // Essayer d'abord avec user_id (production)
     let { data: internalUser, error } = await supabase
       .from('utilisateurs_internes')
       .select(`
@@ -60,15 +79,15 @@ export const checkInternalUser = async (userId: string): Promise<UtilisateurInte
         statut,
         type_compte,
         photo_url,
+        user_id,
         roles!inner(id, name, description)
       `)
       .eq('user_id', userId)
       .eq('statut', 'actif')
       .single();
 
-    // Si pas trouvé avec user_id, essayer avec id (pour le mode dev)
     if (error && error.code === 'PGRST116') {
-      console.log('🔍 Essai avec id au lieu de user_id (mode dev)');
+      console.log('🔍 Pas trouvé avec user_id, essai avec id (mode dev)');
       const result = await supabase
         .from('utilisateurs_internes')
         .select(`
@@ -79,6 +98,7 @@ export const checkInternalUser = async (userId: string): Promise<UtilisateurInte
           statut,
           type_compte,
           photo_url,
+          user_id,
           roles!inner(id, name, description)
         `)
         .eq('id', userId)
@@ -91,6 +111,20 @@ export const checkInternalUser = async (userId: string): Promise<UtilisateurInte
 
     if (error) {
       console.log('❌ Erreur lors de la récupération de l\'utilisateur interne:', error);
+      
+      // Diagnostic supplémentaire
+      console.log('🔍 Diagnostic: recherche tous les utilisateurs actifs...');
+      const { data: allActiveUsers, error: allError } = await supabase
+        .from('utilisateurs_internes')
+        .select('id, email, user_id, statut')
+        .eq('statut', 'actif');
+      
+      if (allError) {
+        console.error('❌ Erreur diagnostic:', allError);
+      } else {
+        console.log('👥 Utilisateurs actifs dans la DB:', allActiveUsers);
+      }
+      
       return null;
     }
 
@@ -103,7 +137,8 @@ export const checkInternalUser = async (userId: string): Promise<UtilisateurInte
       id: internalUser.id,
       email: internalUser.email,
       statut: internalUser.statut,
-      type_compte: internalUser.type_compte
+      type_compte: internalUser.type_compte,
+      user_id: internalUser.user_id
     });
 
     return {
