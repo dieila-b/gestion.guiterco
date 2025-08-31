@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { ArticleSelector } from '../ArticleSelector';
 import { formatCurrency } from '@/lib/currency';
+import { ArticleOptimized } from '@/hooks/useCatalogue';
 
 interface ArticleLigne {
   article_id: string;
@@ -15,10 +16,10 @@ interface ArticleLigne {
 }
 
 interface ArticlesSectionProps {
-  articles: any[] | undefined;
+  articles: ArticleOptimized[] | undefined;
   loadingArticles: boolean;
   articlesLignes: ArticleLigne[];
-  onAjouterArticle: (article: { id: string; nom: string; prix_achat?: number }) => void;
+  onAjouterArticle: (article: ArticleOptimized) => void;
   onModifierQuantite: (index: number, quantite: number) => void;
   onModifierPrix: (index: number, prix: number) => void;
   onSupprimerArticle: (index: number) => void;

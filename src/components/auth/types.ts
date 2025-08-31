@@ -17,10 +17,17 @@ export interface UtilisateurInterne {
   email: string;
   prenom: string;
   nom: string;
+  matricule?: string; // Add matricule property
   role: Role;
   statut: string;
   type_compte: string;
-  photo_url?: string; // Add optional photo_url property
+  photo_url?: string;
+  telephone?: string;
+  date_embauche?: string;
+  department?: string;
+  user_id?: string;
+  created_at?: string;
+  updated_at?: string;
 }
 
 export interface AuthContextType {
