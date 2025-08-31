@@ -57,7 +57,7 @@ export const useUserPermissions = () => {
 
       // Pour les utilisateurs réels, utiliser la vue des permissions
       try {
-        console.log('📊 Récupération des permissions via vue_permissions_utilisateurs');
+        console.log('📊 Récupération des permissions via vue_permissions_utilisateurs pour:', user.id);
         
         const { data, error } = await supabase
           .from('vue_permissions_utilisateurs')
@@ -86,9 +86,9 @@ export const useUserPermissions = () => {
       }
     },
     enabled: !!user?.id,
-    retry: 1,
+    retry: 2,
     staleTime: 5 * 60 * 1000, // 5 minutes
-    refetchOnMount: false,
+    refetchOnMount: true,
     refetchOnWindowFocus: false
   });
 };

@@ -28,22 +28,24 @@ export const useAuthState = (
         setUser(currentSession?.user ?? null);
         
         if (currentSession?.user) {
-          // Vérifier l'utilisateur interne de manière asynchrone
-          setTimeout(async () => {
+          // Vérifier l'utilisateur interne avec un délai pour éviter les appels simultanés
+          const timeoutId = setTimeout(async () => {
             try {
               const internalUser = await checkInternalUser(currentSession.user.id);
               console.log('👤 Utilisateur interne trouvé:', internalUser);
               
               setUtilisateurInterne(internalUser);
               setIsInternalUser(!!internalUser);
+              setLoading(false);
             } catch (error) {
               console.error('❌ Erreur lors de la vérification utilisateur interne:', error);
               setUtilisateurInterne(null);
               setIsInternalUser(false);
-            } finally {
               setLoading(false);
             }
-          }, 100);
+          }, 200);
+
+          return () => clearTimeout(timeoutId);
         } else {
           setUtilisateurInterne(null);
           setIsInternalUser(false);
@@ -53,28 +55,28 @@ export const useAuthState = (
     );
 
     // Vérification de la session existante
-    supabase.auth.getSession().then(({ data: { session: existingSession } }) => {
-      console.log('🔍 Session existante:', { userId: existingSession?.user?.id });
-      
-      if (existingSession?.user) {
-        setSession(existingSession);
-        setUser(existingSession.user);
+    const checkExistingSession = async () => {
+      try {
+        const { data: { session: existingSession } } = await supabase.auth.getSession();
+        console.log('🔍 Session existante:', { userId: existingSession?.user?.id });
         
-        // Vérifier l'utilisateur interne
-        checkInternalUser(existingSession.user.id).then(internalUser => {
+        if (existingSession?.user) {
+          setSession(existingSession);
+          setUser(existingSession.user);
+          
+          // Vérifier l'utilisateur interne
+          const internalUser = await checkInternalUser(existingSession.user.id);
           setUtilisateurInterne(internalUser);
           setIsInternalUser(!!internalUser);
-          setLoading(false);
-        }).catch(error => {
-          console.error('❌ Erreur vérification utilisateur interne:', error);
-          setUtilisateurInterne(null);
-          setIsInternalUser(false);
-          setLoading(false);
-        });
-      } else {
+        }
+      } catch (error) {
+        console.error('❌ Erreur vérification session existante:', error);
+      } finally {
         setLoading(false);
       }
-    });
+    };
+
+    checkExistingSession();
 
     return () => {
       console.log('🧹 Nettoyage des listeners d\'authentification');

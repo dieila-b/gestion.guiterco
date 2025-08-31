@@ -22,6 +22,7 @@ const Auth = () => {
 
     // Ne pas rediriger pendant le chargement
     if (loading) {
+      console.log('⏳ Chargement en cours, pas de redirection');
       return;
     }
 
@@ -38,6 +39,11 @@ const Auth = () => {
       navigate('/', { replace: true });
       return;
     }
+
+    // Si utilisateur connecté mais pas interne, rester sur la page auth
+    if (user && !isInternalUser) {
+      console.log('❌ Utilisateur connecté mais pas autorisé, rester sur auth');
+    }
   }, [user, loading, isInternalUser, isDevMode, bypassAuth, navigate]);
 
   // Afficher un loader pendant la vérification
@@ -52,7 +58,7 @@ const Auth = () => {
     );
   }
 
-  // Si l'utilisateur est connecté et vérifié, ne pas afficher le formulaire
+  // Si l'utilisateur est connecté et vérifié, afficher un loader de redirection
   if (user && isInternalUser) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -64,7 +70,7 @@ const Auth = () => {
     );
   }
 
-  // En mode dev avec bypass, ne pas afficher le formulaire
+  // En mode dev avec bypass, afficher un loader
   if (isDevMode && bypassAuth) {
     return (
       <div className="min-h-screen flex items-center justify-center">
