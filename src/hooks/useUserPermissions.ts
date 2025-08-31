@@ -1,11 +1,11 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from './useAuth';
+import { useAuth } from '@/components/auth/AuthContext';
 
 export interface UserPermission {
   menu: string;
-  submenu?: string; // Make submenu optional
+  submenu?: string;
   action: string;
   can_access: boolean;
 }
@@ -26,11 +26,6 @@ export const useUserPermissions = () => {
       // Variables d'environnement pour le mode développement
       const isDevMode = import.meta.env.DEV;
       
-      if (!user.id) {
-        console.log('Pas d\'ID utilisateur');
-        return [];
-      }
-
       // En mode développement avec utilisateur mock, donner toutes les permissions
       if (isDevMode && (user.id === '00000000-0000-4000-8000-000000000001' || user?.email?.includes('dev'))) {
         console.log('Mode dev avec utilisateur mock - toutes permissions accordées');
@@ -50,88 +45,53 @@ export const useUserPermissions = () => {
       }
 
       try {
-        // Méthode 1: Via la vue permissions_utilisateur
-        console.log('Tentative 1: Via la vue permissions_utilisateur');
-        const { data: permissionsData, error: permissionsError } = await supabase
-          .from('permissions_utilisateur')
-          .select('*')
-          .eq('user_id', user.id);
+        // Utiliser la fonction SQL pour récupérer les permissions
+        const { data: permissionsData, error } = await supabase
+          .rpc('get_user_permissions_by_id', { p_user_id: user.id });
 
-        if (!permissionsError && permissionsData && permissionsData.length > 0) {
-          console.log('✅ Permissions récupérées via la vue:', permissionsData);
+        if (error) {
+          console.error('Erreur lors de la récupération des permissions:', error);
+          // Fallback: permissions de base pour éviter le blocage
+          return [{ menu: 'Dashboard', action: 'read', can_access: true }];
+        }
+
+        if (permissionsData && Array.isArray(permissionsData) && permissionsData.length > 0) {
+          console.log('✅ Permissions récupérées:', permissionsData);
           const formattedPermissions = permissionsData.map(p => ({
-            menu: p.menu,
-            submenu: p.submenu,
-            action: p.action,
-            can_access: p.can_access
+            menu: p.menu || '',
+            submenu: p.submenu || undefined,
+            action: p.action || 'read',
+            can_access: p.can_access || false
           }));
           
-          // S'assurer qu'il y a au moins l'accès au dashboard si l'utilisateur a d'autres permissions
-          if (formattedPermissions.length > 0 && !formattedPermissions.some(p => p.menu === 'Dashboard' && p.action === 'read')) {
+          // S'assurer qu'il y a au moins l'accès au dashboard
+          if (!formattedPermissions.some(p => p.menu === 'Dashboard' && p.action === 'read')) {
             formattedPermissions.push({ menu: 'Dashboard', action: 'read', can_access: true });
           }
           
           return formattedPermissions;
         }
 
-        // Méthode 2: Requête manuelle avec jointures
-        console.log('Tentative 2: Requête manuelle avec jointures');
-        const { data: manualData, error: manualError } = await supabase
-          .from('utilisateurs_roles')
-          .select(`
-            roles!inner(
-              permissions_roles!inner(
-                permissions!inner(*)
-              )
-            )
-          `)
-          .eq('user_id', user.id);
-
-        if (!manualError && manualData) {
-          console.log('Données brutes de la requête manuelle:', manualData);
-          
-          const formattedPermissions = manualData
-            .flatMap(ur => ur.roles?.permissions_roles || [])
-            .map(pr => pr.permissions)
-            .filter(Boolean)
-            .map(p => ({
-              menu: p.menu,
-              submenu: p.submenu,
-              action: p.action,
-              can_access: true
-            })) || [];
-
-          console.log('Permissions récupérées via requête directe:', formattedPermissions);
-          
-          // S'assurer qu'il y a au moins l'accès au dashboard si l'utilisateur a d'autres permissions
-          if (formattedPermissions.length > 0 && !formattedPermissions.some(p => p.menu === 'Dashboard' && p.action === 'read')) {
-            formattedPermissions.push({ menu: 'Dashboard', action: 'read', can_access: true });
-          }
-          
-          return formattedPermissions;
-        }
-
-        // Méthode 3: Permissions par défaut pour éviter le blocage complet
-        console.log('Méthode 3: Attribution des permissions par défaut');
-        
-        // Vérifier si l'utilisateur existe au moins dans la table users
+        // Fallback: Vérifier si l'utilisateur existe dans utilisateurs_internes
         const { data: userData } = await supabase
-          .from('users')
-          .select('id, type_utilisateur')
-          .eq('id', user.id)
+          .from('utilisateurs_internes')
+          .select('id, statut, role_id, roles(name)')
+          .eq('user_id', user.id)
+          .eq('statut', 'actif')
           .single();
 
         if (userData) {
-          console.log('Utilisateur trouvé dans la base, attribution des permissions de base');
+          console.log('Utilisateur trouvé dans utilisateurs_internes, attribution des permissions de base');
           const basePermissions = [
             { menu: 'Dashboard', action: 'read', can_access: true }
           ];
 
-          // Si c'est un utilisateur interne, donner plus de permissions
-          if (userData.type_utilisateur === 'interne') {
+          // Si c'est un administrateur, donner plus de permissions
+          if (userData.roles?.name === 'Administrateur') {
             basePermissions.push(
               { menu: 'Ventes', submenu: 'Vente au Comptoir', action: 'read', can_access: true },
-              { menu: 'Ventes', submenu: 'Factures de vente', action: 'read', can_access: true }
+              { menu: 'Ventes', submenu: 'Factures de vente', action: 'read', can_access: true },
+              { menu: 'Catalogue', submenu: 'Articles', action: 'read', can_access: true }
             );
           }
 
@@ -154,8 +114,8 @@ export const useUserPermissions = () => {
     retry: 2,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
     staleTime: 30 * 1000, // 30 secondes
-    refetchOnWindowFocus: true,
-    refetchInterval: 2 * 60 * 1000 // Rafraîchir toutes les 2 minutes
+    refetchOnWindowFocus: false, // Éviter les refetch trop fréquents
+    refetchInterval: false // Pas de refetch automatique
   });
 };
 

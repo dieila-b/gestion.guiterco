@@ -27,7 +27,7 @@ interface ProductGridProps {
 }
 
 const ProductGrid: React.FC<ProductGridProps> = ({
-  stockPDV,
+  stockPDV = [], // Valeur par défaut pour éviter undefined
   loadingArticles,
   addToCart,
   currentPage,
@@ -41,18 +41,23 @@ const ProductGrid: React.FC<ProductGridProps> = ({
   console.log('ProductGrid - stockPDV:', stockPDV);
   console.log('ProductGrid - selectedCategory:', selectedCategory);
 
+  // Vérification de sécurité pour s'assurer que stockPDV est un tableau
+  const safeStockPDV = Array.isArray(stockPDV) ? stockPDV : [];
+
   // Filtrer les produits en fonction de la recherche et de la catégorie
   const filteredProducts = React.useMemo(() => {
-    if (!stockPDV) return [];
+    if (!Array.isArray(safeStockPDV) || safeStockPDV.length === 0) {
+      return [];
+    }
     
-    const filtered = stockPDV.filter(stockItem => {
-      const article = stockItem.article;
+    const filtered = safeStockPDV.filter(stockItem => {
+      const article = stockItem?.article;
       if (!article) return false;
 
       // Filtre par recherche
       const matchesSearch = !searchProduct || 
-        article.nom.toLowerCase().includes(searchProduct.toLowerCase()) ||
-        article.reference.toLowerCase().includes(searchProduct.toLowerCase());
+        (article.nom && article.nom.toLowerCase().includes(searchProduct.toLowerCase())) ||
+        (article.reference && article.reference.toLowerCase().includes(searchProduct.toLowerCase()));
 
       // Filtre par catégorie - utiliser la catégorie normalisée
       const articleCategory = article.categorie || '';
@@ -72,9 +77,9 @@ const ProductGrid: React.FC<ProductGridProps> = ({
       return matchesSearch && matchesCategory;
     });
 
-    console.log('Filtered products:', filtered.length, 'from', stockPDV.length);
+    console.log('Filtered products:', filtered.length, 'from', safeStockPDV.length);
     return filtered;
-  }, [stockPDV, searchProduct, selectedCategory]);
+  }, [safeStockPDV, searchProduct, selectedCategory]);
 
   const getStockIndicator = (quantite: number) => {
     if (quantite > 50) return { emoji: '🟢', text: 'En stock' };
@@ -83,11 +88,13 @@ const ProductGrid: React.FC<ProductGridProps> = ({
   };
 
   const getDisplayStock = (stockItem: any) => {
+    if (!stockItem) return 0;
+    
     // Utiliser le stock local si disponible, sinon le stock PDV
-    if (getLocalStock) {
+    if (getLocalStock && stockItem.article_id) {
       return getLocalStock(stockItem.article_id);
     }
-    return stockItem.quantite_disponible;
+    return stockItem.quantite_disponible || 0;
   };
 
   return (
@@ -119,7 +126,7 @@ const ProductGrid: React.FC<ProductGridProps> = ({
                 </div>
               ))}
             </div>
-          ) : filteredProducts.length === 0 ? (
+          ) : !Array.isArray(filteredProducts) || filteredProducts.length === 0 ? (
             <div className="text-center py-8 text-gray-500">
               <Image className="h-12 w-12 mx-auto mb-4 text-gray-300" />
               <p>Aucun produit trouvé</p>
@@ -134,6 +141,10 @@ const ProductGrid: React.FC<ProductGridProps> = ({
             <>
               <div className="grid grid-cols-5 gap-4 mb-4">
                 {filteredProducts.map((stockItem) => {
+                  if (!stockItem || !stockItem.article) {
+                    return null;
+                  }
+                  
                   const article = stockItem.article;
                   const stockDisponible = getDisplayStock(stockItem);
                   const stockIndicator = getStockIndicator(stockDisponible);
@@ -155,7 +166,7 @@ const ProductGrid: React.FC<ProductGridProps> = ({
                         {article.image_url ? (
                           <img 
                             src={article.image_url} 
-                            alt={article.nom}
+                            alt={article.nom || 'Article'}
                             className="w-full h-full object-cover"
                           />
                         ) : (
@@ -165,8 +176,8 @@ const ProductGrid: React.FC<ProductGridProps> = ({
                         )}
                       </div>
                       
-                      <div className="text-sm font-medium truncate mb-2" title={article.nom}>
-                        {article.nom}
+                      <div className="text-sm font-medium truncate mb-2" title={article.nom || ''}>
+                        {article.nom || 'Nom non disponible'}
                       </div>
                       
                       {/* Affichage de la catégorie pour debug */}
@@ -195,7 +206,7 @@ const ProductGrid: React.FC<ProductGridProps> = ({
                       )}
                     </div>
                   );
-                })}
+                }).filter(Boolean)}
               </div>
 
               {/* Pagination */}
