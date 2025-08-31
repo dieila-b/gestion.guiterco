@@ -49,26 +49,7 @@ export const checkInternalUser = async (userId: string): Promise<UtilisateurInte
       return null;
     }
 
-    // D'abord, vérifier combien d'utilisateurs internes existent au total
-    const { count: totalUsers } = await supabase
-      .from('utilisateurs_internes')
-      .select('*', { count: 'exact', head: true });
-    
-    console.log('📊 Nombre total d\'utilisateurs internes dans la DB:', totalUsers);
-
-    // Vérifier s'il y a des utilisateurs avec cet email
-    const { data: usersByEmail, error: emailError } = await supabase
-      .from('utilisateurs_internes')
-      .select('*')
-      .eq('email', 'danta93@gmail.com');
-    
-    if (emailError) {
-      console.error('❌ Erreur lors de la recherche par email:', emailError);
-    } else {
-      console.log('📧 Utilisateurs trouvés avec cet email:', usersByEmail);
-    }
-
-    // Essayer d'abord avec user_id (production)
+    // Utiliser la nouvelle structure avec role_id
     let { data: internalUser, error } = await supabase
       .from('utilisateurs_internes')
       .select(`
@@ -80,7 +61,8 @@ export const checkInternalUser = async (userId: string): Promise<UtilisateurInte
         type_compte,
         photo_url,
         user_id,
-        roles!inner(id, name, description)
+        role_id,
+        roles!role_id(id, name, nom, description)
       `)
       .eq('user_id', userId)
       .eq('statut', 'actif')
@@ -99,7 +81,8 @@ export const checkInternalUser = async (userId: string): Promise<UtilisateurInte
           type_compte,
           photo_url,
           user_id,
-          roles!inner(id, name, description)
+          role_id,
+          roles!role_id(id, name, nom, description)
         `)
         .eq('id', userId)
         .eq('statut', 'actif')
@@ -116,7 +99,7 @@ export const checkInternalUser = async (userId: string): Promise<UtilisateurInte
       console.log('🔍 Diagnostic: recherche tous les utilisateurs actifs...');
       const { data: allActiveUsers, error: allError } = await supabase
         .from('utilisateurs_internes')
-        .select('id, email, user_id, statut')
+        .select('id, email, user_id, statut, role_id')
         .eq('statut', 'actif');
       
       if (allError) {
@@ -128,8 +111,8 @@ export const checkInternalUser = async (userId: string): Promise<UtilisateurInte
       return null;
     }
 
-    if (!internalUser) {
-      console.log('❌ Aucun utilisateur interne trouvé pour userId:', userId);
+    if (!internalUser || !internalUser.roles) {
+      console.log('❌ Aucun utilisateur interne trouvé avec rôle pour userId:', userId);
       return null;
     }
 
@@ -138,7 +121,8 @@ export const checkInternalUser = async (userId: string): Promise<UtilisateurInte
       email: internalUser.email,
       statut: internalUser.statut,
       type_compte: internalUser.type_compte,
-      user_id: internalUser.user_id
+      user_id: internalUser.user_id,
+      role: internalUser.roles
     });
 
     return {
@@ -151,8 +135,8 @@ export const checkInternalUser = async (userId: string): Promise<UtilisateurInte
       photo_url: internalUser.photo_url,
       role: {
         id: internalUser.roles.id,
-        name: internalUser.roles.name,
-        nom: internalUser.roles.name, // Compatibility
+        name: internalUser.roles.name || internalUser.roles.nom,
+        nom: internalUser.roles.nom || internalUser.roles.name, // Compatibility
         description: internalUser.roles.description
       }
     };

@@ -55,21 +55,14 @@ export const useUserPermissions = () => {
         ] as UserPermission[];
       }
 
-      // Pour les utilisateurs réels, vérifier s'ils ont un rôle assigné
-      if (!utilisateurInterne?.role?.id) {
-        console.warn('❌ Utilisateur sans rôle défini');
-        return [];
-      }
-
+      // Pour les utilisateurs réels, utiliser la nouvelle vue
       try {
-        console.log('📊 Récupération des permissions pour le rôle:', utilisateurInterne.role.id);
+        console.log('📊 Récupération des permissions via vue_permissions_utilisateurs');
         
         const { data, error } = await supabase
-          .from('role_permissions')
-          .select(`
-            permission:permissions(menu, submenu, action)
-          `)
-          .eq('role_id', utilisateurInterne.role.id)
+          .from('vue_permissions_utilisateurs')
+          .select('menu, submenu, action, can_access')
+          .eq('user_id', user.id)
           .eq('can_access', true);
 
         if (error) {
@@ -77,11 +70,11 @@ export const useUserPermissions = () => {
           return [];
         }
 
-        const formattedPermissions = data?.map(rp => ({
-          menu: rp.permission.menu,
-          submenu: rp.permission.submenu,
-          action: rp.permission.action,
-          can_access: true
+        const formattedPermissions = data?.map(p => ({
+          menu: p.menu,
+          submenu: p.submenu || undefined,
+          action: p.action,
+          can_access: p.can_access
         })) || [];
 
         console.log('✅ Permissions récupérées:', formattedPermissions);
