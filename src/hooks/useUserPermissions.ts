@@ -60,7 +60,12 @@ export const useUserPermissions = () => {
           
           // S'assurer qu'il y a au moins l'accès au dashboard si l'utilisateur a d'autres permissions
           if (formattedPermissions.length > 0 && !formattedPermissions.some(p => p.menu === 'Dashboard' && p.action === 'read')) {
-            formattedPermissions.push({ menu: 'Dashboard', action: 'read', can_access: true });
+            formattedPermissions.push({ 
+              menu: 'Dashboard', 
+              action: 'read', 
+              can_access: true,
+              submenu: undefined 
+            });
           }
           
           return formattedPermissions;
@@ -70,7 +75,7 @@ export const useUserPermissions = () => {
         console.log('Aucune permission trouvée, attribution des permissions par défaut');
         
         return [
-          { menu: 'Dashboard', action: 'read', can_access: true }
+          { menu: 'Dashboard', action: 'read', can_access: true, submenu: undefined }
         ];
 
       } catch (error) {
@@ -78,7 +83,7 @@ export const useUserPermissions = () => {
         
         // En cas d'erreur critique, au moins donner accès au dashboard pour éviter le blocage
         return [
-          { menu: 'Dashboard', action: 'read', can_access: true }
+          { menu: 'Dashboard', action: 'read', can_access: true, submenu: undefined }
         ];
       }
     },
