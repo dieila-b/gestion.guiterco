@@ -2,7 +2,7 @@
 import React from 'react';
 import { useHasPermission } from '@/hooks/useUserPermissions';
 import { useAuth } from '@/components/auth/AuthContext';
-import { Loader2, AlertCircle } from 'lucide-react';
+import { Loader2, AlertCircle, Shield } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface PermissionGuardProps {
@@ -54,7 +54,9 @@ export const PermissionGuard: React.FC<PermissionGuardProps> = ({
     menu,
     submenu,
     action,
-    userRole: utilisateurInterne?.role?.nom
+    userRole: utilisateurInterne?.role?.nom,
+    isDevMode,
+    userId: user?.id
   });
   
   if (!hasAccess) {
@@ -66,12 +68,25 @@ export const PermissionGuard: React.FC<PermissionGuardProps> = ({
       <Alert className="m-4">
         <AlertCircle className="h-4 w-4" />
         <AlertDescription>
-          Vous n'avez pas les permissions nécessaires pour accéder à cette section.
-          {utilisateurInterne?.role?.nom && (
-            <div className="mt-2 text-xs text-muted-foreground">
-              Votre rôle: {utilisateurInterne.role.nom}
-            </div>
-          )}
+          <div className="space-y-2">
+            <p>Vous n'avez pas les permissions nécessaires pour accéder à cette section.</p>
+            {isDevMode && (
+              <div className="text-xs text-blue-600 bg-blue-50 p-2 rounded">
+                <Shield className="h-3 w-3 inline mr-1" />
+                <strong>Mode Développement:</strong> 
+                <br />Menu: {menu}
+                <br />Sous-menu: {submenu || 'Aucun'}
+                <br />Action: {action}
+                <br />Utilisateur: {user?.id}
+                <br />Rôle: {utilisateurInterne?.role?.nom || 'Aucun'}
+              </div>
+            )}
+            {utilisateurInterne?.role?.nom && (
+              <div className="mt-2 text-xs text-muted-foreground">
+                Votre rôle: {utilisateurInterne.role.nom}
+              </div>
+            )}
+          </div>
         </AlertDescription>
       </Alert>
     );
