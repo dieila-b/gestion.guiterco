@@ -11,6 +11,8 @@ interface PermissionGuardProps {
   submenu?: string;
   action?: string;
   fallback?: React.ReactNode;
+  mode?: 'hide' | 'disable';
+  disabledClassName?: string;
 }
 
 export const PermissionGuard: React.FC<PermissionGuardProps> = ({
@@ -18,7 +20,9 @@ export const PermissionGuard: React.FC<PermissionGuardProps> = ({
   menu,
   submenu,
   action = 'read',
-  fallback = null
+  fallback = null,
+  mode = 'hide',
+  disabledClassName = 'opacity-50 cursor-not-allowed pointer-events-none'
 }) => {
   const { hasPermission, isLoading } = useHasPermission();
   const { isDevMode, user, utilisateurInterne, loading: authLoading } = useAuth();
@@ -62,6 +66,17 @@ export const PermissionGuard: React.FC<PermissionGuardProps> = ({
     });
     
     if (!hasAccess) {
+      if (mode === 'disable') {
+        return (
+          <div 
+            className={disabledClassName}
+            title={`Vous n'avez pas les permissions nécessaires pour accéder à cette section. Votre rôle: ${utilisateurInterne?.role?.name || 'Non défini'}`}
+          >
+            {children}
+          </div>
+        );
+      }
+
       if (fallback) {
         return <>{fallback}</>;
       }

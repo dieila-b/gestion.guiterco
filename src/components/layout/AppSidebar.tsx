@@ -96,8 +96,13 @@ const AppSidebar = () => {
           {menuItems.map((item) => {
             const isActive = location.pathname === item.href;
             return (
-              <PermissionGuard key={item.href} menu={item.menu} action="read">
-                <li>
+              <li key={item.href}>
+                <PermissionGuard 
+                  menu={item.menu} 
+                  action="read"
+                  mode="disable"
+                  disabledClassName="opacity-50"
+                >
                   <Link
                     to={item.href}
                     className={cn(
@@ -110,8 +115,8 @@ const AppSidebar = () => {
                     <item.icon className="h-5 w-5" />
                     {item.label}
                   </Link>
-                </li>
-              </PermissionGuard>
+                </PermissionGuard>
+              </li>
             );
           })}
         </ul>
