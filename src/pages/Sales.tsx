@@ -27,8 +27,8 @@ const Sales = () => {
             <PermissionGuard menu="Ventes" submenu="Vente au Comptoir" action="read" fallback={null}>
               <TabsTrigger value="vente-comptoir">Vente au Comptoir</TabsTrigger>
             </PermissionGuard>
-            <PermissionGuard menu="Ventes" submenu="Factures de vente" action="read" fallback={null}>
-              <TabsTrigger value="factures-vente">Factures de vente</TabsTrigger>
+            <PermissionGuard menu="Ventes" submenu="Factures" action="read" fallback={null}>
+              <TabsTrigger value="factures-vente">Factures</TabsTrigger>
             </PermissionGuard>
             <PermissionGuard menu="Ventes" submenu="Factures Impayées" action="read" fallback={null}>
               <TabsTrigger value="factures-impayees">Factures Impayées</TabsTrigger>
@@ -54,7 +54,7 @@ const Sales = () => {
           </TabsContent>
 
           <TabsContent value="factures-vente" className="mt-6">
-            <PermissionGuard menu="Ventes" submenu="Factures de vente" action="read">
+            <PermissionGuard menu="Ventes" submenu="Factures" action="read">
               <FacturesVente onNavigateToVenteComptoir={() => setActiveTab("vente-comptoir")} />
             </PermissionGuard>
           </TabsContent>

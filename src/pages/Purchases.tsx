@@ -27,8 +27,8 @@ const Purchases = () => {
             <PermissionGuard menu="Achats" submenu="Bons de livraison" action="read" fallback={null}>
               <TabsTrigger value="bons-livraison">Bons de livraison</TabsTrigger>
             </PermissionGuard>
-            <PermissionGuard menu="Achats" submenu="Factures d'achat" action="read" fallback={null}>
-              <TabsTrigger value="factures-achat">Factures d'achat</TabsTrigger>
+            <PermissionGuard menu="Achats" submenu="Factures fournisseurs" action="read" fallback={null}>
+              <TabsTrigger value="factures-achat">Factures fournisseurs</TabsTrigger>
             </PermissionGuard>
             <PermissionGuard menu="Achats" submenu="Retours fournisseurs" action="read" fallback={null}>
               <TabsTrigger value="retours-fournisseurs">Retours fournisseurs</TabsTrigger>
@@ -48,7 +48,7 @@ const Purchases = () => {
           </TabsContent>
 
           <TabsContent value="factures-achat" className="mt-6">
-            <PermissionGuard menu="Achats" submenu="Factures d'achat" action="read">
+            <PermissionGuard menu="Achats" submenu="Factures fournisseurs" action="read">
               <FacturesAchat />
             </PermissionGuard>
           </TabsContent>

@@ -47,7 +47,7 @@ const App = () => (
             } />
             <Route path="/stocks" element={
               <ProtectedRoute>
-                <PermissionGuard menu="Stock" fallback={<div className="min-h-screen flex items-center justify-center"><p>Accès refusé au stock</p></div>}>
+                <PermissionGuard menu="Stocks" fallback={<div className="min-h-screen flex items-center justify-center"><p>Accès refusé au stock</p></div>}>
                   <Stocks />
                 </PermissionGuard>
               </ProtectedRoute>

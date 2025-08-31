@@ -25,76 +25,76 @@ const Stocks = () => {
           className="w-full"
         >
           <TabsList className="grid grid-cols-4 md:grid-cols-8 w-full">
-            <PermissionGuard menu="Stock" submenu="Stock Entrepôt" action="read" fallback={null}>
+            <PermissionGuard menu="Stocks" submenu="Entrepôts" action="read" fallback={null}>
               <TabsTrigger value="stock-entrepot">Stock Entrepôt</TabsTrigger>
             </PermissionGuard>
-            <PermissionGuard menu="Stock" submenu="Stock PDV" action="read" fallback={null}>
+            <PermissionGuard menu="Stocks" submenu="PDV" action="read" fallback={null}>
               <TabsTrigger value="stock-pdv">Stock PDV</TabsTrigger>
             </PermissionGuard>
-            <PermissionGuard menu="Stock" submenu="Entrées" action="read" fallback={null}>
+            <PermissionGuard menu="Stocks" submenu="Mouvements" action="read" fallback={null}>
               <TabsTrigger value="entrees">Entrées</TabsTrigger>
             </PermissionGuard>
-            <PermissionGuard menu="Stock" submenu="Sorties" action="read" fallback={null}>
+            <PermissionGuard menu="Stocks" submenu="Mouvements" action="read" fallback={null}>
               <TabsTrigger value="sorties">Sorties</TabsTrigger>
             </PermissionGuard>
-            <PermissionGuard menu="Stock" submenu="Entrepôts" action="read" fallback={null}>
+            <PermissionGuard menu="Stocks" submenu="Entrepôts" action="read" fallback={null}>
               <TabsTrigger value="entrepots">Entrepôts</TabsTrigger>
             </PermissionGuard>
-            <PermissionGuard menu="Stock" submenu="Points de Vente" action="read" fallback={null}>
+            <PermissionGuard menu="Stocks" submenu="PDV" action="read" fallback={null}>
               <TabsTrigger value="points-de-vente">Points de Vente</TabsTrigger>
             </PermissionGuard>
-            <PermissionGuard menu="Stock" submenu="Transferts" action="read" fallback={null}>
+            <PermissionGuard menu="Stocks" submenu="Mouvements" action="read" fallback={null}>
               <TabsTrigger value="transferts">Transferts</TabsTrigger>
             </PermissionGuard>
-            <PermissionGuard menu="Stock" submenu="Catalogue" action="read" fallback={null}>
+            <PermissionGuard menu="Catalogue" action="read" fallback={null}>
               <TabsTrigger value="catalogue">Catalogue</TabsTrigger>
             </PermissionGuard>
           </TabsList>
 
           <TabsContent value="stock-entrepot" className="mt-6">
-            <PermissionGuard menu="Stock" submenu="Stock Entrepôt" action="read">
+            <PermissionGuard menu="Stocks" submenu="Entrepôts" action="read">
               <StockEntrepot />
             </PermissionGuard>
           </TabsContent>
 
           <TabsContent value="stock-pdv" className="mt-6">
-            <PermissionGuard menu="Stock" submenu="Stock PDV" action="read">
+            <PermissionGuard menu="Stocks" submenu="PDV" action="read">
               <StockPDV />
             </PermissionGuard>
           </TabsContent>
 
           <TabsContent value="entrees" className="mt-6">
-            <PermissionGuard menu="Stock" submenu="Entrées" action="read">
+            <PermissionGuard menu="Stocks" submenu="Mouvements" action="read">
               <Entrees />
             </PermissionGuard>
           </TabsContent>
 
           <TabsContent value="sorties" className="mt-6">
-            <PermissionGuard menu="Stock" submenu="Sorties" action="read">
+            <PermissionGuard menu="Stocks" submenu="Mouvements" action="read">
               <Sorties />
             </PermissionGuard>
           </TabsContent>
 
           <TabsContent value="entrepots" className="mt-6">
-            <PermissionGuard menu="Stock" submenu="Entrepôts" action="read">
+            <PermissionGuard menu="Stocks" submenu="Entrepôts" action="read">
               <Entrepots />
             </PermissionGuard>
           </TabsContent>
 
           <TabsContent value="points-de-vente" className="mt-6">
-            <PermissionGuard menu="Stock" submenu="Points de Vente" action="read">
+            <PermissionGuard menu="Stocks" submenu="PDV" action="read">
               <PointsDeVente />
             </PermissionGuard>
           </TabsContent>
 
           <TabsContent value="transferts" className="mt-6">
-            <PermissionGuard menu="Stock" submenu="Transferts" action="read">
+            <PermissionGuard menu="Stocks" submenu="Mouvements" action="read">
               <Transferts />
             </PermissionGuard>
           </TabsContent>
 
           <TabsContent value="catalogue" className="mt-6">
-            <PermissionGuard menu="Stock" submenu="Catalogue" action="read">
+            <PermissionGuard menu="Catalogue" action="read">
               <Catalogue />
             </PermissionGuard>
           </TabsContent>
