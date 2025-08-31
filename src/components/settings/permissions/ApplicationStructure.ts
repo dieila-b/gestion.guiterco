@@ -14,7 +14,7 @@ export const APPLICATION_STRUCTURE = [
     icon: '📦'
   },
   {
-    menu: 'Stocks',
+    menu: 'Stock',
     submenus: ['Entrepôts', 'PDV', 'Mouvements', 'Inventaire'],
     actions: ['read', 'write', 'delete'],
     icon: '📋'
@@ -45,7 +45,7 @@ export const APPLICATION_STRUCTURE = [
   },
   {
     menu: 'Rapports',
-    submenus: ['Ventes', 'Achats', 'Stocks', 'Clients', 'Marges', 'Financiers', 'Caisse'],
+    submenus: ['Ventes', 'Achats', 'Stock', 'Clients', 'Marges', 'Financiers', 'Caisse'],
     actions: ['read'],
     icon: '📈'
   },
