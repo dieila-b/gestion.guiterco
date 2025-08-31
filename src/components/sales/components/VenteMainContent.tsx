@@ -66,18 +66,6 @@ const VenteMainContent: React.FC<VenteMainContentProps> = ({
   handlePayment,
   isLoading
 }) => {
-  // Add comprehensive safety checks for all array props
-  const safeUniqueCategories = Array.isArray(uniqueCategories) ? uniqueCategories : [];
-  const safePointsDeVente = Array.isArray(pointsDeVente) ? pointsDeVente : [];
-  const safeStockPDV = Array.isArray(stockPDV) ? stockPDV : [];
-  const safeCart = Array.isArray(cart) ? cart : [];
-
-  console.log('VenteMainContent - Props received:');
-  console.log('- uniqueCategories:', uniqueCategories, '-> safe:', safeUniqueCategories);
-  console.log('- pointsDeVente:', pointsDeVente, '-> safe:', safePointsDeVente);
-  console.log('- stockPDV:', stockPDV, '-> safe:', safeStockPDV);
-  console.log('- cart:', cart, '-> safe:', safeCart);
-
   return (
     <div className="h-full flex flex-col">
       {/* En-tête */}
@@ -88,15 +76,15 @@ const VenteMainContent: React.FC<VenteMainContentProps> = ({
         setSearchProduct={setSearchProduct}
         selectedCategory={selectedCategory}
         setSelectedCategory={setSelectedCategory}
-        uniqueCategories={safeUniqueCategories}
-        pointsDeVente={safePointsDeVente}
+        uniqueCategories={uniqueCategories}
+        pointsDeVente={pointsDeVente}
       />
 
       {/* Contenu principal */}
       <div className="flex-1 flex min-h-0">
         {/* Zone produits avec stock temps réel */}
         <ProductGrid
-          stockPDV={safeStockPDV}
+          stockPDV={stockPDV}
           loadingArticles={loadingArticles}
           addToCart={addToCart}
           currentPage={currentPage}
@@ -110,8 +98,8 @@ const VenteMainContent: React.FC<VenteMainContentProps> = ({
 
         {/* Zone panier */}
         <CartPanel
-          cart={safeCart}
-          cartTotals={cartTotals || { sousTotal: 0, total: 0 }}
+          cart={cart}
+          cartTotals={cartTotals}
           selectedClient={selectedClient}
           setSelectedClient={setSelectedClient}
           handleQuantityChange={handleQuantityChange}

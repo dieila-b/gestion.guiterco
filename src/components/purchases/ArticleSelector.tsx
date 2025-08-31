@@ -4,12 +4,12 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Plus, Search } from 'lucide-react';
-import { ArticleOptimized } from '@/hooks/useCatalogue';
+import { Article } from '@/hooks/useCatalogue';
 import { formatCurrency } from '@/lib/currency';
 
 interface ArticleSelectorProps {
-  articles: ArticleOptimized[];
-  onAjouterArticle: (article: ArticleOptimized) => void;
+  articles: Article[];
+  onAjouterArticle: (article: Article) => void;
   isLoading: boolean;
 }
 
@@ -59,7 +59,7 @@ export const ArticleSelector = ({ articles, onAjouterArticle, isLoading }: Artic
                 <div className="flex justify-between items-center w-full">
                   <span>{article.nom}</span>
                   <span className="text-sm text-gray-500 ml-2">
-                    {article.prix_vente ? formatCurrency(article.prix_vente) : 'Prix non défini'}
+                    {article.prix_achat ? formatCurrency(article.prix_achat) : 'Prix non défini'}
                   </span>
                 </div>
               </SelectItem>

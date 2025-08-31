@@ -36,7 +36,7 @@ export const DevModeToggle = () => {
         ) : (
           <>
             <Button
-              onClick={() => toggleBypass()}
+              onClick={toggleBypass}
               size="sm"
               variant={bypassAuth ? "destructive" : "default"}
               className="w-full"

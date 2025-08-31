@@ -1,132 +1,75 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/components/auth/AuthContext';
 
-export interface ArticleOptimized {
+export interface Article {
   id: string;
   nom: string;
   reference: string;
-  prix_vente: number;
-  image_url?: string;
+  prix_achat?: number;
+  prix_vente?: number;
+  prix_unitaire?: number; // Maintenu pour compatibilité
   categorie?: string;
   unite_mesure?: string;
   description?: string;
+  image_url?: string;
   statut?: string;
+  seuil_alerte?: number;
+  categorie_id?: string;
+  unite_id?: string;
 }
 
-export interface CatalogueResponse {
-  articles: ArticleOptimized[];
-  totalCount: number;
-  hasMore: boolean;
-  categories: string[];
-  isLoading: boolean;
-  error?: Error;
-}
-
-export const useCatalogue = (
-  searchTerm = '',
-  selectedCategory = '',
-  page = 0,
-  pageSize = 50
-): CatalogueResponse => {
-  const { user, isDevMode } = useAuth();
-
-  const { data, isLoading, error } = useQuery({
-    queryKey: ['catalogue', searchTerm, selectedCategory, page, pageSize],
+export const useCatalogue = () => {
+  const { data: articles, isLoading, error } = useQuery({
+    queryKey: ['catalogue'],
     queryFn: async () => {
-      console.log('🔄 Chargement catalogue avec params:', { 
-        searchTerm, 
-        selectedCategory, 
-        page, 
-        pageSize,
-        isDevMode,
-        hasUser: !!user
-      });
-
-      try {
-        let query = supabase
-          .from('catalogue')
-          .select(`
-            id,
-            nom,
-            reference,
-            prix_vente,
-            image_url,
-            categorie,
-            unite_mesure,
-            description,
-            statut,
-            categories_catalogue!catalogue_categorie_id_fkey(nom)
-          `)
-          .eq('statut', 'actif')
-          .order('nom');
-
-        // Filtres
-        if (searchTerm) {
-          query = query.or(`nom.ilike.%${searchTerm}%,reference.ilike.%${searchTerm}%`);
-        }
-
-        if (selectedCategory) {
-          query = query.eq('categorie', selectedCategory);
-        }
-
-        // Pagination
-        const from = page * pageSize;
-        const to = from + pageSize - 1;
-        query = query.range(from, to);
-
-        const { data: articles, error, count } = await query;
-
-        if (error) {
-          console.error('❌ Erreur chargement catalogue:', error);
-          throw error;
-        }
-
-        console.log('✅ Articles chargés:', articles?.length || 0);
-
-        // Normaliser les données
-        const normalizedArticles: ArticleOptimized[] = (articles || []).map(article => ({
-          id: article.id,
-          nom: article.nom,
-          reference: article.reference,
-          prix_vente: article.prix_vente || 0,
-          image_url: article.image_url,
-          categorie: article.categories_catalogue?.nom || article.categorie || '',
-          unite_mesure: article.unite_mesure || '',
-          description: article.description || '',
-          statut: article.statut
-        }));
-
-        // Extraire les catégories uniques
-        const categories = Array.from(new Set(
-          normalizedArticles
-            .map(a => a.categorie)
-            .filter(cat => cat && cat.trim() !== '')
-        ));
-
-        return {
-          articles: normalizedArticles,
-          totalCount: count || 0,
-          categories
-        };
-
-      } catch (error) {
-        console.error('❌ Erreur lors du chargement du catalogue:', error);
+      console.log('Fetching catalogue data...');
+      
+      const { data, error } = await supabase
+        .from('catalogue')
+        .select(`
+          id,
+          nom,
+          reference,
+          description,
+          prix_achat,
+          prix_vente,
+          prix_unitaire,
+          categorie,
+          unite_mesure,
+          categorie_id,
+          unite_id,
+          seuil_alerte,
+          image_url,
+          statut,
+          created_at,
+          updated_at
+        `)
+        // Temporairement désactivé pour debug : .eq('statut', 'actif')
+        .order('nom', { ascending: true });
+      
+      console.log('Raw catalogue data from Supabase:', data);
+      console.log('Number of articles:', data?.length);
+      console.log('Articles with status:', data?.map(item => ({ nom: item.nom, statut: item.statut })));
+      
+      if (error) {
+        console.error('Erreur lors du chargement du catalogue:', error);
         throw error;
       }
+      
+      console.log('Catalogue data loaded:', data);
+      return data as Article[];
     },
-    retry: 2,
-    retryDelay: 1000,
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 10 * 60 * 1000, // 10 minutes
+    refetchOnWindowFocus: false
   });
 
   return {
-    articles: data?.articles || [],
-    totalCount: data?.totalCount || 0,
-    hasMore: (data?.totalCount || 0) > (page + 1) * pageSize,
-    categories: data?.categories || [],
+    articles,
     isLoading,
-    error: error as Error
+    error
   };
 };
+
+// Re-export optimized version
+export * from './useCatalogueOptimized';

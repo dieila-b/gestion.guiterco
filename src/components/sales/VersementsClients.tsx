@@ -3,15 +3,14 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Plus, Edit, Trash, CreditCard } from 'lucide-react';
+import { useVersementsClientsQuery } from '@/hooks/useSales';
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { formatCurrency } from '@/lib/currency';
 
-// Utilisation de données mock pour éviter l'erreur
 const VersementsClients = () => {
-  const isLoading = false;
-  const versements = []; // Données vides pour l'instant
+  const { data: versements, isLoading } = useVersementsClientsQuery();
 
   const getPaymentMethodBadge = (mode: string) => {
     switch (mode) {
@@ -38,67 +37,60 @@ const VersementsClients = () => {
       </div>
 
       <div className="grid gap-4">
-        {Array.isArray(versements) && versements.length > 0 ? (
-          versements.map((versement: any) => {
-            const paymentBadge = getPaymentMethodBadge(versement.mode_paiement);
-            return (
-              <Card key={versement.id}>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-lg font-medium">
-                    {versement.numero_versement}
-                  </CardTitle>
-                  <div className="flex items-center space-x-2">
-                    <Badge variant={paymentBadge.color as any}>
-                      {paymentBadge.icon} {versement.mode_paiement}
-                    </Badge>
-                    <Button variant="ghost" size="sm" title="Détails paiement">
-                      <CreditCard className="h-4 w-4" />
-                    </Button>
-                    <Button variant="ghost" size="sm">
-                      <Edit className="h-4 w-4" />
-                    </Button>
-                    <Button variant="ghost" size="sm">
-                      <Trash className="h-4 w-4" />
-                    </Button>
+        {versements?.map((versement) => {
+          const paymentBadge = getPaymentMethodBadge(versement.mode_paiement);
+          return (
+            <Card key={versement.id}>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-lg font-medium">
+                  {versement.numero_versement}
+                </CardTitle>
+                <div className="flex items-center space-x-2">
+                  <Badge variant={paymentBadge.color as any}>
+                    {paymentBadge.icon} {versement.mode_paiement}
+                  </Badge>
+                  <Button variant="ghost" size="sm" title="Détails paiement">
+                    <CreditCard className="h-4 w-4" />
+                  </Button>
+                  <Button variant="ghost" size="sm">
+                    <Edit className="h-4 w-4" />
+                  </Button>
+                  <Button variant="ghost" size="sm">
+                    <Trash className="h-4 w-4" />
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm">
+                  <div>
+                    <p className="text-muted-foreground">Client</p>
+                    <p className="font-medium">
+                      {versement.client ? versement.client.nom : 'Client non spécifié'}
+                    </p>
                   </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm">
-                    <div>
-                      <p className="text-muted-foreground">Client</p>
-                      <p className="font-medium">
-                        {versement.client ? versement.client.nom : 'Client non spécifié'}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-muted-foreground">Date versement</p>
-                      <p className="font-medium">
-                        {format(new Date(versement.date_versement), 'dd/MM/yyyy HH:mm', { locale: fr })}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-muted-foreground">Montant</p>
-                      <p className="font-medium text-green-600">{formatCurrency(versement.montant)}</p>
-                    </div>
-                    <div>
-                      <p className="text-muted-foreground">Référence</p>
-                      <p className="font-medium">{versement.reference_paiement || 'Non spécifiée'}</p>
-                    </div>
+                  <div>
+                    <p className="text-muted-foreground">Date versement</p>
+                    <p className="font-medium">
+                      {format(new Date(versement.date_versement), 'dd/MM/yyyy HH:mm', { locale: fr })}
+                    </p>
                   </div>
-                </CardContent>
-              </Card>
-            );
-          })
-        ) : (
-          <Card>
-            <CardContent className="text-center py-8">
-              <p className="text-muted-foreground">Aucun versement trouvé</p>
-            </CardContent>
-          </Card>
-        )}
+                  <div>
+                    <p className="text-muted-foreground">Montant</p>
+                    <p className="font-medium text-green-600">{formatCurrency(versement.montant)}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">Référence</p>
+                    <p className="font-medium">{versement.reference_paiement || 'Non spécifiée'}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })}
       </div>
     </div>
   );
 };
 
 export default VersementsClients;
+

@@ -27,13 +27,7 @@ const CartItems: React.FC<CartItemsProps> = ({
   handleRemiseChange,
   removeFromCart
 }) => {
-  // Ensure cart is always an array
-  const safeCart = Array.isArray(cart) ? cart : [];
-  
-  console.log('CartItems - Cart received:', cart);
-  console.log('CartItems - Safe cart:', safeCart);
-
-  if (safeCart.length === 0) {
+  if (cart.length === 0) {
     return (
       <div className="text-center py-12 text-gray-500">
         <ShoppingCart className="h-16 w-16 mx-auto mb-4 opacity-30" />
@@ -61,12 +55,7 @@ const CartItems: React.FC<CartItemsProps> = ({
           </tr>
         </thead>
         <tbody>
-          {safeCart.map((item) => {
-            if (!item || !item.id) {
-              console.warn('Invalid cart item detected:', item);
-              return null;
-            }
-
+          {cart.map((item) => {
             // Utiliser prix_unitaire_brut en priorité, puis prix_vente
             const prixUnitaireBrut = item.prix_unitaire_brut || item.prix_vente || 0;
             const remiseUnitaire = item.remise_unitaire || 0;
@@ -132,7 +121,7 @@ const CartItems: React.FC<CartItemsProps> = ({
                 </td>
               </tr>
             );
-          }).filter(Boolean)}
+          })}
         </tbody>
       </table>
     </div>

@@ -3,29 +3,21 @@ import React from 'react';
 import { useDevMode } from '@/hooks/useDevMode';
 import { AuthContext } from './AuthContext';
 import { useAuthState } from './useAuthState';
-import '@/utils/clearDevCache';
+import '@/utils/clearDevCache'; // Auto-nettoyage du cache
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
-  const { bypassAuth, mockUser, isDevMode } = useDevMode();
+  const { bypassAuth, mockUser: originalMockUser, isDevMode } = useDevMode();
   
-  // Transformer le mockUser en UtilisateurInterne complet
-  const mockUtilisateurInterne = {
-    id: mockUser.id,
-    email: mockUser.email,
-    prenom: mockUser.user_metadata.prenom,
-    nom: mockUser.user_metadata.nom,
+  // Ensure the mock user has the required id property in role
+  const mockUser = {
+    ...originalMockUser,
     role: {
-      id: mockUser.role.id,
-      name: mockUser.role.name,
-      nom: mockUser.role.name, // Compatibilité
-      description: mockUser.role.description
-    },
-    statut: 'actif' as const,
-    type_compte: 'admin' as const,
-    photo_url: mockUser.user_metadata.avatar_url
+      ...originalMockUser.role,
+      id: 'mock-role-id'
+    }
   };
   
-  const authState = useAuthState(bypassAuth, mockUtilisateurInterne, isDevMode);
+  const authState = useAuthState(bypassAuth, mockUser, isDevMode);
 
   return <AuthContext.Provider value={authState}>{children}</AuthContext.Provider>;
 };

@@ -11,110 +11,137 @@ export interface UserPermission {
 }
 
 export const useUserPermissions = () => {
-  const { user } = useAuth();
-  
+  const { user, isDevMode, utilisateurInterne } = useAuth();
+
   return useQuery({
-    queryKey: ['user-permissions', user?.id],
-    queryFn: async (): Promise<UserPermission[]> => {
+    queryKey: ['user-permissions', user?.id, isDevMode, utilisateurInterne?.id],
+    queryFn: async () => {
+      console.log('Chargement des permissions pour:', {
+        userId: user?.id,
+        isDevMode,
+        utilisateurInterneId: utilisateurInterne?.id
+      });
+
       if (!user?.id) {
-        console.log('Pas d\'utilisateur connecté');
+        console.warn('Pas d\'utilisateur connecté');
         return [];
       }
 
-      console.log('🔍 Récupération des permissions pour utilisateur:', user.id);
-
-      // Variables d'environnement pour le mode développement
-      const isDevMode = import.meta.env.DEV;
-      
       // En mode développement avec utilisateur mock, donner toutes les permissions
-      if (isDevMode && (user.id === '00000000-0000-4000-8000-000000000001' || user?.email?.includes('dev'))) {
+      if (isDevMode && user.id === '00000000-0000-4000-8000-000000000001') {
         console.log('Mode dev avec utilisateur mock - toutes permissions accordées');
         return [
           { menu: 'Dashboard', action: 'read', can_access: true },
-          { menu: 'Ventes', submenu: 'Vente au Comptoir', action: 'read', can_access: true },
-          { menu: 'Ventes', submenu: 'Vente au Comptoir', action: 'create', can_access: true },
-          { menu: 'Ventes', submenu: 'Factures de vente', action: 'read', can_access: true },
-          { menu: 'Achats', submenu: 'Achats', action: 'read', can_access: true },
-          { menu: 'Stock', submenu: 'Stock', action: 'read', can_access: true },
-          { menu: 'Catalogue', submenu: 'Articles', action: 'read', can_access: true },
-          { menu: 'Tiers', submenu: 'Clients', action: 'read', can_access: true },
-          { menu: 'Tiers', submenu: 'Fournisseurs', action: 'read', can_access: true },
-          { menu: 'Comptabilité', submenu: 'Caisse', action: 'read', can_access: true },
-          { menu: 'Réglages', submenu: 'Utilisateurs', action: 'read', can_access: true },
-        ];
+          { menu: 'Catalogue', action: 'read', can_access: true },
+          { menu: 'Catalogue', action: 'write', can_access: true },
+          { menu: 'Stock', submenu: 'Entrepôts', action: 'read', can_access: true },
+          { menu: 'Stock', submenu: 'Entrepôts', action: 'write', can_access: true },
+          { menu: 'Stock', submenu: 'PDV', action: 'read', can_access: true },
+          { menu: 'Stock', submenu: 'PDV', action: 'write', can_access: true },
+          { menu: 'Ventes', submenu: 'Factures', action: 'read', can_access: true },
+          { menu: 'Ventes', submenu: 'Factures', action: 'write', can_access: true },
+          { menu: 'Ventes', submenu: 'Précommandes', action: 'read', can_access: true },
+          { menu: 'Ventes', submenu: 'Précommandes', action: 'write', can_access: true },
+          { menu: 'Achats', submenu: 'Bons de commande', action: 'read', can_access: true },
+          { menu: 'Achats', submenu: 'Bons de commande', action: 'write', can_access: true },
+          { menu: 'Clients', action: 'read', can_access: true },
+          { menu: 'Clients', action: 'write', can_access: true },
+          { menu: 'Paramètres', submenu: 'Rôles et permissions', action: 'read', can_access: true },
+          { menu: 'Paramètres', submenu: 'Rôles et permissions', action: 'write', can_access: true }
+        ] as UserPermission[];
       }
 
+      // Pour les utilisateurs réels, récupérer les permissions via la vue
       try {
-        // Essayer de récupérer les permissions via la fonction Supabase
-        const { data: permissionsData, error: permissionsError } = await supabase
-          .rpc('get_user_permissions', { user_uuid: user.id });
+        console.log('Récupération des permissions depuis la vue pour utilisateur:', user.id);
+        
+        const { data, error } = await supabase
+          .from('vue_permissions_utilisateurs')
+          .select('menu, submenu, action, can_access')
+          .eq('user_id', user.id)
+          .eq('can_access', true);
 
-        if (!permissionsError && permissionsData && permissionsData.length > 0) {
-          console.log('✅ Permissions récupérées via RPC:', permissionsData);
-          const formattedPermissions = permissionsData.map((p: any) => ({
-            menu: p.menu,
-            submenu: p.submenu || undefined,
-            action: p.action,
-            can_access: p.can_access
-          }));
+        if (error) {
+          console.error('Erreur lors de la récupération des permissions:', error);
           
-          // S'assurer qu'il y a au moins l'accès au dashboard si l'utilisateur a d'autres permissions
-          if (formattedPermissions.length > 0 && !formattedPermissions.some(p => p.menu === 'Dashboard' && p.action === 'read')) {
-            formattedPermissions.push({ 
-              menu: 'Dashboard', 
-              action: 'read', 
-              can_access: true,
-              submenu: undefined 
-            });
+          // Si erreur avec la vue, essayer une approche alternative
+          console.log('Tentative de récupération via les tables directement...');
+          
+          if (!utilisateurInterne?.role?.id) {
+            console.warn('Pas de rôle défini pour l\'utilisateur interne');
+            return [];
           }
-          
+
+          const { data: rolePermissions, error: roleError } = await supabase
+            .from('role_permissions')
+            .select(`
+              permission:permissions(menu, submenu, action)
+            `)
+            .eq('role_id', utilisateurInterne.role.id)
+            .eq('can_access', true);
+
+          if (roleError) {
+            console.error('Erreur lors de la récupération des permissions par rôle:', roleError);
+            return [];
+          }
+
+          const formattedPermissions = rolePermissions?.map(rp => ({
+            menu: rp.permission.menu,
+            submenu: rp.permission.submenu,
+            action: rp.permission.action,
+            can_access: true
+          })) || [];
+
+          console.log('Permissions récupérées par rôle:', formattedPermissions);
           return formattedPermissions;
         }
 
-        // Fallback: Permissions par défaut pour éviter le blocage complet
-        console.log('Aucune permission trouvée, attribution des permissions par défaut');
+        console.log('Permissions récupérées depuis la vue:', data);
+        return data as UserPermission[];
         
-        return [
-          { menu: 'Dashboard', action: 'read', can_access: true, submenu: undefined }
-        ];
-
       } catch (error) {
-        console.error('❌ Erreur lors de la récupération des permissions:', error);
-        
-        // En cas d'erreur critique, au moins donner accès au dashboard pour éviter le blocage
-        return [
-          { menu: 'Dashboard', action: 'read', can_access: true, submenu: undefined }
-        ];
+        console.error('Erreur inattendue lors de la récupération des permissions:', error);
+        return [];
       }
     },
     enabled: !!user?.id,
-    retry: 2,
-    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
-    staleTime: 30 * 1000, // 30 secondes
-    refetchOnWindowFocus: true,
-    refetchInterval: 2 * 60 * 1000 // Rafraîchir toutes les 2 minutes
+    retry: 1,
+    staleTime: 5 * 60 * 1000 // 5 minutes
   });
 };
 
 export const useHasPermission = () => {
-  const { data: permissions = [], isLoading } = useUserPermissions();
-  
-  const hasPermission = (menu: string, submenu?: string, action: string = 'read') => {
-    if (!permissions || permissions.length === 0) {
+  const { data: permissions = [], isLoading, error } = useUserPermissions();
+  const { isDevMode, user } = useAuth();
+
+  const hasPermission = (menu: string, submenu?: string, action: string = 'read'): boolean => {
+    // En mode développement, être plus permissif
+    if (isDevMode) {
+      console.log(`Permission check (dev mode): ${menu}${submenu ? ` > ${submenu}` : ''} (${action}) - GRANTED`);
+      return true;
+    }
+    
+    if (isLoading) {
+      console.log('Permissions en cours de chargement...');
       return false;
     }
     
-    return permissions.some(permission => 
+    if (error) {
+      console.error('Erreur lors du chargement des permissions:', error);
+      return false;
+    }
+    
+    const hasAccess = permissions.some(permission => 
       permission.menu === menu &&
+      (submenu === undefined || permission.submenu === submenu) &&
       permission.action === action &&
-      permission.can_access === true &&
-      (submenu ? permission.submenu === submenu : true)
+      permission.can_access
     );
+    
+    console.log(`Vérification permission: ${menu}${submenu ? ` > ${submenu}` : ''} (${action}):`, hasAccess);
+    
+    return hasAccess;
   };
 
-  return {
-    hasPermission,
-    isLoading,
-    permissions
-  };
+  return { hasPermission, isLoading, permissions };
 };

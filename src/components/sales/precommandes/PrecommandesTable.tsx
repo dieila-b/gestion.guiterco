@@ -20,12 +20,6 @@ const PrecommandesTable = ({ precommandes }: PrecommandesTableProps) => {
   const [deleteDialog, setDeleteDialog] = useState<PrecommandeComplete | null>(null);
   const [factureDialog, setFactureDialog] = useState<PrecommandeComplete | null>(null);
 
-  // Ensure precommandes is always an array
-  const safePrecommandes = Array.isArray(precommandes) ? precommandes : [];
-  
-  console.log('PrecommandesTable - Data received:', precommandes);
-  console.log('PrecommandesTable - Safe precommandes:', safePrecommandes);
-
   const handleConvertirEnVente = (precommande: PrecommandeComplete) => {
     convertToSale.mutate(precommande.id);
   };
@@ -48,18 +42,12 @@ const PrecommandesTable = ({ precommandes }: PrecommandesTableProps) => {
         <Table>
           <PrecommandesTableHeader />
           <TableBody>
-            {safePrecommandes.map((precommande) => {
-              if (!precommande || !precommande.id) {
-                console.warn('Invalid precommande detected:', precommande);
-                return null;
-              }
-              return (
-                <PrecommandesTableRowRestructured
-                  key={precommande.id}
-                  precommande={precommande}
-                />
-              );
-            }).filter(Boolean)}
+            {precommandes.map((precommande) => (
+              <PrecommandesTableRowRestructured
+                key={precommande.id}
+                precommande={precommande}
+              />
+            ))}
           </TableBody>
         </Table>
       </div>

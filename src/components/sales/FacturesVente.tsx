@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Search, Plus } from 'lucide-react';
-import { useFacturesVenteQuery } from '@/hooks/sales/queries/useFacturesVenteQuery';
+import { useFacturesVenteQuery } from '@/hooks/useSales';
 import FacturesVenteTable from './FacturesVenteTable';
 
 interface FacturesVenteProps {
@@ -12,27 +12,13 @@ interface FacturesVenteProps {
 }
 
 const FacturesVente: React.FC<FacturesVenteProps> = ({ onNavigateToVenteComptoir }) => {
-  const { data: factures, isLoading, error } = useFacturesVenteQuery();
+  const { data: factures, isLoading } = useFacturesVenteQuery();
   const [searchTerm, setSearchTerm] = useState('');
 
-  // Vérification de sécurité renforcée et gestion d'erreur
-  const safeFactures = Array.isArray(factures) ? factures : [];
-  
-  console.log('FacturesVente - Data received:', factures);
-  console.log('FacturesVente - Safe factures:', safeFactures);
-  
-  const filteredFactures = safeFactures.filter(facture => {
-    if (!facture) return false;
-    
-    const numeroMatch = facture.numero_facture?.toLowerCase().includes(searchTerm.toLowerCase()) || false;
-    const clientMatch = facture.client?.nom?.toLowerCase().includes(searchTerm.toLowerCase()) || false;
-    
-    return numeroMatch || clientMatch;
-  });
-
-  if (error) {
-    console.error('Erreur lors du chargement des factures:', error);
-  }
+  const filteredFactures = factures?.filter(facture => 
+    facture.numero_facture.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (facture.client?.nom && facture.client.nom.toLowerCase().includes(searchTerm.toLowerCase()))
+  );
 
   return (
     <div className="space-y-6">
@@ -64,16 +50,10 @@ const FacturesVente: React.FC<FacturesVenteProps> = ({ onNavigateToVenteComptoir
           </div>
         </CardHeader>
         <CardContent>
-          {error ? (
-            <div className="text-center py-8 text-red-500">
-              Erreur lors du chargement des factures. Veuillez réessayer.
-            </div>
-          ) : (
-            <FacturesVenteTable 
-              factures={filteredFactures} 
-              isLoading={isLoading} 
-            />
-          )}
+          <FacturesVenteTable 
+            factures={filteredFactures || []} 
+            isLoading={isLoading} 
+          />
         </CardContent>
       </Card>
     </div>

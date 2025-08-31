@@ -5,12 +5,12 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Trash2, Plus, Package } from 'lucide-react';
 import type { LignePrecommandeComplete } from '@/types/precommandes';
-import type { ArticleOptimized } from '@/hooks/useCatalogue';
+import type { Article } from '@/hooks/useCatalogue';
 import { formatCurrency } from '@/lib/currency';
 
 interface ArticlesSectionProps {
   lignes: LignePrecommandeComplete[];
-  articles?: ArticleOptimized[];
+  articles?: Article[];
   onLigneChange: (index: number, field: string, value: any) => void;
   onDeleteLigne: (index: number) => void;
   onAddLigne: () => void;
