@@ -6,7 +6,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { Grid3x3 } from 'lucide-react';
 import { useRoles, usePermissions, useRolePermissions, useUpdateRolePermission } from '@/hooks/usePermissionsSystem';
-import { toast } from 'sonner';
+import { APPLICATION_STRUCTURE, getActionIcon, getActionLabel } from './ApplicationStructure';
 
 export default function MatrixTab() {
   const [pendingChanges, setPendingChanges] = useState<{[key: string]: boolean}>({});
@@ -17,60 +17,6 @@ export default function MatrixTab() {
   const updateRolePermission = useUpdateRolePermission();
 
   const isLoading = rolesLoading || permissionsLoading || rolePermissionsLoading;
-
-  // Structure complète de l'application organisée
-  const APPLICATION_STRUCTURE = [
-    {
-      menu: 'Dashboard',
-      submenus: [],
-      icon: '📊'
-    },
-    {
-      menu: 'Catalogue',
-      submenus: [],
-      icon: '📦'
-    },
-    {
-      menu: 'Stock',
-      submenus: ['Entrepôts', 'PDV', 'Mouvements', 'Inventaire'],
-      icon: '📋'
-    },
-    {
-      menu: 'Ventes',
-      submenus: ['Factures', 'Précommandes', 'Devis'],
-      icon: '💰'
-    },
-    {
-      menu: 'Achats',
-      submenus: ['Bons de commande', 'Bons de livraison', 'Factures fournisseurs'],
-      icon: '🛒'
-    },
-    {
-      menu: 'Clients',
-      submenus: [],
-      icon: '👥'
-    },
-    {
-      menu: 'Caisse',
-      submenus: ['Clôtures', 'Comptages'],
-      icon: '💳'
-    },
-    {
-      menu: 'Rapports',
-      submenus: ['Ventes', 'Achats', 'Stock', 'Clients', 'Marges', 'Financiers', 'Caisse'],
-      icon: '📈'
-    },
-    {
-      menu: 'Marges',
-      submenus: ['Articles', 'Catégories', 'Globales', 'Factures', 'Périodes'],
-      icon: '📊'
-    },
-    {
-      menu: 'Paramètres',
-      submenus: ['Zone Géographique', 'Fournisseurs', 'Entrepôts', 'Points de vente', 'Utilisateurs', 'Permissions'],
-      icon: '⚙️'
-    }
-  ];
 
   const handlePermissionChange = async (roleId: string, permissionId: string, canAccess: boolean) => {
     const key = `${roleId}-${permissionId}`;
@@ -119,24 +65,6 @@ export default function MatrixTab() {
       const actionOrder = { 'read': 1, 'write': 2, 'delete': 3 };
       return (actionOrder[a.action as keyof typeof actionOrder] || 999) - (actionOrder[b.action as keyof typeof actionOrder] || 999);
     });
-  };
-
-  const getActionIcon = (action: string) => {
-    switch (action) {
-      case 'read': return '👁️';
-      case 'write': return '✏️';
-      case 'delete': return '🗑️';
-      default: return '🔧';
-    }
-  };
-
-  const getActionLabel = (action: string) => {
-    switch (action) {
-      case 'read': return 'Lecture';
-      case 'write': return 'Écriture';
-      case 'delete': return 'Suppression';
-      default: return action;
-    }
   };
 
   if (isLoading) {

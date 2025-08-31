@@ -1,67 +1,15 @@
+
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Eye, Edit, Trash2, User, CheckCircle, XCircle } from 'lucide-react';
+import { User, CheckCircle, XCircle } from 'lucide-react';
 import { useUserPermissions } from '@/hooks/useUserPermissions';
 import { useAuth } from '@/components/auth/AuthContext';
+import { APPLICATION_STRUCTURE, getActionIcon, getActionLabel, getActionColor } from './ApplicationStructure';
 
 export const UserPermissionsDisplay = () => {
   const { data: permissions = [], isLoading } = useUserPermissions();
   const { utilisateurInterne } = useAuth();
-
-  // Structure complète des menus de l'application
-  const APPLICATION_STRUCTURE = [
-    {
-      menu: 'Dashboard',
-      submenus: [],
-      actions: ['read']
-    },
-    {
-      menu: 'Catalogue',
-      submenus: [],
-      actions: ['read', 'write', 'delete']
-    },
-    {
-      menu: 'Stock',
-      submenus: ['Entrepôts', 'PDV', 'Mouvements', 'Inventaire'],
-      actions: ['read', 'write', 'delete']
-    },
-    {
-      menu: 'Ventes',
-      submenus: ['Factures', 'Précommandes', 'Devis'],
-      actions: ['read', 'write', 'delete']
-    },
-    {
-      menu: 'Achats',
-      submenus: ['Bons de commande', 'Bons de livraison', 'Factures fournisseurs'],
-      actions: ['read', 'write', 'delete']
-    },
-    {
-      menu: 'Clients',
-      submenus: [],
-      actions: ['read', 'write', 'delete']
-    },
-    {
-      menu: 'Caisse',
-      submenus: ['Clôtures', 'Comptages'],
-      actions: ['read', 'write']
-    },
-    {
-      menu: 'Rapports',
-      submenus: ['Ventes', 'Achats', 'Stock', 'Clients', 'Marges', 'Financiers', 'Caisse'],
-      actions: ['read']
-    },
-    {
-      menu: 'Marges',
-      submenus: ['Articles', 'Catégories', 'Globales', 'Factures', 'Périodes'],
-      actions: ['read']
-    },
-    {
-      menu: 'Paramètres',
-      submenus: ['Zone Géographique', 'Fournisseurs', 'Entrepôts', 'Points de vente', 'Utilisateurs', 'Permissions'],
-      actions: ['read', 'write']
-    }
-  ];
 
   const hasPermission = (menu: string, submenu: string | null, action: string) => {
     return permissions.some(permission => 
@@ -70,45 +18,6 @@ export const UserPermissionsDisplay = () => {
       permission.action === action &&
       permission.can_access
     );
-  };
-
-  const getActionIcon = (action: string) => {
-    switch (action) {
-      case 'read':
-        return <Eye className="h-3 w-3" />;
-      case 'write':
-        return <Edit className="h-3 w-3" />;
-      case 'delete':
-        return <Trash2 className="h-3 w-3" />;
-      default:
-        return <Eye className="h-3 w-3" />;
-    }
-  };
-
-  const getActionColor = (action: string) => {
-    switch (action) {
-      case 'read':
-        return 'text-green-600 bg-green-50 border-green-200';
-      case 'write':
-        return 'text-blue-600 bg-blue-50 border-blue-200';
-      case 'delete':
-        return 'text-red-600 bg-red-50 border-red-200';
-      default:
-        return 'text-gray-600 bg-gray-50 border-gray-200';
-    }
-  };
-
-  const getActionLabel = (action: string) => {
-    switch (action) {
-      case 'read':
-        return 'Lecture';
-      case 'write':
-        return 'Écriture';
-      case 'delete':
-        return 'Suppression';
-      default:
-        return action;
-    }
   };
 
   if (isLoading) {
@@ -144,7 +53,7 @@ export const UserPermissionsDisplay = () => {
               <div key={menuStructure.menu} className="space-y-4">
                 <div className="border-b pb-2">
                   <h3 className="text-lg font-semibold text-primary flex items-center gap-2">
-                    📁 {menuStructure.menu}
+                    {menuStructure.icon} {menuStructure.menu}
                   </h3>
                 </div>
 
@@ -194,34 +103,48 @@ export const UserPermissionsDisplay = () => {
                           📂 {submenu}
                         </h4>
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 ml-4">
-                          {menuStructure.actions.map((action) => {
-                            const hasAccess = hasPermission(menuStructure.menu, submenu, action);
-                            return (
-                              <div 
-                                key={`${menuStructure.menu}-${submenu}-${action}`}
-                                className={`flex items-center justify-between p-2 border rounded ${
-                                  hasAccess ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'
-                                }`}
-                              >
-                                <div className="flex items-center gap-2">
-                                  <Badge 
-                                    variant="outline" 
-                                    className={`${getActionColor(action)} text-xs`}
-                                  >
-                                    <div className="flex items-center gap-1">
-                                      {getActionIcon(action)}
-                                      <span className="text-xs">{getActionLabel(action)}</span>
-                                    </div>
-                                  </Badge>
+                          {menuStructure.actions
+                            .filter(action => {
+                              // Pour certains sous-menus, filtrer les actions selon leur logique métier
+                              if (submenu === 'Inventaire' || submenu === 'Mouvements') {
+                                return ['read', 'write'].includes(action);
+                              }
+                              if (menuStructure.menu === 'Rapports' || menuStructure.menu === 'Marges') {
+                                return action === 'read';
+                              }
+                              if (menuStructure.menu === 'Caisse' && ['Clôtures', 'Comptages'].includes(submenu)) {
+                                return ['read', 'write'].includes(action);
+                              }
+                              return true;
+                            })
+                            .map((action) => {
+                              const hasAccess = hasPermission(menuStructure.menu, submenu, action);
+                              return (
+                                <div 
+                                  key={`${menuStructure.menu}-${submenu}-${action}`}
+                                  className={`flex items-center justify-between p-2 border rounded ${
+                                    hasAccess ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'
+                                  }`}
+                                >
+                                  <div className="flex items-center gap-2">
+                                    <Badge 
+                                      variant="outline" 
+                                      className={`${getActionColor(action)} text-xs`}
+                                    >
+                                      <div className="flex items-center gap-1">
+                                        {getActionIcon(action)}
+                                        <span className="text-xs">{getActionLabel(action)}</span>
+                                      </div>
+                                    </Badge>
+                                  </div>
+                                  {hasAccess ? (
+                                    <CheckCircle className="h-3 w-3 text-green-600" />
+                                  ) : (
+                                    <XCircle className="h-3 w-3 text-red-600" />
+                                  )}
                                 </div>
-                                {hasAccess ? (
-                                  <CheckCircle className="h-3 w-3 text-green-600" />
-                                ) : (
-                                  <XCircle className="h-3 w-3 text-red-600" />
-                                )}
-                              </div>
-                            );
-                          })}
+                              );
+                            })}
                         </div>
                       </div>
                     ))}

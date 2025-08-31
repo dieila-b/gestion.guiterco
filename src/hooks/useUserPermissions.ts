@@ -114,9 +114,7 @@ export const useUserPermissions = () => {
           { menu: 'Paramètres', submenu: 'Utilisateurs', action: 'read', can_access: true },
           { menu: 'Paramètres', submenu: 'Utilisateurs', action: 'write', can_access: true },
           { menu: 'Paramètres', submenu: 'Permissions', action: 'read', can_access: true },
-          { menu: 'Paramètres', submenu: 'Permissions', action: 'write', can_access: true },
-          { menu: 'Paramètres', submenu: 'Rôles et permissions', action: 'read', can_access: true },
-          { menu: 'Paramètres', submenu: 'Rôles et permissions', action: 'write', can_access: true }
+          { menu: 'Paramètres', submenu: 'Permissions', action: 'write', can_access: true }
         ] as UserPermission[];
       }
 
@@ -194,5 +192,5 @@ export const useHasPermission = () => {
     return hasAccess;
   };
 
-  return { hasPermission, isLoading, permissions };
+  return { hasPermission, isLoading, permissions: permissions };
 };
