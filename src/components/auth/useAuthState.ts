@@ -14,6 +14,7 @@ export const useAuthState = (bypassAuth: boolean, mockUtilisateurInterne: Utilis
   const { toast } = useToast();
   
   const isSigningOutRef = useRef(false);
+  const initializationCompleteRef = useRef(false);
 
   // Effect pour gérer le mode bypass
   useEffect(() => {
@@ -52,19 +53,21 @@ export const useAuthState = (bypassAuth: boolean, mockUtilisateurInterne: Utilis
       setSession(mockSession);
       setUtilisateurInterne(mockUtilisateurInterne);
       setLoading(false);
+      initializationCompleteRef.current = true;
       
       console.log('✅ Mock session créée avec utilisateur interne:', mockUtilisateurInterne);
       return;
     }
 
     // Si le bypass est désactivé, nettoyer l'état mock
-    if (!bypassAuth && isDevMode) {
+    if (!bypassAuth && isDevMode && initializationCompleteRef.current) {
       console.log('🔒 Désactivation du bypass - nettoyage état mock');
       setUser(null);
       setSession(null);
       setUtilisateurInterne(null);
+      initializationCompleteRef.current = false;
     }
-  }, [bypassAuth, isDevMode, mockUtilisateurInterne]);
+  }, [bypassAuth, isDevMode, mockUtilisateurInterne.id]); // Dépendances stables
 
   // Effect pour l'authentification normale
   useEffect(() => {
@@ -76,7 +79,7 @@ export const useAuthState = (bypassAuth: boolean, mockUtilisateurInterne: Utilis
     console.log('🔐 Initialisation authentification normale');
     
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+      (event, session) => {
         console.log('🔐 Auth state change:', { event, session: !!session });
         
         // Si on est en train de se déconnecter, ignorer les événements
@@ -89,35 +92,41 @@ export const useAuthState = (bypassAuth: boolean, mockUtilisateurInterne: Utilis
         setUser(session?.user ?? null);
 
         if (session?.user && !isSigningOutRef.current) {
-          try {
-            console.log('🔍 Vérification utilisateur interne pour:', session.user.id);
-            const internalUser = await checkInternalUser(session.user.id);
-            
-            if (internalUser && internalUser.statut === 'actif') {
-              setUtilisateurInterne(internalUser);
-              console.log('✅ Utilisateur interne autorisé:', internalUser.email);
-            } else {
-              setUtilisateurInterne(null);
-              console.log('❌ Utilisateur non autorisé ou inactif');
-              // En production, déconnecter l'utilisateur non autorisé
-              if (!isDevMode) {
-                await supabase.auth.signOut();
-                toast({
-                  title: "Accès non autorisé",
-                  description: "Votre compte n'est pas autorisé à accéder à cette application.",
-                  variant: "destructive",
-                });
+          // Utiliser setTimeout pour éviter les boucles infinies
+          setTimeout(async () => {
+            try {
+              console.log('🔍 Vérification utilisateur interne pour:', session.user.id);
+              const internalUser = await checkInternalUser(session.user.id);
+              
+              if (internalUser && internalUser.statut === 'actif') {
+                setUtilisateurInterne(internalUser);
+                console.log('✅ Utilisateur interne autorisé:', internalUser.email);
+              } else {
+                setUtilisateurInterne(null);
+                console.log('❌ Utilisateur non autorisé ou inactif');
+                // En production, déconnecter l'utilisateur non autorisé
+                if (!isDevMode) {
+                  await supabase.auth.signOut();
+                  toast({
+                    title: "Accès non autorisé",
+                    description: "Votre compte n'est pas autorisé à accéder à cette application.",
+                    variant: "destructive",
+                  });
+                }
               }
+            } catch (error) {
+              console.error('❌ Erreur vérification utilisateur:', error);
+              setUtilisateurInterne(null);
+            } finally {
+              setLoading(false);
+              initializationCompleteRef.current = true;
             }
-          } catch (error) {
-            console.error('❌ Erreur vérification utilisateur:', error);
-            setUtilisateurInterne(null);
-          }
+          }, 0);
         } else {
           setUtilisateurInterne(null);
+          setLoading(false);
+          initializationCompleteRef.current = true;
         }
-        
-        setLoading(false);
       }
     );
 
@@ -131,10 +140,12 @@ export const useAuthState = (bypassAuth: boolean, mockUtilisateurInterne: Utilis
         if (!session) {
           console.log('📭 Aucune session existante');
           setLoading(false);
+          initializationCompleteRef.current = true;
         }
       } catch (error) {
         console.error('❌ Erreur getSession:', error);
         setLoading(false);
+        initializationCompleteRef.current = true;
       }
     };
 
@@ -144,7 +155,8 @@ export const useAuthState = (bypassAuth: boolean, mockUtilisateurInterne: Utilis
     const timeout = setTimeout(() => {
       console.log('⏰ Timeout auth - forcer l\'arrêt du loading');
       setLoading(false);
-    }, 10000); // Augmenté à 10 secondes
+      initializationCompleteRef.current = true;
+    }, 10000);
 
     return () => {
       clearTimeout(timeout);
@@ -152,14 +164,14 @@ export const useAuthState = (bypassAuth: boolean, mockUtilisateurInterne: Utilis
     };
   }, [isDevMode, bypassAuth, toast]);
 
-  const signIn = async (email: string, password: string) => {
+  const signIn = useCallback(async (email: string, password: string) => {
     console.log('🔑 Tentative de connexion pour:', email);
     const result = await authSignIn(email, password);
     console.log('🔑 Résultat de la connexion:', { hasError: !!result.error });
     return result;
-  };
+  }, []);
 
-  const signOut = async () => {
+  const signOut = useCallback(async () => {
     console.log('🚪 Début de la déconnexion...');
     
     try {
@@ -213,7 +225,7 @@ export const useAuthState = (bypassAuth: boolean, mockUtilisateurInterne: Utilis
         window.location.replace('/auth');
       }, 100);
     }
-  };
+  }, [isDevMode, bypassAuth]);
 
   const isInternalUser = user && utilisateurInterne && utilisateurInterne.statut === 'actif';
 
