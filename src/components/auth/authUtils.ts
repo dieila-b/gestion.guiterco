@@ -56,7 +56,7 @@ export const checkInternalUser = async (userId: string): Promise<UtilisateurInte
       .from('utilisateurs_internes')
       .select(`
         *,
-        roles (
+        roles!fk_utilisateurs_internes_role_id (
           id,
           name,
           description

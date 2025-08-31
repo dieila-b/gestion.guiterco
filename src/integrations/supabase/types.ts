@@ -2490,6 +2490,20 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "fk_role_permissions_permission_id"
+            columns: ["permission_id"]
+            isOneToOne: false
+            referencedRelation: "permissions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_role_permissions_role_id"
+            columns: ["role_id"]
+            isOneToOne: false
+            referencedRelation: "roles"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "role_permissions_permission_id_fkey"
             columns: ["permission_id"]
             isOneToOne: false
@@ -3237,6 +3251,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "fk_utilisateurs_internes_role_id"
+            columns: ["role_id"]
+            isOneToOne: false
+            referencedRelation: "roles"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "utilisateurs_internes_role_id_fkey"
             columns: ["role_id"]
             isOneToOne: false
@@ -3749,6 +3770,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "fk_utilisateurs_internes_role_id"
+            columns: ["role_id"]
+            isOneToOne: false
+            referencedRelation: "roles"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "utilisateurs_internes_role_id_fkey"
             columns: ["role_id"]
             isOneToOne: false
@@ -3805,6 +3833,15 @@ export type Database = {
         Returns: boolean
       }
       check_user_permission_by_id: {
+        Args: {
+          p_action?: string
+          p_menu: string
+          p_submenu?: string
+          p_user_id: string
+        }
+        Returns: boolean
+      }
+      check_user_permission_detailed: {
         Args: {
           p_action?: string
           p_menu: string
@@ -4074,6 +4111,15 @@ export type Database = {
       get_total_stock_available: {
         Args: { p_article_id: string }
         Returns: number
+      }
+      get_user_all_permissions: {
+        Args: { p_user_id: string }
+        Returns: {
+          action: string
+          can_access: boolean
+          menu: string
+          submenu: string
+        }[]
       }
       get_user_permissions: {
         Args: { user_uuid: string }

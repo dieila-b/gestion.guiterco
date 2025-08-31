@@ -2,7 +2,7 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { useUserPermissions } from '@/hooks/useUserPermissions';
+import { useUserPermissions, UserPermission } from '@/hooks/useUserPermissions';
 import { useAuth } from '@/components/auth/AuthContext';
 import { Loader2, User, Shield, Eye, Edit, Trash2 } from 'lucide-react';
 
@@ -42,7 +42,7 @@ export const UserPermissionsDisplay: React.FC = () => {
     
     acc[menuKey][submenuKey].push(permission);
     return acc;
-  }, {} as Record<string, Record<string, typeof permissions>>);
+  }, {} as Record<string, Record<string, UserPermission[]>>);
 
   const getActionIcon = (action: string) => {
     switch (action) {

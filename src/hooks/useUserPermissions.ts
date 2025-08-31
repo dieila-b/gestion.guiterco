@@ -89,29 +89,47 @@ export const useUserPermissions = () => {
         ] as UserPermission[];
       }
 
-      // Pour les utilisateurs réels, utiliser la vue des permissions
+      // Pour les utilisateurs réels, utiliser la fonction get_user_all_permissions
       try {
-        console.log('📊 Récupération des permissions via vue_permissions_utilisateurs pour:', user.id);
+        console.log('📊 Récupération des permissions via get_user_all_permissions pour:', user.id);
         
-        const { data, error } = await supabase
-          .from('vue_permissions_utilisateurs')
-          .select('menu, submenu, action, can_access')
-          .eq('user_id', user.id)
-          .eq('can_access', true);
+        const { data, error } = await supabase.rpc('get_user_all_permissions', {
+          p_user_id: user.id
+        });
 
         if (error) {
           console.error('❌ Erreur lors de la récupération des permissions:', error);
-          return [];
+          // Fallback vers la vue directement
+          const { data: fallbackData, error: fallbackError } = await supabase
+            .from('vue_permissions_utilisateurs')
+            .select('menu, submenu, action, can_access')
+            .eq('user_id', user.id)
+            .eq('can_access', true);
+
+          if (fallbackError) {
+            console.error('❌ Erreur fallback lors de la récupération des permissions:', fallbackError);
+            return [];
+          }
+
+          const fallbackPermissions = fallbackData?.map(p => ({
+            menu: p.menu,
+            submenu: p.submenu || undefined,
+            action: p.action,
+            can_access: p.can_access
+          })) || [];
+
+          console.log('✅ Permissions récupérées (fallback):', fallbackPermissions);
+          return fallbackPermissions;
         }
 
-        const formattedPermissions = data?.map(p => ({
+        const formattedPermissions = data?.map((p: any) => ({
           menu: p.menu,
           submenu: p.submenu || undefined,
           action: p.action,
           can_access: p.can_access
         })) || [];
 
-        console.log('✅ Permissions récupérées:', formattedPermissions);
+        console.log('✅ Permissions récupérées via RPC:', formattedPermissions);
         return formattedPermissions;
         
       } catch (error) {
