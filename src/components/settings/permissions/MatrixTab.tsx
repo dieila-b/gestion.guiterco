@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -9,7 +10,6 @@ import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 
 export default function MatrixTab() {
-  const [selectedRole, setSelectedRole] = useState<string>('');
   const [pendingChanges, setPendingChanges] = useState<{[key: string]: boolean}>({});
   
   const { data: roles = [], isLoading: rolesLoading } = useRoles();

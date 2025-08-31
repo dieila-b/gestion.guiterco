@@ -2503,6 +2503,13 @@ export type Database = {
             referencedRelation: "roles"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "role_permissions_role_id_fkey"
+            columns: ["role_id"]
+            isOneToOne: false
+            referencedRelation: "vue_permissions_utilisateurs"
+            referencedColumns: ["role_id"]
+          },
         ]
       }
       roles: {
@@ -3178,6 +3185,13 @@ export type Database = {
             referencedRelation: "roles"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "user_roles_role_id_fkey"
+            columns: ["role_id"]
+            isOneToOne: false
+            referencedRelation: "vue_permissions_utilisateurs"
+            referencedColumns: ["role_id"]
+          },
         ]
       }
       utilisateurs_internes: {
@@ -3242,6 +3256,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "roles"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "utilisateurs_internes_role_id_fkey"
+            columns: ["role_id"]
+            isOneToOne: false
+            referencedRelation: "vue_permissions_utilisateurs"
+            referencedColumns: ["role_id"]
           },
         ]
       }
@@ -3610,9 +3631,16 @@ export type Database = {
         Row: {
           action: string | null
           can_access: boolean | null
+          description: string | null
+          email: string | null
           menu: string | null
+          nom: string | null
+          prenom: string | null
+          role_id: string | null
+          role_name: string | null
           submenu: string | null
           user_id: string | null
+          utilisateur_interne_id: string | null
         }
         Relationships: []
       }
@@ -3755,6 +3783,13 @@ export type Database = {
             referencedRelation: "roles"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "utilisateurs_internes_role_id_fkey"
+            columns: ["role_id"]
+            isOneToOne: false
+            referencedRelation: "vue_permissions_utilisateurs"
+            referencedColumns: ["role_id"]
+          },
         ]
       }
     }
@@ -3783,10 +3818,6 @@ export type Database = {
           rapport: string
         }[]
       }
-      check_internal_user_exists: {
-        Args: { email_input: string }
-        Returns: boolean
-      }
       check_orphaned_stock: {
         Args: Record<PropertyKey, never>
         Returns: {
@@ -3796,15 +3827,6 @@ export type Database = {
         }[]
       }
       check_user_permission: {
-        Args: {
-          p_action?: string
-          p_menu: string
-          p_submenu?: string
-          p_user_id: string
-        }
-        Returns: boolean
-      }
-      check_user_permission_by_id: {
         Args: {
           p_action?: string
           p_menu: string
@@ -4082,23 +4104,6 @@ export type Database = {
           can_access: boolean
           menu: string
           submenu: string
-        }[]
-      }
-      get_user_permissions_by_id: {
-        Args: { p_user_id: string }
-        Returns: {
-          action: string
-          can_access: boolean
-          menu: string
-          submenu: string
-        }[]
-      }
-      get_user_roles: {
-        Args: { p_user_id: string }
-        Returns: {
-          role_description: string
-          role_id: string
-          role_name: string
         }[]
       }
       get_users_by_role: {
