@@ -15,7 +15,6 @@ export interface UtilisateurInterne {
   telephone?: string;
   date_embauche?: string;
   department?: string;
-  user_id?: string;
   created_at: string;
   updated_at: string;
   role_name?: string;
@@ -43,63 +42,19 @@ export const useUtilisateursInternes = () => {
   return useQuery({
     queryKey: ['utilisateurs-internes'],
     queryFn: async () => {
-      console.log('👥 Récupération des utilisateurs internes...');
-      
       const { data, error } = await supabase
-        .from('utilisateurs_internes')
-        .select(`
-          id,
-          email,
-          prenom,
-          nom,
-          matricule,
-          role_id,
-          statut,
-          type_compte,
-          photo_url,
-          telephone,
-          date_embauche,
-          department,
-          user_id,
-          created_at,
-          updated_at,
-          roles!utilisateurs_internes_role_id_fkey(
-            id,
-            name,
-            description
-          )
-        `)
+        .from('vue_utilisateurs_avec_roles')
+        .select('*')
         .order('created_at', { ascending: false });
 
       if (error) {
-        console.error('❌ Erreur lors du chargement des utilisateurs internes:', error);
-        // Essayer une requête plus simple en cas d'erreur de permissions
-        const { data: simpleData, error: simpleError } = await supabase
-          .from('utilisateurs_internes')
-          .select('*')
-          .order('created_at', { ascending: false });
-        
-        if (simpleError) {
-          throw new Error(`Erreur: ${simpleError.message}`);
-        }
-        
-        return simpleData?.map(user => ({
-          ...user,
-          role_name: 'Non défini',
-          role_description: 'Rôle non accessible'
-        })) as UtilisateurInterne[];
+        console.error('Erreur lors du chargement des utilisateurs internes:', error);
+        throw new Error(`Erreur: ${error.message}`);
       }
 
-      const formattedData = data?.map(user => ({
-        ...user,
-        role_name: user.roles?.name,
-        role_description: user.roles?.description
-      })) as UtilisateurInterne[];
-
-      console.log('✅ Utilisateurs internes récupérés:', formattedData?.length);
-      return formattedData;
+      return data as UtilisateurInterne[];
     },
-    retry: 1,
+    retry: 2,
     retryDelay: 1000,
   });
 };

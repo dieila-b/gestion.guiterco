@@ -14,7 +14,7 @@ export const useUserPermissions = () => {
   const { user, isDevMode, utilisateurInterne } = useAuth();
 
   return useQuery({
-    queryKey: ['user-permissions', user?.id, utilisateurInterne?.id, utilisateurInterne?.role?.id],
+    queryKey: ['user-permissions', user?.id, utilisateurInterne?.role?.id],
     queryFn: async () => {
       console.log('🔐 Chargement des permissions pour:', {
         userId: user?.id,
@@ -24,13 +24,13 @@ export const useUserPermissions = () => {
       });
 
       if (!user?.id) {
-        console.warn('Pas d\'utilisateur connecté');
+        console.warn('❌ Pas d\'utilisateur connecté');
         return [];
       }
 
       // En mode développement avec utilisateur mock, donner toutes les permissions
-      if (isDevMode && (user.id === '00000000-0000-4000-8000-000000000001' || user.email?.includes('dev'))) {
-        console.log('Mode dev avec utilisateur mock - toutes permissions accordées');
+      if (isDevMode && user.id === '00000000-0000-4000-8000-000000000001') {
+        console.log('🚀 Mode dev avec utilisateur mock - toutes permissions accordées');
         return [
           { menu: 'Dashboard', action: 'read', can_access: true },
           { menu: 'Catalogue', action: 'read', can_access: true },
@@ -47,103 +47,56 @@ export const useUserPermissions = () => {
           { menu: 'Achats', submenu: 'Bons de commande', action: 'write', can_access: true },
           { menu: 'Clients', action: 'read', can_access: true },
           { menu: 'Clients', action: 'write', can_access: true },
+          { menu: 'Caisse', action: 'read', can_access: true },
+          { menu: 'Caisse', action: 'write', can_access: true },
+          { menu: 'Rapports', action: 'read', can_access: true },
           { menu: 'Paramètres', submenu: 'Rôles et permissions', action: 'read', can_access: true },
           { menu: 'Paramètres', submenu: 'Rôles et permissions', action: 'write', can_access: true }
         ] as UserPermission[];
       }
 
-      // Si pas d'utilisateur interne ou pas de rôle, essayer de continuer quand même
+      // Pour les utilisateurs réels, vérifier s'ils ont un rôle assigné
       if (!utilisateurInterne?.role?.id) {
-        console.warn('Pas de rôle défini pour l\'utilisateur interne, permissions par défaut');
-        
-        // Essayer quand même de récupérer via l'ID utilisateur direct
-        try {
-          const { data, error } = await supabase
-            .from('utilisateurs_internes')
-            .select(`
-              role:roles(
-                id,
-                name,
-                role_permissions(
-                  can_access,
-                  permission:permissions(
-                    menu,
-                    submenu, 
-                    action
-                  )
-                )
-              )
-            `)
-            .eq('user_id', user.id)
-            .eq('statut', 'actif')
-            .single();
-
-          if (error || !data?.role) {
-            console.warn('Impossible de récupérer les permissions, accès dashboard seulement');
-            return [{ menu: 'Dashboard', action: 'read', can_access: true }];
-          }
-
-          const formattedPermissions = data.role.role_permissions
-            ?.filter(rp => rp.can_access)
-            ?.map(rp => ({
-              menu: rp.permission.menu,
-              submenu: rp.permission.submenu,
-              action: rp.permission.action,
-              can_access: true
-            })) || [];
-
-          console.log('Permissions récupérées via utilisateur interne:', formattedPermissions);
-          return formattedPermissions;
-          
-        } catch (error) {
-          console.error('Erreur récupération permissions via utilisateur interne:', error);
-          return [{ menu: 'Dashboard', action: 'read', can_access: true }];
-        }
+        console.warn('❌ Utilisateur sans rôle défini');
+        return [];
       }
 
-      // Pour les utilisateurs réels, récupérer les permissions via le rôle
       try {
-        console.log('Récupération des permissions pour le rôle:', utilisateurInterne.role.id);
+        console.log('📊 Récupération des permissions pour le rôle:', utilisateurInterne.role.id);
         
-        const { data: rolePermissions, error } = await supabase
+        const { data, error } = await supabase
           .from('role_permissions')
           .select(`
-            can_access,
-            permission:permissions(
-              menu,
-              submenu,
-              action
-            )
+            permission:permissions(menu, submenu, action)
           `)
           .eq('role_id', utilisateurInterne.role.id)
           .eq('can_access', true);
 
         if (error) {
-          console.error('Erreur lors de la récupération des permissions par rôle:', error);
-          // Permissions minimales en cas d'erreur
-          return [{ menu: 'Dashboard', action: 'read', can_access: true }];
+          console.error('❌ Erreur lors de la récupération des permissions:', error);
+          return [];
         }
 
-        const formattedPermissions = rolePermissions?.map(rp => ({
+        const formattedPermissions = data?.map(rp => ({
           menu: rp.permission.menu,
           submenu: rp.permission.submenu,
           action: rp.permission.action,
-          can_access: rp.can_access
+          can_access: true
         })) || [];
 
-        console.log('Permissions récupérées depuis les rôles:', formattedPermissions);
+        console.log('✅ Permissions récupérées:', formattedPermissions);
         return formattedPermissions;
         
       } catch (error) {
-        console.error('Erreur inattendue lors de la récupération des permissions:', error);
-        // En cas d'erreur complète, donner au moins l'accès au dashboard
-        return [{ menu: 'Dashboard', action: 'read', can_access: true }];
+        console.error('❌ Erreur inattendue lors de la récupération des permissions:', error);
+        return [];
       }
     },
     enabled: !!user?.id,
     retry: 2,
-    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
-    staleTime: 5 * 60 * 1000 // 5 minutes
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    refetchOnMount: false,
+    refetchOnWindowFocus: false
   });
 };
 
@@ -152,21 +105,18 @@ export const useHasPermission = () => {
   const { isDevMode, user } = useAuth();
 
   const hasPermission = (menu: string, submenu?: string, action: string = 'read'): boolean => {
-    // En mode développement avec utilisateur dev, être plus permissif
-    if (isDevMode && (user?.id === '00000000-0000-4000-8000-000000000001' || user?.email?.includes('dev'))) {
-      console.log(`Permission check (dev mode): ${menu}${submenu ? ` > ${submenu}` : ''} (${action}) - GRANTED`);
+    // SEULEMENT l'utilisateur mock spécifique bypass les permissions en mode dev
+    if (isDevMode && user?.id === '00000000-0000-4000-8000-000000000001') {
       return true;
     }
     
     if (isLoading) {
-      console.log('Permissions en cours de chargement...');
       return false;
     }
     
     if (error) {
-      console.error('Erreur lors du chargement des permissions:', error);
-      // En cas d'erreur, permettre au moins l'accès au dashboard
-      return menu === 'Dashboard' && action === 'read';
+      console.error('❌ Erreur lors du chargement des permissions:', error);
+      return false;
     }
     
     const hasAccess = permissions.some(permission => 
@@ -176,7 +126,12 @@ export const useHasPermission = () => {
       permission.can_access
     );
     
-    console.log(`Vérification permission: ${menu}${submenu ? ` > ${submenu}` : ''} (${action}):`, hasAccess);
+    console.log(`🔍 Vérification permission: ${menu}${submenu ? ` > ${submenu}` : ''} (${action}):`, { 
+      hasAccess, 
+      userId: user?.id, 
+      permissionsCount: permissions.length,
+      availablePermissions: permissions.filter(p => p.menu === menu)
+    });
     
     return hasAccess;
   };

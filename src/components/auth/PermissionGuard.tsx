@@ -11,7 +11,6 @@ interface PermissionGuardProps {
   submenu?: string;
   action?: string;
   fallback?: React.ReactNode;
-  showError?: boolean;
 }
 
 export const PermissionGuard: React.FC<PermissionGuardProps> = ({
@@ -19,68 +18,63 @@ export const PermissionGuard: React.FC<PermissionGuardProps> = ({
   menu,
   submenu,
   action = 'read',
-  fallback = null,
-  showError = false
+  fallback = null
 }) => {
   const { hasPermission, isLoading } = useHasPermission();
-  const { isDevMode, user, utilisateurInterne, loading: authLoading } = useAuth();
+  const { isDevMode, user, utilisateurInterne } = useAuth();
 
-  const permissionKey = `${menu}${submenu ? ` > ${submenu}` : ''} (${action})`;
-
-  console.log(`PermissionGuard - Vérification: ${permissionKey}`, {
+  console.log(`🛡️ PermissionGuard - Vérification: ${menu}${submenu ? ` > ${submenu}` : ''} (${action})`, {
     isDevMode,
     hasUser: !!user,
     hasUtilisateurInterne: !!utilisateurInterne,
-    userRole: utilisateurInterne?.role?.name || utilisateurInterne?.role?.nom,
-    isLoading,
-    authLoading
+    userRole: utilisateurInterne?.role?.nom,
+    isLoading
   });
 
-  // En mode développement, être plus permissif pour les utilisateurs connectés
-  if (isDevMode && (user || utilisateurInterne)) {
-    console.log(`Mode dev - accès accordé pour ${permissionKey}`);
+  // En mode développement, être permissif SEULEMENT pour l'utilisateur mock
+  if (isDevMode && user?.id === '00000000-0000-4000-8000-000000000001') {
+    console.log('🚀 Mode dev avec utilisateur mock - accès accordé');
     return <>{children}</>;
   }
 
-  // Attendre que l'authentification soit terminée
-  if (authLoading || isLoading) {
+  // Attendre le chargement des permissions
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center p-4">
         <Loader2 className="h-4 w-4 animate-spin mr-2" />
-        <span className="text-sm text-muted-foreground">
-          {authLoading ? 'Vérification de l\'authentification...' : 'Vérification des permissions...'}
-        </span>
+        <span className="text-sm text-muted-foreground">Vérification des permissions...</span>
       </div>
     );
-  }
-
-  // Si pas d'utilisateur connecté, ne pas afficher le contenu
-  if (!user && !utilisateurInterne) {
-    console.log(`Aucun utilisateur connecté - accès refusé pour ${permissionKey}`);
-    return showError ? (
-      <Alert variant="destructive">
-        <AlertCircle className="h-4 w-4" />
-        <AlertDescription>
-          Vous devez être connecté pour accéder à cette section.
-        </AlertDescription>
-      </Alert>
-    ) : <>{fallback}</>;
   }
 
   // Vérifier les permissions
   const hasAccess = hasPermission(menu, submenu, action);
   
-  console.log(`PermissionGuard - Résultat pour ${permissionKey}: ${hasAccess ? 'Accès accordé' : 'Accès refusé'}`);
+  console.log(`🛡️ PermissionGuard - Résultat: ${hasAccess ? 'Accès accordé' : 'Accès refusé'}`, {
+    menu,
+    submenu,
+    action,
+    userRole: utilisateurInterne?.role?.nom
+  });
   
   if (!hasAccess) {
-    return showError ? (
-      <Alert variant="destructive">
+    if (fallback) {
+      return <>{fallback}</>;
+    }
+
+    return (
+      <Alert className="m-4">
         <AlertCircle className="h-4 w-4" />
         <AlertDescription>
           Vous n'avez pas les permissions nécessaires pour accéder à cette section.
+          {utilisateurInterne?.role?.nom && (
+            <div className="mt-2 text-xs text-muted-foreground">
+              Votre rôle: {utilisateurInterne.role.nom}
+            </div>
+          )}
         </AlertDescription>
       </Alert>
-    ) : <>{fallback}</>;
+    );
   }
 
   return <>{children}</>;

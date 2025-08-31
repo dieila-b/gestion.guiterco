@@ -1,202 +1,261 @@
 
 import React, { useState } from 'react';
-import { useStockEntrepotView, useStockEntrepotStats } from '@/hooks/stock/useStockEntrepotView';
+import { useStockPrincipal, useEntrepots } from '@/hooks/stock';
+import { useCatalogueSync } from '@/hooks/useCatalogueSync';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
-import { Package, Warehouse, DollarSign, RefreshCw, Search } from 'lucide-react';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Search, RefreshCw, Filter, AlertTriangle, CheckCircle } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { formatCurrency } from '@/lib/currency';
-import { formatDate } from '@/lib/date-utils';
-import StockStatsCard from './StockStatsCard';
 
-const StockEntrepot: React.FC = () => {
-  const { data: stockEntrepot, isLoading, error, refetch } = useStockEntrepotView();
-  const { data: stats, isLoading: statsLoading } = useStockEntrepotStats();
+const StockEntrepot = () => {
+  const { stockEntrepot, isLoading, error, refreshStock } = useStockPrincipal();
+  const { entrepots } = useEntrepots();
+  const { syncCatalogue, checkDataIntegrity } = useCatalogueSync();
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedEntrepot, setSelectedEntrepot] = useState<string>('');
+  const [selectedEntrepot, setSelectedEntrepot] = useState<string>('tous');
+  const [lastSyncTime, setLastSyncTime] = useState<Date | null>(null);
 
-  if (isLoading || statsLoading) {
-    return (
-      <div className="flex items-center justify-center p-8">
-        <RefreshCw className="h-6 w-6 animate-spin" />
-        <span className="ml-2">Chargement du stock entrepôt...</span>
-      </div>
-    );
-  }
+  console.log('StockEntrepot - stockEntrepot data:', stockEntrepot);
+  console.log('StockEntrepot - stockEntrepot length:', stockEntrepot?.length);
 
-  if (error) {
-    return (
-      <div className="p-4 text-red-600">
-        Erreur lors du chargement du stock entrepôt: {error.message}
-      </div>
-    );
-  }
-
-  // Filtrer les données
   const filteredStock = stockEntrepot?.filter(item => {
-    const matchesSearch = !searchTerm || 
-      item.article_nom.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.reference.toLowerCase().includes(searchTerm.toLowerCase());
+    console.log('Filtering item:', item);
+    console.log('Item article:', item.article);
+    console.log('Item entrepot:', item.entrepot);
     
-    const matchesEntrepot = !selectedEntrepot || item.entrepot_nom === selectedEntrepot;
+    const matchesSearch = searchTerm === '' || (
+      (item.article?.nom && item.article.nom.toLowerCase().includes(searchTerm.toLowerCase())) || 
+      (item.article?.reference && item.article.reference.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (item.entrepot?.nom && item.entrepot.nom.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (item.article?.categorie && item.article.categorie.toLowerCase().includes(searchTerm.toLowerCase()))
+    );
+    
+    const matchesEntrepot = selectedEntrepot === 'tous' || item.entrepot_id === selectedEntrepot;
+    
+    console.log('matchesSearch:', matchesSearch, 'matchesEntrepot:', matchesEntrepot);
     
     return matchesSearch && matchesEntrepot;
-  }) || [];
+  });
 
-  // Obtenir les entrepôts uniques
-  const entrepots = [...new Set(stockEntrepot?.map(item => item.entrepot_nom) || [])];
+  console.log('Filtered stock result:', filteredStock);
+  console.log('Filtered stock length:', filteredStock?.length);
+
+  const calculateTotalValue = (quantity: number, unitPrice: number | null | undefined) => {
+    if (!unitPrice) return 0;
+    return quantity * unitPrice;
+  };
+
+  const handleSync = async () => {
+    try {
+      await syncCatalogue.mutateAsync();
+      refreshStock();
+      setLastSyncTime(new Date());
+    } catch (error) {
+      console.error('Erreur lors de la synchronisation:', error);
+    }
+  };
+
+  // Vérification de l'intégrité des données
+  const { data: integrityData, isLoading: integrityLoading } = checkDataIntegrity;
+  
+  // Calculer s'il y a vraiment des problèmes d'intégrité - correction du type
+  const hasRealIntegrityIssues = integrityData && (
+    (integrityData.orphanedStock && Array.isArray(integrityData.orphanedStock) && integrityData.orphanedStock.length > 0) ||
+    (integrityData.inactiveWarehousesWithStock && Array.isArray(integrityData.inactiveWarehousesWithStock) && integrityData.inactiveWarehousesWithStock.length > 0) ||
+    (integrityData.duplicateStock && Array.isArray(integrityData.duplicateStock) && integrityData.duplicateStock.length > 0)
+  );
+
+  // Afficher l'alerte seulement s'il y a de vrais problèmes
+  const shouldShowIntegrityAlert = hasRealIntegrityIssues && !integrityLoading;
 
   return (
     <div className="space-y-6">
-      {/* En-tête avec statistiques */}
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold">Stock Entrepôt</h2>
-        <Button onClick={() => refetch()} variant="outline" size="sm">
-          <RefreshCw className="h-4 w-4 mr-2" />
-          Actualiser
-        </Button>
-      </div>
-
-      {/* Cartes de statistiques */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <StockStatsCard
-          title="Articles en stock"
-          value={stats?.total_articles || 0}
-          subtitle="Articles disponibles"
-          icon={Package}
-          iconColor="text-green-600"
-        />
-        <StockStatsCard
-          title="Valeur totale"
-          value={stats?.valeur_totale || 0}
-          subtitle="Valeur du stock"
-          icon={DollarSign}
-          iconColor="text-blue-600"
-        />
-        <StockStatsCard
-          title="Entrepôts actifs"
-          value={stats?.entrepots_actifs || 0}
-          subtitle="Entrepôts avec stock"
-          icon={Warehouse}
-          iconColor="text-purple-600"
-        />
-      </div>
-
-      {/* Filtres */}
-      <div className="flex flex-col sm:flex-row gap-4">
-        <div className="relative flex-1">
-          <Search className="absolute left-2 top-2.5 h-4 w-4 text-gray-500" />
-          <Input
-            placeholder="Rechercher un article..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-8"
-          />
-        </div>
-        <select
-          value={selectedEntrepot}
-          onChange={(e) => setSelectedEntrepot(e.target.value)}
-          className="px-3 py-2 border rounded-md bg-white"
-        >
-          <option value="">Tous les entrepôts</option>
-          {entrepots.map((entrepot) => (
-            <option key={entrepot} value={entrepot}>
-              {entrepot}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      {/* Liste des articles */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {filteredStock.map((item) => (
-          <Card key={item.id} className="hover:shadow-md transition-shadow">
-            <CardHeader className="pb-3">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-sm font-medium line-clamp-1">
-                  {item.article_nom}
-                </CardTitle>
-                <Package className="h-4 w-4 text-blue-600" />
-              </div>
-              <div className="text-xs text-gray-500">
-                Réf: {item.reference}
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {/* Quantités */}
-              <div className="grid grid-cols-2 gap-2 text-sm">
-                <div>
-                  <span className="text-gray-600">Disponible:</span>
-                  <div className="font-semibold text-green-600">
-                    {item.quantite_disponible} {item.unite_symbole || ''}
-                  </div>
-                </div>
-                <div>
-                  <span className="text-gray-600">Réservé:</span>
-                  <div className="font-semibold text-orange-600">
-                    {item.quantite_reservee} {item.unite_symbole || ''}
-                  </div>
-                </div>
-              </div>
-
-              {/* Prix et valeur */}
-              <div className="grid grid-cols-2 gap-2 text-sm">
-                <div>
-                  <span className="text-gray-600">Prix vente:</span>
-                  <div className="font-medium">
-                    {item.prix_vente ? formatCurrency(item.prix_vente) : 'N/A'}
-                  </div>
-                </div>
-                <div>
-                  <span className="text-gray-600">Valeur totale:</span>
-                  <div className="font-semibold text-blue-600">
-                    {formatCurrency(item.valeur_totale)}
-                  </div>
-                </div>
-              </div>
-
-              {/* Entrepôt et catégorie */}
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <Badge variant="outline" className="text-xs">
-                    <Warehouse className="h-3 w-3 mr-1" />
-                    {item.entrepot_nom}
-                  </Badge>
-                  {item.categorie_nom && (
-                    <Badge 
-                      variant="outline" 
-                      className="text-xs"
-                      style={{ 
-                        borderColor: item.categorie_couleur || undefined,
-                        color: item.categorie_couleur || undefined
-                      }}
-                    >
-                      {item.categorie_nom}
-                    </Badge>
-                  )}
-                </div>
-              </div>
-
-              {/* Dernière entrée */}
-              {item.derniere_entree && (
-                <div className="text-xs text-gray-500 pt-2 border-t">
-                  Dernière entrée: {formatDate(item.derniere_entree)}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-      
-      {filteredStock.length === 0 && (
-        <div className="text-center py-8 text-gray-500">
-          {searchTerm || selectedEntrepot 
-            ? "Aucun article trouvé avec ces filtres" 
-            : "Aucun stock disponible en entrepôt"
-          }
-        </div>
+      {/* Alerte d'intégrité des données - seulement si nécessaire */}
+      {shouldShowIntegrityAlert && (
+        <Alert>
+          <AlertTriangle className="h-4 w-4" />
+          <AlertDescription>
+            Des problèmes de cohérence des données ont été détectés. 
+            <Button 
+              variant="link" 
+              className="p-0 h-auto ml-1" 
+              onClick={handleSync}
+              disabled={syncCatalogue.isPending}
+            >
+              Cliquez ici pour synchroniser
+            </Button> 
+            et corriger automatiquement.
+          </AlertDescription>
+        </Alert>
       )}
+
+      {/* Message de confirmation après synchronisation réussie */}
+      {lastSyncTime && !shouldShowIntegrityAlert && (
+        <Alert className="border-green-200 bg-green-50">
+          <CheckCircle className="h-4 w-4 text-green-600" />
+          <AlertDescription className="text-green-800">
+            Synchronisation réussie à {lastSyncTime.toLocaleTimeString()}. 
+            Toutes les données sont cohérentes.
+          </AlertDescription>
+        </Alert>
+      )}
+
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-xl font-bold text-primary">Stock des Entrepôts</CardTitle>
+          <Button 
+            variant="outline" 
+            size="icon" 
+            title="Synchroniser et rafraîchir"
+            onClick={handleSync}
+            disabled={syncCatalogue.isPending}
+          >
+            <RefreshCw className={`h-4 w-4 ${syncCatalogue.isPending ? 'animate-spin' : ''}`} />
+          </Button>
+        </CardHeader>
+        <CardContent>
+          {/* Filtres et recherche */}
+          <div className="flex flex-col sm:flex-row gap-4 mb-6">
+            <div className="flex-1">
+              <Select value={selectedEntrepot} onValueChange={setSelectedEntrepot}>
+                <SelectTrigger className="w-full sm:w-[200px]">
+                  <SelectValue placeholder="Tous les entrepôts" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="tous">Tous les entrepôts</SelectItem>
+                  {entrepots?.map((entrepot) => (
+                    <SelectItem key={entrepot.id} value={entrepot.id}>
+                      {entrepot.nom}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div className="flex gap-2 flex-1">
+              <div className="relative flex-1">
+                <Input
+                  placeholder="Rechercher un article..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pr-10"
+                />
+                <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              </div>
+              <Button variant="outline" size="icon">
+                <Filter className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+
+          {/* Affichage d'erreur */}
+          {error && (
+            <Alert className="mb-4">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription>
+                Erreur lors du chargement des données: {error.message}
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {isLoading ? (
+            <div className="space-y-2">
+              <Skeleton className="h-8 w-full" />
+              <Skeleton className="h-8 w-full" />
+              <Skeleton className="h-8 w-full" />
+              <Skeleton className="h-8 w-full" />
+              <Skeleton className="h-8 w-full" />
+            </div>
+          ) : (
+            <div className="rounded-md border border-border">
+              <Table>
+                <TableHeader>
+                  <TableRow className="hover:bg-muted/50">
+                    <TableHead className="text-muted-foreground">Référence</TableHead>
+                    <TableHead className="text-muted-foreground">Catégorie</TableHead>
+                    <TableHead className="text-muted-foreground">Article</TableHead>
+                    <TableHead className="text-muted-foreground">Entrepôt</TableHead>
+                    <TableHead className="text-right text-muted-foreground">Quantité</TableHead>
+                    <TableHead className="text-right text-muted-foreground">Prix unitaire</TableHead>
+                    <TableHead className="text-right text-muted-foreground">Valeur totale</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredStock && filteredStock.length > 0 ? (
+                    filteredStock.map((item) => {
+                      const unitPrice = item.article?.prix_achat || item.article?.prix_unitaire || 0;
+                      const totalValue = calculateTotalValue(item.quantite_disponible, unitPrice);
+                      
+                      return (
+                        <TableRow key={item.id} className="hover:bg-muted/50">
+                          <TableCell className="font-medium text-foreground">
+                            {item.article?.reference || 'N/A'}
+                          </TableCell>
+                           <TableCell className="text-muted-foreground">
+                             {item.article?.categorie_article?.nom || item.article?.categorie || 'Non classé'}
+                           </TableCell>
+                          <TableCell className="font-medium text-foreground">
+                            {item.article?.nom || 'N/A'}
+                          </TableCell>
+                          <TableCell className="text-muted-foreground">
+                            {item.entrepot?.nom || 'N/A'}
+                          </TableCell>
+                           <TableCell className="text-right font-medium text-foreground">
+                             {item.quantite_disponible}
+                             {(item.article?.unite_article?.nom || item.article?.unite_mesure) && (
+                               <span className="text-muted-foreground ml-1">
+                                 {item.article?.unite_article?.nom || item.article.unite_mesure}
+                               </span>
+                             )}
+                           </TableCell>
+                          <TableCell className="text-right text-foreground">
+                            {formatCurrency(unitPrice)}
+                          </TableCell>
+                          <TableCell className="text-right font-medium text-foreground">
+                            {formatCurrency(totalValue)}
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                        {searchTerm || selectedEntrepot !== 'tous' 
+                          ? 'Aucun article trouvé avec ces critères' 
+                          : 'Aucun article en stock trouvé'}
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+
+          {/* Résumé du stock */}
+          {filteredStock && filteredStock.length > 0 && (
+            <div className="mt-4 p-4 bg-muted/50 rounded-lg">
+              <div className="flex justify-between items-center text-sm">
+                <span className="text-muted-foreground">
+                  Total articles: {filteredStock.length}
+                </span>
+                <span className="font-medium text-foreground">
+                  Valeur totale du stock: {formatCurrency(
+                    filteredStock.reduce((total, item) => {
+                      const unitPrice = item.article?.prix_achat || item.article?.prix_unitaire || 0;
+                      return total + calculateTotalValue(item.quantite_disponible, unitPrice);
+                    }, 0)
+                  )}
+                </span>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 };
