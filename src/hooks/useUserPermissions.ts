@@ -45,9 +45,12 @@ export const useUserPermissions = () => {
       }
 
       try {
-        // Utiliser la fonction SQL pour récupérer les permissions
+        // Récupérer les permissions via la vue des permissions utilisateurs
         const { data: permissionsData, error } = await supabase
-          .rpc('get_user_permissions_by_id', { p_user_id: user.id });
+          .from('vue_permissions_utilisateurs')
+          .select('menu, submenu, action, can_access')
+          .eq('user_id', user.id)
+          .eq('can_access', true);
 
         if (error) {
           console.error('Erreur lors de la récupération des permissions:', error);
