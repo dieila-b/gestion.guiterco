@@ -15,13 +15,20 @@ const FacturesVente: React.FC<FacturesVenteProps> = ({ onNavigateToVenteComptoir
   const { data: factures, isLoading, error } = useFacturesVenteQuery();
   const [searchTerm, setSearchTerm] = useState('');
 
-  // Vérification de sécurité et gestion d'erreur
+  // Vérification de sécurité renforcée et gestion d'erreur
   const safeFactures = Array.isArray(factures) ? factures : [];
   
-  const filteredFactures = safeFactures.filter(facture => 
-    facture?.numero_facture?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (facture?.client?.nom && facture.client.nom.toLowerCase().includes(searchTerm.toLowerCase()))
-  );
+  console.log('FacturesVente - Data received:', factures);
+  console.log('FacturesVente - Safe factures:', safeFactures);
+  
+  const filteredFactures = safeFactures.filter(facture => {
+    if (!facture) return false;
+    
+    const numeroMatch = facture.numero_facture?.toLowerCase().includes(searchTerm.toLowerCase()) || false;
+    const clientMatch = facture.client?.nom?.toLowerCase().includes(searchTerm.toLowerCase()) || false;
+    
+    return numeroMatch || clientMatch;
+  });
 
   if (error) {
     console.error('Erreur lors du chargement des factures:', error);
