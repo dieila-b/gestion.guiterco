@@ -20,8 +20,11 @@ const FacturesVenteTable = ({ factures, isLoading }: FacturesVenteTableProps) =>
     );
   }
 
-  // Vérification de sécurité pour s'assurer que factures est un tableau
+  // Vérification de sécurité renforcée pour s'assurer que factures est un tableau
   const safeFactures = Array.isArray(factures) ? factures : [];
+
+  console.log('FacturesVenteTable - factures reçues:', factures);
+  console.log('FacturesVenteTable - safeFactures:', safeFactures);
 
   return (
     <div className="rounded-md border">
@@ -42,9 +45,16 @@ const FacturesVenteTable = ({ factures, isLoading }: FacturesVenteTableProps) =>
         </TableHeader>
         <TableBody>
           {safeFactures.length > 0 ? (
-            safeFactures.map((facture) => (
-              <FactureVenteTableRow key={facture.id} facture={facture} />
-            ))
+            safeFactures.map((facture) => {
+              // Vérification de sécurité supplémentaire pour chaque facture
+              if (!facture || !facture.id) {
+                console.warn('Facture invalide détectée:', facture);
+                return null;
+              }
+              return (
+                <FactureVenteTableRow key={facture.id} facture={facture} />
+              );
+            }).filter(Boolean)
           ) : (
             <TableRow>
               <TableCell colSpan={10} className="text-center py-8">
