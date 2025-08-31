@@ -1,4 +1,3 @@
-
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -77,18 +76,61 @@ export const useUpdateRolePermission = () => {
 
   return useMutation({
     mutationFn: async ({ roleId, permissionId, canAccess }: { roleId: string; permissionId: string; canAccess: boolean }) => {
-      const { data, error } = await supabase
-        .from('role_permissions')
-        .upsert({
-          role_id: roleId,
-          permission_id: permissionId,
-          can_access: canAccess
-        })
-        .select()
-        .single();
+      try {
+        // D'abord essayer de mettre à jour si l'entrée existe
+        const { data: existing } = await supabase
+          .from('role_permissions')
+          .select('id')
+          .eq('role_id', roleId)
+          .eq('permission_id', permissionId)
+          .single();
 
-      if (error) throw error;
-      return data;
+        if (existing) {
+          // Mise à jour de l'entrée existante
+          const { data, error } = await supabase
+            .from('role_permissions')
+            .update({ can_access: canAccess })
+            .eq('role_id', roleId)
+            .eq('permission_id', permissionId)
+            .select()
+            .single();
+
+          if (error) throw error;
+          return data;
+        } else {
+          // Insertion d'une nouvelle entrée
+          const { data, error } = await supabase
+            .from('role_permissions')
+            .insert({
+              role_id: roleId,
+              permission_id: permissionId,
+              can_access: canAccess
+            })
+            .select()
+            .single();
+
+          if (error) {
+            // Si l'erreur est due à un doublon, essayer une mise à jour
+            if (error.code === '23505') { // Unique constraint violation
+              const { data: updateData, error: updateError } = await supabase
+                .from('role_permissions')
+                .update({ can_access: canAccess })
+                .eq('role_id', roleId)
+                .eq('permission_id', permissionId)
+                .select()
+                .single();
+
+              if (updateError) throw updateError;
+              return updateData;
+            }
+            throw error;
+          }
+          return data;
+        }
+      } catch (error) {
+        console.error('Erreur lors de la mise à jour de la permission:', error);
+        throw error;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['role-permissions'] });
@@ -96,6 +138,7 @@ export const useUpdateRolePermission = () => {
       toast.success('Permission mise à jour');
     },
     onError: (error: any) => {
+      console.error('Erreur mutation permission:', error);
       toast.error(error.message || 'Erreur lors de la mise à jour de la permission');
     }
   });
