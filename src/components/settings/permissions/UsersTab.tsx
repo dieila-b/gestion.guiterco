@@ -1,15 +1,15 @@
 
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { BarChart3, AlertTriangle } from 'lucide-react';
+import { Users, AlertTriangle } from 'lucide-react';
 
-const AccessStatistics = () => {
+const UsersTab = () => {
   return (
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <BarChart3 className="w-5 h-5" />
-          Statistiques d'accès
+          <Users className="w-5 h-5" />
+          Gestion des Utilisateurs
         </CardTitle>
       </CardHeader>
       <CardContent>
@@ -18,7 +18,7 @@ const AccessStatistics = () => {
           <div>
             <p className="font-medium text-amber-800">Fonctionnalité en développement</p>
             <p className="text-sm text-amber-700">
-              Les statistiques d'accès seront disponibles prochainement.
+              La gestion des utilisateurs sera disponible prochainement.
             </p>
           </div>
         </div>
@@ -27,4 +27,4 @@ const AccessStatistics = () => {
   );
 };
 
-export default AccessStatistics;
+export default UsersTab;

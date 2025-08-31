@@ -11,7 +11,6 @@ interface PermissionGuardProps {
   submenu?: string;
   action?: string;
   fallback?: React.ReactNode;
-  showAccessDenied?: boolean;
 }
 
 export const PermissionGuard: React.FC<PermissionGuardProps> = ({
@@ -19,38 +18,26 @@ export const PermissionGuard: React.FC<PermissionGuardProps> = ({
   menu,
   submenu,
   action = 'read',
-  fallback = null,
-  showAccessDenied = false
+  fallback = null
 }) => {
   const { hasPermission, isLoading } = useHasPermission();
-  const { isDevMode, user, utilisateurInterne, loading: authLoading } = useAuth();
+  const { isDevMode, user, utilisateurInterne } = useAuth();
 
-  console.log(`🔒 PermissionGuard - Vérification: ${menu}${submenu ? ` > ${submenu}` : ''} (${action})`, {
+  console.log(`🛡️ PermissionGuard - Vérification: ${menu}${submenu ? ` > ${submenu}` : ''} (${action})`, {
     isDevMode,
     hasUser: !!user,
     hasUtilisateurInterne: !!utilisateurInterne,
-    authLoading,
-    isLoading,
-    userRole: utilisateurInterne?.role
+    userRole: utilisateurInterne?.role?.nom,
+    isLoading
   });
 
-  // En mode développement, être permissif
-  if (isDevMode) {
-    console.log('🚀 Mode dev - accès accordé');
+  // En mode développement, être permissif SEULEMENT pour l'utilisateur mock
+  if (isDevMode && user?.id === '00000000-0000-4000-8000-000000000001') {
+    console.log('🚀 Mode dev avec utilisateur mock - accès accordé');
     return <>{children}</>;
   }
 
-  // Attendre que l'authentification soit terminée
-  if (authLoading) {
-    return (
-      <div className="flex items-center justify-center p-4">
-        <Loader2 className="h-4 w-4 animate-spin mr-2" />
-        <span className="text-sm text-muted-foreground">Chargement de l'authentification...</span>
-      </div>
-    );
-  }
-
-  // Attendre que les permissions soient chargées
+  // Attendre le chargement des permissions
   if (isLoading) {
     return (
       <div className="flex items-center justify-center p-4">
@@ -63,22 +50,31 @@ export const PermissionGuard: React.FC<PermissionGuardProps> = ({
   // Vérifier les permissions
   const hasAccess = hasPermission(menu, submenu, action);
   
-  console.log(`🔒 PermissionGuard - Résultat: ${hasAccess ? '✅ Accès accordé' : '❌ Accès refusé'}`);
+  console.log(`🛡️ PermissionGuard - Résultat: ${hasAccess ? 'Accès accordé' : 'Accès refusé'}`, {
+    menu,
+    submenu,
+    action,
+    userRole: utilisateurInterne?.role?.nom
+  });
   
   if (!hasAccess) {
-    if (showAccessDenied) {
-      return (
-        <Alert className="m-4">
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription>
-            Vous n'avez pas les permissions nécessaires pour accéder à cette section.
-            <br />
-            Permission requise: {menu}{submenu ? ` > ${submenu}` : ''} ({action})
-          </AlertDescription>
-        </Alert>
-      );
+    if (fallback) {
+      return <>{fallback}</>;
     }
-    return <>{fallback}</>;
+
+    return (
+      <Alert className="m-4">
+        <AlertCircle className="h-4 w-4" />
+        <AlertDescription>
+          Vous n'avez pas les permissions nécessaires pour accéder à cette section.
+          {utilisateurInterne?.role?.nom && (
+            <div className="mt-2 text-xs text-muted-foreground">
+              Votre rôle: {utilisateurInterne.role.nom}
+            </div>
+          )}
+        </AlertDescription>
+      </Alert>
+    );
   }
 
   return <>{children}</>;
