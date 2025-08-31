@@ -123,7 +123,7 @@ export const useVenteComptoirState = () => {
     },
     catalogue: {
       ...catalogue,
-      data: Array.isArray(catalogue.data) ? catalogue.data : []
+      articles: Array.isArray(catalogue.articles) ? catalogue.articles : []
     }
   };
 };
