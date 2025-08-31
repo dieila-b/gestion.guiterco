@@ -4,6 +4,7 @@ import { useHasPermission } from '@/hooks/useUserPermissions';
 import { useAuth } from '@/components/auth/AuthContext';
 import { Loader2, AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { toast } from 'sonner';
 import {
   Tooltip,
   TooltipContent,
@@ -28,7 +29,7 @@ export const PermissionGuard: React.FC<PermissionGuardProps> = ({
   action = 'read',
   fallback = null,
   mode = 'hide',
-  disabledClassName = 'opacity-50 cursor-not-allowed pointer-events-none'
+  disabledClassName = 'opacity-50 cursor-not-allowed'
 }) => {
   const { hasPermission, isLoading } = useHasPermission();
   const { isDevMode, user, utilisateurInterne, loading: authLoading } = useAuth();
@@ -73,11 +74,17 @@ export const PermissionGuard: React.FC<PermissionGuardProps> = ({
     
     if (!hasAccess) {
       if (mode === 'disable') {
+        const handleClick = (e: React.MouseEvent) => {
+          e.preventDefault();
+          e.stopPropagation();
+          toast.error(`Vous n'avez pas les permissions nécessaires pour accéder à cette section. Votre rôle: ${utilisateurInterne?.role?.name || 'Non défini'}`);
+        };
+
         return (
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
-                <div className={disabledClassName}>
+                <div className={disabledClassName} onClick={handleClick}>
                   {children}
                 </div>
               </TooltipTrigger>
