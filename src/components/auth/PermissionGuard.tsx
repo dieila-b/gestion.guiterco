@@ -4,6 +4,12 @@ import { useHasPermission } from '@/hooks/useUserPermissions';
 import { useAuth } from '@/components/auth/AuthContext';
 import { Loader2, AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 
 interface PermissionGuardProps {
   children: React.ReactNode;
@@ -68,12 +74,19 @@ export const PermissionGuard: React.FC<PermissionGuardProps> = ({
     if (!hasAccess) {
       if (mode === 'disable') {
         return (
-          <div 
-            className={disabledClassName}
-            title={`Vous n'avez pas les permissions nécessaires pour accéder à cette section. Votre rôle: ${utilisateurInterne?.role?.name || 'Non défini'}`}
-          >
-            {children}
-          </div>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className={disabledClassName}>
+                  {children}
+                </div>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Vous n'avez pas les permissions nécessaires pour accéder à cette section.</p>
+                <p className="text-xs">Votre rôle: {utilisateurInterne?.role?.name || 'Non défini'}</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         );
       }
 

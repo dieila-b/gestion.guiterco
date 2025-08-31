@@ -101,7 +101,7 @@ const AppSidebar = () => {
                   menu={item.menu} 
                   action="read"
                   mode="disable"
-                  disabledClassName="opacity-50"
+                  disabledClassName="opacity-50 cursor-not-allowed pointer-events-none"
                 >
                   <Link
                     to={item.href}
