@@ -1,11 +1,11 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from './useAuth';
+import { useAuth } from '@/components/auth/AuthContext';
 
 export interface UserPermission {
   menu: string;
-  submenu?: string; // Make submenu optional
+  submenu?: string;
   action: string;
   can_access: boolean;
 }
@@ -26,11 +26,6 @@ export const useUserPermissions = () => {
       // Variables d'environnement pour le mode développement
       const isDevMode = import.meta.env.DEV;
       
-      if (!user.id) {
-        console.log('Pas d\'ID utilisateur');
-        return [];
-      }
-
       // En mode développement avec utilisateur mock, donner toutes les permissions
       if (isDevMode && (user.id === '00000000-0000-4000-8000-000000000001' || user?.email?.includes('dev'))) {
         console.log('Mode dev avec utilisateur mock - toutes permissions accordées');
@@ -50,18 +45,15 @@ export const useUserPermissions = () => {
       }
 
       try {
-        // Méthode 1: Via la vue permissions_utilisateur
-        console.log('Tentative 1: Via la vue permissions_utilisateur');
+        // Essayer de récupérer les permissions via la fonction Supabase
         const { data: permissionsData, error: permissionsError } = await supabase
-          .from('permissions_utilisateur')
-          .select('*')
-          .eq('user_id', user.id);
+          .rpc('get_user_permissions', { user_uuid: user.id });
 
         if (!permissionsError && permissionsData && permissionsData.length > 0) {
-          console.log('✅ Permissions récupérées via la vue:', permissionsData);
-          const formattedPermissions = permissionsData.map(p => ({
+          console.log('✅ Permissions récupérées via RPC:', permissionsData);
+          const formattedPermissions = permissionsData.map((p: any) => ({
             menu: p.menu,
-            submenu: p.submenu,
+            submenu: p.submenu || undefined,
             action: p.action,
             can_access: p.can_access
           }));
@@ -74,72 +66,12 @@ export const useUserPermissions = () => {
           return formattedPermissions;
         }
 
-        // Méthode 2: Requête manuelle avec jointures
-        console.log('Tentative 2: Requête manuelle avec jointures');
-        const { data: manualData, error: manualError } = await supabase
-          .from('utilisateurs_roles')
-          .select(`
-            roles!inner(
-              permissions_roles!inner(
-                permissions!inner(*)
-              )
-            )
-          `)
-          .eq('user_id', user.id);
-
-        if (!manualError && manualData) {
-          console.log('Données brutes de la requête manuelle:', manualData);
-          
-          const formattedPermissions = manualData
-            .flatMap(ur => ur.roles?.permissions_roles || [])
-            .map(pr => pr.permissions)
-            .filter(Boolean)
-            .map(p => ({
-              menu: p.menu,
-              submenu: p.submenu,
-              action: p.action,
-              can_access: true
-            })) || [];
-
-          console.log('Permissions récupérées via requête directe:', formattedPermissions);
-          
-          // S'assurer qu'il y a au moins l'accès au dashboard si l'utilisateur a d'autres permissions
-          if (formattedPermissions.length > 0 && !formattedPermissions.some(p => p.menu === 'Dashboard' && p.action === 'read')) {
-            formattedPermissions.push({ menu: 'Dashboard', action: 'read', can_access: true });
-          }
-          
-          return formattedPermissions;
-        }
-
-        // Méthode 3: Permissions par défaut pour éviter le blocage complet
-        console.log('Méthode 3: Attribution des permissions par défaut');
+        // Fallback: Permissions par défaut pour éviter le blocage complet
+        console.log('Aucune permission trouvée, attribution des permissions par défaut');
         
-        // Vérifier si l'utilisateur existe au moins dans la table users
-        const { data: userData } = await supabase
-          .from('users')
-          .select('id, type_utilisateur')
-          .eq('id', user.id)
-          .single();
-
-        if (userData) {
-          console.log('Utilisateur trouvé dans la base, attribution des permissions de base');
-          const basePermissions = [
-            { menu: 'Dashboard', action: 'read', can_access: true }
-          ];
-
-          // Si c'est un utilisateur interne, donner plus de permissions
-          if (userData.type_utilisateur === 'interne') {
-            basePermissions.push(
-              { menu: 'Ventes', submenu: 'Vente au Comptoir', action: 'read', can_access: true },
-              { menu: 'Ventes', submenu: 'Factures de vente', action: 'read', can_access: true }
-            );
-          }
-
-          return basePermissions;
-        }
-
-        console.log('⚠️ Aucune permission trouvée pour l\'utilisateur');
-        return [];
+        return [
+          { menu: 'Dashboard', action: 'read', can_access: true }
+        ];
 
       } catch (error) {
         console.error('❌ Erreur lors de la récupération des permissions:', error);
