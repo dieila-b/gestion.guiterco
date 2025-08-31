@@ -29,7 +29,7 @@ export const useUserPermissions = () => {
       }
 
       // En mode développement avec utilisateur mock, donner toutes les permissions
-      if (isDevMode && (user.id === '00000000-0000-4000-8000-000000000001' || user.email?.includes('dev'))) {
+      if (isDevMode && (user.id === '00000000-0000-4000-8000-000000000001' || user?.email?.includes('dev'))) {
         console.log('Mode dev avec utilisateur mock - toutes permissions accordées');
         return [
           { menu: 'Dashboard', action: 'read', can_access: true },
@@ -93,6 +93,12 @@ export const useUserPermissions = () => {
             })) || [];
 
           console.log('Permissions récupérées via requête directe:', formattedPermissions);
+          
+          // S'assurer qu'il y a au moins l'accès au dashboard si l'utilisateur a d'autres permissions
+          if (formattedPermissions.length > 0 && !formattedPermissions.some(p => p.menu === 'Dashboard' && p.action === 'read')) {
+            formattedPermissions.push({ menu: 'Dashboard', action: 'read', can_access: true });
+          }
+          
           return formattedPermissions;
           
         } catch (error) {
@@ -149,9 +155,9 @@ export const useUserPermissions = () => {
     enabled: !!user?.id,
     retry: 2,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
-    staleTime: 1 * 60 * 1000, // Réduire à 1 minute pour forcer la mise à jour
-    refetchOnWindowFocus: true, // Forcer la récupération quand la fenêtre reprend le focus
-    refetchInterval: 5 * 60 * 1000 // Rafraîchir toutes les 5 minutes
+    staleTime: 30 * 1000, // 30 secondes
+    refetchOnWindowFocus: true,
+    refetchInterval: 2 * 60 * 1000 // Rafraîchir toutes les 2 minutes
   });
 };
 
