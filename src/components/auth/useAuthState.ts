@@ -63,7 +63,6 @@ export const useAuthState = (bypassAuth: boolean, mockUtilisateurInterne: Utilis
       setUser(null);
       setSession(null);
       setUtilisateurInterne(null);
-      // Ne pas remettre loading à true ici car on va gérer l'auth normale
     }
   }, [bypassAuth, isDevMode, mockUtilisateurInterne]);
 
@@ -94,14 +93,21 @@ export const useAuthState = (bypassAuth: boolean, mockUtilisateurInterne: Utilis
             console.log('🔍 Vérification utilisateur interne pour:', session.user.id);
             const internalUser = await checkInternalUser(session.user.id);
             
-            console.log('👤 Utilisateur interne trouvé:', internalUser);
-            
             if (internalUser && internalUser.statut === 'actif') {
               setUtilisateurInterne(internalUser);
-              console.log('✅ Utilisateur interne autorisé');
+              console.log('✅ Utilisateur interne autorisé:', internalUser.email);
             } else {
               setUtilisateurInterne(null);
               console.log('❌ Utilisateur non autorisé ou inactif');
+              // En production, déconnecter l'utilisateur non autorisé
+              if (!isDevMode) {
+                await supabase.auth.signOut();
+                toast({
+                  title: "Accès non autorisé",
+                  description: "Votre compte n'est pas autorisé à accéder à cette application.",
+                  variant: "destructive",
+                });
+              }
             }
           } catch (error) {
             console.error('❌ Erreur vérification utilisateur:', error);
@@ -138,13 +144,13 @@ export const useAuthState = (bypassAuth: boolean, mockUtilisateurInterne: Utilis
     const timeout = setTimeout(() => {
       console.log('⏰ Timeout auth - forcer l\'arrêt du loading');
       setLoading(false);
-    }, 5000);
+    }, 10000); // Augmenté à 10 secondes
 
     return () => {
       clearTimeout(timeout);
       subscription.unsubscribe();
     };
-  }, [isDevMode, bypassAuth]);
+  }, [isDevMode, bypassAuth, toast]);
 
   const signIn = async (email: string, password: string) => {
     console.log('🔑 Tentative de connexion pour:', email);
