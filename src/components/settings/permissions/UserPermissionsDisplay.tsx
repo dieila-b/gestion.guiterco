@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -7,7 +6,7 @@ import { useUserPermissions } from '@/hooks/useUserPermissions';
 import { useAuth } from '@/components/auth/AuthContext';
 
 export const UserPermissionsDisplay = () => {
-  const { permissions, isLoading } = useUserPermissions();
+  const { data: permissions = [], isLoading } = useUserPermissions();
   const { utilisateurInterne } = useAuth();
 
   // Structure complète des menus de l'application
