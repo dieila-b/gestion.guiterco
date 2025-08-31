@@ -1,78 +1,139 @@
 
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { StockPrincipal } from '@/components/stock/types';
+
+export interface StockPrincipal {
+  id: string;
+  article_id: string;
+  entrepot_id: string;
+  quantite_disponible: number;
+  quantite_reservee: number;
+  derniere_entree?: string;
+  created_at: string;
+  updated_at: string;
+  article?: {
+    id: string;
+    nom: string;
+    reference: string;
+    prix_achat?: number;
+    prix_vente?: number;
+    prix_unitaire?: number;
+    description?: string;
+    statut?: string;
+    seuil_alerte?: number;
+    categorie?: string;
+    unite_mesure?: string;
+    categorie_article?: {
+      nom: string;
+      couleur: string;
+    };
+    unite_article?: {
+      nom: string;
+      symbole: string;
+    };
+  };
+  entrepot?: {
+    id: string;
+    nom: string;
+    adresse?: string;
+    statut?: string;
+  };
+}
 
 export const useStockPrincipal = () => {
-  const queryClient = useQueryClient();
-  
-  const { data: stockEntrepot, isLoading, error } = useQuery({
+  const query = useQuery({
     queryKey: ['stock-principal'],
     queryFn: async () => {
-      console.log('Fetching stock principal data with improved relations...');
+      console.log('📦 Récupération du stock principal...');
       
       const { data, error } = await supabase
         .from('stock_principal')
         .select(`
-          *,
+          id,
+          article_id,
+          entrepot_id,
+          quantite_disponible,
+          quantite_reservee,
+          derniere_entree,
+          created_at,
+          updated_at,
           article:catalogue!stock_principal_article_id_fkey(
             id,
-            reference,
             nom,
-            description,
-            categorie,
-            unite_mesure,
-            prix_unitaire,
+            reference,
             prix_achat,
             prix_vente,
+            prix_unitaire,
+            description,
             statut,
             seuil_alerte,
-            created_at,
-            updated_at,
-            categorie_article:categories_catalogue!catalogue_categorie_id_fkey(nom),
-            unite_article:unites!catalogue_unite_id_fkey(nom)
+            categorie,
+            unite_mesure,
+            categorie_article:categories_catalogue!catalogue_categorie_id_fkey(nom, couleur)
           ),
           entrepot:entrepots!stock_principal_entrepot_id_fkey(
             id,
             nom,
             adresse,
-            gestionnaire,
-            statut,
-            capacite_max,
-            created_at,
-            updated_at
+            statut
           )
         `)
-        .order('updated_at', { ascending: false });
-      
+        .gt('quantite_disponible', 0)
+        .order('created_at', { ascending: false });
+
       if (error) {
-        console.error('Erreur lors du chargement du stock principal:', error);
+        console.error('❌ Erreur lors de la récupération du stock principal:', error);
         throw error;
       }
-      
-      console.log('Stock principal data loaded with relations:', data);
-      console.log('Number of items:', data?.length);
-      console.log('First item with relations:', data?.[0]);
-      console.log('Article relation:', data?.[0]?.article);
-      console.log('Entrepot relation:', data?.[0]?.entrepot);
-      return data as StockPrincipal[];
+
+      // Normaliser les données pour s'assurer de la compatibilité des types
+      const normalizedData = (data || []).map(item => ({
+        ...item,
+        article: item.article ? {
+          ...item.article,
+          unite_article: { nom: item.article.unite_mesure || '', symbole: '' }
+        } : undefined
+      }));
+
+      console.log('✅ Stock principal récupéré:', normalizedData?.length, 'entrées');
+      return normalizedData as StockPrincipal[];
     },
-    staleTime: 2 * 60 * 1000, // 2 minutes pour des données plus fraîches
-    refetchOnWindowFocus: true, // Rafraîchir quand on revient sur la fenêtre
-    refetchInterval: 5 * 60 * 1000 // Rafraîchir automatiquement toutes les 5 minutes
+    staleTime: 2 * 60 * 1000,
+    refetchOnWindowFocus: false
   });
 
-  // Fonction pour forcer le rafraîchissement
-  const refreshStock = () => {
-    queryClient.invalidateQueries({ queryKey: ['stock-principal'] });
-    queryClient.invalidateQueries({ queryKey: ['catalogue'] });
-    queryClient.invalidateQueries({ queryKey: ['entrepots'] });
-  };
-
   return {
-    stockEntrepot,
-    isLoading,
-    error,
-    refreshStock
+    ...query,
+    stockEntrepot: query.data || [],
+    refreshStock: query.refetch
   };
+};
+
+export const useUpdateStockPrincipal = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async ({ id, quantite_disponible, quantite_reservee }: { 
+      id: string; 
+      quantite_disponible?: number; 
+      quantite_reservee?: number; 
+    }) => {
+      const updateData: any = {};
+      if (quantite_disponible !== undefined) updateData.quantite_disponible = quantite_disponible;
+      if (quantite_reservee !== undefined) updateData.quantite_reservee = quantite_reservee;
+      
+      const { data, error } = await supabase
+        .from('stock_principal')
+        .update(updateData)
+        .eq('id', id)
+        .select()
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['stock-principal'] });
+    }
+  });
 };

@@ -2,8 +2,8 @@
 import React, { useState } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import StockEntrepot from '@/components/stock/StockEntrepot';
-import StockPDV from '@/components/stock/StockPDV';
+import StockEntrepotSimple from '@/components/stock/StockEntrepotSimple';
+import StockPDVSimple from '@/components/stock/StockPDVSimple';
 import Entrees from '@/components/stock/Entrees';
 import Sorties from '@/components/stock/Sorties';
 import Entrepots from '@/components/stock/Entrepots';
@@ -53,13 +53,13 @@ const Stocks = () => {
 
           <TabsContent value="stock-entrepot" className="mt-6">
             <PermissionGuard menu="Stock" submenu="Stock Entrepôt" action="read">
-              <StockEntrepot />
+              <StockEntrepotSimple />
             </PermissionGuard>
           </TabsContent>
 
           <TabsContent value="stock-pdv" className="mt-6">
             <PermissionGuard menu="Stock" submenu="Stock PDV" action="read">
-              <StockPDV />
+              <StockPDVSimple />
             </PermissionGuard>
           </TabsContent>
 

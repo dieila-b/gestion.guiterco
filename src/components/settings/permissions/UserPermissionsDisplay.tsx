@@ -1,130 +1,140 @@
 
 import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { useUserPermissions } from '@/hooks/useUserPermissions';
-import { useAuth } from '@/components/auth/AuthContext';
-import { Loader2, User, Shield, Eye, Edit, Trash2 } from 'lucide-react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Shield, Eye, Edit, Trash2, CheckCircle, XCircle } from 'lucide-react';
 
-export const UserPermissionsDisplay: React.FC = () => {
-  const { data: permissions = [], isLoading } = useUserPermissions();
-  const { utilisateurInterne, user } = useAuth();
+interface UserPermissionsDisplayProps {
+  userId: string;
+  userName: string;
+  userRole: string;
+}
 
-  if (isLoading) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Shield className="w-5 h-5" />
-            Mes Permissions
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center justify-center p-8">
-            <Loader2 className="h-6 w-6 animate-spin mr-2" />
-            <span>Chargement des permissions...</span>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  const groupedPermissions = permissions.reduce((acc, permission) => {
-    const menuKey = permission.menu;
-    if (!acc[menuKey]) {
-      acc[menuKey] = {};
+const UserPermissionsDisplay = ({ userId, userName, userRole }: UserPermissionsDisplayProps) => {
+  // Mock data - remplacez par de vraies données depuis votre base
+  const permissions = [
+    {
+      menu: 'Dashboard',
+      submenu: null,
+      actions: [
+        { action: 'read', granted: true }
+      ]
+    },
+    {
+      menu: 'Ventes',
+      submenu: 'Factures',
+      actions: [
+        { action: 'read', granted: true },
+        { action: 'write', granted: true }
+      ]
+    },
+    {
+      menu: 'Stock',
+      submenu: 'Entrepôts',
+      actions: [
+        { action: 'read', granted: true },
+        { action: 'write', granted: false }
+      ]
+    },
+    {
+      menu: 'Paramètres',
+      submenu: 'Utilisateurs',
+      actions: [
+        { action: 'read', granted: true },
+        { action: 'write', granted: true },
+        { action: 'delete', granted: true }
+      ]
     }
-    
-    const submenuKey = permission.submenu || 'Principal';
-    if (!acc[menuKey][submenuKey]) {
-      acc[menuKey][submenuKey] = [];
-    }
-    
-    acc[menuKey][submenuKey].push(permission);
-    return acc;
-  }, {} as Record<string, Record<string, typeof permissions>>);
+  ];
 
   const getActionIcon = (action: string) => {
     switch (action) {
       case 'read':
-        return <Eye className="w-3 h-3" />;
+        return <Eye className="h-3 w-3" />;
       case 'write':
-        return <Edit className="w-3 h-3" />;
+        return <Edit className="h-3 w-3" />;
       case 'delete':
-        return <Trash2 className="w-3 h-3" />;
+        return <Trash2 className="h-3 w-3" />;
       default:
-        return <Shield className="w-3 h-3" />;
+        return <Shield className="h-3 w-3" />;
     }
   };
 
-  const getActionLabel = (action: string) => {
+  const getActionColor = (action: string) => {
     switch (action) {
       case 'read':
-        return 'Lecture';
+        return 'text-green-600 bg-green-50 border-green-200';
       case 'write':
-        return 'Écriture';
+        return 'text-blue-600 bg-blue-50 border-blue-200';
       case 'delete':
-        return 'Suppression';
+        return 'text-red-600 bg-red-50 border-red-200';
       default:
-        return action;
+        return 'text-gray-600 bg-gray-50 border-gray-200';
     }
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Shield className="w-5 h-5" />
-          Mes Permissions
-        </CardTitle>
-        {utilisateurInterne && (
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <User className="w-4 h-4" />
-            {utilisateurInterne.prenom} {utilisateurInterne.nom}
-            <Badge variant="outline">{utilisateurInterne.role?.nom}</Badge>
-          </div>
-        )}
-      </CardHeader>
-      <CardContent>
-        {permissions.length === 0 ? (
-          <div className="text-center p-8 text-muted-foreground">
-            Aucune permission accordée
-          </div>
-        ) : (
+    <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center space-x-2">
+            <Shield className="h-5 w-5" />
+            <span>Permissions de {userName}</span>
+          </CardTitle>
+          <CardDescription>
+            Rôle : <Badge variant="outline">{userRole}</Badge>
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
           <div className="space-y-4">
-            {Object.entries(groupedPermissions).map(([menu, submenus]) => (
-              <div key={menu} className="space-y-2">
-                <h4 className="font-semibold text-primary flex items-center gap-2">
-                  📁 {menu}
-                </h4>
-                <div className="ml-4 space-y-2">
-                  {Object.entries(submenus).map(([submenu, menuPermissions]) => (
-                    <div key={`${menu}-${submenu}`}>
-                      {submenu !== 'Principal' && (
-                        <h5 className="font-medium text-sm text-muted-foreground mb-1">
-                          📂 {submenu}
-                        </h5>
+            {permissions.map((permission, index) => (
+              <div key={index} className="border rounded-lg p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <h4 className="font-medium">
+                    {permission.menu}
+                    {permission.submenu && (
+                      <span className="text-muted-foreground ml-2">
+                        → {permission.submenu}
+                      </span>
+                    )}
+                  </h4>
+                </div>
+                
+                <div className="flex flex-wrap gap-2">
+                  {permission.actions.map((actionItem, actionIndex) => (
+                    <div
+                      key={actionIndex}
+                      className={`flex items-center space-x-2 px-3 py-2 rounded-lg border ${
+                        actionItem.granted 
+                          ? 'bg-green-50 border-green-200' 
+                          : 'bg-red-50 border-red-200'
+                      }`}
+                    >
+                      <Badge 
+                        variant="outline" 
+                        className={`${getActionColor(actionItem.action)} text-xs`}
+                      >
+                        <div className="flex items-center space-x-1">
+                          {getActionIcon(actionItem.action)}
+                          <span className="capitalize">{actionItem.action}</span>
+                        </div>
+                      </Badge>
+                      
+                      {actionItem.granted ? (
+                        <CheckCircle className="h-4 w-4 text-green-600" />
+                      ) : (
+                        <XCircle className="h-4 w-4 text-red-600" />
                       )}
-                      <div className="flex flex-wrap gap-2 ml-4">
-                        {menuPermissions.map((permission, index) => (
-                          <Badge 
-                            key={`${permission.menu}-${permission.submenu}-${permission.action}-${index}`}
-                            variant="secondary"
-                            className="flex items-center gap-1"
-                          >
-                            {getActionIcon(permission.action)}
-                            {getActionLabel(permission.action)}
-                          </Badge>
-                        ))}
-                      </div>
                     </div>
                   ))}
                 </div>
               </div>
             ))}
           </div>
-        )}
-      </CardContent>
-    </Card>
+        </CardContent>
+      </Card>
+    </div>
   );
 };
+
+export default UserPermissionsDisplay;

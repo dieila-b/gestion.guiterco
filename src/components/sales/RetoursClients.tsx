@@ -2,7 +2,7 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Plus, Edit, Trash, RotateCcw, Package } from 'lucide-react';
+import { Plus, Edit, Trash, FileText } from 'lucide-react';
 import { useRetoursClientsQuery } from '@/hooks/useSales';
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
@@ -14,10 +14,10 @@ const RetoursClients = () => {
 
   const getStatusBadgeColor = (statut: string) => {
     switch (statut) {
-      case 'en_cours': return 'default';
-      case 'accepte': return 'secondary';
+      case 'en_attente': return 'default';
+      case 'accepte': return 'outline';
       case 'refuse': return 'destructive';
-      case 'rembourse': return 'outline';
+      case 'rembourse': return 'secondary';
       default: return 'default';
     }
   };
@@ -47,11 +47,8 @@ const RetoursClients = () => {
                 <Badge variant={getStatusBadgeColor(retour.statut) as any}>
                   {retour.statut}
                 </Badge>
-                <Button variant="ghost" size="sm" title="Gérer articles">
-                  <Package className="h-4 w-4" />
-                </Button>
-                <Button variant="ghost" size="sm" title="Processus de retour">
-                  <RotateCcw className="h-4 w-4" />
+                <Button variant="ghost" size="sm" title="Voir PDF">
+                  <FileText className="h-4 w-4" />
                 </Button>
                 <Button variant="ghost" size="sm">
                   <Edit className="h-4 w-4" />
@@ -80,24 +77,10 @@ const RetoursClients = () => {
                   <p className="font-medium">{retour.motif_retour}</p>
                 </div>
                 <div>
-                  <p className="text-muted-foreground">Montant retour</p>
+                  <p className="text-muted-foreground">Montant</p>
                   <p className="font-medium">{formatCurrency(retour.montant_retour)}</p>
                 </div>
               </div>
-              {retour.facture && (
-                <div className="mt-4">
-                  <p className="text-muted-foreground text-sm">Facture liée</p>
-                  <p className="text-sm font-medium">{retour.facture.numero_facture}</p>
-                </div>
-              )}
-              {retour.date_remboursement && (
-                <div className="mt-2">
-                  <p className="text-muted-foreground text-sm">Date remboursement</p>
-                  <p className="text-sm font-medium">
-                    {format(new Date(retour.date_remboursement), 'dd/MM/yyyy', { locale: fr })}
-                  </p>
-                </div>
-              )}
             </CardContent>
           </Card>
         ))}
@@ -107,4 +90,3 @@ const RetoursClients = () => {
 };
 
 export default RetoursClients;
-
