@@ -54,11 +54,11 @@ export const useUserPermissions = () => {
 
       // Si pas d'utilisateur interne ou pas de rôle, essayer de continuer quand même
       if (!utilisateurInterne?.role?.id) {
-        console.warn('Pas de rôle défini pour l\'utilisateur interne, permissions par défaut');
+        console.warn('Pas de rôle défini pour l\'utilisateur interne, essai de récupération directe');
         
-        // Essayer quand même de récupérer via l'ID utilisateur direct
+        // Essayer de récupérer l'utilisateur interne directement depuis la base
         try {
-          const { data, error } = await supabase
+          const { data: utilisateurData, error } = await supabase
             .from('utilisateurs_internes')
             .select(`
               role:roles(
@@ -78,12 +78,12 @@ export const useUserPermissions = () => {
             .eq('statut', 'actif')
             .single();
 
-          if (error || !data?.role) {
+          if (error || !utilisateurData?.role) {
             console.warn('Impossible de récupérer les permissions, accès dashboard seulement');
             return [{ menu: 'Dashboard', action: 'read', can_access: true }];
           }
 
-          const formattedPermissions = data.role.role_permissions
+          const formattedPermissions = utilisateurData.role.role_permissions
             ?.filter(rp => rp.can_access)
             ?.map(rp => ({
               menu: rp.permission.menu,
@@ -92,7 +92,7 @@ export const useUserPermissions = () => {
               can_access: true
             })) || [];
 
-          console.log('Permissions récupérées via utilisateur interne:', formattedPermissions);
+          console.log('Permissions récupérées via requête directe:', formattedPermissions);
           return formattedPermissions;
           
         } catch (error) {
@@ -132,6 +132,12 @@ export const useUserPermissions = () => {
         })) || [];
 
         console.log('Permissions récupérées depuis les rôles:', formattedPermissions);
+        
+        // Assurer qu'il y a au moins l'accès au dashboard si l'utilisateur a d'autres permissions
+        if (formattedPermissions.length > 0 && !formattedPermissions.some(p => p.menu === 'Dashboard' && p.action === 'read')) {
+          formattedPermissions.push({ menu: 'Dashboard', action: 'read', can_access: true });
+        }
+        
         return formattedPermissions;
         
       } catch (error) {
@@ -143,7 +149,9 @@ export const useUserPermissions = () => {
     enabled: !!user?.id,
     retry: 2,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
-    staleTime: 5 * 60 * 1000 // 5 minutes
+    staleTime: 1 * 60 * 1000, // Réduire à 1 minute pour forcer la mise à jour
+    refetchOnWindowFocus: true, // Forcer la récupération quand la fenêtre reprend le focus
+    refetchInterval: 5 * 60 * 1000 // Rafraîchir toutes les 5 minutes
   });
 };
 
@@ -166,7 +174,9 @@ export const useHasPermission = () => {
     if (error) {
       console.error('Erreur lors du chargement des permissions:', error);
       // En cas d'erreur, permettre au moins l'accès au dashboard
-      return menu === 'Dashboard' && action === 'read';
+      const fallbackAccess = menu === 'Dashboard' && action === 'read';
+      console.log(`Fallback access for ${menu} (${action}):`, fallbackAccess);
+      return fallbackAccess;
     }
     
     const hasAccess = permissions.some(permission => 
@@ -176,7 +186,10 @@ export const useHasPermission = () => {
       permission.can_access
     );
     
-    console.log(`Vérification permission: ${menu}${submenu ? ` > ${submenu}` : ''} (${action}):`, hasAccess);
+    console.log(`Vérification permission: ${menu}${submenu ? ` > ${submenu}` : ''} (${action}):`, hasAccess, {
+      totalPermissions: permissions.length,
+      permissions: permissions.filter(p => p.menu === menu)
+    });
     
     return hasAccess;
   };

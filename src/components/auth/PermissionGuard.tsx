@@ -22,7 +22,7 @@ export const PermissionGuard: React.FC<PermissionGuardProps> = ({
   fallback = null,
   showError = false
 }) => {
-  const { hasPermission, isLoading } = useHasPermission();
+  const { hasPermission, isLoading, permissions } = useHasPermission();
   const { isDevMode, user, utilisateurInterne, loading: authLoading } = useAuth();
 
   const permissionKey = `${menu}${submenu ? ` > ${submenu}` : ''} (${action})`;
@@ -33,7 +33,9 @@ export const PermissionGuard: React.FC<PermissionGuardProps> = ({
     hasUtilisateurInterne: !!utilisateurInterne,
     userRole: utilisateurInterne?.role?.name || utilisateurInterne?.role?.nom,
     isLoading,
-    authLoading
+    authLoading,
+    totalPermissions: permissions?.length || 0,
+    hasMatchingPermissions: permissions?.filter(p => p.menu === menu)?.length || 0
   });
 
   // En mode développement, être plus permissif pour les utilisateurs connectés
@@ -70,9 +72,29 @@ export const PermissionGuard: React.FC<PermissionGuardProps> = ({
   // Vérifier les permissions
   const hasAccess = hasPermission(menu, submenu, action);
   
-  console.log(`PermissionGuard - Résultat pour ${permissionKey}: ${hasAccess ? 'Accès accordé' : 'Accès refusé'}`);
+  console.log(`PermissionGuard - Résultat pour ${permissionKey}: ${hasAccess ? 'Accès accordé' : 'Accès refusé'}`, {
+    availablePermissions: permissions?.map(p => `${p.menu}${p.submenu ? ` > ${p.submenu}` : ''} (${p.action})`)
+  });
   
   if (!hasAccess) {
+    // En mode dev, afficher plus d'informations pour le debug
+    if (isDevMode) {
+      return (
+        <div className="p-4 border border-orange-200 bg-orange-50 rounded-lg">
+          <h3 className="font-semibold text-orange-800 mb-2">Mode Dev - Accès refusé</h3>
+          <p className="text-sm text-orange-700 mb-2">Permission requise: {permissionKey}</p>
+          <p className="text-sm text-orange-700 mb-2">Utilisateur: {user?.email}</p>
+          <p className="text-sm text-orange-700 mb-2">Rôle: {utilisateurInterne?.role?.name}</p>
+          <p className="text-sm text-orange-700 mb-2">Permissions disponibles ({permissions?.length || 0}):</p>
+          <ul className="text-xs text-orange-600 ml-4">
+            {permissions?.map((p, index) => (
+              <li key={index}>{p.menu}{p.submenu ? ` > ${p.submenu}` : ''} ({p.action})</li>
+            ))}
+          </ul>
+        </div>
+      );
+    }
+
     return showError ? (
       <Alert variant="destructive">
         <AlertCircle className="h-4 w-4" />
