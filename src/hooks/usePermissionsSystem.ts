@@ -83,6 +83,8 @@ export const useUpdateRolePermission = () => {
           role_id: roleId,
           permission_id: permissionId,
           can_access: canAccess
+        }, {
+          onConflict: 'role_id,permission_id'
         })
         .select()
         .single();

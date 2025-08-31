@@ -2468,21 +2468,21 @@ export type Database = {
       }
       role_permissions: {
         Row: {
-          can_access: boolean | null
+          can_access: boolean
           created_at: string
           id: string
           permission_id: string
           role_id: string
         }
         Insert: {
-          can_access?: boolean | null
+          can_access?: boolean
           created_at?: string
           id?: string
           permission_id: string
           role_id: string
         }
         Update: {
-          can_access?: boolean | null
+          can_access?: boolean
           created_at?: string
           id?: string
           permission_id?: string
