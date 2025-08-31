@@ -3,20 +3,20 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/components/auth/AuthContext';
 
-export interface UserPermission {
+export interface UserPermissionV2 {
   menu: string;
   submenu?: string;
   action: string;
   can_access: boolean;
 }
 
-export const useUserPermissions = () => {
+export const useUserPermissionsV2 = () => {
   const { user, isDevMode, utilisateurInterne } = useAuth();
 
   return useQuery({
-    queryKey: ['user-permissions', user?.id, isDevMode, utilisateurInterne?.id],
+    queryKey: ['user-permissions-v2', user?.id, isDevMode, utilisateurInterne?.id],
     queryFn: async () => {
-      console.log('🔍 Chargement des permissions pour:', {
+      console.log('🔍 Chargement des permissions V2 pour:', {
         userId: user?.id,
         isDevMode,
         utilisateurInterneId: utilisateurInterne?.id
@@ -48,37 +48,23 @@ export const useUserPermissions = () => {
           { menu: 'Clients', action: 'write', can_access: true },
           { menu: 'Paramètres', submenu: 'Rôles et permissions', action: 'read', can_access: true },
           { menu: 'Paramètres', submenu: 'Rôles et permissions', action: 'write', can_access: true }
-        ] as UserPermission[];
+        ] as UserPermissionV2[];
       }
 
       try {
-        console.log('📋 Récupération des permissions via nouvelle fonction SQL...');
+        console.log('📋 Récupération des permissions via fonction SQL pour utilisateur:', user.id);
         
         // Utiliser la nouvelle fonction SQL pour récupérer les permissions
         const { data, error } = await supabase
           .rpc('get_user_permissions_by_id', { p_user_id: user.id });
 
         if (error) {
-          console.error('❌ Erreur fonction SQL, tentative via vue...', error);
-          
-          // Fallback : essayer via la vue directement
-          const { data: fallbackData, error: fallbackError } = await supabase
-            .from('vue_permissions_utilisateurs')
-            .select('menu, submenu, action, can_access')
-            .eq('user_id', user.id)
-            .eq('can_access', true);
-
-          if (fallbackError) {
-            console.error('❌ Erreur vue également:', fallbackError);
-            return [];
-          }
-
-          console.log('✅ Permissions récupérées via vue (fallback):', fallbackData);
-          return fallbackData as UserPermission[];
+          console.error('❌ Erreur lors de la récupération des permissions:', error);
+          return [];
         }
 
-        console.log('✅ Permissions récupérées via fonction SQL:', data);
-        return data as UserPermission[];
+        console.log('✅ Permissions récupérées:', data);
+        return data as UserPermissionV2[];
         
       } catch (error) {
         console.error('💥 Erreur inattendue lors de la récupération des permissions:', error);
@@ -92,8 +78,8 @@ export const useUserPermissions = () => {
   });
 };
 
-export const useHasPermission = () => {
-  const { data: permissions = [], isLoading, error } = useUserPermissions();
+export const useHasPermissionV2 = () => {
+  const { data: permissions = [], isLoading, error } = useUserPermissionsV2();
   const { isDevMode, user } = useAuth();
 
   const hasPermission = (menu: string, submenu?: string, action: string = 'read'): boolean => {
