@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Search, Plus } from 'lucide-react';
-import { useFacturesVenteQuery } from '@/hooks/useSales';
+import { useFacturesVenteQuery } from '@/hooks/sales/queries/useFacturesVenteQuery';
 import FacturesVenteTable from './FacturesVenteTable';
 
 interface FacturesVenteProps {
@@ -12,13 +12,20 @@ interface FacturesVenteProps {
 }
 
 const FacturesVente: React.FC<FacturesVenteProps> = ({ onNavigateToVenteComptoir }) => {
-  const { data: factures, isLoading } = useFacturesVenteQuery();
+  const { data: factures, isLoading, error } = useFacturesVenteQuery();
   const [searchTerm, setSearchTerm] = useState('');
 
-  const filteredFactures = factures?.filter(facture => 
-    facture.numero_facture.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (facture.client?.nom && facture.client.nom.toLowerCase().includes(searchTerm.toLowerCase()))
+  // Vérification de sécurité et gestion d'erreur
+  const safeFactures = Array.isArray(factures) ? factures : [];
+  
+  const filteredFactures = safeFactures.filter(facture => 
+    facture?.numero_facture?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (facture?.client?.nom && facture.client.nom.toLowerCase().includes(searchTerm.toLowerCase()))
   );
+
+  if (error) {
+    console.error('Erreur lors du chargement des factures:', error);
+  }
 
   return (
     <div className="space-y-6">
@@ -50,10 +57,16 @@ const FacturesVente: React.FC<FacturesVenteProps> = ({ onNavigateToVenteComptoir
           </div>
         </CardHeader>
         <CardContent>
-          <FacturesVenteTable 
-            factures={filteredFactures || []} 
-            isLoading={isLoading} 
-          />
+          {error ? (
+            <div className="text-center py-8 text-red-500">
+              Erreur lors du chargement des factures. Veuillez réessayer.
+            </div>
+          ) : (
+            <FacturesVenteTable 
+              factures={filteredFactures} 
+              isLoading={isLoading} 
+            />
+          )}
         </CardContent>
       </Card>
     </div>

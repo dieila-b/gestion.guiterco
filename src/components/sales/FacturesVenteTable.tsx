@@ -20,6 +20,9 @@ const FacturesVenteTable = ({ factures, isLoading }: FacturesVenteTableProps) =>
     );
   }
 
+  // Vérification de sécurité pour s'assurer que factures est un tableau
+  const safeFactures = Array.isArray(factures) ? factures : [];
+
   return (
     <div className="rounded-md border">
       <Table>
@@ -38,8 +41,8 @@ const FacturesVenteTable = ({ factures, isLoading }: FacturesVenteTableProps) =>
           </TableRow>
         </TableHeader>
         <TableBody>
-          {factures && factures.length > 0 ? (
-            factures.map((facture) => (
+          {safeFactures.length > 0 ? (
+            safeFactures.map((facture) => (
               <FactureVenteTableRow key={facture.id} facture={facture} />
             ))
           ) : (
