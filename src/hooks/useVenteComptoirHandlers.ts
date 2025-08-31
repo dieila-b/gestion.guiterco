@@ -47,7 +47,9 @@ export const useVenteComptoirHandlers = ({
       return;
     }
 
-    if (cart.length === 0) {
+    // Safety check for cart
+    const safeCart = Array.isArray(cart) ? cart : [];
+    if (safeCart.length === 0) {
       alert('Le panier est vide');
       return;
     }
@@ -86,12 +88,16 @@ export const useVenteComptoirHandlers = ({
 
       console.log('🔑 Client ID utilisé:', clientId);
 
+      // Safety check for cart and cartTotals
+      const safeCart = Array.isArray(cart) ? cart : [];
+      const safeTotals = cartTotals || { sousTotal: 0, total: 0, tva: 0 };
+
       const venteData = {
         client_id: clientId,
-        cart,
-        montant_ht: cartTotals.sousTotal,
-        tva: cartTotals.tva,
-        montant_ttc: cartTotals.total,
+        cart: safeCart,
+        montant_ht: safeTotals.sousTotal || 0,
+        tva: safeTotals.tva || 0,
+        montant_ttc: safeTotals.total || 0,
         mode_paiement: paymentData.mode_paiement,
         point_vente_id: selectedPDV,
         payment_data: paymentData

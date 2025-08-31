@@ -31,13 +31,19 @@ export const useVenteComptoirState = () => {
 
   // Éliminer les doublons de catégories basés sur le stock PDV avec les relations correctes
   const uniqueCategories = useMemo(() => {
-    if (!venteComptoir.stockPDV) return [];
+    // Safety check to ensure stockPDV is an array
+    const safeStockPDV = Array.isArray(venteComptoir.stockPDV) ? venteComptoir.stockPDV : [];
     
-    console.log('Calculating categories from stockPDV:', venteComptoir.stockPDV);
+    if (safeStockPDV.length === 0) {
+      console.log('No stockPDV data available for categories');
+      return [];
+    }
+    
+    console.log('Calculating categories from stockPDV:', safeStockPDV);
     
     const categorySet = new Set<string>();
-    venteComptoir.stockPDV.forEach(stockItem => {
-      if (stockItem.article?.categorie && stockItem.article.categorie.trim()) {
+    safeStockPDV.forEach(stockItem => {
+      if (stockItem && stockItem.article && stockItem.article.categorie && stockItem.article.categorie.trim()) {
         categorySet.add(stockItem.article.categorie);
         console.log('Added category:', stockItem.article.categorie);
       }
@@ -51,9 +57,13 @@ export const useVenteComptoirState = () => {
 
   // Calculer les totaux du panier
   const cartTotals = useMemo(() => {
-    const sousTotal = venteComptoir.cart.reduce((sum, item) => {
-      const prixApresRemise = Math.max(0, item.prix_unitaire_brut - (item.remise_unitaire || 0));
-      return sum + (prixApresRemise * item.quantite);
+    // Safety check to ensure cart is an array
+    const safeCart = Array.isArray(venteComptoir.cart) ? venteComptoir.cart : [];
+    
+    const sousTotal = safeCart.reduce((sum, item) => {
+      if (!item) return sum;
+      const prixApresRemise = Math.max(0, (item.prix_unitaire_brut || 0) - (item.remise_unitaire || 0));
+      return sum + (prixApresRemise * (item.quantite || 0));
     }, 0);
     
     return {
@@ -62,12 +72,13 @@ export const useVenteComptoirState = () => {
     };
   }, [venteComptoir.cart]);
 
-  const totalPages = Math.ceil(catalogue.totalCount / productsPerPage);
+  const totalPages = Math.ceil((catalogue.totalCount || 0) / productsPerPage);
 
   // Sélectionner automatiquement le premier PDV disponible
   useEffect(() => {
-    if (venteComptoir.pointsDeVente && venteComptoir.pointsDeVente.length > 0 && !selectedPDV) {
-      setSelectedPDV(venteComptoir.pointsDeVente[0].nom);
+    const safePointsDeVente = Array.isArray(venteComptoir.pointsDeVente) ? venteComptoir.pointsDeVente : [];
+    if (safePointsDeVente.length > 0 && !selectedPDV) {
+      setSelectedPDV(safePointsDeVente[0].nom);
     }
   }, [venteComptoir.pointsDeVente, selectedPDV]);
 
@@ -103,8 +114,16 @@ export const useVenteComptoirState = () => {
     // Functions
     goToPage,
     
-    // Hooks data
-    venteComptoir,
-    catalogue
+    // Hooks data with safety checks
+    venteComptoir: {
+      ...venteComptoir,
+      cart: Array.isArray(venteComptoir.cart) ? venteComptoir.cart : [],
+      stockPDV: Array.isArray(venteComptoir.stockPDV) ? venteComptoir.stockPDV : [],
+      pointsDeVente: Array.isArray(venteComptoir.pointsDeVente) ? venteComptoir.pointsDeVente : []
+    },
+    catalogue: {
+      ...catalogue,
+      data: Array.isArray(catalogue.data) ? catalogue.data : []
+    }
   };
 };
