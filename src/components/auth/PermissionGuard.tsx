@@ -77,10 +77,6 @@ export const PermissionGuard: React.FC<PermissionGuardProps> = ({
         const handleClick = (e: React.MouseEvent) => {
           e.preventDefault();
           e.stopPropagation();
-          // Empêcher complètement la navigation
-          if (e.target instanceof HTMLAnchorElement) {
-            e.target.removeAttribute('href');
-          }
           toast.error(`Vous n'avez pas les permissions nécessaires pour accéder à cette section. Votre rôle: ${utilisateurInterne?.role?.name || 'Non défini'}`);
         };
 
@@ -91,12 +87,13 @@ export const PermissionGuard: React.FC<PermissionGuardProps> = ({
                 <div 
                   className={disabledClassName} 
                   onClick={handleClick}
-                  style={{ pointerEvents: 'auto' }}
                 >
                   {React.cloneElement(children as React.ReactElement, {
+                    disabled: true,
                     onClick: handleClick,
-                    href: undefined, // Supprimer le href pour empêcher la navigation
-                    to: undefined   // Supprimer le to pour React Router
+                    onSelect: (e: Event) => e.preventDefault(),
+                    'aria-disabled': true,
+                    'data-disabled': true
                   })}
                 </div>
               </TooltipTrigger>
