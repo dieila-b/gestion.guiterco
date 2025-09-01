@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search, RefreshCw, Filter, AlertTriangle, CheckCircle } from 'lucide-react';
+import { Search, RefreshCw, Filter, AlertTriangle, CheckCircle, Trash2 } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { formatCurrency } from '@/lib/currency';
@@ -63,39 +63,49 @@ const StockEntrepot = () => {
   // Vérification de l'intégrité des données
   const { data: integrityData, isLoading: integrityLoading } = checkDataIntegrity;
   
-  // Calculer s'il y a vraiment des problèmes d'intégrité - correction du type
+  // Calculer s'il y a vraiment des problèmes d'intégrité
   const hasRealIntegrityIssues = integrityData && (
     (integrityData.orphanedStock && Array.isArray(integrityData.orphanedStock) && integrityData.orphanedStock.length > 0) ||
     (integrityData.inactiveWarehousesWithStock && Array.isArray(integrityData.inactiveWarehousesWithStock) && integrityData.inactiveWarehousesWithStock.length > 0) ||
-    (integrityData.duplicateStock && Array.isArray(integrityData.duplicateStock) && integrityData.duplicateStock.length > 0)
+    (integrityData.articlesWithoutStock && Array.isArray(integrityData.articlesWithoutStock) && integrityData.articlesWithoutStock.length > 0)
   );
 
-  // Afficher l'alerte seulement s'il y a de vrais problèmes
-  const shouldShowIntegrityAlert = hasRealIntegrityIssues && !integrityLoading;
+  // Afficher l'alerte seulement s'il y a de vrais problèmes et pas pendant le chargement
+  const shouldShowIntegrityAlert = hasRealIntegrityIssues && !integrityLoading && !syncCatalogue.isPending;
 
   return (
     <div className="space-y-6">
       {/* Alerte d'intégrité des données - seulement si nécessaire */}
       {shouldShowIntegrityAlert && (
-        <Alert>
+        <Alert variant="destructive">
           <AlertTriangle className="h-4 w-4" />
           <AlertDescription>
-            Des problèmes de cohérence des données ont été détectés. 
+            Des problèmes de cohérence des données ont été détectés :
+            {integrityData.articlesWithoutStock && integrityData.articlesWithoutStock.length > 0 && (
+              <div>• {integrityData.articlesWithoutStock.length} articles sans stock</div>
+            )}
+            {integrityData.orphanedStock && integrityData.orphanedStock.length > 0 && (
+              <div>• {integrityData.orphanedStock.length} entrées de stock orphelines</div>
+            )}
+            {integrityData.inactiveWarehousesWithStock && integrityData.inactiveWarehousesWithStock.length > 0 && (
+              <div>• {integrityData.inactiveWarehousesWithStock.length} stocks dans entrepôts inactifs</div>
+            )}
             <Button 
-              variant="link" 
-              className="p-0 h-auto ml-1" 
+              variant="outline"
+              size="sm"
+              className="mt-2" 
               onClick={handleSync}
               disabled={syncCatalogue.isPending}
             >
-              Cliquez ici pour synchroniser
-            </Button> 
-            et corriger automatiquement.
+              <Trash2 className="h-4 w-4 mr-2" />
+              {syncCatalogue.isPending ? 'Correction en cours...' : 'Corriger automatiquement'}
+            </Button>
           </AlertDescription>
         </Alert>
       )}
 
       {/* Message de confirmation après synchronisation réussie */}
-      {lastSyncTime && !shouldShowIntegrityAlert && (
+      {lastSyncTime && !shouldShowIntegrityAlert && !syncCatalogue.isPending && (
         <Alert className="border-green-200 bg-green-50">
           <CheckCircle className="h-4 w-4 text-green-600" />
           <AlertDescription className="text-green-800">
@@ -159,6 +169,15 @@ const StockEntrepot = () => {
               <AlertTriangle className="h-4 w-4" />
               <AlertDescription>
                 Erreur lors du chargement des données: {error.message}
+                <Button 
+                  variant="outline"
+                  size="sm"
+                  className="mt-2 ml-2" 
+                  onClick={handleSync}
+                  disabled={syncCatalogue.isPending}
+                >
+                  Réessayer
+                </Button>
               </AlertDescription>
             </Alert>
           )}
@@ -228,6 +247,19 @@ const StockEntrepot = () => {
                         {searchTerm || selectedEntrepot !== 'tous' 
                           ? 'Aucun article trouvé avec ces critères' 
                           : 'Aucun article en stock trouvé'}
+                        {!searchTerm && selectedEntrepot === 'tous' && !isLoading && (
+                          <div className="mt-2">
+                            <Button 
+                              variant="outline"
+                              size="sm"
+                              onClick={handleSync}
+                              disabled={syncCatalogue.isPending}
+                            >
+                              <RefreshCw className={`h-4 w-4 mr-2 ${syncCatalogue.isPending ? 'animate-spin' : ''}`} />
+                              Synchroniser les données
+                            </Button>
+                          </div>
+                        )}
                       </TableCell>
                     </TableRow>
                   )}
