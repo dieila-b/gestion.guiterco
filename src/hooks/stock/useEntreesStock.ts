@@ -1,3 +1,4 @@
+
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
@@ -9,34 +10,11 @@ export const useEntreesStock = () => {
   const { data: entrees, isLoading, error, refetch } = useQuery({
     queryKey: ['entrees-stock'],
     queryFn: async () => {
-      console.log('🔄 Début de la récupération des entrées de stock...');
+      console.log('🔄 Récupération des entrées de stock...');
       
       try {
-        // Requête la plus simple possible d'abord - juste les données de base
-        console.log('📊 Étape 1: Récupération des données de base...');
-        const { data: rawData, error: rawError } = await supabase
-          .from('entrees_stock')
-          .select('*')
-          .order('created_at', { ascending: false });
-        
-        console.log('✅ Données brutes récupérées:', rawData);
-        console.log('❌ Erreur données brutes:', rawError);
-        
-        if (rawError) {
-          console.error('Erreur lors de la récupération des données brutes:', rawError);
-          throw rawError;
-        }
-
-        if (!rawData || rawData.length === 0) {
-          console.log('⚠️ Aucune donnée trouvée dans entrees_stock');
-          return [];
-        }
-
-        console.log(`📈 ${rawData.length} entrées trouvées, ajout des relations...`);
-
-        // Maintenant essayer d'ajouter les relations
-        console.log('📊 Étape 2: Ajout des relations...');
-        const { data: dataWithRelations, error: relationError } = await supabase
+        // Récupération directe avec relations
+        const { data, error } = await supabase
           .from('entrees_stock')
           .select(`
             *,
@@ -72,35 +50,26 @@ export const useEntreesStock = () => {
           `)
           .order('created_at', { ascending: false });
         
-        if (relationError) {
-          console.error('Erreur avec les relations, utilisation des données de base:', relationError);
-          // Si les relations échouent, retourner au moins les données de base
-          return rawData.map(item => ({
-            ...item,
-            article: null,
-            entrepot: null,
-            point_vente: null
-          })) as EntreeStock[];
+        if (error) {
+          console.error('❌ Erreur lors du chargement des entrées:', error);
+          throw error;
         }
         
-        console.log('✅ Données avec relations récupérées:', dataWithRelations);
-        console.log(`📊 Nombre final d'entrées: ${dataWithRelations?.length}`);
+        console.log(`✅ ${data?.length || 0} entrées récupérées avec succès`);
+        console.log('📊 Données détaillées:', data);
         
-        return dataWithRelations as EntreeStock[];
+        return data as EntreeStock[];
         
       } catch (error) {
-        console.error('💥 Erreur critique dans la requête entrees_stock:', error);
+        console.error('💥 Erreur critique dans useEntreesStock:', error);
         throw error;
       }
     },
-    staleTime: 30 * 1000, // 30 secondes
+    staleTime: 0, // Toujours récupérer les données fraîches
     refetchOnWindowFocus: true,
-    refetchInterval: false,
-    retry: (failureCount, error) => {
-      console.log(`🔄 Tentative de retry ${failureCount + 1} pour entrees_stock`, error);
-      return failureCount < 2;
-    },
-    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 10000)
+    refetchOnMount: true,
+    retry: 3,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 5000)
   });
 
   const checkForDuplicates = async (entreeData: Omit<EntreeStock, 'id' | 'created_at'>) => {
