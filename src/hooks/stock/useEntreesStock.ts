@@ -28,9 +28,7 @@ export const useEntreesStock = () => {
               prix_achat,
               prix_vente,
               statut,
-              seuil_alerte,
-              categorie_article:categories_catalogue(nom),
-              unite_article:unite_mesure(nom)
+              seuil_alerte
             ),
             entrepot:entrepots(
               id,

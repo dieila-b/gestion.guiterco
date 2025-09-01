@@ -36,8 +36,8 @@ export type Article = {
   statut: string | null;
   created_at?: string; // Optionnel car peut ne pas être inclus dans certaines requêtes
   updated_at?: string; // Optionnel car peut ne pas être inclus dans certaines requêtes
-  categorie_article?: { nom: string };
-  unite_article?: { nom: string };
+  categorie_article?: { nom: string } | null;
+  unite_article?: { nom: string } | null;
 };
 
 export type StockPrincipal = {
@@ -81,9 +81,9 @@ export type EntreeStock = {
   observations: string | null;
   created_at: string;
   created_by: string | null;
-  article?: Article;
-  entrepot?: Entrepot;
-  point_vente?: PointDeVente;
+  article?: Article | null;
+  entrepot?: Entrepot | null;
+  point_vente?: PointDeVente | null;
 };
 
 export type SortieStock = {
