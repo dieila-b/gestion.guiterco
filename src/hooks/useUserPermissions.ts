@@ -10,6 +10,42 @@ export interface UserPermission {
   can_access: boolean;
 }
 
+// Fonction RPC pour récupérer toutes les permissions d'un utilisateur
+const getUserAllPermissions = async (userId: string): Promise<UserPermission[]> => {
+  const { data, error } = await supabase.rpc('get_user_all_permissions', {
+    p_user_id: userId
+  });
+
+  if (error) {
+    console.error('Erreur RPC get_user_all_permissions:', error);
+    // Fallback vers la requête directe
+    const { data: fallbackData, error: fallbackError } = await supabase
+      .from('vue_permissions_utilisateurs')
+      .select('menu, submenu, action, can_access')
+      .eq('user_id', userId)
+      .eq('can_access', true);
+
+    if (fallbackError) {
+      console.error('Erreur fallback permissions:', fallbackError);
+      throw fallbackError;
+    }
+
+    return fallbackData?.map(p => ({
+      menu: p.menu,
+      submenu: p.submenu || undefined,
+      action: p.action,
+      can_access: p.can_access
+    })) || [];
+  }
+
+  return data?.map((p: any) => ({
+    menu: p.menu,
+    submenu: p.submenu || undefined,
+    action: p.action,
+    can_access: p.can_access
+  })) || [];
+};
+
 export const useUserPermissions = () => {
   const { user, isDevMode, utilisateurInterne } = useAuth();
 
@@ -32,11 +68,16 @@ export const useUserPermissions = () => {
       if (isDevMode && user.id === '00000000-0000-4000-8000-000000000001') {
         console.log('🚀 Mode dev avec utilisateur mock - toutes permissions accordées');
         return [
+          // Dashboard
           { menu: 'Dashboard', action: 'read', can_access: true },
+          
+          // Catalogue principal (différent du sous-menu Catalogue dans Stocks)
           { menu: 'Catalogue', action: 'read', can_access: true },
           { menu: 'Catalogue', action: 'write', can_access: true },
-          { menu: 'Stocks', submenu: 'Stock Entrepot', action: 'read', can_access: true },
-          { menu: 'Stocks', submenu: 'Stock Entrepot', action: 'write', can_access: true },
+          
+          // Stocks avec tous les sous-menus INDÉPENDANTS
+          { menu: 'Stocks', submenu: 'Stock Entrepôt', action: 'read', can_access: true },
+          { menu: 'Stocks', submenu: 'Stock Entrepôt', action: 'write', can_access: true },
           { menu: 'Stocks', submenu: 'Stock PDV', action: 'read', can_access: true },
           { menu: 'Stocks', submenu: 'Stock PDV', action: 'write', can_access: true },
           { menu: 'Stocks', submenu: 'Entrées', action: 'read', can_access: true },
@@ -51,6 +92,8 @@ export const useUserPermissions = () => {
           { menu: 'Stocks', submenu: 'Transferts', action: 'write', can_access: true },
           { menu: 'Stocks', submenu: 'Catalogue', action: 'read', can_access: true },
           { menu: 'Stocks', submenu: 'Catalogue', action: 'write', can_access: true },
+          
+          // Autres menus
           { menu: 'Ventes', submenu: 'Vente au Comptoir', action: 'read', can_access: true },
           { menu: 'Ventes', submenu: 'Vente au Comptoir', action: 'write', can_access: true },
           { menu: 'Ventes', submenu: 'Factures', action: 'read', can_access: true },
@@ -89,51 +132,12 @@ export const useUserPermissions = () => {
         ] as UserPermission[];
       }
 
-      // Pour les utilisateurs réels, utiliser la fonction get_user_all_permissions
+      // Pour les utilisateurs réels, utiliser la nouvelle fonction
       try {
         console.log('📊 Récupération des permissions via get_user_all_permissions pour:', user.id);
-        
-        const { data, error } = await supabase.rpc('get_user_all_permissions', {
-          p_user_id: user.id
-        });
-
-        if (error) {
-          console.error('❌ Erreur lors de la récupération des permissions:', error);
-          // Fallback vers la vue directement
-          const { data: fallbackData, error: fallbackError } = await supabase
-            .from('vue_permissions_utilisateurs')
-            .select('menu, submenu, action, can_access')
-            .eq('user_id', user.id)
-            .eq('can_access', true);
-
-          if (fallbackError) {
-            console.error('❌ Erreur fallback lors de la récupération des permissions:', fallbackError);
-            return [];
-          }
-
-          const fallbackPermissions = fallbackData?.map(p => ({
-            menu: p.menu,
-            submenu: p.submenu || undefined,
-            action: p.action,
-            can_access: p.can_access
-          })) || [];
-
-          console.log('✅ Permissions récupérées (fallback):', fallbackPermissions);
-          return fallbackPermissions;
-        }
-
-        const formattedPermissions = data?.map((p: any) => ({
-          menu: p.menu,
-          submenu: p.submenu || undefined,
-          action: p.action,
-          can_access: p.can_access
-        })) || [];
-
-        console.log('✅ Permissions récupérées via RPC:', formattedPermissions);
-        return formattedPermissions;
-        
+        return await getUserAllPermissions(user.id);
       } catch (error) {
-        console.error('❌ Erreur inattendue lors de la récupération des permissions:', error);
+        console.error('❌ Erreur lors de la récupération des permissions:', error);
         return [];
       }
     },
@@ -164,9 +168,10 @@ export const useHasPermission = () => {
       return false;
     }
     
+    // Vérification EXACTE : le menu ET le sous-menu doivent correspondre
     const hasAccess = permissions.some(permission => 
       permission.menu === menu &&
-      (submenu === undefined || permission.submenu === submenu) &&
+      permission.submenu === submenu && // Correspondance exacte (undefined === undefined, 'Stock PDV' === 'Stock PDV')
       permission.action === action &&
       permission.can_access
     );
@@ -175,7 +180,8 @@ export const useHasPermission = () => {
       hasAccess, 
       userId: user?.id, 
       permissionsCount: permissions.length,
-      availablePermissions: permissions.filter(p => p.menu === menu)
+      availablePermissions: permissions.filter(p => p.menu === menu),
+      exactMatch: permissions.find(p => p.menu === menu && p.submenu === submenu && p.action === action)
     });
     
     return hasAccess;
