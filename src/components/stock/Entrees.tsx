@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useEntreesStock } from '@/hooks/stock';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { RefreshCw, AlertTriangle } from 'lucide-react';
+import { RefreshCw, AlertTriangle, Database } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AddEntreeDialog } from './entrees/AddEntreeDialog';
 import { EntreesSearchBar } from './entrees/EntreesSearchBar';
@@ -16,16 +16,17 @@ const Entrees = () => {
 
   // Forcer le rafraîchissement au montage du composant
   useEffect(() => {
-    console.log('Entrees component mounted, refreshing data...');
+    console.log('🚀 Composant Entrees monté, rafraîchissement des données...');
     refreshEntrees();
   }, []);
 
   // Log des données pour debug
   useEffect(() => {
-    console.log('Entrees data updated:', entrees);
-    console.log('Number of entrees:', entrees?.length);
-    console.log('Is loading:', isLoading);
-    console.log('Error:', error);
+    console.log('📊 État des données Entrees:');
+    console.log('  - Données:', entrees);
+    console.log('  - Nombre d\'entrées:', entrees?.length);
+    console.log('  - Chargement:', isLoading);
+    console.log('  - Erreur:', error);
   }, [entrees, isLoading, error]);
 
   const filteredEntrees = entrees?.filter(entree => {
@@ -44,7 +45,7 @@ const Entrees = () => {
   });
 
   const handleRefresh = () => {
-    console.log('Manual refresh triggered');
+    console.log('🔄 Rafraîchissement manuel déclenché');
     refreshEntrees();
   };
 
@@ -93,21 +94,21 @@ const Entrees = () => {
           </Alert>
         )}
 
-        {/* Informations de debug en mode développement */}
-        {process.env.NODE_ENV === 'development' && (
-          <Alert className="mb-4 bg-blue-50 border-blue-200">
-            <AlertDescription className="text-sm">
-              <div className="space-y-1">
-                <div>📊 Debug Info:</div>
-                <div>• Données chargées: {entrees?.length || 0} entrées</div>
-                <div>• Données filtrées: {filteredEntrees?.length || 0} entrées</div>
-                <div>• État de chargement: {isLoading ? 'En cours...' : 'Terminé'}</div>
-                <div>• Terme de recherche: "{searchTerm}"</div>
-                {error && <div>• Erreur: {error.message}</div>}
-              </div>
-            </AlertDescription>
-          </Alert>
-        )}
+        {/* Informations de debug détaillées */}
+        <Alert className="mb-4 bg-blue-50 border-blue-200">
+          <Database className="h-4 w-4" />
+          <AlertDescription className="text-sm">
+            <div className="space-y-1">
+              <div><strong>📊 État de synchronisation:</strong></div>
+              <div>• Données chargées: {entrees?.length || 0} entrées</div>
+              <div>• Données filtrées: {filteredEntrees?.length || 0} entrées</div>
+              <div>• État de chargement: {isLoading ? '🔄 En cours...' : '✅ Terminé'}</div>
+              <div>• Terme de recherche: "{searchTerm}"</div>
+              {error && <div>• ❌ Erreur: {error.message}</div>}
+              <div>• Dernière actualisation: {new Date().toLocaleTimeString()}</div>
+            </div>
+          </AlertDescription>
+        </Alert>
 
         <EntreesSearchBar 
           searchTerm={searchTerm}
@@ -123,7 +124,10 @@ const Entrees = () => {
         {!isLoading && !error && (!entrees || entrees.length === 0) && (
           <div className="text-center py-8 space-y-4">
             <div className="text-muted-foreground">
-              Aucune entrée de stock trouvée dans la base de données.
+              🔍 Aucune entrée de stock trouvée dans la base de données.
+            </div>
+            <div className="text-sm text-muted-foreground">
+              Vérifiez que les données existent dans la table entrees_stock sur Supabase
             </div>
             <div className="space-x-2">
               <Button 

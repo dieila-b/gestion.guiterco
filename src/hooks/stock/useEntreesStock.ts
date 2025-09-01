@@ -9,30 +9,34 @@ export const useEntreesStock = () => {
   const { data: entrees, isLoading, error, refetch } = useQuery({
     queryKey: ['entrees-stock'],
     queryFn: async () => {
-      console.log('Fetching entrees stock data...');
+      console.log('🔄 Début de la récupération des entrées de stock...');
       
       try {
-        // Requête simplifiée sans les relations complexes d'abord
-        const { data: basicData, error: basicError } = await supabase
+        // Requête la plus simple possible d'abord - juste les données de base
+        console.log('📊 Étape 1: Récupération des données de base...');
+        const { data: rawData, error: rawError } = await supabase
           .from('entrees_stock')
           .select('*')
           .order('created_at', { ascending: false });
         
-        console.log('Basic entrees data:', basicData);
-        console.log('Basic query error:', basicError);
+        console.log('✅ Données brutes récupérées:', rawData);
+        console.log('❌ Erreur données brutes:', rawError);
         
-        if (basicError) {
-          console.error('Error in basic query:', basicError);
-          throw basicError;
+        if (rawError) {
+          console.error('Erreur lors de la récupération des données brutes:', rawError);
+          throw rawError;
         }
 
-        if (!basicData || basicData.length === 0) {
-          console.log('No entries found in entrees_stock table');
+        if (!rawData || rawData.length === 0) {
+          console.log('⚠️ Aucune donnée trouvée dans entrees_stock');
           return [];
         }
 
-        // Si les données de base existent, essayer avec les relations
-        const { data, error } = await supabase
+        console.log(`📈 ${rawData.length} entrées trouvées, ajout des relations...`);
+
+        // Maintenant essayer d'ajouter les relations
+        console.log('📊 Étape 2: Ajout des relations...');
+        const { data: dataWithRelations, error: relationError } = await supabase
           .from('entrees_stock')
           .select(`
             *,
@@ -68,10 +72,10 @@ export const useEntreesStock = () => {
           `)
           .order('created_at', { ascending: false });
         
-        if (error) {
-          console.error('Error with relations query:', error);
-          // Si la requête avec relations échoue, retourner au moins les données de base
-          return basicData.map(item => ({
+        if (relationError) {
+          console.error('Erreur avec les relations, utilisation des données de base:', relationError);
+          // Si les relations échouent, retourner au moins les données de base
+          return rawData.map(item => ({
             ...item,
             article: null,
             entrepot: null,
@@ -79,24 +83,24 @@ export const useEntreesStock = () => {
           })) as EntreeStock[];
         }
         
-        console.log('Entrees stock data with relations loaded:', data);
-        console.log('Number of entrees:', data?.length);
+        console.log('✅ Données avec relations récupérées:', dataWithRelations);
+        console.log(`📊 Nombre final d'entrées: ${dataWithRelations?.length}`);
         
-        return data as EntreeStock[];
+        return dataWithRelations as EntreeStock[];
         
       } catch (error) {
-        console.error('Error in entrees stock query:', error);
+        console.error('💥 Erreur critique dans la requête entrees_stock:', error);
         throw error;
       }
     },
-    staleTime: 1 * 60 * 1000,
+    staleTime: 30 * 1000, // 30 secondes
     refetchOnWindowFocus: true,
     refetchInterval: false,
     retry: (failureCount, error) => {
-      console.log(`Retry attempt ${failureCount + 1} for entrees stock query`, error);
-      return failureCount < 3;
+      console.log(`🔄 Tentative de retry ${failureCount + 1} pour entrees_stock`, error);
+      return failureCount < 2;
     },
-    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000)
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 10000)
   });
 
   const checkForDuplicates = async (entreeData: Omit<EntreeStock, 'id' | 'created_at'>) => {
@@ -202,7 +206,7 @@ export const useEntreesStock = () => {
   });
 
   const refreshEntrees = () => {
-    console.log('Refreshing entrees data...');
+    console.log('🔄 Rafraîchissement manuel des entrées...');
     queryClient.invalidateQueries({ queryKey: ['entrees-stock'] });
     refetch();
   };
