@@ -7,73 +7,142 @@ import { EntreeStock } from '@/components/stock/types';
 export const useEntreesStock = () => {
   const queryClient = useQueryClient();
   
-  const { data: entrees, isLoading, error } = useQuery({
+  const { data: entrees, isLoading, error, refetch } = useQuery({
     queryKey: ['entrees-stock'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('entrees_stock')
-        .select(`
-          *,
-          article:article_id(*),
-          entrepot:entrepot_id(*),
-          point_vente:point_vente_id(*)
-        `)
-        .order('created_at', { ascending: false });
+      console.log('Fetching entrees stock data...');
       
-      if (error) {
+      try {
+        // Première requête pour vérifier les données brutes
+        const { data: rawData, error: rawError, count } = await supabase
+          .from('entrees_stock')
+          .select('*', { count: 'exact' });
+          
+        console.log('Raw entrees data count:', count);
+        console.log('Raw entrees data:', rawData);
+        
+        if (rawError) {
+          console.error('Error fetching raw entrees data:', rawError);
+        }
+
+        // Requête principale avec toutes les relations
+        const { data, error } = await supabase
+          .from('entrees_stock')
+          .select(`
+            *,
+            article:catalogue!entrees_stock_article_id_fkey(
+              id,
+              reference,
+              nom,
+              description,
+              categorie,
+              unite_mesure,
+              prix_unitaire,
+              prix_achat,
+              prix_vente,
+              statut,
+              seuil_alerte,
+              categorie_article:categories_catalogue!catalogue_categorie_id_fkey(nom),
+              unite_article:unites!catalogue_unite_id_fkey(nom)
+            ),
+            entrepot:entrepots!entrees_stock_entrepot_id_fkey(
+              id,
+              nom,
+              adresse,
+              gestionnaire,
+              statut,
+              capacite_max
+            ),
+            point_vente:points_de_vente!entrees_stock_point_vente_id_fkey(
+              id,
+              nom,
+              adresse,
+              type_pdv,
+              responsable,
+              statut
+            )
+          `)
+          .order('created_at', { ascending: false });
+        
+        if (error) {
+          console.error('Error fetching entrees stock:', error);
+          throw error;
+        }
+        
+        console.log('Entrees stock data loaded:', data);
+        console.log('Number of entrees:', data?.length);
+        
+        if (data && data.length > 0) {
+          console.log('First entree with relations:', data[0]);
+          console.log('Article relation:', data[0]?.article);
+          console.log('Entrepot relation:', data[0]?.entrepot);
+          console.log('Point vente relation:', data[0]?.point_vente);
+        }
+        
+        // Ne pas filtrer les données ici - laisser toutes les entrées visibles
+        return data as EntreeStock[];
+        
+      } catch (error) {
+        console.error('Error in entrees stock query:', error);
         throw error;
       }
-      return data as EntreeStock[];
-    }
+    },
+    staleTime: 1 * 60 * 1000, // 1 minute pour des données fraîches
+    refetchOnWindowFocus: true, // Rafraîchir quand on revient sur l'onglet
+    refetchInterval: false,
+    retry: (failureCount, error) => {
+      console.log(`Retry attempt ${failureCount + 1} for entrees stock query`, error);
+      return failureCount < 3;
+    },
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000)
   });
 
   const checkForDuplicates = async (entreeData: Omit<EntreeStock, 'id' | 'created_at'>) => {
-    const { data, error } = await supabase
-      .from('entrees_stock')
-      .select('id, type_entree, created_at')
-      .eq('article_id', entreeData.article_id)
-      .eq('quantite', entreeData.quantite)
-      .eq('type_entree', entreeData.type_entree)
-      .eq('fournisseur', entreeData.fournisseur || null)
-      .gte('created_at', new Date().toISOString().split('T')[0])
-      .lt('created_at', new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split('T')[0]);
-    
-    if (entreeData.entrepot_id) {
-      const query = supabase
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      const tomorrow = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+      
+      let query = supabase
         .from('entrees_stock')
         .select('id, type_entree, created_at')
         .eq('article_id', entreeData.article_id)
-        .eq('entrepot_id', entreeData.entrepot_id)
         .eq('quantite', entreeData.quantite)
-        .eq('fournisseur', entreeData.fournisseur || null)
-        .gte('created_at', new Date().toISOString().split('T')[0])
-        .lt('created_at', new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split('T')[0]);
+        .eq('type_entree', entreeData.type_entree)
+        .gte('created_at', today)
+        .lt('created_at', tomorrow);
+
+      // Ajouter les conditions spécifiques selon le type d'emplacement
+      if (entreeData.fournisseur) {
+        query = query.eq('fournisseur', entreeData.fournisseur);
+      }
       
-      const { data: duplicates } = await query;
-      return duplicates || [];
-    }
-    
-    if (entreeData.point_vente_id) {
-      const query = supabase
-        .from('entrees_stock')
-        .select('id, type_entree, created_at')
-        .eq('article_id', entreeData.article_id)
-        .eq('point_vente_id', entreeData.point_vente_id)
-        .eq('quantite', entreeData.quantite)
-        .eq('fournisseur', entreeData.fournisseur || null)
-        .gte('created_at', new Date().toISOString().split('T')[0])
-        .lt('created_at', new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split('T')[0]);
+      if (entreeData.entrepot_id) {
+        query = query.eq('entrepot_id', entreeData.entrepot_id);
+      }
       
-      const { data: duplicates } = await query;
+      if (entreeData.point_vente_id) {
+        query = query.eq('point_vente_id', entreeData.point_vente_id);
+      }
+      
+      const { data: duplicates, error } = await query;
+      
+      if (error) {
+        console.error('Error checking for duplicates:', error);
+        return [];
+      }
+      
       return duplicates || [];
+    } catch (error) {
+      console.error('Error in checkForDuplicates:', error);
+      return [];
     }
-    
-    return [];
   };
 
   const createEntree = useMutation({
     mutationFn: async (newEntree: Omit<EntreeStock, 'id' | 'created_at'>) => {
-      // PROTECTION RENFORCÉE: Bloquer TOUTE tentative de création de correction automatique
+      console.log('Creating new entree:', newEntree);
+      
+      // PROTECTION : Bloquer les corrections automatiques suspectes
       if (newEntree.type_entree === 'correction' && (
         newEntree.fournisseur?.includes('Réception') ||
         newEntree.fournisseur?.includes('bon') ||
@@ -98,16 +167,22 @@ export const useEntreesStock = () => {
         .insert(newEntree)
         .select(`
           *,
-          article:article_id(*),
-          entrepot:entrepot_id(*),
-          point_vente:point_vente_id(*)
+          article:catalogue!entrees_stock_article_id_fkey(*),
+          entrepot:entrepots!entrees_stock_entrepot_id_fkey(*),
+          point_vente:points_de_vente!entrees_stock_point_vente_id_fkey(*)
         `)
         .single();
       
-      if (error) throw error;
+      if (error) {
+        console.error('Error creating entree:', error);
+        throw error;
+      }
+      
+      console.log('Entree created successfully:', data);
       return data as EntreeStock;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      console.log('Entree creation successful, invalidating queries...');
       queryClient.invalidateQueries({ queryKey: ['entrees-stock'] });
       queryClient.invalidateQueries({ queryKey: ['stock-principal'] });
       queryClient.invalidateQueries({ queryKey: ['stock-pdv'] });
@@ -127,11 +202,19 @@ export const useEntreesStock = () => {
     }
   });
 
+  // Fonction pour forcer le rafraîchissement
+  const refreshEntrees = () => {
+    console.log('Refreshing entrees data...');
+    queryClient.invalidateQueries({ queryKey: ['entrees-stock'] });
+    refetch();
+  };
+
   return {
     entrees,
     isLoading,
     error,
     createEntree,
-    checkForDuplicates
+    checkForDuplicates,
+    refreshEntrees
   };
 };
