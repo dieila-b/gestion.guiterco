@@ -79,7 +79,7 @@ export const EntreesTable = ({ entrees, isLoading }: EntreesTableProps) => {
                   </TableCell>
                   <TableCell className="font-medium">
                     <div>
-                      <div>{entree.article?.nom || 'Article non trouvé'}</div>
+                      <div>{entree.article?.nom || `Article ID: ${entree.article_id}`}</div>
                       {entree.article?.reference && (
                         <div className="text-sm text-muted-foreground">
                           Réf: {entree.article.reference}
@@ -88,7 +88,9 @@ export const EntreesTable = ({ entrees, isLoading }: EntreesTableProps) => {
                     </div>
                   </TableCell>
                   <TableCell>
-                    {entree.entrepot?.nom || entree.point_vente?.nom || 'Emplacement non défini'}
+                    {entree.entrepot?.nom || entree.point_vente?.nom || 
+                     (entree.entrepot_id ? `Entrepôt ID: ${entree.entrepot_id}` : 
+                      entree.point_vente_id ? `PDV ID: ${entree.point_vente_id}` : 'Emplacement non défini')}
                   </TableCell>
                   <TableCell>
                     {getTypeEntreeBadge(entree.type_entree)}
@@ -120,7 +122,7 @@ export const EntreesTable = ({ entrees, isLoading }: EntreesTableProps) => {
                     Aucune entrée trouvée
                   </div>
                   <div className="text-sm text-muted-foreground">
-                    Les entrées de stock apparaîtront ici une fois créées
+                    Vérifiez que les données existent dans la table entrees_stock
                   </div>
                 </div>
               </TableCell>

@@ -1,4 +1,3 @@
-
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
@@ -13,24 +12,31 @@ export const useEntreesStock = () => {
       console.log('Fetching entrees stock data...');
       
       try {
-        // Première requête pour vérifier les données brutes
-        const { data: rawData, error: rawError, count } = await supabase
+        // Requête simplifiée sans les relations complexes d'abord
+        const { data: basicData, error: basicError } = await supabase
           .from('entrees_stock')
-          .select('*', { count: 'exact' });
-          
-        console.log('Raw entrees data count:', count);
-        console.log('Raw entrees data:', rawData);
+          .select('*')
+          .order('created_at', { ascending: false });
         
-        if (rawError) {
-          console.error('Error fetching raw entrees data:', rawError);
+        console.log('Basic entrees data:', basicData);
+        console.log('Basic query error:', basicError);
+        
+        if (basicError) {
+          console.error('Error in basic query:', basicError);
+          throw basicError;
         }
 
-        // Requête principale avec toutes les relations
+        if (!basicData || basicData.length === 0) {
+          console.log('No entries found in entrees_stock table');
+          return [];
+        }
+
+        // Si les données de base existent, essayer avec les relations
         const { data, error } = await supabase
           .from('entrees_stock')
           .select(`
             *,
-            article:catalogue!entrees_stock_article_id_fkey(
+            article:catalogue(
               id,
               reference,
               nom,
@@ -41,11 +47,9 @@ export const useEntreesStock = () => {
               prix_achat,
               prix_vente,
               statut,
-              seuil_alerte,
-              categorie_article:categories_catalogue!catalogue_categorie_id_fkey(nom),
-              unite_article:unites!catalogue_unite_id_fkey(nom)
+              seuil_alerte
             ),
-            entrepot:entrepots!entrees_stock_entrepot_id_fkey(
+            entrepot:entrepots(
               id,
               nom,
               adresse,
@@ -53,7 +57,7 @@ export const useEntreesStock = () => {
               statut,
               capacite_max
             ),
-            point_vente:points_de_vente!entrees_stock_point_vente_id_fkey(
+            point_vente:points_de_vente(
               id,
               nom,
               adresse,
@@ -65,21 +69,19 @@ export const useEntreesStock = () => {
           .order('created_at', { ascending: false });
         
         if (error) {
-          console.error('Error fetching entrees stock:', error);
-          throw error;
+          console.error('Error with relations query:', error);
+          // Si la requête avec relations échoue, retourner au moins les données de base
+          return basicData.map(item => ({
+            ...item,
+            article: null,
+            entrepot: null,
+            point_vente: null
+          })) as EntreeStock[];
         }
         
-        console.log('Entrees stock data loaded:', data);
+        console.log('Entrees stock data with relations loaded:', data);
         console.log('Number of entrees:', data?.length);
         
-        if (data && data.length > 0) {
-          console.log('First entree with relations:', data[0]);
-          console.log('Article relation:', data[0]?.article);
-          console.log('Entrepot relation:', data[0]?.entrepot);
-          console.log('Point vente relation:', data[0]?.point_vente);
-        }
-        
-        // Ne pas filtrer les données ici - laisser toutes les entrées visibles
         return data as EntreeStock[];
         
       } catch (error) {
@@ -87,8 +89,8 @@ export const useEntreesStock = () => {
         throw error;
       }
     },
-    staleTime: 1 * 60 * 1000, // 1 minute pour des données fraîches
-    refetchOnWindowFocus: true, // Rafraîchir quand on revient sur l'onglet
+    staleTime: 1 * 60 * 1000,
+    refetchOnWindowFocus: true,
     refetchInterval: false,
     retry: (failureCount, error) => {
       console.log(`Retry attempt ${failureCount + 1} for entrees stock query`, error);
@@ -111,7 +113,6 @@ export const useEntreesStock = () => {
         .gte('created_at', today)
         .lt('created_at', tomorrow);
 
-      // Ajouter les conditions spécifiques selon le type d'emplacement
       if (entreeData.fournisseur) {
         query = query.eq('fournisseur', entreeData.fournisseur);
       }
@@ -142,7 +143,6 @@ export const useEntreesStock = () => {
     mutationFn: async (newEntree: Omit<EntreeStock, 'id' | 'created_at'>) => {
       console.log('Creating new entree:', newEntree);
       
-      // PROTECTION : Bloquer les corrections automatiques suspectes
       if (newEntree.type_entree === 'correction' && (
         newEntree.fournisseur?.includes('Réception') ||
         newEntree.fournisseur?.includes('bon') ||
@@ -154,7 +154,6 @@ export const useEntreesStock = () => {
         throw new Error('CRÉATION DE CORRECTION AUTOMATIQUE INTERDITE - Utilisez uniquement le type "achat" pour les réceptions de bons de livraison');
       }
 
-      // Vérifier les doublons potentiels avant l'insertion
       const duplicates = await checkForDuplicates(newEntree);
       
       if (duplicates.length > 0) {
@@ -167,9 +166,9 @@ export const useEntreesStock = () => {
         .insert(newEntree)
         .select(`
           *,
-          article:catalogue!entrees_stock_article_id_fkey(*),
-          entrepot:entrepots!entrees_stock_entrepot_id_fkey(*),
-          point_vente:points_de_vente!entrees_stock_point_vente_id_fkey(*)
+          article:catalogue(*),
+          entrepot:entrepots(*),
+          point_vente:points_de_vente(*)
         `)
         .single();
       
@@ -202,7 +201,6 @@ export const useEntreesStock = () => {
     }
   });
 
-  // Fonction pour forcer le rafraîchissement
   const refreshEntrees = () => {
     console.log('Refreshing entrees data...');
     queryClient.invalidateQueries({ queryKey: ['entrees-stock'] });
