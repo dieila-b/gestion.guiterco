@@ -164,6 +164,7 @@ export const useHasPermission = () => {
       return false;
     }
     
+    // Vérification exacte des permissions avec correspondance stricte des noms
     const hasAccess = permissions.some(permission => 
       permission.menu === menu &&
       (submenu === undefined || permission.submenu === submenu) &&
@@ -175,7 +176,8 @@ export const useHasPermission = () => {
       hasAccess, 
       userId: user?.id, 
       permissionsCount: permissions.length,
-      availablePermissions: permissions.filter(p => p.menu === menu)
+      availablePermissions: permissions.filter(p => p.menu === menu),
+      searchedSubmenu: submenu
     });
     
     return hasAccess;
