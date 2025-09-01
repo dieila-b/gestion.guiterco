@@ -7,6 +7,7 @@ import { ArticleOptimized } from '@/hooks/useCatalogueOptimized';
 
 interface EditFormData {
   nom: string;
+  reference: string;
   description: string;
   prix_achat: string;
   prix_vente: string;
@@ -23,6 +24,7 @@ interface EditFormData {
 export const useEditProductForm = (article: ArticleOptimized) => {
   const [formData, setFormData] = useState<EditFormData>({
     nom: '',
+    reference: '',
     description: '',
     prix_achat: '',
     prix_vente: '',
@@ -37,56 +39,78 @@ export const useEditProductForm = (article: ArticleOptimized) => {
   });
   
   const [loading, setLoading] = useState(false);
+  const [dataLoaded, setDataLoaded] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Pré-remplir le formulaire avec les données de l'article
+  // Charger les données complètes de l'article
   useEffect(() => {
-    if (article) {
-      console.log('Loading article data for editing:', article);
+    const loadCompleteArticleData = async () => {
+      if (!article?.id || dataLoaded) return;
       
-      // Récupérer les données complètes de l'article depuis la base
-      const loadCompleteArticleData = async () => {
-        try {
-          const { data, error } = await supabase
-            .from('catalogue')
-            .select(`
-              *,
-              categories_catalogue(id, nom),
-              unites(id, nom, symbole)
-            `)
-            .eq('id', article.id)
-            .single();
+      try {
+        console.log('Chargement des données complètes pour l\'article:', article.id);
+        
+        const { data, error } = await supabase
+          .from('catalogue')
+          .select(`
+            *,
+            categories_catalogue(id, nom),
+            unites(id, nom, symbole)
+          `)
+          .eq('id', article.id)
+          .single();
 
-          if (error) {
-            console.error('Erreur lors du chargement des données complètes:', error);
-            return;
-          }
-
+        if (error) {
+          console.error('Erreur lors du chargement des données complètes:', error);
+          // Utiliser les données de base si l'appel échoue
           setFormData({
-            nom: data.nom || '',
-            description: data.description || '',
-            prix_achat: data.prix_achat?.toString() || '',
-            prix_vente: data.prix_vente?.toString() || '',
-            frais_logistique: data.frais_logistique?.toString() || '',
-            frais_douane: data.frais_douane?.toString() || '',
-            frais_transport: data.frais_transport?.toString() || '',
-            autres_frais: data.autres_frais?.toString() || '',
-            categorie_id: data.categorie_id || '',
-            unite_id: data.unite_id || '',
-            seuil_alerte: data.seuil_alerte?.toString() || '10',
-            image_url: data.image_url || ''
+            nom: article.nom || '',
+            reference: article.reference || '',
+            description: article.description || '',
+            prix_achat: article.prix_achat?.toString() || '',
+            prix_vente: article.prix_vente?.toString() || '',
+            frais_logistique: '',
+            frais_douane: '',
+            frais_transport: '',
+            autres_frais: '',
+            categorie_id: article.categorie_id || '',
+            unite_id: article.unite_id || '',
+            seuil_alerte: article.seuil_alerte?.toString() || '10',
+            image_url: article.image_url || ''
           });
-
-          console.log('Données chargées:', data);
-        } catch (error) {
-          console.error('Erreur lors du chargement:', error);
+          setDataLoaded(true);
+          return;
         }
-      };
 
-      loadCompleteArticleData();
-    }
-  }, [article]);
+        console.log('Données complètes chargées:', data);
+        
+        setFormData({
+          nom: data.nom || '',
+          reference: data.reference || '',
+          description: data.description || '',
+          prix_achat: data.prix_achat?.toString() || '',
+          prix_vente: data.prix_vente?.toString() || '',
+          frais_logistique: data.frais_logistique?.toString() || '',
+          frais_douane: data.frais_douane?.toString() || '',
+          frais_transport: data.frais_transport?.toString() || '',
+          autres_frais: data.autres_frais?.toString() || '',
+          categorie_id: data.categorie_id || '',
+          unite_id: data.unite_id || '',
+          seuil_alerte: data.seuil_alerte?.toString() || '10',
+          image_url: data.image_url || ''
+        });
+
+        setDataLoaded(true);
+        console.log('Formulaire pré-rempli avec:', formData);
+      } catch (error) {
+        console.error('Erreur lors du chargement:', error);
+        setDataLoaded(true);
+      }
+    };
+
+    loadCompleteArticleData();
+  }, [article?.id, dataLoaded]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -99,22 +123,26 @@ export const useEditProductForm = (article: ArticleOptimized) => {
       if (!formData.nom || formData.nom.trim() === '') {
         throw new Error('Le nom du produit est obligatoire');
       }
+      if (!formData.reference || formData.reference.trim() === '') {
+        throw new Error('La référence du produit est obligatoire');
+      }
 
       // Préparer les données à mettre à jour
       const updateData: any = {
         nom: formData.nom.trim(),
+        reference: formData.reference.trim(),
         seuil_alerte: parseInt(formData.seuil_alerte) || 10,
         updated_at: new Date().toISOString()
       };
 
-      // Ajouter la description seulement si elle est renseignée
+      // Ajouter la description
       if (formData.description && formData.description.trim() !== '') {
         updateData.description = formData.description.trim();
       } else {
         updateData.description = null;
       }
 
-      // Ajouter les prix seulement s'ils sont renseignés et valides
+      // Ajouter les prix
       if (formData.prix_achat && formData.prix_achat.trim() !== '') {
         const prixAchat = parseFloat(formData.prix_achat);
         if (!isNaN(prixAchat) && prixAchat >= 0) {
@@ -137,7 +165,7 @@ export const useEditProductForm = (article: ArticleOptimized) => {
         updateData.prix_vente = null;
       }
 
-      // Ajouter les frais seulement s'ils sont renseignés et valides
+      // Ajouter les frais
       ['frais_logistique', 'frais_douane', 'frais_transport', 'autres_frais'].forEach(field => {
         const value = formData[field as keyof EditFormData];
         if (value && value.trim() !== '') {
@@ -152,7 +180,7 @@ export const useEditProductForm = (article: ArticleOptimized) => {
         }
       });
 
-      // Ajouter les relations seulement si elles sont sélectionnées
+      // Ajouter les relations
       if (formData.categorie_id && formData.categorie_id.trim() !== '') {
         updateData.categorie_id = formData.categorie_id;
       } else {
@@ -165,9 +193,9 @@ export const useEditProductForm = (article: ArticleOptimized) => {
         updateData.unite_id = null;
       }
 
-      // Ajouter l'image seulement si elle est fournie
+      // Ajouter l'image
       if (formData.image_url && formData.image_url.trim() !== '') {
-        updateData.image_url = formData.image_url;
+        updateData.image_url = formData.image_url.trim();
       } else {
         updateData.image_url = null;
       }
@@ -203,7 +231,6 @@ export const useEditProductForm = (article: ArticleOptimized) => {
       
       let errorMessage = "Impossible de modifier le produit.";
       
-      // Gestion d'erreurs spécifique
       if (error.code === '23505') {
         if (error.message?.includes('reference')) {
           errorMessage = "Cette référence existe déjà.";
@@ -235,8 +262,9 @@ export const useEditProductForm = (article: ArticleOptimized) => {
 
   return {
     formData,
-    loading,
+    loading: loading || !dataLoaded,
     handleSubmit,
-    updateFormData
+    updateFormData,
+    dataLoaded
   };
 };

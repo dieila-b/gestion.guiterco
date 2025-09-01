@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -14,6 +14,7 @@ import { ImageUpload } from '@/components/ui/image-upload';
 
 interface FormData {
   nom: string;
+  reference?: string;
   description: string;
   prix_achat: string;
   prix_vente: string;
@@ -75,8 +76,11 @@ const CreateProductForm = ({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
+    console.log('Soumission du formulaire avec:', formData);
+    
     const submitData = {
       nom: formData.nom,
+      reference: isEditMode ? formData.reference : formData.reference,
       description: formData.description,
       prix_achat: prixAchat || undefined,
       prix_vente: prixVente || undefined,
@@ -90,6 +94,7 @@ const CreateProductForm = ({
       image_url: formData.image_url || undefined,
     };
     
+    console.log('Données préparées pour soumission:', submitData);
     onSubmit(submitData);
   };
 
@@ -117,6 +122,19 @@ const CreateProductForm = ({
               required
             />
           </div>
+
+          {isEditMode && (
+            <div>
+              <Label htmlFor="reference">Référence *</Label>
+              <Input
+                id="reference"
+                value={formData.reference || ''}
+                onChange={(e) => onFormDataChange({ reference: e.target.value })}
+                placeholder="Référence du produit"
+                required
+              />
+            </div>
+          )}
           
           <div>
             <Label htmlFor="seuil_alerte">Seuil d'alerte</Label>
@@ -153,7 +171,10 @@ const CreateProductForm = ({
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <Label htmlFor="categorie">Catégorie</Label>
-            <Select value={formData.categorie_id} onValueChange={(value) => onFormDataChange({ categorie_id: value })}>
+            <Select 
+              value={formData.categorie_id} 
+              onValueChange={(value) => onFormDataChange({ categorie_id: value })}
+            >
               <SelectTrigger>
                 <SelectValue placeholder="Choisir une catégorie" />
               </SelectTrigger>
@@ -169,7 +190,10 @@ const CreateProductForm = ({
 
           <div>
             <Label htmlFor="unite">Unité de mesure</Label>
-            <Select value={formData.unite_id} onValueChange={(value) => onFormDataChange({ unite_id: value })}>
+            <Select 
+              value={formData.unite_id} 
+              onValueChange={(value) => onFormDataChange({ unite_id: value })}
+            >
               <SelectTrigger>
                 <SelectValue placeholder="Choisir une unité" />
               </SelectTrigger>

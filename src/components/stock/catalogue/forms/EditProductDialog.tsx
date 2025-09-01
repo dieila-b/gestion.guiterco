@@ -13,16 +13,19 @@ interface EditProductDialogProps {
 
 export const EditProductDialog = ({ article }: EditProductDialogProps) => {
   const [open, setOpen] = useState(false);
-  const { formData, loading, handleSubmit, updateFormData } = useEditProductForm(article);
+  const { formData, loading, handleSubmit, updateFormData, dataLoaded } = useEditProductForm(article);
 
   const handleClose = () => {
     setOpen(false);
   };
 
   const handleFormSubmit = async (data: any) => {
-    // Adapter les données du formulaire de création pour la mise à jour
+    console.log('Données du formulaire reçues:', data);
+    
+    // Mettre à jour le formData avec les nouvelles données
     updateFormData({
       nom: data.nom || formData.nom,
+      reference: data.reference || formData.reference,
       description: data.description || formData.description,
       prix_achat: data.prix_achat?.toString() || formData.prix_achat,
       prix_vente: data.prix_vente?.toString() || formData.prix_vente,
@@ -36,7 +39,7 @@ export const EditProductDialog = ({ article }: EditProductDialogProps) => {
       image_url: data.image_url || formData.image_url
     });
 
-    // Créer un faux événement pour la fonction handleSubmit existante
+    // Créer un événement factice pour la fonction handleSubmit existante
     const fakeEvent = { preventDefault: () => {} } as React.FormEvent;
     const success = await handleSubmit(fakeEvent);
     if (success) {
@@ -58,14 +61,21 @@ export const EditProductDialog = ({ article }: EditProductDialogProps) => {
         <DialogHeader>
           <DialogTitle>Modifier le produit</DialogTitle>
         </DialogHeader>
-        <CreateProductForm
-          formData={formData}
-          loading={loading}
-          onSubmit={handleFormSubmit}
-          onFormDataChange={updateFormData}
-          onCancel={handleClose}
-          isEditMode={true}
-        />
+        {dataLoaded ? (
+          <CreateProductForm
+            formData={formData}
+            loading={loading}
+            onSubmit={handleFormSubmit}
+            onFormDataChange={updateFormData}
+            onCancel={handleClose}
+            isEditMode={true}
+          />
+        ) : (
+          <div className="flex justify-center items-center py-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            <span className="ml-2">Chargement des données...</span>
+          </div>
+        )}
       </DialogContent>
     </Dialog>
   );

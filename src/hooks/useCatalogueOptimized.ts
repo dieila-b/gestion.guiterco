@@ -7,11 +7,17 @@ export interface ArticleOptimized {
   id: string;
   nom: string;
   reference: string;
+  description?: string;
   prix_achat?: number;
   prix_vente?: number;
+  frais_logistique?: number;
+  frais_douane?: number;
+  frais_transport?: number;
+  autres_frais?: number;
   categorie?: string;
   image_url?: string;
   statut?: string;
+  seuil_alerte?: number;
   categorie_id?: string;
   unite_id?: string;
 }
@@ -37,15 +43,20 @@ export const useCatalogueOptimized = (
           id,
           nom,
           reference,
+          description,
           prix_achat,
           prix_vente,
+          frais_logistique,
+          frais_douane,
+          frais_transport,
+          autres_frais,
           categorie,
           image_url,
           statut,
+          seuil_alerte,
           categorie_id,
           unite_id
         `, { count: 'exact' })
-        // Temporairement désactivé pour debug : .eq('statut', 'actif')
         .range(from, to);
 
       // Filtrage côté serveur
@@ -73,7 +84,7 @@ export const useCatalogueOptimized = (
         hasMore: (count || 0) > to + 1
       };
     },
-    staleTime: 10 * 60 * 1000, // 10 minutes pour le catalogue
+    staleTime: 5 * 60 * 1000, // 5 minutes pour éviter les rechargements trop fréquents
     gcTime: 15 * 60 * 1000,
     refetchOnWindowFocus: false,
     refetchOnMount: false
@@ -116,7 +127,6 @@ export const useCatalogueSearch = (searchTerm: string, enabled = false) => {
           image_url,
           statut
         `)
-        // Temporairement désactivé pour debug : .eq('statut', 'actif')
         .or(`nom.ilike.%${searchTerm}%,reference.ilike.%${searchTerm}%`)
         .limit(10);
       
