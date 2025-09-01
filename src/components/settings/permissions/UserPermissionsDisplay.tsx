@@ -81,7 +81,7 @@ export const UserPermissionsDisplay: React.FC = () => {
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <User className="w-4 h-4" />
             {utilisateurInterne.prenom} {utilisateurInterne.nom}
-            <Badge variant="outline">{utilisateurInterne.role?.nom}</Badge>
+            <Badge variant="outline">{utilisateurInterne.role?.name || utilisateurInterne.role?.nom}</Badge>
           </div>
         )}
       </CardHeader>

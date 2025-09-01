@@ -22,7 +22,7 @@ export const useUserPermissions = () => {
 
       console.log('👤 Récupération permissions pour utilisateur:', user.id);
 
-      // Utiliser la nouvelle fonction RPC
+      // Utiliser la nouvelle fonction RPC mise à jour
       const { data, error } = await supabase.rpc('get_user_permissions', {
         user_uuid: user.id
       });
@@ -44,6 +44,7 @@ export const useUserPermissions = () => {
       return false;
     }
 
+    // Recherche exacte avec submenu
     const permission = permissions.find(p => 
       p.menu === menu && 
       p.submenu === submenu && 
@@ -57,7 +58,8 @@ export const useUserPermissions = () => {
       submenu,
       action,
       hasAccess,
-      foundPermission: !!permission
+      foundPermission: !!permission,
+      allPermissions: permissions.filter(p => p.menu === menu)
     });
 
     return hasAccess;
@@ -68,7 +70,7 @@ export const useUserPermissions = () => {
     hasPermission,
     isLoading,
     error,
-    data: permissions // Ajouter data pour compatibilité
+    data: permissions // Compatibilité
   };
 };
 
