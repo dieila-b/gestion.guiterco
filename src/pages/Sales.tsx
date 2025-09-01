@@ -24,25 +24,67 @@ const Sales = () => {
           className="w-full"
         >
           <TabsList className="grid grid-cols-7 w-full">
-            <PermissionGuard menu="Ventes" submenu="Vente au Comptoir" action="read" fallback={null}>
+            <PermissionGuard 
+              menu="Ventes" 
+              submenu="Vente au Comptoir" 
+              action="read" 
+              mode="disable"
+              disabledClassName="opacity-50 cursor-not-allowed pointer-events-none"
+            >
               <TabsTrigger value="vente-comptoir">Vente au Comptoir</TabsTrigger>
             </PermissionGuard>
-            <PermissionGuard menu="Ventes" submenu="Factures" action="read" fallback={null}>
+            <PermissionGuard 
+              menu="Ventes" 
+              submenu="Factures" 
+              action="read" 
+              mode="disable"
+              disabledClassName="opacity-50 cursor-not-allowed pointer-events-none"
+            >
               <TabsTrigger value="factures-vente">Factures</TabsTrigger>
             </PermissionGuard>
-            <PermissionGuard menu="Ventes" submenu="Factures Impayées" action="read" fallback={null}>
+            <PermissionGuard 
+              menu="Ventes" 
+              submenu="Factures Impayées" 
+              action="read" 
+              mode="disable"
+              disabledClassName="opacity-50 cursor-not-allowed pointer-events-none"
+            >
               <TabsTrigger value="factures-impayees">Factures Impayées</TabsTrigger>
             </PermissionGuard>
-            <PermissionGuard menu="Ventes" submenu="Précommandes" action="read" fallback={null}>
+            <PermissionGuard 
+              menu="Ventes" 
+              submenu="Précommandes" 
+              action="read" 
+              mode="disable"
+              disabledClassName="opacity-50 cursor-not-allowed pointer-events-none"
+            >
               <TabsTrigger value="precommandes">Précommande</TabsTrigger>
             </PermissionGuard>
-            <PermissionGuard menu="Ventes" submenu="Versements" action="read" fallback={null}>
+            <PermissionGuard 
+              menu="Ventes" 
+              submenu="Versements" 
+              action="read" 
+              mode="disable"
+              disabledClassName="opacity-50 cursor-not-allowed pointer-events-none"
+            >
               <TabsTrigger value="versements">Versement</TabsTrigger>
             </PermissionGuard>
-            <PermissionGuard menu="Ventes" submenu="Devis" action="read" fallback={null}>
+            <PermissionGuard 
+              menu="Ventes" 
+              submenu="Devis" 
+              action="read" 
+              mode="disable"
+              disabledClassName="opacity-50 cursor-not-allowed pointer-events-none"
+            >
               <TabsTrigger value="devis">Devis</TabsTrigger>
             </PermissionGuard>
-            <PermissionGuard menu="Ventes" submenu="Retours clients" action="read" fallback={null}>
+            <PermissionGuard 
+              menu="Ventes" 
+              submenu="Retours clients" 
+              action="read" 
+              mode="disable"
+              disabledClassName="opacity-50 cursor-not-allowed pointer-events-none"
+            >
               <TabsTrigger value="retours-clients">Retours clients</TabsTrigger>
             </PermissionGuard>
           </TabsList>

@@ -13,13 +13,31 @@ const Clients = () => {
       <div className="space-y-6">
         <Tabs defaultValue="liste" className="w-full">
           <TabsList className="grid w-full grid-cols-3">
-            <PermissionGuard menu="Clients" submenu="Liste" action="read" fallback={null}>
+            <PermissionGuard 
+              menu="Clients" 
+              submenu="Liste" 
+              action="read" 
+              mode="disable"
+              disabledClassName="opacity-50 cursor-not-allowed pointer-events-none"
+            >
               <TabsTrigger value="liste">Clients</TabsTrigger>
             </PermissionGuard>
-            <PermissionGuard menu="Clients" submenu="Meilleurs Clients" action="read" fallback={null}>
+            <PermissionGuard 
+              menu="Clients" 
+              submenu="Meilleurs Clients" 
+              action="read" 
+              mode="disable"
+              disabledClassName="opacity-50 cursor-not-allowed pointer-events-none"
+            >
               <TabsTrigger value="meilleurs">Meilleurs Clients</TabsTrigger>
             </PermissionGuard>
-            <PermissionGuard menu="Clients" submenu="Clients Endettés" action="read" fallback={null}>
+            <PermissionGuard 
+              menu="Clients" 
+              submenu="Clients Endettés" 
+              action="read" 
+              mode="disable"
+              disabledClassName="opacity-50 cursor-not-allowed pointer-events-none"
+            >
               <TabsTrigger value="endettes">Clients Endettés</TabsTrigger>
             </PermissionGuard>
           </TabsList>

@@ -93,13 +93,68 @@ const Settings = () => {
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="grid grid-cols-8 w-full">
             <TabsTrigger value="overview">Vue d'ensemble</TabsTrigger>
-            <TabsTrigger value="zone-geo">Zone Géo</TabsTrigger>
-            <TabsTrigger value="fournisseurs">Fournisseurs</TabsTrigger>
-            <TabsTrigger value="depots-stockage">Dépôts Stock</TabsTrigger>
-            <TabsTrigger value="depots-pdv">Dépôts PDV</TabsTrigger>
-            <TabsTrigger value="clients">Clients</TabsTrigger>
-            <TabsTrigger value="utilisateurs-internes">Utilisateurs</TabsTrigger>
-            <TabsTrigger value="acces-permissions">Permissions</TabsTrigger>
+            <PermissionGuard 
+              menu="Paramètres" 
+              submenu="Zone Géographique" 
+              action="read" 
+              mode="disable"
+              disabledClassName="opacity-50 cursor-not-allowed pointer-events-none"
+            >
+              <TabsTrigger value="zone-geo">Zone Géo</TabsTrigger>
+            </PermissionGuard>
+            <PermissionGuard 
+              menu="Paramètres" 
+              submenu="Fournisseurs" 
+              action="read" 
+              mode="disable"
+              disabledClassName="opacity-50 cursor-not-allowed pointer-events-none"
+            >
+              <TabsTrigger value="fournisseurs">Fournisseurs</TabsTrigger>
+            </PermissionGuard>
+            <PermissionGuard 
+              menu="Paramètres" 
+              submenu="Entrepôts" 
+              action="read" 
+              mode="disable"
+              disabledClassName="opacity-50 cursor-not-allowed pointer-events-none"
+            >
+              <TabsTrigger value="depots-stockage">Dépôts Stock</TabsTrigger>
+            </PermissionGuard>
+            <PermissionGuard 
+              menu="Paramètres" 
+              submenu="Points de vente" 
+              action="read" 
+              mode="disable"
+              disabledClassName="opacity-50 cursor-not-allowed pointer-events-none"
+            >
+              <TabsTrigger value="depots-pdv">Dépôts PDV</TabsTrigger>
+            </PermissionGuard>
+            <PermissionGuard 
+              menu="Clients" 
+              action="read" 
+              mode="disable"
+              disabledClassName="opacity-50 cursor-not-allowed pointer-events-none"
+            >
+              <TabsTrigger value="clients">Clients</TabsTrigger>
+            </PermissionGuard>
+            <PermissionGuard 
+              menu="Paramètres" 
+              submenu="Utilisateurs" 
+              action="read" 
+              mode="disable"
+              disabledClassName="opacity-50 cursor-not-allowed pointer-events-none"
+            >
+              <TabsTrigger value="utilisateurs-internes">Utilisateurs</TabsTrigger>
+            </PermissionGuard>
+            <PermissionGuard 
+              menu="Paramètres" 
+              submenu="Permissions" 
+              action="read" 
+              mode="disable"
+              disabledClassName="opacity-50 cursor-not-allowed pointer-events-none"
+            >
+              <TabsTrigger value="acces-permissions">Permissions</TabsTrigger>
+            </PermissionGuard>
           </TabsList>
 
           <TabsContent value="overview" className="mt-6">

@@ -79,10 +79,22 @@ const CashRegisters: React.FC = () => {
         <TabsContent value="overview" className="space-y-4">
           <Tabs value={activeSubTab} onValueChange={setActiveSubTab} className="space-y-4">
             <TabsList>
-              <PermissionGuard menu="Caisse" submenu="Aperçu du jour" action="read" fallback={null}>
+              <PermissionGuard 
+                menu="Caisse" 
+                submenu="Aperçu du jour" 
+                action="read" 
+                mode="disable"
+                disabledClassName="opacity-50 cursor-not-allowed pointer-events-none"
+              >
                 <TabsTrigger value="daily">Aperçu du jour</TabsTrigger>
               </PermissionGuard>
-              <PermissionGuard menu="Caisse" submenu="Historique complet" action="read" fallback={null}>
+              <PermissionGuard 
+                menu="Caisse" 
+                submenu="Historique complet" 
+                action="read" 
+                mode="disable"
+                disabledClassName="opacity-50 cursor-not-allowed pointer-events-none"
+              >
                 <TabsTrigger value="complete">Historique complet</TabsTrigger>
               </PermissionGuard>
             </TabsList>
