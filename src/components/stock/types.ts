@@ -34,8 +34,8 @@ export type Article = {
   prix_vente: number | null;
   seuil_alerte: number | null;
   statut: string | null;
-  created_at: string;
-  updated_at: string;
+  created_at?: string; // Optionnel car peut ne pas être inclus dans certaines requêtes
+  updated_at?: string; // Optionnel car peut ne pas être inclus dans certaines requêtes
   categorie_article?: { nom: string };
   unite_article?: { nom: string };
 };

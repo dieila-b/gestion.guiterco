@@ -117,6 +117,34 @@ export const useEntreesStock = () => {
     }
   });
 
+  // Fonction pour vérifier les doublons potentiels
+  const checkForDuplicates = async (entreeData: Partial<EntreeStock>): Promise<EntreeStock[]> => {
+    try {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const tomorrow = new Date(today);
+      tomorrow.setDate(tomorrow.getDate() + 1);
+
+      const { data, error } = await supabase
+        .from('entrees_stock')
+        .select('*')
+        .eq('article_id', entreeData.article_id)
+        .gte('created_at', today.toISOString())
+        .lt('created_at', tomorrow.toISOString())
+        .neq('id', entreeData.id || ''); // Exclure l'entrée actuelle si c'est une modification
+
+      if (error) {
+        console.error('Erreur lors de la vérification des doublons:', error);
+        return [];
+      }
+
+      return data as EntreeStock[] || [];
+    } catch (error) {
+      console.error('Erreur lors de la vérification des doublons:', error);
+      return [];
+    }
+  };
+
   const refreshEntrees = () => {
     console.log('🔄 Rafraîchissement manuel...');
     queryClient.invalidateQueries({ queryKey: ['entrees-stock'] });
@@ -124,10 +152,11 @@ export const useEntreesStock = () => {
   };
 
   return {
-    entrees,
+    entrees: entrees || [],
     isLoading,
     error,
     createEntree,
+    checkForDuplicates,
     refreshEntrees
   };
 };
