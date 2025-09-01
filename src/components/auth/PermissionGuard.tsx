@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { useUserPermissions } from '@/hooks/useUserPermissions';
+import { useHasPermission } from '@/hooks/useUserPermissions';
 import { useAuth } from '@/components/auth/AuthContext';
 import { Loader2, AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -31,7 +31,7 @@ export const PermissionGuard: React.FC<PermissionGuardProps> = ({
   mode = 'hide',
   disabledClassName = 'opacity-50 cursor-not-allowed'
 }) => {
-  const { hasPermission, isLoading } = useUserPermissions();
+  const { hasPermission, isLoading } = useHasPermission();
   const { isDevMode, user, utilisateurInterne, loading: authLoading } = useAuth();
 
   console.log(`🛡️ PermissionGuard - Vérification: ${menu}${submenu ? ` > ${submenu}` : ''} (${action})`, {
