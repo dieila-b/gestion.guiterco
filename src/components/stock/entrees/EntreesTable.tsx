@@ -2,8 +2,7 @@
 import React from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Skeleton } from '@/components/ui/skeleton';
-import { format } from 'date-fns';
-import { fr } from 'date-fns/locale/fr';
+import { formatDate } from '@/lib/date-utils';
 import { formatCurrency } from '@/lib/currency';
 import { EntreeStock } from '@/components/stock/types';
 import { Badge } from '@/components/ui/badge';
@@ -14,9 +13,6 @@ interface EntreesTableProps {
 }
 
 export const EntreesTable = ({ entrees, isLoading }: EntreesTableProps) => {
-  console.log('EntreesTable - entrees:', entrees);
-  console.log('EntreesTable - isLoading:', isLoading);
-
   if (isLoading) {
     return (
       <div className="space-y-2">
@@ -56,73 +52,67 @@ export const EntreesTable = ({ entrees, isLoading }: EntreesTableProps) => {
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Date</TableHead>
-            <TableHead>Article</TableHead>
-            <TableHead>Emplacement</TableHead>
-            <TableHead>Type</TableHead>
-            <TableHead className="text-right">Quantité</TableHead>
-            <TableHead>Fournisseur</TableHead>
-            <TableHead className="text-right">Prix unitaire</TableHead>
-            <TableHead>Bon</TableHead>
-            <TableHead>Observations</TableHead>
+            <TableHead className="font-semibold">Date</TableHead>
+            <TableHead className="font-semibold">Article</TableHead>
+            <TableHead className="font-semibold">Emplacement</TableHead>
+            <TableHead className="font-semibold">Type</TableHead>
+            <TableHead className="font-semibold text-right">Quantité</TableHead>
+            <TableHead className="font-semibold">Fournisseur</TableHead>
+            <TableHead className="font-semibold text-right">Prix unitaire</TableHead>
+            <TableHead className="font-semibold">Bon</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {entrees && entrees.length > 0 ? (
-            entrees.map((entree) => {
-              console.log('Rendering entree:', entree);
-              
-              return (
-                <TableRow key={entree.id}>
-                  <TableCell>
-                    {format(new Date(entree.created_at), 'dd/MM/yyyy HH:mm', { locale: fr })}
-                  </TableCell>
-                  <TableCell className="font-medium">
-                    <div>
-                      <div>{entree.article?.nom || `Article ID: ${entree.article_id}`}</div>
-                      {entree.article?.reference && (
-                        <div className="text-sm text-muted-foreground">
-                          Réf: {entree.article.reference}
-                        </div>
-                      )}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    {entree.entrepot?.nom || entree.point_vente?.nom || 
-                     (entree.entrepot_id ? `Entrepôt ID: ${entree.entrepot_id}` : 
-                      entree.point_vente_id ? `PDV ID: ${entree.point_vente_id}` : 'Emplacement non défini')}
-                  </TableCell>
-                  <TableCell>
-                    {getTypeEntreeBadge(entree.type_entree)}
-                  </TableCell>
-                  <TableCell className="text-right font-medium">
-                    {entree.quantite}
-                    {entree.article?.unite_mesure && (
-                      <span className="text-muted-foreground ml-1">
-                        {entree.article.unite_mesure}
-                      </span>
+            entrees.map((entree) => (
+              <TableRow key={entree.id}>
+                <TableCell className="font-medium">
+                  {formatDate(entree.created_at)}
+                </TableCell>
+                <TableCell>
+                  <div>
+                    <div className="font-medium">{entree.article?.nom || `Article ID: ${entree.article_id}`}</div>
+                    {entree.article?.reference && (
+                      <div className="text-sm text-muted-foreground">
+                        {entree.article.reference}
+                      </div>
                     )}
-                  </TableCell>
-                  <TableCell>{entree.fournisseur || 'N/A'}</TableCell>
-                  <TableCell className="text-right">
-                    {entree.prix_unitaire ? formatCurrency(entree.prix_unitaire) : 'N/A'}
-                  </TableCell>
-                  <TableCell>{entree.numero_bon || 'N/A'}</TableCell>
-                  <TableCell className="max-w-xs truncate">
-                    {entree.observations || 'N/A'}
-                  </TableCell>
-                </TableRow>
-              );
-            })
+                  </div>
+                </TableCell>
+                <TableCell>
+                  {entree.entrepot?.nom || entree.point_vente?.nom || 
+                   (entree.entrepot_id ? `Entrepôt ID: ${entree.entrepot_id}` : 
+                    entree.point_vente_id ? `PDV ID: ${entree.point_vente_id}` : 'Dépôt A')}
+                </TableCell>
+                <TableCell>
+                  {getTypeEntreeBadge(entree.type_entree)}
+                </TableCell>
+                <TableCell className="text-right font-medium">
+                  {entree.quantite.toLocaleString()}
+                  {entree.article?.unite_mesure && (
+                    <span className="text-muted-foreground ml-1">
+                      {entree.article.unite_mesure}
+                    </span>
+                  )}
+                </TableCell>
+                <TableCell>{entree.fournisseur || 'N/A'}</TableCell>
+                <TableCell className="text-right font-medium">
+                  {entree.prix_unitaire ? formatCurrency(entree.prix_unitaire) : 'N/A'}
+                </TableCell>
+                <TableCell className="font-medium">
+                  {entree.numero_bon || 'N/A'}
+                </TableCell>
+              </TableRow>
+            ))
           ) : (
             <TableRow>
-              <TableCell colSpan={9} className="text-center py-8">
+              <TableCell colSpan={8} className="text-center py-8">
                 <div className="space-y-2">
                   <div className="text-muted-foreground">
                     Aucune entrée trouvée
                   </div>
                   <div className="text-sm text-muted-foreground">
-                    Vérifiez que les données existent dans la table entrees_stock
+                    Les données de la table entrees_stock sont maintenant synchronisées
                   </div>
                 </div>
               </TableCell>

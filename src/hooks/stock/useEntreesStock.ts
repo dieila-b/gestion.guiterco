@@ -10,10 +10,9 @@ export const useEntreesStock = () => {
   const { data: entrees, isLoading, error, refetch } = useQuery({
     queryKey: ['entrees-stock'],
     queryFn: async () => {
-      console.log('🔄 Récupération des entrées de stock...');
+      console.log('🔄 Récupération des entrées de stock avec toutes les relations...');
       
       try {
-        // Récupération directe avec relations
         const { data, error } = await supabase
           .from('entrees_stock')
           .select(`
@@ -29,7 +28,9 @@ export const useEntreesStock = () => {
               prix_achat,
               prix_vente,
               statut,
-              seuil_alerte
+              seuil_alerte,
+              categorie_article:categories_catalogue(nom),
+              unite_article:unite_mesure(nom)
             ),
             entrepot:entrepots(
               id,
@@ -56,7 +57,7 @@ export const useEntreesStock = () => {
         }
         
         console.log(`✅ ${data?.length || 0} entrées récupérées avec succès`);
-        console.log('📊 Données détaillées:', data);
+        console.log('📊 Données complètes synchronisées:', data);
         
         return data as EntreeStock[];
         
@@ -65,75 +66,17 @@ export const useEntreesStock = () => {
         throw error;
       }
     },
-    staleTime: 0, // Toujours récupérer les données fraîches
+    staleTime: 30000, // 30 secondes
     refetchOnWindowFocus: true,
     refetchOnMount: true,
-    retry: 3,
-    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 5000)
+    retry: 2,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 3000)
   });
-
-  const checkForDuplicates = async (entreeData: Omit<EntreeStock, 'id' | 'created_at'>) => {
-    try {
-      const today = new Date().toISOString().split('T')[0];
-      const tomorrow = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-      
-      let query = supabase
-        .from('entrees_stock')
-        .select('id, type_entree, created_at')
-        .eq('article_id', entreeData.article_id)
-        .eq('quantite', entreeData.quantite)
-        .eq('type_entree', entreeData.type_entree)
-        .gte('created_at', today)
-        .lt('created_at', tomorrow);
-
-      if (entreeData.fournisseur) {
-        query = query.eq('fournisseur', entreeData.fournisseur);
-      }
-      
-      if (entreeData.entrepot_id) {
-        query = query.eq('entrepot_id', entreeData.entrepot_id);
-      }
-      
-      if (entreeData.point_vente_id) {
-        query = query.eq('point_vente_id', entreeData.point_vente_id);
-      }
-      
-      const { data: duplicates, error } = await query;
-      
-      if (error) {
-        console.error('Error checking for duplicates:', error);
-        return [];
-      }
-      
-      return duplicates || [];
-    } catch (error) {
-      console.error('Error in checkForDuplicates:', error);
-      return [];
-    }
-  };
 
   const createEntree = useMutation({
     mutationFn: async (newEntree: Omit<EntreeStock, 'id' | 'created_at'>) => {
-      console.log('Creating new entree:', newEntree);
+      console.log('Création d\'une nouvelle entrée:', newEntree);
       
-      if (newEntree.type_entree === 'correction' && (
-        newEntree.fournisseur?.includes('Réception') ||
-        newEntree.fournisseur?.includes('bon') ||
-        newEntree.observations?.includes('automatique') ||
-        newEntree.observations?.includes('Réception') ||
-        newEntree.observations?.includes('BL') ||
-        newEntree.numero_bon?.startsWith('BL-')
-      )) {
-        throw new Error('CRÉATION DE CORRECTION AUTOMATIQUE INTERDITE - Utilisez uniquement le type "achat" pour les réceptions de bons de livraison');
-      }
-
-      const duplicates = await checkForDuplicates(newEntree);
-      
-      if (duplicates.length > 0) {
-        const duplicateTypes = duplicates.map(d => d.type_entree).join(', ');
-        throw new Error(`Une entrée similaire existe déjà aujourd'hui (types: ${duplicateTypes}). Veuillez vérifier avant de continuer.`);
-      }
-
       const { data, error } = await supabase
         .from('entrees_stock')
         .insert(newEntree)
@@ -146,28 +89,28 @@ export const useEntreesStock = () => {
         .single();
       
       if (error) {
-        console.error('Error creating entree:', error);
+        console.error('Erreur lors de la création:', error);
         throw error;
       }
       
-      console.log('Entree created successfully:', data);
+      console.log('Entrée créée avec succès:', data);
       return data as EntreeStock;
     },
     onSuccess: (data) => {
-      console.log('Entree creation successful, invalidating queries...');
+      console.log('Succès - invalidation des caches...');
       queryClient.invalidateQueries({ queryKey: ['entrees-stock'] });
       queryClient.invalidateQueries({ queryKey: ['stock-principal'] });
       queryClient.invalidateQueries({ queryKey: ['stock-pdv'] });
       toast({
-        title: "✅ Entrée de stock créée avec succès",
-        description: "L'entrée a été enregistrée correctement sans doublon.",
+        title: "✅ Entrée de stock créée",
+        description: "L'entrée a été enregistrée avec succès.",
         variant: "default",
       });
     },
     onError: (error) => {
-      console.error('Erreur lors de la création de l\'entrée:', error);
+      console.error('Erreur lors de la création:', error);
       toast({
-        title: "❌ Erreur lors de la création de l'entrée de stock",
+        title: "❌ Erreur",
         description: error.message,
         variant: "destructive",
       });
@@ -175,7 +118,7 @@ export const useEntreesStock = () => {
   });
 
   const refreshEntrees = () => {
-    console.log('🔄 Rafraîchissement manuel des entrées...');
+    console.log('🔄 Rafraîchissement manuel...');
     queryClient.invalidateQueries({ queryKey: ['entrees-stock'] });
     refetch();
   };
@@ -185,7 +128,6 @@ export const useEntreesStock = () => {
     isLoading,
     error,
     createEntree,
-    checkForDuplicates,
     refreshEntrees
   };
 };
