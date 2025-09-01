@@ -2,7 +2,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 
-interface UserPermission {
+export interface UserPermission {
   menu: string;
   submenu: string | null;
   action: string;
@@ -67,6 +67,13 @@ export const useUserPermissions = () => {
     permissions,
     hasPermission,
     isLoading,
-    error
+    error,
+    data: permissions // Ajouter data pour compatibilité
   };
+};
+
+// Export séparé pour useHasPermission pour compatibilité
+export const useHasPermission = () => {
+  const { hasPermission, isLoading } = useUserPermissions();
+  return { hasPermission, isLoading };
 };
