@@ -18,7 +18,7 @@ const SituationCard: React.FC<SituationCardProps> = ({ stats, isLoading }) => {
   return (
     <div className="max-w-4xl mx-auto">
       <h2 className="text-2xl font-bold text-center mb-6 text-gray-800">Situation actuelle</h2>
-      <Card className={`bg-white border border-gray-100 shadow-md rounded-xl overflow-hidden ${shouldBlurFinancialData() ? 'blur-sm pointer-events-none select-none' : ''}`}>
+      <Card className={`bg-white border border-gray-100 shadow-md rounded-xl overflow-hidden ${shouldBlurFinancialData() ? 'blur-sm pointer-events-none select-none opacity-75' : ''}`}>
         <CardContent className="p-8">
           <div className="flex items-center space-x-6">
             <div className="flex-shrink-0">
@@ -30,20 +30,20 @@ const SituationCard: React.FC<SituationCardProps> = ({ stats, isLoading }) => {
               <div className="flex justify-between items-center py-2">
                 <span className="text-lg font-medium text-gray-700">Solde Avoir :</span>
                 <span className="text-2xl font-bold text-green-600">
-                  {isLoading ? <Skeleton className="h-8 w-32" /> : formatCurrency(stats?.soldeAvoir || 0)}
+                  {isLoading ? <Skeleton className="h-8 w-32" /> : (shouldBlurFinancialData() ? '• • • • •' : formatCurrency(stats?.soldeAvoir || 0))}
                 </span>
               </div>
               <div className="flex justify-between items-center py-2">
                 <span className="text-lg font-medium text-gray-700">Solde Devoir :</span>
                 <span className="text-2xl font-bold text-gray-900">
-                  {isLoading ? <Skeleton className="h-8 w-32" /> : formatCurrency(stats?.soldeDevoir || 0)}
+                  {isLoading ? <Skeleton className="h-8 w-32" /> : (shouldBlurFinancialData() ? '• • • • •' : formatCurrency(stats?.soldeDevoir || 0))}
                 </span>
               </div>
               <div className="border-t pt-4">
                 <div className="flex justify-between items-center">
                   <span className="text-lg font-semibold text-gray-800">Situation normale :</span>
                   <span className="text-3xl font-bold text-green-600">
-                    {isLoading ? <Skeleton className="h-9 w-36" /> : formatCurrency(stats?.situationNormale || 0)}
+                    {isLoading ? <Skeleton className="h-9 w-36" /> : (shouldBlurFinancialData() ? '• • • • •' : formatCurrency(stats?.situationNormale || 0))}
                   </span>
                 </div>
               </div>

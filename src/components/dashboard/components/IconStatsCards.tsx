@@ -37,7 +37,7 @@ const IconStatsCards: React.FC<IconStatsCardsProps> = ({ stats, isLoading }) => 
       </Card>
 
       {/* Règlement fournisseur */}
-      <Card className={`bg-white border border-gray-100 shadow-sm hover:shadow-md transition-shadow duration-300 rounded-xl ${shouldBlurFinancialData() ? 'blur-sm pointer-events-none select-none' : ''}`}>
+      <Card className={`bg-white border border-gray-100 shadow-sm hover:shadow-md transition-shadow duration-300 rounded-xl ${shouldBlurFinancialData() ? 'blur-sm pointer-events-none select-none opacity-75' : ''}`}>
         <CardContent className="p-6">
           <div className="flex items-center space-x-4">
             <div className="flex-shrink-0">
@@ -48,7 +48,7 @@ const IconStatsCards: React.FC<IconStatsCardsProps> = ({ stats, isLoading }) => 
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium text-gray-600 mb-1">Règlement fournisseur</p>
               <p className="text-2xl font-bold text-gray-900">
-                {isLoading ? <Skeleton className="h-7 w-16" /> : formatAmount(stats?.reglementsFournisseurs || 0)}
+                {isLoading ? <Skeleton className="h-7 w-16" /> : (shouldBlurFinancialData() ? '• • • • •' : formatAmount(stats?.reglementsFournisseurs || 0))}
               </p>
             </div>
           </div>

@@ -4,14 +4,24 @@ export const useViewPermissions = () => {
   const { utilisateurInterne, isDevMode } = useAuth();
 
   const isRestrictedRole = () => {
-    if (isDevMode) return false; // En mode dev, pas de restriction
+    // En mode dev, on applique toujours les restrictions pour tester
     
     const roleName = utilisateurInterne?.role?.name || utilisateurInterne?.role?.nom;
+    console.log('🔒 ViewPermissions Debug:', {
+      isDevMode,
+      utilisateurInterne,
+      roleName,
+      isVendeur: roleName?.toLowerCase() === 'vendeur',
+      isCaissier: roleName?.toLowerCase() === 'caissier'
+    });
+    
     return roleName?.toLowerCase() === 'vendeur' || roleName?.toLowerCase() === 'caissier';
   };
 
   const shouldBlurFinancialData = () => {
-    return isRestrictedRole();
+    const shouldBlur = isRestrictedRole();
+    console.log('🔒 Should blur financial data:', shouldBlur);
+    return shouldBlur;
   };
 
   return {
