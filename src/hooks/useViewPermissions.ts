@@ -12,10 +12,13 @@ export const useViewPermissions = () => {
       utilisateurInterne,
       roleName,
       isVendeur: roleName?.toLowerCase() === 'vendeur',
-      isCaissier: roleName?.toLowerCase() === 'caissier'
+      isCaissier: roleName?.toLowerCase() === 'caissier',
+      isManager: roleName?.toLowerCase() === 'manager'
     });
     
-    return roleName?.toLowerCase() === 'vendeur' || roleName?.toLowerCase() === 'caissier';
+    return roleName?.toLowerCase() === 'vendeur' || 
+           roleName?.toLowerCase() === 'caissier' || 
+           roleName?.toLowerCase() === 'manager';
   };
 
   const shouldBlurFinancialData = () => {

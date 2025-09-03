@@ -13,6 +13,7 @@ interface EntreesTableProps {
 }
 
 export const EntreesTable = ({ entrees, isLoading }: EntreesTableProps) => {
+  const { shouldBlurFinancialData } = useViewPermissions();
   if (isLoading) {
     return (
       <div className="space-y-2">
