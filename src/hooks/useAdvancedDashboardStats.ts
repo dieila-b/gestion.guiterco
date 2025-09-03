@@ -206,20 +206,6 @@ export const useAdvancedDashboardStats = () => {
       const nombreClients = clientsCount || 0;
 
       // 7. Calcul du stock global (quantités totales des entrepôts + PDV)
-      const { data: stockData, error: stockError } = await supabase
-        .from('stock_principal')
-        .select(`
-          quantite_disponible,
-          article:article_id(prix_unitaire)
-        `);
-      
-      const { data: stockPDV, error: stockPDVError } = await supabase
-        .from('stock_pdv')
-        .select(`
-          quantite_disponible,
-          article:article_id(prix_unitaire)
-        `);
-
       let totalCatalogue = catalogueCount || 0;
       let stockGlobal = 0;
       let valeurStockAchat = 0;
@@ -227,36 +213,73 @@ export const useAdvancedDashboardStats = () => {
       let margeGlobaleStock = 0;
       let margePourcentage = 0;
 
-      if (!stockError && !stockPDVError) {
-        // Calcul des quantités totales (entrepôts + PDV)
-        const stockPrincipalTotal = stockData?.reduce((sum, item) => sum + (item.quantite_disponible || 0), 0) || 0;
-        const stockPDVTotal = stockPDV?.reduce((sum, item) => sum + (item.quantite_disponible || 0), 0) || 0;
-        stockGlobal = stockPrincipalTotal + stockPDVTotal;
+      try {
+        // Calcul direct du stock global avec requêtes optimisées
+        const { data: stockData, error: stockError } = await supabase
+          .from('stock_principal')
+          .select('quantite_disponible');
         
-        // Calcul des valeurs et marges
-        valeurStockAchat = (stockData?.reduce((sum, item) => {
-          const prix = (item as any).article?.prix_unitaire || 0;
-          const quantite = item.quantite_disponible || 0;
-          return sum + (prix * quantite);
-        }, 0) || 0) + (stockPDV?.reduce((sum, item) => {
-          const prix = (item as any).article?.prix_unitaire || 0;
-          const quantite = item.quantite_disponible || 0;
-          return sum + (prix * quantite);
-        }, 0) || 0);
+        const { data: stockPDVData, error: stockPDVError } = await supabase
+          .from('stock_pdv')
+          .select('quantite_disponible');
+
+        if (!stockError && !stockPDVError) {
+          const stockPrincipalTotal = stockData?.reduce((sum, item) => sum + (item.quantite_disponible || 0), 0) || 0;
+          const stockPDVTotal = stockPDVData?.reduce((sum, item) => sum + (item.quantite_disponible || 0), 0) || 0;
+          stockGlobal = stockPrincipalTotal + stockPDVTotal;
+          
+          console.log('📊 Stock Global calculé:', {
+            stockPrincipalTotal,
+            stockPDVTotal,
+            stockGlobal
+          });
+        } else {
+          console.error('❌ Erreur calcul stock global:', { stockError, stockPDVError });
+          stockGlobal = 0;
+        }
+
+        // Calcul des valeurs et marges (requêtes séparées pour éviter les erreurs de jointure)
+        const { data: stockDetailData, error: stockDetailError } = await supabase
+          .from('stock_principal')
+          .select(`
+            quantite_disponible,
+            article:article_id(prix_unitaire, prix_achat, prix_vente)
+          `);
         
-        valeurStockVente = valeurStockAchat * 1.3;
-        margeGlobaleStock = valeurStockVente - valeurStockAchat;
-        margePourcentage = valeurStockAchat > 0 ? ((margeGlobaleStock / valeurStockAchat) * 100) : 0;
-        
-        console.log('📊 Stock Global calculé:', {
-          stockPrincipalTotal,
-          stockPDVTotal,
-          stockGlobal,
-          valeurStockAchat,
-          valeurStockVente,
-          margeGlobaleStock,
-          margePourcentage
-        });
+        const { data: stockPDVDetailData, error: stockPDVDetailError } = await supabase
+          .from('stock_pdv')
+          .select(`
+            quantite_disponible,
+            article:article_id(prix_unitaire, prix_achat, prix_vente)
+          `);
+
+        if (!stockDetailError && !stockPDVDetailError) {
+          valeurStockAchat = (stockDetailData?.reduce((sum, item) => {
+            const prix = (item as any).article?.prix_achat || (item as any).article?.prix_unitaire || 0;
+            const quantite = item.quantite_disponible || 0;
+            return sum + (prix * quantite);
+          }, 0) || 0) + (stockPDVDetailData?.reduce((sum, item) => {
+            const prix = (item as any).article?.prix_achat || (item as any).article?.prix_unitaire || 0;
+            const quantite = item.quantite_disponible || 0;
+            return sum + (prix * quantite);
+          }, 0) || 0);
+          
+          valeurStockVente = (stockDetailData?.reduce((sum, item) => {
+            const prix = (item as any).article?.prix_vente || (item as any).article?.prix_unitaire || 0;
+            const quantite = item.quantite_disponible || 0;
+            return sum + (prix * quantite);
+          }, 0) || 0) + (stockPDVDetailData?.reduce((sum, item) => {
+            const prix = (item as any).article?.prix_vente || (item as any).article?.prix_unitaire || 0;
+            const quantite = item.quantite_disponible || 0;
+            return sum + (prix * quantite);
+          }, 0) || 0);
+          
+          margeGlobaleStock = valeurStockVente - valeurStockAchat;
+          margePourcentage = valeurStockAchat > 0 ? ((margeGlobaleStock / valeurStockAchat) * 100) : 0;
+        }
+      } catch (error) {
+        console.error('❌ Erreur calcul stock global complet:', error);
+        stockGlobal = 0;
       }
 
       // 8. Récupération des données des marges globales (pour validation)
