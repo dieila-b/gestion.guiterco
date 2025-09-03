@@ -6,6 +6,7 @@ import { formatDate } from '@/lib/date-utils';
 import { formatCurrency } from '@/lib/currency';
 import { EntreeStock } from '@/components/stock/types';
 import { Badge } from '@/components/ui/badge';
+import { useViewPermissions } from '@/hooks/useViewPermissions';
 
 interface EntreesTableProps {
   entrees: EntreeStock[] | undefined;
@@ -59,7 +60,9 @@ export const EntreesTable = ({ entrees, isLoading }: EntreesTableProps) => {
             <TableHead className="font-semibold">Type</TableHead>
             <TableHead className="font-semibold text-right">Quantité</TableHead>
             <TableHead className="font-semibold">Fournisseur</TableHead>
-            <TableHead className="font-semibold text-right">Prix unitaire</TableHead>
+            <TableHead className="font-semibold text-right">
+              {shouldBlurFinancialData() ? "• • • • •" : "Prix unitaire"}
+            </TableHead>
             <TableHead className="font-semibold">Bon</TableHead>
           </TableRow>
         </TableHeader>
@@ -97,8 +100,8 @@ export const EntreesTable = ({ entrees, isLoading }: EntreesTableProps) => {
                   )}
                 </TableCell>
                 <TableCell>{entree.fournisseur || 'N/A'}</TableCell>
-                <TableCell className="text-right font-medium">
-                  {entree.prix_unitaire ? formatCurrency(entree.prix_unitaire) : 'N/A'}
+                <TableCell className={`text-right font-medium ${shouldBlurFinancialData() ? 'blur-sm select-none pointer-events-none' : ''}`}>
+                  {shouldBlurFinancialData() ? "• • • • •" : (entree.prix_unitaire ? formatCurrency(entree.prix_unitaire) : 'N/A')}
                 </TableCell>
                 <TableCell className="font-medium">
                   {entree.numero_bon || 'N/A'}
