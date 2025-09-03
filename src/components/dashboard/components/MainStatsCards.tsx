@@ -10,7 +10,7 @@ interface MainStatsCardsProps {
   stats: AdvancedDashboardStats | undefined;
   isLoading: boolean;
   onVentesClick: () => void;
-  onMargeClick: () => void;
+  onBalanceClick: () => void;
   onFacturesImpayeesClick: () => void;
   onDepensesClick: () => void;
 }
@@ -19,7 +19,7 @@ const MainStatsCards: React.FC<MainStatsCardsProps> = ({
   stats,
   isLoading,
   onVentesClick,
-  onMargeClick,
+  onBalanceClick,
   onFacturesImpayeesClick,
   onDepensesClick,
 }) => {
@@ -55,10 +55,10 @@ const MainStatsCards: React.FC<MainStatsCardsProps> = ({
         </CardContent>
       </Card>
 
-      {/* Marge du jour - Vert */}
+      {/* Balance du jour - Vert */}
       <Card 
         className="relative overflow-hidden bg-gradient-to-br from-green-400 to-green-500 text-white border-0 cursor-pointer hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 rounded-xl"
-        onClick={onMargeClick}
+        onClick={onBalanceClick}
       >
         <CardContent className="p-6">
           <div className="flex items-center justify-between mb-4">
@@ -67,12 +67,12 @@ const MainStatsCards: React.FC<MainStatsCardsProps> = ({
             </div>
             <div className="text-right">
               <div className="text-3xl font-bold">
-                {isLoading ? <Skeleton className="h-8 w-20 bg-white/20" /> : formatCurrency(stats?.margeJour || 0)}
+                {isLoading ? <Skeleton className="h-8 w-20 bg-white/20" /> : formatCurrency(stats?.balanceJour || 0)}
               </div>
             </div>
           </div>
           <div className="space-y-2">
-            <h3 className="text-lg font-semibold text-white/90">Marge du jour</h3>
+            <h3 className="text-lg font-semibold text-white/90">Balance du jour</h3>
             <div className="flex items-center justify-between text-sm">
               <span className="text-white/80">{today}</span>
               <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm">

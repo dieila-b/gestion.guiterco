@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { useAdvancedDashboardStats } from '@/hooks/useAdvancedDashboardStats';
 import { useNavigate } from 'react-router-dom';
 import VentesDuJourModal from './modals/VentesDuJourModal';
-import MargeDuJourModal from './modals/MargeDuJourModal';
+import BalanceDuJourModal from './modals/BalanceDuJourModal';
 import DepensesDuMoisModal from './modals/DepensesDuMoisModal';
 import MainStatsCards from './components/MainStatsCards';
 import IconStatsCards from './components/IconStatsCards';
@@ -15,7 +15,7 @@ const NewDashboard = () => {
   const navigate = useNavigate();
   
   const [ventesModalOpen, setVentesModalOpen] = useState(false);
-  const [margeModalOpen, setMargeModalOpen] = useState(false);
+  const [balanceModalOpen, setBalanceModalOpen] = useState(false);
   const [depensesModalOpen, setDepensesModalOpen] = useState(false);
 
   const handleFacturesImpayeesClick = () => {
@@ -43,7 +43,7 @@ const NewDashboard = () => {
         stats={stats}
         isLoading={isLoading}
         onVentesClick={() => setVentesModalOpen(true)}
-        onMargeClick={() => setMargeModalOpen(true)}
+        onBalanceClick={() => setBalanceModalOpen(true)}
         onFacturesImpayeesClick={handleFacturesImpayeesClick}
         onDepensesClick={handleDepensesClick}
       />
@@ -62,9 +62,9 @@ const NewDashboard = () => {
         isOpen={ventesModalOpen} 
         onClose={() => setVentesModalOpen(false)} 
       />
-      <MargeDuJourModal 
-        isOpen={margeModalOpen} 
-        onClose={() => setMargeModalOpen(false)} 
+      <BalanceDuJourModal 
+        isOpen={balanceModalOpen} 
+        onClose={() => setBalanceModalOpen(false)} 
       />
       <DepensesDuMoisModal 
         isOpen={depensesModalOpen} 

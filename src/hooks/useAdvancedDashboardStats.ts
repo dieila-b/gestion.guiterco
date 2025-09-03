@@ -5,7 +5,7 @@ import { format, startOfMonth, endOfMonth, startOfDay, endOfDay } from 'date-fns
 
 export interface AdvancedDashboardStats {
   ventesJour: number;
-  margeJour: number;
+  balanceJour: number;
   facturesImpayeesJour: number;
   depensesMois: number;
   totalCatalogue: number;
@@ -62,8 +62,39 @@ export const useAdvancedDashboardStats = () => {
       const ventesJour = facturesJour?.reduce((sum, facture) => sum + (facture.montant_ttc || 0), 0) || 0;
       console.log('💰 Ventes du jour:', ventesJour);
 
-      // 2. Calcul de la marge du jour (approximation basée sur 30% de marge)
-      const margeJour = ventesJour * 0.3;
+      // 2. Calcul de la balance du jour (solde de la caisse)
+      let balanceJour = 0;
+      
+      // D'abord essayer la vue solde_caisse si elle existe
+      try {
+        const { data: viewData, error: viewError } = await supabase
+          .from('vue_solde_caisse')
+          .select('solde_actif')
+          .single();
+
+        if (!viewError && viewData) {
+          balanceJour = viewData.solde_actif || 0;
+        } else {
+          // Calcul manuel basique des transactions du jour
+          const { data: transactionsJour, error: transJourError } = await supabase
+            .from('transactions')
+            .select('type, amount, montant, description')
+            .gte('date_operation', startOfToday)
+            .lte('date_operation', endOfToday);
+
+          if (!transJourError && transactionsJour) {
+            balanceJour = transactionsJour
+              .filter(t => t.type === 'income' || t.type === 'expense')
+              .reduce((sum, t) => {
+                const montant = t.amount || t.montant || 0;
+                return sum + (t.type === 'income' ? montant : -montant);
+              }, 0);
+          }
+        }
+      } catch (error) {
+        console.error('❌ Erreur calcul balance jour:', error);
+        balanceJour = 0;
+      }
 
       // 3. Factures impayées du jour
       const { data: facturesImpayeesData, error: facturesImpayeesError } = await supabase
@@ -268,7 +299,7 @@ export const useAdvancedDashboardStats = () => {
 
       console.log('✅ Statistiques calculées:', {
         ventesJour,
-        margeJour,
+        balanceJour,
         facturesImpayeesJour,
         depensesMois,
         nombreArticles,
@@ -286,7 +317,7 @@ export const useAdvancedDashboardStats = () => {
 
       return {
         ventesJour,
-        margeJour,
+        balanceJour,
         facturesImpayeesJour,
         depensesMois,
         totalCatalogue,
