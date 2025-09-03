@@ -205,16 +205,21 @@ export const useAdvancedDashboardStats = () => {
 
       const nombreClients = clientsCount || 0;
 
-      // 7. Récupération des données des marges globales de stock
-      const { data: resumeMargesStock, error: resumeMargesError } = await supabase
-        .rpc('get_resume_marges_globales_stock');
+      // 7. Calcul du stock global (quantités totales des entrepôts + PDV)
+      const { data: stockData, error: stockError } = await supabase
+        .from('stock_principal')
+        .select(`
+          quantite_disponible,
+          article:article_id(prix_unitaire)
+        `);
       
-      if (resumeMargesError) {
-        console.error('Error fetching resume marges globales stock:', resumeMargesError);
-        throw resumeMargesError;
-      }
+      const { data: stockPDV, error: stockPDVError } = await supabase
+        .from('stock_pdv')
+        .select(`
+          quantite_disponible,
+          article:article_id(prix_unitaire)
+        `);
 
-      // Utiliser les données des marges globales si disponibles, sinon calcul de fallback
       let totalCatalogue = catalogueCount || 0;
       let stockGlobal = 0;
       let valeurStockAchat = 0;
@@ -222,58 +227,56 @@ export const useAdvancedDashboardStats = () => {
       let margeGlobaleStock = 0;
       let margePourcentage = 0;
 
-      if (resumeMargesStock && resumeMargesStock.length > 0) {
-        const resume = resumeMargesStock[0];
-        stockGlobal = Number(resume.total_articles_en_stock) || 0;
-        valeurStockAchat = Number(resume.valeur_totale_stock_cout) || 0;
-        valeurStockVente = Number(resume.valeur_totale_stock_vente) || 0;
-        margeGlobaleStock = Number(resume.marge_totale_globale) || 0;
-        margePourcentage = Number(resume.taux_marge_moyen_pondere) || 0;
+      if (!stockError && !stockPDVError) {
+        // Calcul des quantités totales (entrepôts + PDV)
+        const stockPrincipalTotal = stockData?.reduce((sum, item) => sum + (item.quantite_disponible || 0), 0) || 0;
+        const stockPDVTotal = stockPDV?.reduce((sum, item) => sum + (item.quantite_disponible || 0), 0) || 0;
+        stockGlobal = stockPrincipalTotal + stockPDVTotal;
         
-        console.log('📊 Données des marges globales de stock récupérées:', {
+        // Calcul des valeurs et marges
+        valeurStockAchat = (stockData?.reduce((sum, item) => {
+          const prix = (item as any).article?.prix_unitaire || 0;
+          const quantite = item.quantite_disponible || 0;
+          return sum + (prix * quantite);
+        }, 0) || 0) + (stockPDV?.reduce((sum, item) => {
+          const prix = (item as any).article?.prix_unitaire || 0;
+          const quantite = item.quantite_disponible || 0;
+          return sum + (prix * quantite);
+        }, 0) || 0);
+        
+        valeurStockVente = valeurStockAchat * 1.3;
+        margeGlobaleStock = valeurStockVente - valeurStockAchat;
+        margePourcentage = valeurStockAchat > 0 ? ((margeGlobaleStock / valeurStockAchat) * 100) : 0;
+        
+        console.log('📊 Stock Global calculé:', {
+          stockPrincipalTotal,
+          stockPDVTotal,
           stockGlobal,
           valeurStockAchat,
           valeurStockVente,
           margeGlobaleStock,
           margePourcentage
         });
-      } else {
-        // Calcul de fallback si les marges globales ne sont pas disponibles
-        console.log('⚠️ Utilisation du calcul de fallback pour les marges globales de stock');
+      }
+
+      // 8. Récupération des données des marges globales (pour validation)
+      const { data: resumeMargesStock, error: resumeMargesError } = await supabase
+        .rpc('get_resume_marges_globales_stock');
+      
+      if (!resumeMargesError && resumeMargesStock && resumeMargesStock.length > 0) {
+        const resume = resumeMargesStock[0];
+        // Utiliser les valeurs et marges de la fonction RPC mais garder notre calcul de quantité
+        valeurStockAchat = Number(resume.valeur_totale_stock_cout) || valeurStockAchat;
+        valeurStockVente = Number(resume.valeur_totale_stock_vente) || valeurStockVente;
+        margeGlobaleStock = Number(resume.marge_totale_globale) || margeGlobaleStock;
+        margePourcentage = Number(resume.taux_marge_moyen_pondere) || margePourcentage;
         
-        const { data: stockData, error: stockError } = await supabase
-          .from('stock_principal')
-          .select(`
-            quantite_disponible,
-            article:article_id(prix_unitaire)
-          `);
-        
-        const { data: stockPDV, error: stockPDVError } = await supabase
-          .from('stock_pdv')
-          .select(`
-            quantite_disponible,
-            article:article_id(prix_unitaire)
-          `);
-        
-        if (!stockError && !stockPDVError) {
-          const stockPrincipalTotal = stockData?.reduce((sum, item) => sum + (item.quantite_disponible || 0), 0) || 0;
-          const stockPDVTotal = stockPDV?.reduce((sum, item) => sum + (item.quantite_disponible || 0), 0) || 0;
-          stockGlobal = stockPrincipalTotal + stockPDVTotal;
-          
-          valeurStockAchat = (stockData?.reduce((sum, item) => {
-            const prix = (item as any).article?.prix_unitaire || 0;
-            const quantite = item.quantite_disponible || 0;
-            return sum + (prix * quantite);
-          }, 0) || 0) + (stockPDV?.reduce((sum, item) => {
-            const prix = (item as any).article?.prix_unitaire || 0;
-            const quantite = item.quantite_disponible || 0;
-            return sum + (prix * quantite);
-          }, 0) || 0);
-          
-          valeurStockVente = valeurStockAchat * 1.3;
-          margeGlobaleStock = valeurStockVente - valeurStockAchat;
-          margePourcentage = valeurStockAchat > 0 ? ((margeGlobaleStock / valeurStockAchat) * 100) : 0;
-        }
+        console.log('📊 Marges globales mises à jour depuis RPC:', {
+          valeurStockAchat,
+          valeurStockVente,
+          margeGlobaleStock,
+          margePourcentage
+        });
       }
 
       // 8. Calculs financiers pour la situation
