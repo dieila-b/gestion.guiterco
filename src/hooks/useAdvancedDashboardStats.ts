@@ -62,35 +62,63 @@ export const useAdvancedDashboardStats = () => {
       const ventesJour = facturesJour?.reduce((sum, facture) => sum + (facture.montant_ttc || 0), 0) || 0;
       console.log('💰 Ventes du jour:', ventesJour);
 
-      // 2. Calcul de la balance du jour (solde de la caisse)
+      // 2. Calcul de la balance du jour (entrées - sorties du jour uniquement)
       let balanceJour = 0;
       
-      // D'abord essayer la vue solde_caisse si elle existe
       try {
-        const { data: viewData, error: viewError } = await supabase
-          .from('vue_solde_caisse')
-          .select('solde_actif')
-          .single();
+        // Récupérer les transactions du jour
+        const { data: transactionsJour, error: transJourError } = await supabase
+          .from('transactions')
+          .select('type, amount, montant, description')
+          .gte('date_operation', startOfToday)
+          .lte('date_operation', endOfToday);
 
-        if (!viewError && viewData) {
-          balanceJour = viewData.solde_actif || 0;
-        } else {
-          // Calcul manuel basique des transactions du jour
-          const { data: transactionsJour, error: transJourError } = await supabase
-            .from('transactions')
-            .select('type, amount, montant, description')
-            .gte('date_operation', startOfToday)
-            .lte('date_operation', endOfToday);
-
-          if (!transJourError && transactionsJour) {
-            balanceJour = transactionsJour
-              .filter(t => t.type === 'income' || t.type === 'expense')
-              .reduce((sum, t) => {
-                const montant = t.amount || t.montant || 0;
-                return sum + (t.type === 'income' ? montant : -montant);
-              }, 0);
-          }
+        if (!transJourError && transactionsJour) {
+          const entreesJour = transactionsJour
+            .filter(t => t.type === 'income')
+            .reduce((sum, t) => sum + (t.amount || t.montant || 0), 0);
+            
+          const sortiesJour = transactionsJour
+            .filter(t => t.type === 'expense')
+            .reduce((sum, t) => sum + (t.amount || t.montant || 0), 0);
+            
+          balanceJour = entreesJour - sortiesJour;
+          console.log('💰 Balance du jour calculée - Entrées:', entreesJour, 'Sorties:', sortiesJour, 'Balance:', balanceJour);
         }
+
+        // Ajouter les opérations de caisse du jour
+        const { data: cashOpsJour, error: cashOpsError } = await supabase
+          .from('cash_operations')
+          .select('type, montant')
+          .gte('created_at', startOfToday)
+          .lte('created_at', endOfToday);
+
+        if (!cashOpsError && cashOpsJour) {
+          const entreesOps = cashOpsJour
+            .filter(op => op.type === 'depot')
+            .reduce((sum, op) => sum + (op.montant || 0), 0);
+            
+          const sortiesOps = cashOpsJour
+            .filter(op => op.type === 'retrait')
+            .reduce((sum, op) => sum + (op.montant || 0), 0);
+            
+          balanceJour += (entreesOps - sortiesOps);
+          console.log('💰 Balance du jour avec cash ops - Entrées ops:', entreesOps, 'Sorties ops:', sortiesOps);
+        }
+
+        // Ajouter les sorties financières du jour
+        const { data: sortiesFinancieres, error: sortiesError } = await supabase
+          .from('sorties_financieres')
+          .select('montant')
+          .gte('date_sortie', startOfToday)
+          .lte('date_sortie', endOfToday);
+
+        if (!sortiesError && sortiesFinancieres) {
+          const totalSortiesFinancieres = sortiesFinancieres.reduce((sum, sortie) => sum + (sortie.montant || 0), 0);
+          balanceJour -= totalSortiesFinancieres;
+          console.log('💰 Balance du jour avec sorties financières:', totalSortiesFinancieres);
+        }
+
       } catch (error) {
         console.error('❌ Erreur calcul balance jour:', error);
         balanceJour = 0;
