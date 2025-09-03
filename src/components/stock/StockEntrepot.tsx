@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { useStockPrincipal, useEntrepots } from '@/hooks/stock';
 import { useCatalogueSync } from '@/hooks/useCatalogueSync';
+import { useViewPermissions } from '@/hooks/useViewPermissions';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -16,6 +17,7 @@ const StockEntrepot = () => {
   const { stockEntrepot, isLoading, error, refreshStock } = useStockPrincipal();
   const { entrepots } = useEntrepots();
   const { syncCatalogue, checkDataIntegrity } = useCatalogueSync();
+  const { shouldBlurFinancialData } = useViewPermissions();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedEntrepot, setSelectedEntrepot] = useState<string>('tous');
   const [lastSyncTime, setLastSyncTime] = useState<Date | null>(null);
@@ -200,8 +202,12 @@ const StockEntrepot = () => {
                     <TableHead className="text-muted-foreground">Article</TableHead>
                     <TableHead className="text-muted-foreground">Entrepôt</TableHead>
                     <TableHead className="text-right text-muted-foreground">Quantité</TableHead>
-                    <TableHead className="text-right text-muted-foreground">Prix unitaire</TableHead>
-                    <TableHead className="text-right text-muted-foreground">Valeur totale</TableHead>
+                    <TableHead className="text-right text-muted-foreground">
+                      {shouldBlurFinancialData() ? "• • • • •" : "Prix unitaire"}
+                    </TableHead>
+                    <TableHead className="text-right text-muted-foreground">
+                      {shouldBlurFinancialData() ? "• • • • •" : "Valeur totale"}
+                    </TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -232,12 +238,12 @@ const StockEntrepot = () => {
                                </span>
                              )}
                            </TableCell>
-                          <TableCell className="text-right text-foreground">
-                            {formatCurrency(unitPrice)}
-                          </TableCell>
-                          <TableCell className="text-right font-medium text-foreground">
-                            {formatCurrency(totalValue)}
-                          </TableCell>
+                           <TableCell className={`text-right text-foreground ${shouldBlurFinancialData() ? 'blur-sm select-none pointer-events-none' : ''}`}>
+                             {shouldBlurFinancialData() ? "• • • • •" : formatCurrency(unitPrice)}
+                           </TableCell>
+                           <TableCell className={`text-right font-medium text-foreground ${shouldBlurFinancialData() ? 'blur-sm select-none pointer-events-none' : ''}`}>
+                             {shouldBlurFinancialData() ? "• • • • •" : formatCurrency(totalValue)}
+                           </TableCell>
                         </TableRow>
                       );
                     })
@@ -275,13 +281,13 @@ const StockEntrepot = () => {
                 <span className="text-muted-foreground">
                   Total articles: {filteredStock.length}
                 </span>
-                <span className="font-medium text-foreground">
-                  Valeur totale du stock: {formatCurrency(
+                <span className={`font-medium text-foreground ${shouldBlurFinancialData() ? 'blur-sm select-none pointer-events-none' : ''}`}>
+                  {shouldBlurFinancialData() ? "Valeur totale du stock: • • • • •" : `Valeur totale du stock: ${formatCurrency(
                     filteredStock.reduce((total, item) => {
                       const unitPrice = item.article?.prix_achat || item.article?.prix_unitaire || 0;
                       return total + calculateTotalValue(item.quantite_disponible, unitPrice);
                     }, 0)
-                  )}
+                  )}`}
                 </span>
               </div>
             </div>
