@@ -4,6 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from '@/components/ui/skeleton';
 import { Package, CreditCard, Users, BarChart3 } from 'lucide-react';
 import { formatAmount } from '@/lib/currency';
+import { useViewPermissions } from '@/hooks/useViewPermissions';
 import type { AdvancedDashboardStats } from '@/hooks/useAdvancedDashboardStats';
 
 interface IconStatsCardsProps {
@@ -12,6 +13,8 @@ interface IconStatsCardsProps {
 }
 
 const IconStatsCards: React.FC<IconStatsCardsProps> = ({ stats, isLoading }) => {
+  const { shouldBlurFinancialData } = useViewPermissions();
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
       {/* Nombre d'articles */}
@@ -34,7 +37,7 @@ const IconStatsCards: React.FC<IconStatsCardsProps> = ({ stats, isLoading }) => 
       </Card>
 
       {/* Règlement fournisseur */}
-      <Card className="bg-white border border-gray-100 shadow-sm hover:shadow-md transition-shadow duration-300 rounded-xl">
+      <Card className={`bg-white border border-gray-100 shadow-sm hover:shadow-md transition-shadow duration-300 rounded-xl ${shouldBlurFinancialData() ? 'blur-sm pointer-events-none select-none' : ''}`}>
         <CardContent className="p-6">
           <div className="flex items-center space-x-4">
             <div className="flex-shrink-0">

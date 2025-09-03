@@ -4,6 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from '@/components/ui/skeleton';
 import { ShoppingCart, TrendingUp, Calculator } from 'lucide-react';
 import { formatCurrency } from '@/lib/currency';
+import { useViewPermissions } from '@/hooks/useViewPermissions';
 import type { AdvancedDashboardStats } from '@/hooks/useAdvancedDashboardStats';
 
 interface BottomStatsCardsProps {
@@ -12,10 +13,12 @@ interface BottomStatsCardsProps {
 }
 
 const BottomStatsCards: React.FC<BottomStatsCardsProps> = ({ stats, isLoading }) => {
+  const { shouldBlurFinancialData } = useViewPermissions();
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
       {/* Stock Global Achat */}
-      <Card className="bg-white border border-gray-100 shadow-sm hover:shadow-md transition-shadow duration-300 rounded-xl">
+      <Card className={`bg-white border border-gray-100 shadow-sm hover:shadow-md transition-shadow duration-300 rounded-xl ${shouldBlurFinancialData() ? 'blur-sm pointer-events-none select-none' : ''}`}>
         <CardContent className="p-6">
           <div className="flex items-center space-x-4">
             <div className="flex-shrink-0">
@@ -34,7 +37,7 @@ const BottomStatsCards: React.FC<BottomStatsCardsProps> = ({ stats, isLoading })
       </Card>
 
       {/* Stock global vente */}
-      <Card className="bg-white border border-gray-100 shadow-sm hover:shadow-md transition-shadow duration-300 rounded-xl">
+      <Card className={`bg-white border border-gray-100 shadow-sm hover:shadow-md transition-shadow duration-300 rounded-xl ${shouldBlurFinancialData() ? 'blur-sm pointer-events-none select-none' : ''}`}>
         <CardContent className="p-6">
           <div className="flex items-center space-x-4">
             <div className="flex-shrink-0">
@@ -53,7 +56,7 @@ const BottomStatsCards: React.FC<BottomStatsCardsProps> = ({ stats, isLoading })
       </Card>
 
       {/* Marge globale en stock */}
-      <Card className="bg-white border border-gray-100 shadow-sm hover:shadow-md transition-shadow duration-300 rounded-xl">
+      <Card className={`bg-white border border-gray-100 shadow-sm hover:shadow-md transition-shadow duration-300 rounded-xl ${shouldBlurFinancialData() ? 'blur-sm pointer-events-none select-none' : ''}`}>
         <CardContent className="p-6">
           <div className="flex items-center space-x-4">
             <div className="flex-shrink-0">

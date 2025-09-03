@@ -4,6 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from '@/components/ui/skeleton';
 import { Activity } from 'lucide-react';
 import { formatCurrency } from '@/lib/currency';
+import { useViewPermissions } from '@/hooks/useViewPermissions';
 import type { AdvancedDashboardStats } from '@/hooks/useAdvancedDashboardStats';
 
 interface SituationCardProps {
@@ -12,10 +13,12 @@ interface SituationCardProps {
 }
 
 const SituationCard: React.FC<SituationCardProps> = ({ stats, isLoading }) => {
+  const { shouldBlurFinancialData } = useViewPermissions();
+
   return (
     <div className="max-w-4xl mx-auto">
       <h2 className="text-2xl font-bold text-center mb-6 text-gray-800">Situation actuelle</h2>
-      <Card className="bg-white border border-gray-100 shadow-md rounded-xl overflow-hidden">
+      <Card className={`bg-white border border-gray-100 shadow-md rounded-xl overflow-hidden ${shouldBlurFinancialData() ? 'blur-sm pointer-events-none select-none' : ''}`}>
         <CardContent className="p-8">
           <div className="flex items-center space-x-6">
             <div className="flex-shrink-0">
