@@ -1,12 +1,11 @@
-
 import React, { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Loader2, Lock, Mail, Shield } from 'lucide-react';
+import { Loader2, Lock, Mail } from 'lucide-react';
 import { useAuth } from './AuthContext';
 
 const LoginPage = () => {
@@ -48,7 +47,7 @@ const LoginPage = () => {
         }
       } else {
         console.log('✅ Connexion réussie depuis LoginPage');
-        // La redirection se fera automatiquement via useEffect quand l'état auth sera mis à jour
+        // La redirection se fera automatiquement via useEffect
       }
     } catch (err) {
       console.error('❌ Erreur inattendue lors de la connexion:', err);
@@ -73,16 +72,20 @@ const LoginPage = () => {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
+        {/* --- Zone du logo et du titre --- */}
         <div className="text-center">
-          <div className="mx-auto h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center">
-            <Shield className="h-6 w-6 text-primary" />
-          </div>
-          <h1 className="mt-6 text-3xl font-bold text-gray-900">GestCompta</h1>
+          <img
+            src="/logo_GIC.png"
+            alt="GIC"
+            className="mx-auto h-20 w-auto mb-4"
+          />
+          <h1 className="mt-2 text-3xl font-bold text-gray-900">Gestion GuIterCo</h1>
           <p className="mt-2 text-sm text-gray-600">
-            Accès réservé aux utilisateurs autorisés
+            Portail interne — Accès réservé aux utilisateurs autorisés
           </p>
         </div>
 
+        {/* --- Formulaire de connexion --- */}
         <Card>
           <CardHeader>
             <CardTitle className="text-center">Connexion</CardTitle>
